@@ -2,27 +2,22 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
-using Microsoft.CodeAnalysis.Scripting.Hosting;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
-namespace CSharpLangRepl
+namespace LangRepl
 {
-    class CompilationRunner
+    class ScriptRunner
     {
-        private ScriptOptions scriptOptions;
+        private readonly ScriptOptions scriptOptions;
         private ScriptState<object> state;
 
-
-        public CompilationRunner(ScriptOptions scriptOptions)
+        public ScriptRunner(CSharpCompilationOptions compilationOptions, PortableExecutableReference[] defaultReferences)
         {
-            this.scriptOptions = scriptOptions;
+            this.scriptOptions = ScriptOptions
+                .Default
+                .AddReferences(defaultReferences)
+                .AddImports(compilationOptions.Usings);
         }
 
         public async Task<EvaluationResult> RunCompilation(string text)
@@ -47,7 +42,6 @@ namespace CSharpLangRepl
                 : state.ContinueWithAsync(text, scriptOptions);
         }
     }
-
 
     public abstract record EvaluationResult
     {
