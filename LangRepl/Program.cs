@@ -1,21 +1,35 @@
-﻿using PrettyPrompt;
-using PrettyPrompt.Highlighting;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using PrettyPrompt;
+using LangRepl.Roslyn;
+using LangRepl.PromptConfiguration;
+using PrettyPrompt.Highlighting;
+using PrettyPrompt.Completion;
+using LangRepl.Nuget;
+using PrettyPrompt.Consoles;
 
 namespace LangRepl
 {
-    class Program
+    static class Program
     {
-        private static ReplServices repl;
+        private static RoslynServices roslyn;
+        private static PromptAdapter adapter;
 
         static async Task Main(string[] args)
         {
-            var prompt = new Prompt(completionHandler: complete, highlightHandler: highlight, forceSoftEnterHandler: ShouldBeSoftEnter);
-            repl = new ReplServices();
-            repl.WarmUp();
+            Console.WriteLine($"Welcome to {nameof(LangRepl)}!");
+            Console.WriteLine(@"Evaluate C# expressions at the prompt, and type ""exit"" to stop.");
+            Console.WriteLine();
+            Console.WriteLine($@"Use the {Preprocessor()} command to add assembly or nuget references.");
+            Console.WriteLine($@"For assembly references, run {Preprocessor("AssemblyName")} or {Preprocessor("path/to/assembly.dll")}");
+            Console.WriteLine($@"For nuget references, run {Preprocessor("nuget: PackageName")} or {Preprocessor("nuget: PackageName, version")}");
+            Console.WriteLine();
+
+            var prompt = ConfigurePrompt();
+            roslyn = new RoslynServices();
+            adapter = new PromptAdapter();
+            roslyn.WarmUp();
 
             while (true)
             {
@@ -24,8 +38,8 @@ namespace LangRepl
                 {
                     if (response.Text == "exit") break;
 
-                    var result = await repl.Evaluate(new TextInput(response.Text)).ConfigureAwait(false);
-                    if(result is EvaluationResult.Error err)
+                    var result = await roslyn.Evaluate(new TextInput(response.Text)).ConfigureAwait(false);
+                    if (result is EvaluationResult.Error err)
                     {
                         Console.Error.WriteLine(err.Exception.Message);
                     }
@@ -36,53 +50,28 @@ namespace LangRepl
                 }
             }
         }
+        private static string Preprocessor(string reference = null) =>
+            AnsiEscapeCodes.ToAnsiEscapeSequence(PromptAdapter.ToColor("preprocessor keyword"))
+            + "#r" + AnsiEscapeCodes.Reset
+            + (reference is null
+                ? ""
+                : AnsiEscapeCodes.ToAnsiEscapeSequence(PromptAdapter.ToColor("string"))
+                  + @" """ + reference + @""""
+                  + AnsiEscapeCodes.Reset
+              );
 
-        private static async Task<bool> ShouldBeSoftEnter(string text)
+        private static Prompt ConfigurePrompt()
         {
-            bool isComplete = await repl.IsTextCompleteStatement(text).ConfigureAwait(false);
-            return !isComplete;
-        }
+            return new Prompt(completionHandler, highlightHandler, forceSoftEnterHandler);
 
-        private static async Task<IReadOnlyCollection<FormatSpan>> highlight(string text)
-        {
-            var results = await repl.Highlight(text).ConfigureAwait(false);
+            static async Task<IReadOnlyList<CompletionItem>> completionHandler(string text, int caret) =>
+                adapter.AdaptCompletions(await roslyn.Complete(text, caret).ConfigureAwait(false));
 
-            return results
-                .Select(r => new FormatSpan(r.TextSpan.Start, r.TextSpan.Length, ToColor(r.ClassificationType)))
-                .Where(f => f.Formatting is not null)
-                .ToArray();
-        }
+            static async Task<IReadOnlyCollection<FormatSpan>> highlightHandler(string text) =>
+                adapter.AdaptSyntaxClassification(await roslyn.ClassifySyntax(text).ConfigureAwait(false));
 
-        private static ConsoleFormat ToColor(string classificationType) =>
-            classificationType switch
-            {
-                "string" => new ConsoleFormat(AnsiColor.BrightYellow),
-                "number" => new ConsoleFormat(AnsiColor.BrightBlue),
-                "operator" => new ConsoleFormat(AnsiColor.Magenta),
-                "keyword" => new ConsoleFormat(AnsiColor.Magenta),
-                "keyword - control" => new ConsoleFormat(AnsiColor.Magenta),
-
-                "record class name" => new ConsoleFormat(AnsiColor.BrightCyan),
-                "class name" => new ConsoleFormat(AnsiColor.BrightCyan),
-                "struct name" => new ConsoleFormat(AnsiColor.BrightCyan),
-
-                "comment" => new ConsoleFormat(AnsiColor.Cyan),
-                _ => null
-            };
-
-        private static async Task<IReadOnlyList<PrettyPrompt.Completion.CompletionItem>> complete(string text, int caret)
-        {
-            var results = await repl.Complete(text, caret).ConfigureAwait(false);
-            return results?.Items
-                .OrderByDescending(i => i.Rules.MatchPriority)
-                .Select(r => new PrettyPrompt.Completion.CompletionItem
-                {
-                    StartIndex = r.Span.Start,
-                    ReplacementText = r.DisplayText
-                })
-                .ToArray()
-                ??
-                Array.Empty<PrettyPrompt.Completion.CompletionItem>();
+            static async Task<bool> forceSoftEnterHandler(string text) =>
+                !await roslyn.IsTextCompleteStatement(text).ConfigureAwait(false);
         }
     }
 }

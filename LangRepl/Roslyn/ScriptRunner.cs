@@ -1,22 +1,28 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using LangRepl.Nuget;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
-namespace LangRepl
+namespace LangRepl.Roslyn
 {
     class ScriptRunner
     {
+        private readonly NugetMetadataResolver nugetResolver;
         private readonly ScriptOptions scriptOptions;
         private ScriptState<object> state;
 
-        public ScriptRunner(CSharpCompilationOptions compilationOptions, PortableExecutableReference[] defaultReferences)
+        public ScriptRunner(CSharpCompilationOptions compilationOptions, IReadOnlyCollection<MetadataReference> defaultImplementationAssemblies)
         {
+            this.nugetResolver = new NugetMetadataResolver();
             this.scriptOptions = ScriptOptions
                 .Default
-                .AddReferences(defaultReferences)
+                .WithMetadataResolver(nugetResolver)
+                .WithReferences(defaultImplementationAssemblies)
                 .AddImports(compilationOptions.Usings);
         }
 
@@ -24,9 +30,16 @@ namespace LangRepl
         {
             try
             {
+                if(nugetResolver.IsNugetReference(text))
+                {
+                    var result = await nugetResolver.InstallNugetPackage(text);
+                    state = await EvaluateStringWithStateAsync("", state, scriptOptions.AddReferences(result));
+                    return new EvaluationResult.Success(text, null, result);
+                }
                 state = await EvaluateStringWithStateAsync(text, this.state, this.scriptOptions);
+                var compilation = state.Script.GetCompilation();
                 return state.Exception is null
-                    ? new EvaluationResult.Success(state.ReturnValue)
+                    ? new EvaluationResult.Success(text, state.ReturnValue, compilation.References.ToList())
                     : new EvaluationResult.Error(state.Exception);
             }
             catch (Exception exception)
@@ -46,6 +59,6 @@ namespace LangRepl
     public abstract record EvaluationResult
     {
         public record Error(Exception Exception) : EvaluationResult;
-        public record Success(object ReturnValue) : EvaluationResult;
+        public record Success(string Input, object ReturnValue, IReadOnlyCollection<MetadataReference> References) : EvaluationResult;
     }
 }

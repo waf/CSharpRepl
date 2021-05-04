@@ -4,27 +4,28 @@ using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
-namespace LangRepl
+namespace LangRepl.Roslyn
 {
     class WorkspaceManager
     {
         private readonly AdhocWorkspace workspace;
         private readonly CSharpCompilationOptions compilationOptions;
-        private readonly MetadataReference[] defaultReferences;
+        private readonly ReferenceAssemblyService referenceAssemblyService;
 
         public Document CurrentDocument { get; private set; }
 
-        public WorkspaceManager(CSharpCompilationOptions compilationOptions, MetadataReference[] defaultReferences)
+        public WorkspaceManager(CSharpCompilationOptions compilationOptions, ReferenceAssemblyService referenceAssemblyService)
         {
             this.compilationOptions = compilationOptions;
-            this.defaultReferences = defaultReferences;
+            this.referenceAssemblyService = referenceAssemblyService;
             this.workspace = new AdhocWorkspace(MefHostServices.Create(MefHostServices.DefaultAssemblies));
 
             this.CurrentDocument = EmptyProjectAndDocumentChangeset(
                     workspace.CurrentSolution,
-                    defaultReferences,
+                    referenceAssemblyService.EnsureReferenceAssemblyWithDocumentation(referenceAssemblyService.DefaultReferenceAssemblies),
                     compilationOptions,
                     out var documentId
                 )
@@ -32,15 +33,15 @@ namespace LangRepl
                 .GetDocument(documentId);
         }
 
-        public void UpdateCurrentDocument(string text)
+        public void UpdateCurrentDocument(EvaluationResult.Success result)
         {
             CurrentDocument = EmptyProjectAndDocumentChangeset(
                     workspace.CurrentSolution,
-                    defaultReferences,
+                    referenceAssemblyService.EnsureReferenceAssemblyWithDocumentation(result.References),
                     compilationOptions,
                     out var documentId
                 )
-                .WithDocumentText(CurrentDocument.Id, SourceText.From(text))
+                .WithDocumentText(CurrentDocument.Id, SourceText.From(result.Input))
                 .ApplyChanges(workspace)
                 .GetDocument(documentId);
         }
@@ -88,6 +89,5 @@ namespace LangRepl
                 .WithCompilationOptions(compilationOptions);
             return projectInfo;
         }
-
     }
 }

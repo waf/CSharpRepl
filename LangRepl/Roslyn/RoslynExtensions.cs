@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using System;
 
-namespace LangRepl
+namespace LangRepl.Roslyn
 {
     static class RoslynExtensions
     {
