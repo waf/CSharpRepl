@@ -1,13 +1,10 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace LangRepl.Nuget
+namespace ReplDotNet.Nuget
 {
     public class NugetMetadataResolver : MetadataReferenceResolver
     {
@@ -35,7 +32,8 @@ namespace LangRepl.Nuget
 
             // This is a bit of a kludge. roslyn does not yet support adding multiple references from a single ResolveReference call, which
             // can happen with nuget packages (because they can have multiple DLLs and dependencies). https://github.com/dotnet/roslyn/issues/6900
-            // We still want to use the "mostly standard" syntax of `#r "nuget:PackageName"` though, so make this a no-op and handle it in InstallNugetPackage instead.
+            // We still want to use the "mostly standard" syntax of `#r "nuget:PackageName"` though, so make this a no-op and install the package
+            // in the InstallNugetPackage method instead. Additional benefit is that we can use "real async" rather than needing to block here.
             if (IsNugetReference(reference))
             {
                 return dummyPlaceholder;

@@ -1,5 +1,4 @@
 ﻿using Microsoft.CodeAnalysis;
-using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Frameworks;
 using NuGet.PackageManagement;
@@ -21,7 +20,7 @@ using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace LangRepl.Nuget
+namespace ReplDotNet.Nuget
 {
     public class NugetPackageInstaller
     {
@@ -66,10 +65,14 @@ namespace LangRepl.Nuget
             }
 
             var references = await GetAssemblyReferenceWithDependencies(frameworkVersion, nuGetProject, packageIdentity);
+            if(references.Any())
+            {
+                logger.LogInformationSummary("Adding references for " + packageIdentity);
+            }
             return references;
         }
 
-        private static async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity)
+        private async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity)
         {
             var packages = await GetDependencies(frameworkVersion, nuGetProject, packageIdentity);
 

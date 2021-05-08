@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace LangRepl
+namespace ReplDotNet
 {
-    class EqualityComparerFunc<T> : IEqualityComparer<T>
+    public class EqualityComparerFunc<T> : IEqualityComparer<T>
     {
         readonly Func<T, T, bool> _comparer;
         readonly Func<T, int> _hash;

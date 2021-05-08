@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PrettyPrompt;
-using LangRepl.Roslyn;
-using LangRepl.PromptConfiguration;
+using ReplDotNet.Roslyn;
+using ReplDotNet.PromptConfiguration;
 using PrettyPrompt.Highlighting;
 using PrettyPrompt.Completion;
-using LangRepl.Nuget;
 using PrettyPrompt.Consoles;
 
-namespace LangRepl
+namespace ReplDotNet
 {
     static class Program
     {
@@ -18,7 +17,9 @@ namespace LangRepl
 
         static async Task Main(string[] args)
         {
-            Console.WriteLine($"Welcome to {nameof(LangRepl)}!");
+            roslyn = new RoslynServices();
+
+            Console.WriteLine($"Welcome to {nameof(ReplDotNet)}!");
             Console.WriteLine(@"Evaluate C# expressions at the prompt, and type ""exit"" to stop.");
             Console.WriteLine();
             Console.WriteLine($@"Use the {Preprocessor()} command to add assembly or nuget references.");
@@ -27,7 +28,6 @@ namespace LangRepl
             Console.WriteLine();
 
             var prompt = ConfigurePrompt();
-            roslyn = new RoslynServices();
             adapter = new PromptAdapter();
             roslyn.WarmUp();
 
@@ -50,16 +50,20 @@ namespace LangRepl
                 }
             }
         }
-        private static string Preprocessor(string reference = null) =>
-            AnsiEscapeCodes.ToAnsiEscapeSequence(PromptAdapter.ToColor("preprocessor keyword"))
-            + "#r" + AnsiEscapeCodes.Reset
-            + (reference is null
-                ? ""
-                : AnsiEscapeCodes.ToAnsiEscapeSequence(PromptAdapter.ToColor("string"))
-                  + @" """ + reference + @""""
-                  + AnsiEscapeCodes.Reset
-              );
+        private static string Preprocessor(string reference = null)
+        {
+            var preprocessor = Color("preprocessor keyword") + "#r" + AnsiEscapeCodes.Reset;
+            var argument = reference is null ? "" : Color("string") + @" """ + reference + @"""" + AnsiEscapeCodes.Reset;
 
+            return preprocessor + argument;
+
+            string Color(string reference) =>
+                AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(roslyn.ToColor(reference)));
+        }
+
+        /// <summary>
+        /// Create our callbacks for configuring PrettyPrompt
+        /// </summary>
         private static Prompt ConfigurePrompt()
         {
             return new Prompt(completionHandler, highlightHandler, forceSoftEnterHandler);

@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using NuGet.Common;
 
-namespace LangRepl.Nuget
+namespace ReplDotNet.Nuget
 {
     public class ConsoleNugetLogger : ILogger
     {

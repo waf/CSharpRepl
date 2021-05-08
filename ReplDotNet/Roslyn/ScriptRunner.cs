@@ -1,4 +1,4 @@
-﻿using LangRepl.Nuget;
+﻿using ReplDotNet.Nuget;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace LangRepl.Roslyn
+namespace ReplDotNet.Roslyn
 {
     class ScriptRunner
     {

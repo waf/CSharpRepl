@@ -4,10 +4,9 @@ using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
-namespace LangRepl.Roslyn
+namespace ReplDotNet.Roslyn
 {
     class WorkspaceManager
     {

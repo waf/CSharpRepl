@@ -1,24 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using LangRepl.Roslyn;
-using Microsoft.CodeAnalysis.Classification;
-using Microsoft.CodeAnalysis.Completion;
+using ReplDotNet.Roslyn;
+using ReplDotNet.SyntaxHighlighting;
 using PrettyPrompt.Highlighting;
 using PromptCompletionItem = PrettyPrompt.Completion.CompletionItem;
 
-namespace LangRepl.PromptConfiguration
+namespace ReplDotNet.PromptConfiguration
 {
     /// <summary>
     /// Maps the roslyn datatypes into prompt configuration datatypes
     /// </summary>
     class PromptAdapter
     {
-        public IReadOnlyCollection<FormatSpan> AdaptSyntaxClassification(IReadOnlyCollection<ClassifiedSpan> classifications)
+        public IReadOnlyCollection<FormatSpan> AdaptSyntaxClassification(IReadOnlyCollection<HighlightedSpan> classifications)
         {
             return classifications
-                .Select(r => new FormatSpan(r.TextSpan.Start, r.TextSpan.Length, ToColor(r.ClassificationType)))
+                .Select(r => new FormatSpan(
+                    r.TextSpan.Start,
+                    r.TextSpan.Length,
+                    new ConsoleFormat(foreground: r.Color)
+                ))
                 .Where(f => f.Formatting is not null)
                 .ToArray();
         }

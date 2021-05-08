@@ -1,28 +1,29 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using ReplDotNet.SyntaxHighlighting;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.QuickInfo;
 using Microsoft.CodeAnalysis.Text;
+using PrettyPrompt.Highlighting;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
-namespace LangRepl.Roslyn
+namespace ReplDotNet.Roslyn
 {
     class RoslynServices
     {
         private readonly Task initialization;
+        private readonly SyntaxHighlighter highlighter;
         private ScriptRunner scriptRunner;
         private WorkspaceManager workspaceManager;
 
         public RoslynServices()
         {
+            this.highlighter = new SyntaxHighlighter(null);
             this.initialization = Task.Run(() =>
             {
                 var referenceService = new ReferenceAssemblyService();
@@ -34,6 +35,7 @@ namespace LangRepl.Roslyn
                 this.scriptRunner = new ScriptRunner(compilationOptions, referenceService.DefaultImplementationAssemblies);
                 this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService);
             });
+            initialization.ContinueWith(task => Console.Error.WriteLine(task.Exception.Message), TaskContinuationOptions.OnlyOnFaulted);
         }
 
         public async Task<EvaluationResult> Evaluate(TextInput input)
@@ -77,17 +79,20 @@ namespace LangRepl.Roslyn
                 Array.Empty<CompletionItemWithDescription>();
         }
 
-        public async Task<IReadOnlyCollection<ClassifiedSpan>> ClassifySyntax(string text)
+        internal AnsiColor ToColor(string keyword) =>
+            highlighter.GetColor(keyword);
+
+        public async Task<IReadOnlyCollection<HighlightedSpan>> ClassifySyntax(string text)
         {
             if (!initialization.IsCompleted)
-                return Array.Empty<ClassifiedSpan>();
+                return Array.Empty<HighlightedSpan>();
 
             var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
-            IEnumerable<ClassifiedSpan> classified = await Classifier.GetClassifiedSpansAsync(
-                document,
-                TextSpan.FromBounds(0, text.Length)
-            ).ConfigureAwait(false);
-            return classified.ToList();
+
+            var classified = await Classifier.GetClassifiedSpansAsync(document, TextSpan.FromBounds(0, text.Length)).ConfigureAwait(false);
+            var highlighted = highlighter.Highlight(classified.ToList());
+
+            return highlighted;
         }
 
         public async Task<bool> IsTextCompleteStatement(string text)
