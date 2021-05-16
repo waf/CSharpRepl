@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Sharply.Services;
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -23,25 +23,42 @@ namespace Sharply
         {
             string currentSwitch = "";
             return args
-                .SelectMany(arg => arg.Split(new[] { ":", "=" }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 .Aggregate(existingConfiguration ?? new Configuration(), (config, arg) =>
                 {
                     //
                     // process option flags
                     //
                     if (arg == "-v" || arg == "--version" || arg == "/v")
-                        config.ShowVersion = true;
+                        config.ShowVersionAndExit = true;
                     else if (arg == "-h" || arg == "--help" || arg == "/h" || arg == "/?" || arg == "-?")
-                        config.ShowHelp = true;
+                        config.ShowHelpAndExit = true;
                     //
-                    // process option names
+                    // process option names, and optional values if they're provided like /r:Reference
                     //
-                    else if (arg == "-r" || arg == "--reference" || arg == "/r")
+                    else if (arg.StartsWith("-r") || arg.StartsWith("--reference") || arg.StartsWith("/r"))
+                    {
                         currentSwitch = "-r";
-                    else if (arg == "-u" || arg == "--using"|| arg == "/u")
+                        if(TryGetOptionalValue(arg, out string reference))
+                        {
+                            config.References.Add(reference);
+                        }
+                    }
+                    else if (arg.StartsWith("-u") || arg.StartsWith("--using") || arg.StartsWith("/u"))
+                    { 
                         currentSwitch = "-u";
-                    else if (arg == "-t" || arg == "--theme"|| arg == "/t")
+                        if(TryGetOptionalValue(arg, out string usingNamespace))
+                        {
+                            config.Usings.Add(usingNamespace);
+                        }
+                    }
+                    else if (arg.StartsWith("-t") || arg.StartsWith("--theme") || arg.StartsWith("/t"))
+                    { 
                         currentSwitch = "-t";
+                        if(TryGetOptionalValue(arg, out string theme))
+                        {
+                             config.Theme = theme;
+                        }
+                    }
                     //
                     // process option values
                     //
@@ -56,13 +73,13 @@ namespace Sharply
                     // 
                     else if (arg.EndsWith(".csx"))
                     {
-                        if (!File.Exists(arg)) throw new FileNotFoundException(arg);
-                        config.Load = arg;
+                        if (!File.Exists(arg)) throw new FileNotFoundException($@"Script file ""{arg}"" was not found");
+                        config.LoadScript = File.ReadAllText(arg);
                     }
                     else if (arg.EndsWith(".rsp"))
                     {
                         string path = arg.TrimStart('@'); // a common convention is to prefix rsp files with '@'
-                        if (!File.Exists(path)) throw new FileNotFoundException(path);
+                        if (!File.Exists(path)) throw new FileNotFoundException($@"RSP file ""{path}"" was not found");
                         if (existingConfiguration is not null) throw new InvalidOperationException("Response files cannot be nested.");
                         var responseFile = File
                             .ReadAllText(path)
@@ -73,6 +90,18 @@ namespace Sharply
                         throw new InvalidOperationException("Unknown command line option: " + arg);
                     return config;
                 });
+        }
+
+        private static bool TryGetOptionalValue(string arg, out string value)
+        {
+            var referenceValue = arg.Split(new[] { ':', '=' }, 2);
+            if (referenceValue.Length == 2)
+            {
+                value = referenceValue[1];
+                return true;
+            }
+            value = null;
+            return false;
         }
 
         public static string GetHelp() =>
@@ -101,16 +130,5 @@ namespace Sharply
                 .InformationalVersion;
             return product + " " + version;
         }
-    }
-
-    class Configuration
-    {
-        public List<string> References { get; } = new();
-        public List<string> Usings { get; } = new();
-        public string Theme { get; set; }
-        public string ResponseFile { get; set; }
-        public string Load { get; set; }
-        public bool ShowVersion { get; set; }
-        public bool ShowHelp { get; set; }
     }
 }

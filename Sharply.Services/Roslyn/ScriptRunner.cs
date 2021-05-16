@@ -14,7 +14,7 @@ namespace Sharply.Services.Roslyn
     class ScriptRunner
     {
         private readonly NugetMetadataResolver nugetResolver;
-        private readonly ScriptOptions scriptOptions;
+        private ScriptOptions scriptOptions;
         private ScriptState<object> state;
 
         public ScriptRunner(CSharpCompilationOptions compilationOptions, IReadOnlyCollection<MetadataReference> defaultImplementationAssemblies)
@@ -30,12 +30,15 @@ namespace Sharply.Services.Roslyn
         {
             try
             {
-                if (nugetResolver.IsNugetReference(text))
+                var nugetCommands = text
+                    .Split(new[] { '\r', '\n' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                    .Where(nugetResolver.IsNugetReference);
+                foreach (var nugetCommand in nugetCommands)
                 {
-                    var nugetReferences = await nugetResolver.InstallNugetPackage(text, cancellationToken).ConfigureAwait(false);
-                    state = await EvaluateStringWithStateAsync(null, state, scriptOptions.AddReferences(nugetReferences), cancellationToken).ConfigureAwait(false);
-                    return new EvaluationResult.Success(text, null, nugetReferences);
+                    var nugetReferences = await nugetResolver.InstallNugetPackage(nugetCommand, cancellationToken).ConfigureAwait(false);
+                    this.scriptOptions = this.scriptOptions.AddReferences(nugetReferences);
                 }
+
                 state = await EvaluateStringWithStateAsync(text, state, this.scriptOptions, cancellationToken).ConfigureAwait(false);
                 var evaluatedReferences = state.Script.GetCompilation().References.ToList();
 

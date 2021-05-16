@@ -22,12 +22,12 @@ namespace Sharply.Services.Roslyn
         private WorkspaceManager workspaceManager;
         private PrettyPrinter prettyPrinter;
 
-        public RoslynServices()
+        public RoslynServices(Configuration config)
         {
-            this.highlighter = new SyntaxHighlighter(null);
+            this.highlighter = new SyntaxHighlighter(config.Theme);
             this.initialization = Task.Run(() =>
             {
-                var referenceService = new ReferenceAssemblyService();
+                var referenceService = new ReferenceAssemblyService(config);
                 var compilationOptions = new CSharpCompilationOptions(
                     OutputKind.DynamicallyLinkedLibrary,
                     usings: referenceService.DefaultUsings
@@ -58,10 +58,10 @@ namespace Sharply.Services.Roslyn
             return result;
         }
 
-        public string PrettyPrint(object obj, bool displayDetails)
-        {
-            return prettyPrinter.FormatObject(obj, displayDetails);
-        }
+        public string PrettyPrint(object obj, bool displayDetails) =>
+            obj is Exception ex
+            ? prettyPrinter.FormatException(ex, displayDetails)
+            : prettyPrinter.FormatObject(obj, displayDetails);
 
         public async Task<IReadOnlyCollection<CompletionItemWithDescription>> Complete(string text, int caret)
         {

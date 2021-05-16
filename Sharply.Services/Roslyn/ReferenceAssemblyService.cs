@@ -24,20 +24,27 @@ namespace Sharply.Services.Roslyn
         public IReadOnlyCollection<MetadataReference> DefaultReferenceAssemblies { get; }
         public IReadOnlyCollection<string> DefaultUsings { get; }
 
-        public ReferenceAssemblyService()
+        public ReferenceAssemblyService(Configuration config)
         {
             this.CurrentReferenceAssemblyPath = GetCurrentAssemblyReferencePath();
-            this.DefaultReferenceAssemblies = CreateDefaultReferences(CurrentReferenceAssemblyPath, DefaultReferenceAssemblyFilenames);
+            this.DefaultReferenceAssemblies = CreateDefaultReferences(
+                CurrentReferenceAssemblyPath,
+                DefaultReferenceAssemblyFilenames
+            );
 
             this.CurrentImplementationAssemblyPath = Path.GetDirectoryName(typeof(object).Assembly.Location);
-            this.DefaultImplementationAssemblies = CreateDefaultReferences(CurrentImplementationAssemblyPath, DefaultImplementationAssemblyFilenames(CurrentImplementationAssemblyPath));
+            this.DefaultImplementationAssemblies = CreateDefaultReferences(
+                CurrentImplementationAssemblyPath,
+                DefaultImplementationAssemblyFilenames(CurrentImplementationAssemblyPath).Concat(config.References).ToList()
+            );
 
-            this.DefaultUsings = new[]
-            {
-                "System", "System.IO", "System.Collections.Generic",
-                "System.Linq", "System.Net.Http",
-                "System.Text", "System.Threading.Tasks"
-            };
+            this.DefaultUsings = new[] {
+                    "System", "System.IO", "System.Collections.Generic",
+                    "System.Linq", "System.Net.Http",
+                    "System.Text", "System.Threading.Tasks"
+                }
+                .Concat(config.Usings)
+                .ToList();
         }
 
         internal IReadOnlyCollection<MetadataReference> EnsureReferenceAssemblyWithDocumentation(IReadOnlyCollection<MetadataReference> references)

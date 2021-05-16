@@ -4,6 +4,8 @@ using Sharply.Services.Roslyn;
 using PrettyPrompt.Highlighting;
 using PrettyPrompt.Consoles;
 using Sharply.Prompt;
+using Sharply.Services;
+using System.Threading;
 
 namespace Sharply
 {
@@ -17,13 +19,13 @@ namespace Sharply
             if (config is null)
                 return;
 
-            if(config.ShowHelp)
+            if(config.ShowHelpAndExit)
             {
                 Console.WriteLine(CommandLine.GetHelp());
                 return;
             }
 
-            if(config.ShowVersion)
+            if(config.ShowVersionAndExit)
             {
                 Console.WriteLine(CommandLine.GetVersion());
                 return;
@@ -41,7 +43,12 @@ namespace Sharply
             catch (Exception ex)
             {
                 Console.WriteLine(CommandLine.GetHelp());
-                Console.Error.Write(ex.Message);
+
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine(ex.Message);
+                Console.ResetColor();
+
+                Console.WriteLine();
                 return null;
             }
         }
@@ -51,7 +58,7 @@ namespace Sharply
             // these are required to run before displaying the welcome text.
             // `roslyn` is required for the syntax highlighting in the text,
             // and `prompt` is required because it enables escape sequences.
-            roslyn = new RoslynServices();
+            roslyn = new RoslynServices(config);
             var prompt = PromptConfiguration.Create(roslyn);
 
             Console.WriteLine($"Welcome to {nameof(Sharply)}!");
@@ -63,7 +70,7 @@ namespace Sharply
             Console.WriteLine($@"For nuget references, run {Preprocessor("nuget: PackageName")} or {Preprocessor("nuget: PackageName, version")}");
             Console.WriteLine();
 
-            roslyn.WarmUp();
+            await Preload(config).ConfigureAwait(false);
 
             while (true)
             {
@@ -76,24 +83,42 @@ namespace Sharply
                         .Evaluate(response.Text, response.CancellationToken)
                         .ConfigureAwait(false);
 
-                    switch (result)
-                    {
-                        case EvaluationResult.Success ok when ok.ReturnValue is not null:
-                            var formatted = roslyn.PrettyPrint(ok.ReturnValue, displayDetails: response.IsHardEnter);
-                            Console.WriteLine(formatted);
-                            break;
-                        case EvaluationResult.Error err:
-                            Console.Error.WriteLine(
-                                AnsiEscapeCodes.Red + err.Exception.Message + AnsiEscapeCodes.Reset
-                            );
-                            break;
-                        case EvaluationResult.Cancelled:
-                            Console.Error.WriteLine(
-                                AnsiEscapeCodes.Yellow + "Operation cancelled." + AnsiEscapeCodes.Reset
-                            );
-                            break;
-                    }
+                    Print(result, displayDetails: response.IsHardEnter);
                 }
+            }
+        }
+
+        private static async Task Preload(Configuration config)
+        {
+            if (config.LoadScript is not null)
+            {
+                Console.WriteLine("Running supplied CSX file...");
+                var loadScriptResult = await roslyn.Evaluate(config.LoadScript, CancellationToken.None).ConfigureAwait(false);
+                Print(loadScriptResult, displayDetails: false);
+            }
+            else
+            {
+                roslyn.WarmUp();
+            }
+        }
+
+        private static void Print(EvaluationResult result, bool displayDetails)
+        {
+            switch (result)
+            {
+                case EvaluationResult.Success ok when ok.ReturnValue is not null:
+                    var formatted = roslyn.PrettyPrint(ok.ReturnValue, displayDetails);
+                    Console.WriteLine(formatted);
+                    break;
+                case EvaluationResult.Error err:
+                    var formattedError = roslyn.PrettyPrint(err.Exception, displayDetails);
+                    Console.Error.WriteLine(AnsiEscapeCodes.Red + formattedError + AnsiEscapeCodes.Reset);
+                    break;
+                case EvaluationResult.Cancelled:
+                    Console.Error.WriteLine(
+                        AnsiEscapeCodes.Yellow + "Operation cancelled." + AnsiEscapeCodes.Reset
+                    );
+                    break;
             }
         }
 
