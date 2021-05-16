@@ -1,4 +1,5 @@
 ﻿using Sharply.Services;
+using Sharply.Services.Roslyn;
 using System;
 using System.IO;
 using System.Linq;
@@ -15,14 +16,13 @@ namespace Sharply
     /// existing library that covers the following:
     ///     - Supports response files (i.e. ".rsp" files) for compatibility with other interactive C# consoles (e.g. csi).
     ///     - Supports windows-style forward slash arguments (e.g. /u), again for compatibility with other C# consoles.
-    /// Additionally, the parsing logic is only ~50 lines of code with no reflection, so maybe it's not too big a sin!
     /// </remarks>
     class CommandLine
     {
         public static Configuration ParseArguments(string[] args, Configuration existingConfiguration = null)
         {
             string currentSwitch = "";
-            return args
+            var config = args
                 .Aggregate(existingConfiguration ?? new Configuration(), (config, arg) =>
                 {
                     //
@@ -51,6 +51,14 @@ namespace Sharply
                             config.Usings.Add(usingNamespace);
                         }
                     }
+                    else if (arg.StartsWith("-s") || arg.StartsWith("--sdk") || arg.StartsWith("/sdk"))
+                    { 
+                        currentSwitch = "-s";
+                        if(TryGetOptionalValue(arg, out string sdk))
+                        {
+                             config.Sdk = sdk;
+                        }
+                    }
                     else if (arg.StartsWith("-t") || arg.StartsWith("--theme") || arg.StartsWith("/t"))
                     { 
                         currentSwitch = "-t";
@@ -66,6 +74,8 @@ namespace Sharply
                         config.References.Add(arg);
                     else if (currentSwitch == "-u")
                         config.Usings.Add(arg);
+                    else if (currentSwitch == "-s")
+                        config.Sdk = arg;
                     else if (currentSwitch == "-t")
                         config.Theme = arg;
                     // 
@@ -90,6 +100,13 @@ namespace Sharply
                         throw new InvalidOperationException("Unknown command line option: " + arg);
                     return config;
                 });
+
+            if (!Sdk.SupportedSdks.Contains(config.Sdk))
+            {
+                throw new ArgumentException("Unknown SDK: " + config.Sdk + ". Expected one of " + string.Join(", ", Sdk.SupportedSdks));
+            }
+
+            return config;
         }
 
         private static bool TryGetOptionalValue(string arg, out string value)

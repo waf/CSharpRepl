@@ -1,7 +1,8 @@
 {
   "profiles": {
     "Sharply": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "-s Microsoft.AspNetCore.App"
     }
   }
 }

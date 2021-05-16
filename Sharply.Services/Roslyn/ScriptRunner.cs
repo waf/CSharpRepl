@@ -17,12 +17,12 @@ namespace Sharply.Services.Roslyn
         private ScriptOptions scriptOptions;
         private ScriptState<object> state;
 
-        public ScriptRunner(CSharpCompilationOptions compilationOptions, IReadOnlyCollection<MetadataReference> defaultImplementationAssemblies)
+        public ScriptRunner(CSharpCompilationOptions compilationOptions, ReferenceAssemblyService referenceAssemblyService)
         {
-            this.nugetResolver = new NugetMetadataResolver();
+            this.nugetResolver = new NugetMetadataResolver(referenceAssemblyService.ImplementationAssemblyPaths);
             this.scriptOptions = ScriptOptions.Default
                 .WithMetadataResolver(nugetResolver)
-                .WithReferences(defaultImplementationAssemblies)
+                .WithReferences(referenceAssemblyService.DefaultImplementationAssemblies)
                 .AddImports(compilationOptions.Usings);
         }
 

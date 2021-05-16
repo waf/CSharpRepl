@@ -33,7 +33,7 @@ namespace Sharply.Services.Roslyn
                     usings: referenceService.DefaultUsings
                 );
 
-                this.scriptRunner = new ScriptRunner(compilationOptions, referenceService.DefaultImplementationAssemblies);
+                this.scriptRunner = new ScriptRunner(compilationOptions, referenceService);
                 this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService);
                 this.prettyPrinter = new PrettyPrinter();
             });

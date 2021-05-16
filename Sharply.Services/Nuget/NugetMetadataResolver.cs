@@ -1,7 +1,9 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,18 +16,13 @@ namespace Sharply.Services.Nuget
         private readonly NugetPackageInstaller nugetInstaller;
         private readonly ImmutableArray<PortableExecutableReference> dummyPlaceholder;
 
-        public NugetMetadataResolver()
+        public NugetMetadataResolver(IReadOnlyCollection<string> implementationAssemblyPaths)
         {
-            this.defaultResolver = ScriptMetadataResolver.Default;
+            this.defaultResolver = ScriptMetadataResolver.Default
+                .WithSearchPaths(implementationAssemblyPaths.ToArray());
             this.nugetInstaller = new NugetPackageInstaller();
             this.dummyPlaceholder = new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) }.ToImmutableArray();
         }
-
-        public override bool Equals(object other) =>
-            defaultResolver.Equals(other);
-
-        public override int GetHashCode() =>
-            defaultResolver.GetHashCode();
 
         public override ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string baseFilePath, MetadataReferenceProperties properties)
         {
@@ -66,5 +63,20 @@ namespace Sharply.Services.Nuget
 
             throw new InvalidOperationException(@"Malformed nuget reference. Expected #r ""nuget: PackageName"" or #r ""nuget: PackageName, version""");
         }
+
+        public override bool ResolveMissingAssemblies =>
+            defaultResolver.ResolveMissingAssemblies;
+
+        public override PortableExecutableReference ResolveMissingAssembly(MetadataReference definition, AssemblyIdentity referenceIdentity)
+        {
+            var resolved = defaultResolver.ResolveMissingAssembly(definition, referenceIdentity);
+            return resolved;
+        }
+
+        public override bool Equals(object other) =>
+            defaultResolver.Equals(other);
+
+        public override int GetHashCode() =>
+            defaultResolver.GetHashCode();
     }
 }

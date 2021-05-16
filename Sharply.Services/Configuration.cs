@@ -6,6 +6,7 @@ namespace Sharply.Services
     {
         public HashSet<string> References { get; } = new();
         public HashSet<string> Usings { get; } = new();
+        public string Sdk { get; set; } = Roslyn.Sdk.NetCoreApp;
         public string Theme { get; set; }
         public string ResponseFile { get; set; }
         public string LoadScript { get; set; }
