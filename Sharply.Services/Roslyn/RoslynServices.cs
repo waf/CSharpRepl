@@ -1,4 +1,4 @@
-﻿using ReplDotNet.SyntaxHighlighting;
+﻿using Sharply.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Completion;
@@ -8,18 +8,19 @@ using Microsoft.CodeAnalysis.Text;
 using PrettyPrompt.Highlighting;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 
-namespace ReplDotNet.Roslyn
+namespace Sharply.Services.Roslyn
 {
-    class RoslynServices
+    public class RoslynServices
     {
         private readonly Task initialization;
         private readonly SyntaxHighlighter highlighter;
         private ScriptRunner scriptRunner;
         private WorkspaceManager workspaceManager;
+        private PrettyPrinter prettyPrinter;
 
         public RoslynServices()
         {
@@ -34,17 +35,20 @@ namespace ReplDotNet.Roslyn
 
                 this.scriptRunner = new ScriptRunner(compilationOptions, referenceService.DefaultImplementationAssemblies);
                 this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService);
+                this.prettyPrinter = new PrettyPrinter();
             });
             initialization.ContinueWith(task => Console.Error.WriteLine(task.Exception.Message), TaskContinuationOptions.OnlyOnFaulted);
         }
 
-        public async Task<EvaluationResult> Evaluate(TextInput input)
+        public async Task<EvaluationResult> Evaluate(string input, CancellationToken cancellationToken)
         {
             await initialization.ConfigureAwait(false);
 
-            var result = await scriptRunner.RunCompilation(input.Text.Trim()).ConfigureAwait(false);
+            var result = await scriptRunner
+                .RunCompilation(input.Trim(), cancellationToken)
+                .ConfigureAwait(false);
 
-            if(result is EvaluationResult.Success success)
+            if (result is EvaluationResult.Success success)
             {
                 // update our final document text, and add a new, empty project that can be
                 // used for future evaluations (whether evaluation, syntax highlighting, or completion)
@@ -52,6 +56,11 @@ namespace ReplDotNet.Roslyn
             }
 
             return result;
+        }
+
+        public string PrettyPrint(object obj, bool displayDetails)
+        {
+            return prettyPrinter.FormatObject(obj, displayDetails);
         }
 
         public async Task<IReadOnlyCollection<CompletionItemWithDescription>> Complete(string text, int caret)
@@ -79,7 +88,7 @@ namespace ReplDotNet.Roslyn
                 Array.Empty<CompletionItemWithDescription>();
         }
 
-        internal AnsiColor ToColor(string keyword) =>
+        public AnsiColor ToColor(string keyword) =>
             highlighter.GetColor(keyword);
 
         public async Task<IReadOnlyCollection<HighlightedSpan>> ClassifySyntax(string text)
@@ -105,28 +114,21 @@ namespace ReplDotNet.Roslyn
             return SyntaxFactory.IsCompleteSubmission(root.SyntaxTree);
         }
 
+        /// <summary>
+        /// Roslyn services can be a bit slow to initialize the first time they're executed.
+        /// Warm them up in the background so it doesn't affect the user.
+        /// </summary>
         public void WarmUp() =>
             Task.Run(async () =>
             {
                 await initialization.ConfigureAwait(false);
                 await Task.WhenAll(
-                    Evaluate(new TextInput(@"""REPL Warmup""")),
-                    ClassifySyntax(@"""REPL Warmup"""),
-                    Complete(@"""REPL Warmup"".", 14)
+                    Evaluate(@"_ = ""REPL Warmup""", CancellationToken.None),
+                    ClassifySyntax(@"_ = ""REPL Warmup"""),
+                    Task.WhenAny((await Complete(@"v", 1)).Select(completion => completion.DescriptionProvider.Value))
                 ).ConfigureAwait(false);
             });
     }
 
-    record CompletionItemWithDescription(CompletionItem Item, Lazy<Task<string>> DescriptionProvider);
-
-    [DebuggerDisplay("{" + nameof(Text) + "(),nq}")]
-    public class TextInput
-    {
-        public TextInput(string text)
-        {
-            Text = text;
-        }
-
-        public string Text { get; set; }
-    }
+    public record CompletionItemWithDescription(CompletionItem Item, Lazy<Task<string>> DescriptionProvider);
 }

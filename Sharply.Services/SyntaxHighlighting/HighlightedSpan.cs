@@ -1,9 +1,9 @@
 ﻿using Microsoft.CodeAnalysis.Text;
 using PrettyPrompt.Highlighting;
 
-namespace ReplDotNet.SyntaxHighlighting
+namespace Sharply.Services.SyntaxHighlighting
 {
-    internal class HighlightedSpan
+    public class HighlightedSpan
     {
         public HighlightedSpan(TextSpan span, AnsiColor color)
         {

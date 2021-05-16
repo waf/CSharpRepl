@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using NuGet.Common;
 
-namespace ReplDotNet.Nuget
+namespace Sharply.Services.Nuget
 {
     public class ConsoleNugetLogger : ILogger
     {

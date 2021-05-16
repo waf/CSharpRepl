@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ReplDotNet
+namespace Sharply.Services
 {
     public class EqualityComparerFunc<T> : IEqualityComparer<T>
     {

@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31019.35
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReplDotNet", "ReplDotNet\ReplDotNet.csproj", "{DAF35EEA-275E-4BF1-A7F0-5D2DF32FC0A5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sharply", "Sharply\Sharply.csproj", "{DAF35EEA-275E-4BF1-A7F0-5D2DF32FC0A5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sharply.Services", "Sharply.Services\Sharply.Services.csproj", "{CF37FCD2-EF71-48F8-AE06-8A07D328F24A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{DAF35EEA-275E-4BF1-A7F0-5D2DF32FC0A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DAF35EEA-275E-4BF1-A7F0-5D2DF32FC0A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DAF35EEA-275E-4BF1-A7F0-5D2DF32FC0A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF37FCD2-EF71-48F8-AE06-8A07D328F24A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF37FCD2-EF71-48F8-AE06-8A07D328F24A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF37FCD2-EF71-48F8-AE06-8A07D328F24A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF37FCD2-EF71-48F8-AE06-8A07D328F24A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

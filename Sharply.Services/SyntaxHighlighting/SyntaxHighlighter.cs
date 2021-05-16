@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 
-namespace ReplDotNet.SyntaxHighlighting
+namespace Sharply.Services.SyntaxHighlighting
 {
     class SyntaxHighlighter
     {
@@ -43,7 +43,7 @@ namespace ReplDotNet.SyntaxHighlighting
             this.theme = selectedTheme
                 .colors
                 .ToDictionary(t => t.name, t => ToAnsiColor(t.foreground));
-            this.unhighlightedColor = theme["plain text"];
+            this.unhighlightedColor = theme["text"];
         }
 
         private AnsiColor ToAnsiColor(string foreground)

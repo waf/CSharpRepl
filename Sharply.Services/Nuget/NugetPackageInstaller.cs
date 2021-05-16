@@ -20,7 +20,7 @@ using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ReplDotNet.Nuget
+namespace Sharply.Services.Nuget
 {
     public class NugetPackageInstaller
     {
@@ -31,7 +31,8 @@ namespace ReplDotNet.Nuget
             this.logger = new ConsoleNugetLogger();
         }
 
-        public async Task<ImmutableArray<PortableExecutableReference>> Install(string packageId, string version = null)
+        public async Task<ImmutableArray<PortableExecutableReference>> Install(
+            string packageId, string version = null, CancellationToken cancellationToken = default)
         {
             ISettings settings = ReadSettings();
             var frameworkVersion = GetCurrentFramework();
@@ -49,7 +50,7 @@ namespace ReplDotNet.Nuget
 
             IEnumerable<SourceRepository> primarySourceRepositories = sourceRepositoryProvider.GetRepositories();
             PackageIdentity packageIdentity = string.IsNullOrEmpty(version)
-                ? await QueryLatestPackageVersion(packageId, nuGetProject, resolutionContext, primarySourceRepositories)
+                ? await QueryLatestPackageVersion(packageId, nuGetProject, resolutionContext, primarySourceRepositories, cancellationToken)
                 : new PackageIdentity(packageId, new NuGetVersion(version));
 
             if (!packageIdentity.HasVersion)
@@ -61,10 +62,10 @@ namespace ReplDotNet.Nuget
             var skipInstall = nuGetProject.PackageExists(packageIdentity);
             if (!skipInstall)
             {
-                await DownloadPackageAsync(packageIdentity, packageManager, resolutionContext, primarySourceRepositories, settings);
+                await DownloadPackageAsync(packageIdentity, packageManager, resolutionContext, primarySourceRepositories, settings, cancellationToken);
             }
 
-            var references = await GetAssemblyReferenceWithDependencies(frameworkVersion, nuGetProject, packageIdentity);
+            var references = await GetAssemblyReferenceWithDependencies(frameworkVersion, nuGetProject, packageIdentity, cancellationToken);
             if(references.Any())
             {
                 logger.LogInformationSummary("Adding references for " + packageIdentity);
@@ -72,15 +73,15 @@ namespace ReplDotNet.Nuget
             return references;
         }
 
-        private async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity)
+        private async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity, CancellationToken cancellationToken)
         {
-            var packages = await GetDependencies(frameworkVersion, nuGetProject, packageIdentity);
+            var packages = await GetDependencies(frameworkVersion, nuGetProject, packageIdentity, cancellationToken);
 
             // get the filenames of everything under the "lib" directory, for both the provided nuget package and all its dependent packages.
             var packageContents = await Task.WhenAll(packages
                 .Select(async package =>
                 {
-                    var libs = await package.Value.GetLibItemsAsync(CancellationToken.None);
+                    var libs = await package.Value.GetLibItemsAsync(cancellationToken);
                     package.Value.Dispose();
                     return (package: package.Key.ToString(), libs);
                 })
@@ -111,14 +112,16 @@ namespace ReplDotNet.Nuget
             return references;
         }
 
-        private static async Task<Dictionary<PackageIdentity, PackageFolderReader>> GetDependencies(NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity)
+        private static async Task<Dictionary<PackageIdentity, PackageFolderReader>> GetDependencies(
+            NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity,
+            CancellationToken cancellationToken)
         {
             var dependencies = new Dictionary<PackageIdentity, PackageFolderReader>();
-            await GetDependencies(frameworkVersion, nuGetProject, packageIdentity, dependencies);
+            await GetDependencies(frameworkVersion, nuGetProject, packageIdentity, dependencies, cancellationToken);
             return dependencies;
         }
 
-        private static async Task GetDependencies(NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity, Dictionary<PackageIdentity, PackageFolderReader> aggregatedDependencies)
+        private static async Task GetDependencies(NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity, Dictionary<PackageIdentity, PackageFolderReader> aggregatedDependencies, CancellationToken cancellationToken)
         {
             aggregatedDependencies ??= new Dictionary<PackageIdentity, PackageFolderReader>();
 
@@ -129,14 +132,14 @@ namespace ReplDotNet.Nuget
             var reader = new PackageFolderReader(installedPath);
             aggregatedDependencies[packageIdentity] = reader;
 
-            var dependencyGroup = await reader.GetPackageDependenciesAsync(CancellationToken.None);
+            var dependencyGroup = await reader.GetPackageDependenciesAsync(cancellationToken);
             var firstLevelDependencies = dependencyGroup
                 .Last(group => DefaultCompatibilityProvider.Instance.IsCompatible(frameworkVersion, group.TargetFramework))
                 .Packages
                 .Select(p => new PackageIdentity(p.Id, p.VersionRange.MinVersion));
 
             await Task.WhenAll(
-                firstLevelDependencies.Select(p => GetDependencies(frameworkVersion, nuGetProject, p, aggregatedDependencies))
+                firstLevelDependencies.Select(p => GetDependencies(frameworkVersion, nuGetProject, p, aggregatedDependencies, cancellationToken))
             );
         }
 
@@ -148,7 +151,10 @@ namespace ReplDotNet.Nuget
                     .FrameworkName
             );
 
-        private async Task DownloadPackageAsync(PackageIdentity packageIdentity, NuGetPackageManager packageManager, ResolutionContext resolutionContext, IEnumerable<SourceRepository> primarySourceRepositories, ISettings settings)
+        private async Task DownloadPackageAsync(
+            PackageIdentity packageIdentity, NuGetPackageManager packageManager,
+            ResolutionContext resolutionContext, IEnumerable<SourceRepository> primarySourceRepositories,
+            ISettings settings, CancellationToken cancellationToken)
         {
             var clientPolicyContext = ClientPolicyContext.GetClientPolicy(settings, logger);
             var projectContext = new ConsoleProjectContext(logger)
@@ -165,15 +171,18 @@ namespace ReplDotNet.Nuget
 
             await packageManager.InstallPackageAsync(packageManager.PackagesFolderNuGetProject,
                 packageIdentity, resolutionContext, projectContext,
-                primarySourceRepositories, Array.Empty<SourceRepository>(), CancellationToken.None);
+                primarySourceRepositories, Array.Empty<SourceRepository>(), cancellationToken);
         }
 
-        private async Task<PackageIdentity> QueryLatestPackageVersion(string packageId, FolderNuGetProject nuGetProject, ResolutionContext resolutionContext, IEnumerable<SourceRepository> primarySourceRepositories)
+        private async Task<PackageIdentity> QueryLatestPackageVersion(
+            string packageId, FolderNuGetProject nuGetProject,
+            ResolutionContext resolutionContext, IEnumerable<SourceRepository> primarySourceRepositories,
+            CancellationToken cancellationToken)
         {
             var resolvePackage = await NuGetPackageManager.GetLatestVersionAsync(
                 packageId, nuGetProject,
                 resolutionContext, primarySourceRepositories,
-                logger, CancellationToken.None
+                logger, cancellationToken
             );
             PackageIdentity packageIdentity = new PackageIdentity(packageId, resolvePackage.LatestVersion);
             return packageIdentity;

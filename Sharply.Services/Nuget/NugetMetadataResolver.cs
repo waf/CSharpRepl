@@ -2,9 +2,10 @@
 using Microsoft.CodeAnalysis.Scripting;
 using System;
 using System.Collections.Immutable;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace ReplDotNet.Nuget
+namespace Sharply.Services.Nuget
 {
     public class NugetMetadataResolver : MetadataReferenceResolver
     {
@@ -46,7 +47,7 @@ namespace ReplDotNet.Nuget
             reference.ToLowerInvariant().StartsWith(NugetPrefix) // roslyn trims the "#r" prefix when passing to the resolver
             || reference.ToLowerInvariant().StartsWith($"#r \"{NugetPrefix}");
 
-        public Task<ImmutableArray<PortableExecutableReference>> InstallNugetPackage(string reference)
+        public Task<ImmutableArray<PortableExecutableReference>> InstallNugetPackage(string reference, CancellationToken cancellationToken)
         {
             // we can be a bit loose in our parsing here, because we were more strict in IsNugetReference.
             var packageParts = reference.Split(
@@ -56,11 +57,11 @@ namespace ReplDotNet.Nuget
 
             if (packageParts.Length == 1)
             {
-                return nugetInstaller.Install(packageParts[0]);
+                return nugetInstaller.Install(packageParts[0], cancellationToken: cancellationToken);
             }
             if (packageParts.Length == 2)
             {
-                return nugetInstaller.Install(packageParts[0], packageParts[1].TrimStart('v'));
+                return nugetInstaller.Install(packageParts[0], packageParts[1].TrimStart('v'), cancellationToken);
             }
 
             throw new InvalidOperationException(@"Malformed nuget reference. Expected #r ""nuget: PackageName"" or #r ""nuget: PackageName, version""");

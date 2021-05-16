@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using System;
 
-namespace ReplDotNet.Roslyn
+namespace Sharply.Services.Roslyn
 {
     static class RoslynExtensions
     {
