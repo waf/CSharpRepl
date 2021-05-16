@@ -1,28 +1,58 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using PrettyPrompt;
 using Sharply.Services.Roslyn;
-using Sharply.PromptConfiguration;
 using PrettyPrompt.Highlighting;
-using PrettyPrompt.Completion;
 using PrettyPrompt.Consoles;
-using System.IO;
+using Sharply.Prompt;
 
 namespace Sharply
 {
     class Program
     {
         private static RoslynServices roslyn;
-        private static PromptAdapter adapter;
 
         static async Task Main(string[] args)
+        {
+            Configuration config = ParseArguments(args);
+            if (config is null)
+                return;
+
+            if(config.ShowHelp)
+            {
+                Console.WriteLine(CommandLine.GetHelp());
+                return;
+            }
+
+            if(config.ShowVersion)
+            {
+                Console.WriteLine(CommandLine.GetVersion());
+                return;
+            }
+
+            await RunPrompt(config).ConfigureAwait(false);
+        }
+
+        private static Configuration ParseArguments(string[] args)
+        {
+            try
+            {
+                return CommandLine.ParseArguments(args);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(CommandLine.GetHelp());
+                Console.Error.Write(ex.Message);
+                return null;
+            }
+        }
+
+        private static async Task RunPrompt(Configuration config)
         {
             // these are required to run before displaying the welcome text.
             // `roslyn` is required for the syntax highlighting in the text,
             // and `prompt` is required because it enables escape sequences.
             roslyn = new RoslynServices();
-            var prompt = ConfigurePrompt();
+            var prompt = PromptConfiguration.Create(roslyn);
 
             Console.WriteLine($"Welcome to {nameof(Sharply)}!");
             Console.WriteLine(@"Write C# at the prompt and press Enter to evaluate it, and type ""exit"" to stop.");
@@ -33,7 +63,6 @@ namespace Sharply
             Console.WriteLine($@"For nuget references, run {Preprocessor("nuget: PackageName")} or {Preprocessor("nuget: PackageName, version")}");
             Console.WriteLine();
 
-            adapter = new PromptAdapter();
             roslyn.WarmUp();
 
             while (true)
@@ -68,11 +97,6 @@ namespace Sharply
             }
         }
 
-        private static void DoSomething(string[] arg)
-        {
-            ;
-        }
-
         /// <summary>
         /// Produce syntax-highlighted strings like "#r reference" for the provided <paramref name="reference"/> string.
         /// </summary>
@@ -85,32 +109,6 @@ namespace Sharply
 
             static string Color(string reference) =>
                 AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(roslyn.ToColor(reference)));
-        }
-
-        /// <summary>
-        /// Create our callbacks for configuring <see cref="PrettyPrompt"/>
-        /// </summary>
-        private static PrettyPrompt.Prompt ConfigurePrompt()
-        {
-            var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), nameof(Sharply));
-            var historyStorage = Path.Combine(appStorage, "prompt-history");
-            Directory.CreateDirectory(appStorage);
-
-            return new PrettyPrompt.Prompt(historyStorage, new PromptCallbacks
-            {
-                CompletionCallback = completionHandler,
-                HighlightCallback = highlightHandler,
-                ForceSoftEnterCallback = forceSoftEnterHandler, 
-            });
-
-            static async Task<IReadOnlyList<CompletionItem>> completionHandler(string text, int caret) =>
-                adapter.AdaptCompletions(await roslyn.Complete(text, caret).ConfigureAwait(false));
-
-            static async Task<IReadOnlyCollection<FormatSpan>> highlightHandler(string text) =>
-                adapter.AdaptSyntaxClassification(await roslyn.ClassifySyntax(text).ConfigureAwait(false));
-
-            static async Task<bool> forceSoftEnterHandler(string text) =>
-                !await roslyn.IsTextCompleteStatement(text).ConfigureAwait(false);
         }
     }
 }

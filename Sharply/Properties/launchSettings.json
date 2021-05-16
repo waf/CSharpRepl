@@ -1,8 +1,7 @@
 {
   "profiles": {
     "Sharply": {
-      "commandName": "Project",
-      "commandLineArgs": "--references a"
+      "commandName": "Project"
     }
   }
 }

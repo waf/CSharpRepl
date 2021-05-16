@@ -6,7 +6,7 @@ using Sharply.Services.SyntaxHighlighting;
 using PrettyPrompt.Highlighting;
 using PromptCompletionItem = PrettyPrompt.Completion.CompletionItem;
 
-namespace Sharply.PromptConfiguration
+namespace Sharply.Prompt
 {
     /// <summary>
     /// Maps the classes produced by our roslyn code into the classes for interacting with our prompt library.
