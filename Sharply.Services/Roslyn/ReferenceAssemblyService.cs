@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Sharply.Services.Roslyn
@@ -27,7 +28,7 @@ namespace Sharply.Services.Roslyn
 
         public ReferenceAssemblyService(Configuration config)
         {
-            var sdks = GetSdkConfiguration(config.Sdk);
+            var sdks = GetSdkConfiguration(config.Framework);
 
             this.ReferenceAssemblyPaths = sdks.Select(sdk => sdk.ReferencePath).ToArray();
             this.ImplementationAssemblyPaths = sdks.Select(sdk => sdk.ImplementationPath).ToArray();
@@ -54,6 +55,24 @@ namespace Sharply.Services.Roslyn
                 }
                 .Concat(config.Usings)
                 .ToList();
+
+            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(ChooseBestMatch);
+        }
+
+        private Assembly ChooseBestMatch(object sender, ResolveEventArgs args)
+        {
+            var assemblyName = new AssemblyName(args.Name).Name;
+            var located = this.DefaultImplementationAssemblies
+                .Where(a => Path.GetFileNameWithoutExtension(a.Display) == assemblyName)
+                .Select(a => Assembly.LoadFile(a.Display))
+                .FirstOrDefault();
+            if(located is not null)
+            {
+                Console.WriteLine($@"Warning: Missing assembly: {args.Name}");
+                Console.WriteLine($@"            Using instead: {located.FullName}");
+                Console.WriteLine($@"             Requested by: {args.RequestingAssembly.FullName}");
+            }
+            return located;
         }
 
         private static string GetCurrentAssemblyImplementationPath(string sdk)
@@ -244,6 +263,6 @@ namespace Sharply.Services.Roslyn
         public const string NetCoreApp = "Microsoft.NETCore.App";
         public const string AspNetCoreApp = "Microsoft.AspNetCore.App";
 
-        public static IReadOnlyCollection<string> SupportedSdks { get; } = new[] { NetCoreApp, AspNetCoreApp };
+        public static IReadOnlyCollection<string> SupportedFrameworks { get; } = new[] { NetCoreApp, AspNetCoreApp };
     }
 }
