@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace Sharply
 {
-    class Program
+    static class Program
     {
         private static RoslynServices roslyn;
 

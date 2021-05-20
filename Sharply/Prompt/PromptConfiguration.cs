@@ -1,17 +1,14 @@
-﻿using Microsoft.CodeAnalysis.Completion;
-using PrettyPrompt;
+﻿using PrettyPrompt;
 using PrettyPrompt.Highlighting;
 using Sharply.Services.Roslyn;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Sharply.Prompt
 {
-    class PromptConfiguration
+    static class PromptConfiguration
     {
         /// <summary>
         /// Create our callbacks for configuring <see cref="PrettyPrompt"/>

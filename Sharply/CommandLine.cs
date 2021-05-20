@@ -17,7 +17,7 @@ namespace Sharply
     ///     - Supports response files (i.e. ".rsp" files) for compatibility with other interactive C# consoles (e.g. csi).
     ///     - Supports windows-style forward slash arguments (e.g. /u), again for compatibility with other C# consoles.
     /// </remarks>
-    class CommandLine
+    static class CommandLine
     {
         public static Configuration ParseArguments(string[] args, Configuration existingConfiguration = null)
         {

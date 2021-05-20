@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PrettyPrompt" Version="0.8.7" />
+    <PackageReference Include="PrettyPrompt" Version="0.8.8" />
   </ItemGroup>
 
   <ItemGroup>
