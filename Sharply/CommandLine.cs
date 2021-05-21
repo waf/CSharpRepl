@@ -51,12 +51,12 @@ namespace Sharply
                             config.Usings.Add(usingNamespace);
                         }
                     }
-                    else if (arg.StartsWith("-s") || arg.StartsWith("--sdk") || arg.StartsWith("/sdk"))
+                    else if (arg.StartsWith("-f") || arg.StartsWith("--framework") || arg.StartsWith("/f"))
                     { 
-                        currentSwitch = "-s";
-                        if(TryGetOptionalValue(arg, out string sdk))
+                        currentSwitch = "-f";
+                        if(TryGetOptionalValue(arg, out string framework))
                         {
-                             config.Sdk = sdk;
+                             config.Framework = framework;
                         }
                     }
                     else if (arg.StartsWith("-t") || arg.StartsWith("--theme") || arg.StartsWith("/t"))
@@ -74,8 +74,8 @@ namespace Sharply
                         config.References.Add(arg);
                     else if (currentSwitch == "-u")
                         config.Usings.Add(arg);
-                    else if (currentSwitch == "-s")
-                        config.Sdk = arg;
+                    else if (currentSwitch == "-f")
+                        config.Framework = arg;
                     else if (currentSwitch == "-t")
                         config.Theme = arg;
                     // 
@@ -101,9 +101,9 @@ namespace Sharply
                     return config;
                 });
 
-            if (!Sdk.SupportedSdks.Contains(config.Sdk))
+            if (!Sdk.SupportedFrameworks.Contains(config.Framework))
             {
-                throw new ArgumentException("Unknown SDK: " + config.Sdk + ". Expected one of " + string.Join(", ", Sdk.SupportedSdks));
+                throw new ArgumentException("Unknown Framework: " + config.Framework + ". Expected one of " + string.Join(", ", Sdk.SupportedFrameworks));
             }
 
             return config;
@@ -128,11 +128,14 @@ namespace Sharply
             "These [OPTIONS] can be provided at the command line, or via a [response-file.rsp]." + NewLine +
             "A [script-file.csx], if provided, will be executed before the prompt starts." + NewLine + NewLine +
             "OPTIONS:" + NewLine +
-            "  -r <dll> or --reference <dll>:            Add an assembly reference. May be specified multiple times." + NewLine +
-            "  -u <namespace> or --using <namespace>:    Add a using statement. May be specified multiple times." + NewLine +
-            "  -t <theme.json> or --theme <theme.json>:  Specify the theme file for syntax highlighting." + NewLine +
-            "  -v or --version:                          Show version number and exit." + NewLine +
-            "  -h or --help:                             Show this help and exit." + NewLine + NewLine +
+            "  -r <dll> or --reference <dll>:             Add an assembly reference. May be specified multiple times." + NewLine +
+            "  -u <namespace> or --using <namespace>:     Add a using statement. May be specified multiple times." + NewLine +
+            "  -f <framework> or --framework <framework>: Specify the frameworks to reference. May be specified multiple times." + NewLine +
+            "                                             Available frameworks: " + NewLine + string.Join(NewLine, Sdk.SupportedFrameworks.Select(f => 
+            "                                             " + f)) + NewLine +
+            "  -t <theme.json> or --theme <theme.json>:   Specify the theme file for syntax highlighting." + NewLine +
+            "  -v or --version:                           Show version number and exit." + NewLine +
+            "  -h or --help:                              Show this help and exit." + NewLine + NewLine +
             "response-file.rsp:" + NewLine +
             "  A file, with extension .rsp, containing the above command line [OPTIONS], one option per line." + NewLine + NewLine +
             "script-file.csx:" + NewLine +

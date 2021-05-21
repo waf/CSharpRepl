@@ -37,7 +37,9 @@ namespace Sharply.Services.Nuget
                 return dummyPlaceholder;
             }
 
-            return defaultResolver.ResolveReference(reference, baseFilePath, properties);
+            var references = defaultResolver.ResolveReference(reference, baseFilePath, properties);
+
+            return references;
         }
 
         public bool IsNugetReference(string reference) =>
@@ -67,11 +69,8 @@ namespace Sharply.Services.Nuget
         public override bool ResolveMissingAssemblies =>
             defaultResolver.ResolveMissingAssemblies;
 
-        public override PortableExecutableReference ResolveMissingAssembly(MetadataReference definition, AssemblyIdentity referenceIdentity)
-        {
-            var resolved = defaultResolver.ResolveMissingAssembly(definition, referenceIdentity);
-            return resolved;
-        }
+        public override PortableExecutableReference ResolveMissingAssembly(MetadataReference definition, AssemblyIdentity referenceIdentity) =>
+            defaultResolver.ResolveMissingAssembly(definition, referenceIdentity);
 
         public override bool Equals(object other) =>
             defaultResolver.Equals(other);
