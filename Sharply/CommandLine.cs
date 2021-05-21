@@ -37,32 +37,32 @@ namespace Sharply
                     //
                     else if (arg.StartsWith("-r") || arg.StartsWith("--reference") || arg.StartsWith("/r"))
                     {
-                        currentSwitch = "-r";
-                        if(TryGetOptionalValue(arg, out string reference))
+                        currentSwitch = "--reference";
+                        if(TryGetConcatenatedValue(arg, out string reference))
                         {
                             config.References.Add(reference);
                         }
                     }
                     else if (arg.StartsWith("-u") || arg.StartsWith("--using") || arg.StartsWith("/u"))
                     { 
-                        currentSwitch = "-u";
-                        if(TryGetOptionalValue(arg, out string usingNamespace))
+                        currentSwitch = "--using";
+                        if(TryGetConcatenatedValue(arg, out string usingNamespace))
                         {
                             config.Usings.Add(usingNamespace);
                         }
                     }
                     else if (arg.StartsWith("-f") || arg.StartsWith("--framework") || arg.StartsWith("/f"))
                     { 
-                        currentSwitch = "-f";
-                        if(TryGetOptionalValue(arg, out string framework))
+                        currentSwitch = "--framework";
+                        if(TryGetConcatenatedValue(arg, out string framework))
                         {
                              config.Framework = framework;
                         }
                     }
                     else if (arg.StartsWith("-t") || arg.StartsWith("--theme") || arg.StartsWith("/t"))
                     { 
-                        currentSwitch = "-t";
-                        if(TryGetOptionalValue(arg, out string theme))
+                        currentSwitch = "--theme";
+                        if(TryGetConcatenatedValue(arg, out string theme))
                         {
                              config.Theme = theme;
                         }
@@ -70,13 +70,13 @@ namespace Sharply
                     //
                     // process option values
                     //
-                    else if (currentSwitch == "-r")
+                    else if (currentSwitch == "--reference")
                         config.References.Add(arg);
-                    else if (currentSwitch == "-u")
+                    else if (currentSwitch == "--using")
                         config.Usings.Add(arg);
-                    else if (currentSwitch == "-f")
+                    else if (currentSwitch == "--framework")
                         config.Framework = arg;
-                    else if (currentSwitch == "-t")
+                    else if (currentSwitch == "--theme")
                         config.Theme = arg;
                     // 
                     // Process positional parameters
@@ -101,15 +101,18 @@ namespace Sharply
                     return config;
                 });
 
-            if (!Sdk.SupportedFrameworks.Contains(config.Framework))
+            if (!SharedFramework.SupportedFrameworks.Contains(config.Framework))
             {
-                throw new ArgumentException("Unknown Framework: " + config.Framework + ". Expected one of " + string.Join(", ", Sdk.SupportedFrameworks));
+                throw new ArgumentException("Unknown Framework: " + config.Framework + ". Expected one of " + string.Join(", ", SharedFramework.SupportedFrameworks));
             }
 
             return config;
         }
 
-        private static bool TryGetOptionalValue(string arg, out string value)
+        /// <summary>
+        /// Parse value in a string like "/u:foo"
+        /// </summary>
+        private static bool TryGetConcatenatedValue(string arg, out string value)
         {
             var referenceValue = arg.Split(new[] { ':', '=' }, 2);
             if (referenceValue.Length == 2)
@@ -124,16 +127,16 @@ namespace Sharply
         public static string GetHelp() =>
             GetVersion() + NewLine +
             "Usage: sharply [OPTIONS] [response-file.rsp] [script-file.csx]" + NewLine + NewLine +
-            "Starts a REPL (read eval print loop) according to the provided command line [OPTIONS]." + NewLine +
+            "Starts a REPL (read eval print loop) according to the provided [OPTIONS]." + NewLine +
             "These [OPTIONS] can be provided at the command line, or via a [response-file.rsp]." + NewLine +
             "A [script-file.csx], if provided, will be executed before the prompt starts." + NewLine + NewLine +
             "OPTIONS:" + NewLine +
             "  -r <dll> or --reference <dll>:             Add an assembly reference. May be specified multiple times." + NewLine +
             "  -u <namespace> or --using <namespace>:     Add a using statement. May be specified multiple times." + NewLine +
-            "  -f <framework> or --framework <framework>: Specify the frameworks to reference. May be specified multiple times." + NewLine +
-            "                                             Available frameworks: " + NewLine + string.Join(NewLine, Sdk.SupportedFrameworks.Select(f => 
-            "                                             " + f)) + NewLine +
-            "  -t <theme.json> or --theme <theme.json>:   Specify the theme file for syntax highlighting." + NewLine +
+            "  -f <framework> or --framework <framework>: Reference a shared framework. May be specified multiple times." + NewLine +
+            "                                             Available shared frameworks: " + NewLine + GetInstalledFrameworks(
+            "                                             ") + NewLine +
+            "  -t <theme.json> or --theme <theme.json>:   Read a theme file for syntax highlighting." + NewLine +
             "  -v or --version:                           Show version number and exit." + NewLine +
             "  -h or --help:                              Show this help and exit." + NewLine + NewLine +
             "response-file.rsp:" + NewLine +
@@ -149,6 +152,14 @@ namespace Sharply
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
                 .InformationalVersion;
             return product + " " + version;
+        }
+
+        private static string GetInstalledFrameworks(string leftPadding)
+        {
+            var frameworkList = SharedFramework
+                .SupportedFrameworks
+                .Select(fx => leftPadding + "- " + fx + (fx == Configuration.FrameworkDefault ? " (default)" : ""));
+            return string.Join(NewLine, frameworkList);
         }
     }
 }
