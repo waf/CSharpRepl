@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Sharply.Prompt
 {
-    class PromptConfiguration
+    static class PromptConfiguration
     {
         /// <summary>
         /// Create our callbacks for configuring <see cref="PrettyPrompt"/>

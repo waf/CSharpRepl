@@ -12,7 +12,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.9.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="3.9.0" />
     <PackageReference Include="NuGet.PackageManagement" Version="5.9.1" />
-    <PackageReference Include="PrettyPrompt" Version="0.8.7" />
+    <PackageReference Include="PrettyPrompt" Version="0.8.8" />
   </ItemGroup>
 
 </Project>
