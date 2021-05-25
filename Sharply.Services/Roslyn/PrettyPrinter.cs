@@ -1,10 +1,6 @@
 ﻿using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Sharply.Services.Roslyn
 {
@@ -20,12 +16,12 @@ namespace Sharply.Services.Roslyn
             this.summaryOptions = new PrintOptions
             {
                 MemberDisplayFormat = MemberDisplayFormat.SingleLine,
-                MaximumOutputLength = 10_000,
+                MaximumOutputLength = 20_000,
             };
             this.detailedOptions = new PrintOptions
             {
                 MemberDisplayFormat = MemberDisplayFormat.SeparateLines,
-                MaximumOutputLength = 10_000,
+                MaximumOutputLength = 20_000,
             };
         }
 
