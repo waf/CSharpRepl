@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
+using Sharply.Services.SymbolExploration;
 
 namespace Sharply.Services.Roslyn
 {
@@ -21,6 +22,7 @@ namespace Sharply.Services.Roslyn
         private ScriptRunner scriptRunner;
         private WorkspaceManager workspaceManager;
         private PrettyPrinter prettyPrinter;
+        private SymbolExplorer symbolExplorer;
 
         public RoslynServices(Configuration config)
         {
@@ -36,6 +38,7 @@ namespace Sharply.Services.Roslyn
                 this.scriptRunner = new ScriptRunner(compilationOptions, referenceService);
                 this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService);
                 this.prettyPrinter = new PrettyPrinter();
+                this.symbolExplorer = new SymbolExplorer();
             });
             initialization.ContinueWith(task => Console.Error.WriteLine(task.Exception.Message), TaskContinuationOptions.OnlyOnFaulted);
         }
@@ -86,6 +89,13 @@ namespace Sharply.Services.Roslyn
                 .ToArray()
                 ??
                 Array.Empty<CompletionItemWithDescription>();
+        }
+
+        public async Task<SymbolResult> GetSymbolAtIndex(string text, int caret)
+        {
+            await initialization.ConfigureAwait(false);
+            var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
+            return await symbolExplorer.GetSymbolAtPosition(document, caret);
         }
 
         public AnsiColor ToColor(string keyword) =>

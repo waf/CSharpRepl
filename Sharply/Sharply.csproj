@@ -8,15 +8,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PrettyPrompt" Version="0.8.8" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Sharply.Services\Sharply.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="themes\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PrettyPrompt" Version="0.9.0" />
   </ItemGroup>
 
 </Project>

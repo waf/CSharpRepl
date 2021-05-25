@@ -65,9 +65,9 @@ namespace Sharply
             Console.WriteLine(@"Write C# at the prompt and press Enter to evaluate it, and type ""exit"" to stop.");
             Console.WriteLine(@"Press Shift-Enter to insert newlines, and Control-Enter to view detailed member info.");
             Console.WriteLine();
-            Console.WriteLine($@"Use the {Preprocessor()} command to add assembly or nuget references.");
-            Console.WriteLine($@"For assembly references, run {Preprocessor("AssemblyName")} or {Preprocessor("path/to/assembly.dll")}");
-            Console.WriteLine($@"For nuget references, run {Preprocessor("nuget: PackageName")} or {Preprocessor("nuget: PackageName, version")}");
+            Console.WriteLine($@"Use the {Reference()} command to add assembly or nuget references.");
+            Console.WriteLine($@"For assembly references, run {Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}");
+            Console.WriteLine($@"For nuget references, run {Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}");
             Console.WriteLine();
 
             await Preload(config).ConfigureAwait(false);
@@ -125,7 +125,7 @@ namespace Sharply
         /// <summary>
         /// Produce syntax-highlighted strings like "#r reference" for the provided <paramref name="reference"/> string.
         /// </summary>
-        private static string Preprocessor(string reference = null)
+        private static string Reference(string reference = null)
         {
             var preprocessor = Color("preprocessor keyword") + "#r" + AnsiEscapeCodes.Reset;
             var argument = reference is null ? "" : Color("string") + @" """ + reference + @"""" + AnsiEscapeCodes.Reset;

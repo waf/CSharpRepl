@@ -18,7 +18,7 @@ namespace Sharply.Prompt
                 .Select(r => new FormatSpan(
                     r.TextSpan.Start,
                     r.TextSpan.Length,
-                    new ConsoleFormat(foreground: r.Color)
+                    new ConsoleFormat(Foreground: r.Color)
                 ))
                 .Where(f => f.Formatting is not null)
                 .ToArray();
@@ -30,7 +30,7 @@ namespace Sharply.Prompt
                 {
                     StartIndex = r.Item.Span.Start,
                     ReplacementText = r.Item.DisplayText,
-                    DisplayText = r.Item.DisplayTextPrefix + r.Item.DisplayText + r.Item.DisplayTextSuffix,
+                    //DisplayText = r.Item.DisplayTextPrefix + r.Item.DisplayText + r.Item.DisplayTextSuffix,
                     ExtendedDescription = r.DescriptionProvider
                 })
                 .ToArray()

@@ -23,6 +23,7 @@ namespace Sharply.Services.Roslyn
             this.scriptOptions = ScriptOptions.Default
                 .WithMetadataResolver(nugetResolver)
                 .WithReferences(referenceAssemblyService.DefaultImplementationAssemblies)
+                .WithEmitDebugInformation(true)
                 .AddImports(compilationOptions.Usings);
         }
 
@@ -56,6 +57,9 @@ namespace Sharply.Services.Roslyn
                 return new EvaluationResult.Error(exception);
             }
         }
+
+        public Script<object> CreateCompilation(string text) =>
+             CSharpScript.Create(text, scriptOptions);
 
         private static Task<ScriptState<object>> EvaluateStringWithStateAsync(string text, ScriptState<object> state, ScriptOptions scriptOptions, CancellationToken cancellationToken)
         {
