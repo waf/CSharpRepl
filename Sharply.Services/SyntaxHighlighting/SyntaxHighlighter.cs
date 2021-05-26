@@ -1,4 +1,7 @@
-﻿using Microsoft.CodeAnalysis.Classification;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Classification;
+using Microsoft.CodeAnalysis.Text;
+using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt.Highlighting;
 using System;
 using System.Collections.Generic;
@@ -6,6 +9,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Sharply.Services.SyntaxHighlighting
 {
@@ -14,9 +18,11 @@ namespace Sharply.Services.SyntaxHighlighting
         private readonly IReadOnlyDictionary<string, AnsiColor> theme;
         private readonly AnsiColor unhighlightedColor;
         private readonly IReadOnlyDictionary<string, AnsiColor> ansiColorNames;
+        private readonly MemoryCache cache;
 
-        public SyntaxHighlighter(string themeName)
+        public SyntaxHighlighter(MemoryCache cache, string themeName)
         {
+            this.cache = cache;
             this.ansiColorNames = new Dictionary<string, AnsiColor>
             {
                 { nameof(AnsiColor.Black), AnsiColor.Black },
@@ -65,8 +71,14 @@ namespace Sharply.Services.SyntaxHighlighting
             throw new ArgumentException(@$"Unknown recognized color ""{foreground}"". Expecting either a hexadecimal color of the format #RRGGBB or a standard ANSI color name");
         }
 
-        internal IReadOnlyCollection<HighlightedSpan> Highlight(IReadOnlyCollection<ClassifiedSpan> classified)
+        internal async Task<IReadOnlyCollection<HighlightedSpan>> HighlightAsync(Document document)
         {
+            var text = (await document.GetTextAsync()).ToString().Trim();
+            if (this.cache.Get<IReadOnlyCollection<HighlightedSpan>>(text) is IReadOnlyCollection<HighlightedSpan> spans)
+                return spans;
+
+            var classified = await Classifier.GetClassifiedSpansAsync(document, TextSpan.FromBounds(0, text.Length)).ConfigureAwait(false);
+
             // we can have multiple classifications for a given span. Choose the first one that has a corresponding color in the theme.
             var highlighted = classified
                 .GroupBy(classification => classification.TextSpan) 
@@ -79,6 +91,8 @@ namespace Sharply.Services.SyntaxHighlighting
                     return new HighlightedSpan(classifications.Key, highlight);
                 })
                 .ToList();
+
+            this.cache.Set(text, highlighted, DateTimeOffset.Now.AddMinutes(1));
 
             return highlighted;
         }

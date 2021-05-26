@@ -1,9 +1,6 @@
 ﻿using Sharply.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Classification;
-using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.QuickInfo;
 using Microsoft.CodeAnalysis.Text;
 using PrettyPrompt.Highlighting;
 using System;
@@ -12,6 +9,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using Sharply.Services.SymbolExploration;
+using Sharply.Services.Completion;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Sharply.Services.Roslyn
 {
@@ -23,10 +22,12 @@ namespace Sharply.Services.Roslyn
         private WorkspaceManager workspaceManager;
         private PrettyPrinter prettyPrinter;
         private SymbolExplorer symbolExplorer;
+        private AutoCompleteService autocompleteService;
 
         public RoslynServices(Configuration config)
         {
-            this.highlighter = new SyntaxHighlighter(config.Theme);
+            var cache = new MemoryCache(new MemoryCacheOptions());
+            this.highlighter = new SyntaxHighlighter(cache, config.Theme);
             this.initialization = Task.Run(() =>
             {
                 var referenceService = new ReferenceAssemblyService(config);
@@ -39,6 +40,7 @@ namespace Sharply.Services.Roslyn
                 this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService);
                 this.prettyPrinter = new PrettyPrinter();
                 this.symbolExplorer = new SymbolExplorer();
+                this.autocompleteService = new AutoCompleteService(cache);
             });
             initialization.ContinueWith(task => Console.Error.WriteLine(task.Exception.Message), TaskContinuationOptions.OnlyOnFaulted);
         }
@@ -72,23 +74,7 @@ namespace Sharply.Services.Roslyn
                 return Array.Empty<CompletionItemWithDescription>();
 
             var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
-            var service = CompletionService.GetService(document);
-            var completions = await service.GetCompletionsAsync(document, caret).ConfigureAwait(false);
-            return completions?.Items
-                .Select(item => new CompletionItemWithDescription(item, new Lazy<Task<string>>(async () =>
-                {
-                    var currentText = await document.GetTextAsync().ConfigureAwait(false);
-                    var completedText = currentText.Replace(item.Span, item.DisplayText);
-                    var completedDocument = document.WithText(completedText);
-                    var infoService = QuickInfoService.GetService(completedDocument);
-                    var info = await infoService.GetQuickInfoAsync(completedDocument, item.Span.End).ConfigureAwait(false);
-                    return info is null
-                        ? ""
-                        : string.Join(Environment.NewLine, info.Sections.Select(s => s.Text));
-                })))
-                .ToArray()
-                ??
-                Array.Empty<CompletionItemWithDescription>();
+            return await autocompleteService.Complete(document, text, caret).ConfigureAwait(false);
         }
 
         public async Task<SymbolResult> GetSymbolAtIndex(string text, int caret)
@@ -107,9 +93,7 @@ namespace Sharply.Services.Roslyn
                 return Array.Empty<HighlightedSpan>();
 
             var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
-
-            var classified = await Classifier.GetClassifiedSpansAsync(document, TextSpan.FromBounds(0, text.Length)).ConfigureAwait(false);
-            var highlighted = highlighter.Highlight(classified.ToList());
+            var highlighted = await highlighter.HighlightAsync(document);
 
             return highlighted;
         }
@@ -135,10 +119,8 @@ namespace Sharply.Services.Roslyn
                 await Task.WhenAll(
                     Evaluate(@"_ = ""REPL Warmup""", CancellationToken.None),
                     ClassifySyntax(@"_ = ""REPL Warmup"""),
-                    Task.WhenAny((await Complete(@"v", 1)).Select(completion => completion.DescriptionProvider.Value))
+                    Task.WhenAny((await Complete(@"C", 1)).Select(completion => completion.DescriptionProvider.Value))
                 ).ConfigureAwait(false);
             });
     }
-
-    public record CompletionItemWithDescription(CompletionItem Item, Lazy<Task<string>> DescriptionProvider);
 }

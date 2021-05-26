@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Sharply.Services.Roslyn;
 using Sharply.Services.SyntaxHighlighting;
 using PrettyPrompt.Highlighting;
 using PromptCompletionItem = PrettyPrompt.Completion.CompletionItem;
+using Sharply.Services.Completion;
 
 namespace Sharply.Prompt
 {
@@ -30,11 +29,9 @@ namespace Sharply.Prompt
                 {
                     StartIndex = r.Item.Span.Start,
                     ReplacementText = r.Item.DisplayText,
-                    //DisplayText = r.Item.DisplayTextPrefix + r.Item.DisplayText + r.Item.DisplayTextSuffix,
+                    DisplayText = r.Item.DisplayTextPrefix + r.Item.DisplayText + r.Item.DisplayTextSuffix,
                     ExtendedDescription = r.DescriptionProvider
                 })
-                .ToArray()
-                ??
-                Array.Empty<PromptCompletionItem>();
+                .ToArray();
     }
 }

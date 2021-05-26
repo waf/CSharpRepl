@@ -106,8 +106,8 @@ namespace Sharply
         {
             switch (result)
             {
-                case EvaluationResult.Success ok when ok.ReturnValue is not null:
-                    var formatted = roslyn.PrettyPrint(ok.ReturnValue, displayDetails);
+                case EvaluationResult.Success ok:
+                    var formatted = roslyn.PrettyPrint(ok?.ReturnValue, displayDetails);
                     Console.WriteLine(formatted);
                     break;
                 case EvaluationResult.Error err:
