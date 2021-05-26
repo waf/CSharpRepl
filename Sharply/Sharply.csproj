@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="PrettyPrompt" Version="0.9.0" />
+    <PackageReference Include="PrettyPrompt" Version="0.9.1" />
   </ItemGroup>
 
 </Project>
