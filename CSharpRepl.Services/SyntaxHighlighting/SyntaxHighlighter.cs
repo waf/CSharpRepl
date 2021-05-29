@@ -97,6 +97,6 @@ namespace Sharply.Services.SyntaxHighlighting
             return highlighted;
         }
 
-        internal AnsiColor GetColor(string keyword) => theme[keyword];
+        internal AnsiColor GetColor(string keyword) => theme.GetValueOrDefault(keyword, unhighlightedColor);
     }
 }
