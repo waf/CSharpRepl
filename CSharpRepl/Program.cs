@@ -11,23 +11,25 @@ namespace Sharply
 {
     static class Program
     {
+        private static IConsole console;
         private static RoslynServices roslyn;
 
         static async Task Main(string[] args)
         {
+            console = new SystemConsole();
             Configuration config = ParseArguments(args);
             if (config is null)
                 return;
 
             if(config.ShowHelpAndExit)
             {
-                Console.WriteLine(CommandLine.GetHelp());
+                console.WriteLine(CommandLine.GetHelp());
                 return;
             }
 
             if(config.ShowVersionAndExit)
             {
-                Console.WriteLine(CommandLine.GetVersion());
+                console.WriteLine(CommandLine.GetVersion());
                 return;
             }
 
@@ -43,11 +45,9 @@ namespace Sharply
             catch (Exception ex)
             {
                 Console.WriteLine(CommandLine.GetHelp());
-
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Error.WriteLine(ex.Message);
                 Console.ResetColor();
-
                 Console.WriteLine();
                 return null;
             }
@@ -58,17 +58,17 @@ namespace Sharply
             // these are required to run before displaying the welcome text.
             // `roslyn` is required for the syntax highlighting in the text,
             // and `prompt` is required because it enables escape sequences.
-            roslyn = new RoslynServices(config);
+            roslyn = new RoslynServices(console, config);
             var prompt = PromptConfiguration.Create(roslyn);
 
-            Console.WriteLine($"Welcome to {nameof(Sharply)}!");
-            Console.WriteLine(@"Write C# at the prompt and press Enter to evaluate it, and type ""exit"" to stop.");
-            Console.WriteLine(@"Press Shift-Enter to insert newlines, and Control-Enter to view detailed member info.");
-            Console.WriteLine();
-            Console.WriteLine($@"Use the {Reference()} command to add assembly or nuget references.");
-            Console.WriteLine($@"For assembly references, run {Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}");
-            Console.WriteLine($@"For nuget references, run {Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}");
-            Console.WriteLine();
+            console.WriteLine($"Welcome to the C# REPL (Read Eval Print Loop)!");
+            console.WriteLine(@"Write C# at the prompt and press Enter to evaluate it, and type ""exit"" to stop.");
+            console.WriteLine(@"Press Shift-Enter to insert newlines, and Control-Enter to view detailed member info.");
+            console.WriteLine(string.Empty);
+            console.WriteLine($@"Use the {Reference()} command to add assembly or nuget references.");
+            console.WriteLine($@"For assembly references, run {Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}");
+            console.WriteLine($@"For nuget references, run {Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}");
+            console.WriteLine(string.Empty);
 
             await Preload(config).ConfigureAwait(false);
 
@@ -92,13 +92,13 @@ namespace Sharply
         {
             if (config.LoadScript is not null)
             {
-                Console.WriteLine("Running supplied CSX file...");
+                console.WriteLine("Running supplied CSX file...");
                 var loadScriptResult = await roslyn.Evaluate(config.LoadScript, CancellationToken.None).ConfigureAwait(false);
                 Print(loadScriptResult, displayDetails: false);
             }
             else
             {
-                roslyn.WarmUp();
+                _ = roslyn.WarmUpAsync(); //purposely don't await, we don't want to block the console while warmup happens.
             }
         }
 
@@ -108,14 +108,14 @@ namespace Sharply
             {
                 case EvaluationResult.Success ok:
                     var formatted = roslyn.PrettyPrint(ok?.ReturnValue, displayDetails);
-                    Console.WriteLine(formatted);
+                    console.WriteLine(formatted);
                     break;
                 case EvaluationResult.Error err:
                     var formattedError = roslyn.PrettyPrint(err.Exception, displayDetails);
-                    Console.Error.WriteLine(AnsiEscapeCodes.Red + formattedError + AnsiEscapeCodes.Reset);
+                    console.WriteErrorLine(AnsiEscapeCodes.Red + formattedError + AnsiEscapeCodes.Reset);
                     break;
                 case EvaluationResult.Cancelled:
-                    Console.Error.WriteLine(
+                    console.WriteErrorLine(
                         AnsiEscapeCodes.Yellow + "Operation cancelled." + AnsiEscapeCodes.Reset
                     );
                     break;

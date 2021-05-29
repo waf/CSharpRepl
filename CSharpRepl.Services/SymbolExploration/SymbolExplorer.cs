@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 
 namespace Sharply.Services.SymbolExploration
 {
+    /// <summary>
+    /// Provides information (e.g. types) of symbols in a <see cref="Document"/>.
+    /// </summary>
     class SymbolExplorer
     {
         private readonly SymbolDisplayFormat displayOptions;

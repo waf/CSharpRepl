@@ -1,11 +1,19 @@
 ﻿using System;
 using System.Threading.Tasks;
 using NuGet.Common;
+using PrettyPrompt.Consoles;
 
 namespace Sharply.Services.Nuget
 {
     public class ConsoleNugetLogger : ILogger
     {
+        private readonly IConsole console;
+
+        public ConsoleNugetLogger(IConsole console)
+        {
+            this.console = console;
+        }
+
         public void Log(ILogMessage message) =>
             Log(message.Level, message.Message);
 
@@ -24,16 +32,16 @@ namespace Sharply.Services.Nuget
         }
 
         public void LogMinimal(string data) =>
-            Console.WriteLine(Truncate(data));
+            console.WriteLine(Truncate(data));
 
         public void LogWarning(string data) =>
-            Console.WriteLine(Truncate(data));
+            console.WriteLine(Truncate(data));
 
         public void LogError(string data) =>
-            Console.Error.WriteLine(data);
+            console.WriteErrorLine(data);
 
         public void LogInformationSummary(string data) =>
-            Console.WriteLine(Truncate(data));
+            console.WriteLine(Truncate(data));
 
         /// <summary>
         /// Nuget output can be a bit overwhelming. Truncate some of the longer lines

@@ -10,6 +10,7 @@ using NuGet.ProjectManagement;
 using NuGet.Protocol.Core.Types;
 using NuGet.Resolver;
 using NuGet.Versioning;
+using PrettyPrompt.Consoles;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -26,12 +27,12 @@ namespace Sharply.Services.Nuget
     {
         private readonly ConsoleNugetLogger logger;
 
-        public NugetPackageInstaller()
+        public NugetPackageInstaller(IConsole console)
         {
-            this.logger = new ConsoleNugetLogger();
+            this.logger = new ConsoleNugetLogger(console);
         }
 
-        public async Task<ImmutableArray<PortableExecutableReference>> Install(
+        public async Task<ImmutableArray<PortableExecutableReference>> InstallAsync(
             string packageId, string version = null, CancellationToken cancellationToken = default)
         {
             ISettings settings = ReadSettings();
@@ -55,8 +56,7 @@ namespace Sharply.Services.Nuget
 
             if (!packageIdentity.HasVersion)
             {
-                logger.LogError("Could not find package " + packageIdentity.ToString());
-                return ImmutableArray<PortableExecutableReference>.Empty;
+                throw new NuGetResolverException($@"Could not find package ""{packageIdentity}""");
             }
 
             var skipInstall = nuGetProject.PackageExists(packageIdentity);

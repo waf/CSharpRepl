@@ -38,7 +38,7 @@ namespace Sharply.Prompt
                 adapter.AdaptCompletions(await roslyn.Complete(text, caret).ConfigureAwait(false));
 
             async Task<IReadOnlyCollection<FormatSpan>> highlightHandler(string text) =>
-                adapter.AdaptSyntaxClassification(await roslyn.ClassifySyntax(text).ConfigureAwait(false));
+                adapter.AdaptSyntaxClassification(await roslyn.SyntaxHighlightAsync(text).ConfigureAwait(false));
 
             async Task<bool> forceSoftEnterHandler(string text) =>
                 !await roslyn.IsTextCompleteStatement(text).ConfigureAwait(false);

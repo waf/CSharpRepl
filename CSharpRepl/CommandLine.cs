@@ -17,7 +17,7 @@ namespace Sharply
     ///     - Supports response files (i.e. ".rsp" files) for compatibility with other interactive C# consoles (e.g. csi).
     ///     - Supports windows-style forward slash arguments (e.g. /u), again for compatibility with other C# consoles.
     /// </remarks>
-    static class CommandLine
+    public static class CommandLine
     {
         public static Configuration ParseArguments(string[] args, Configuration existingConfiguration = null)
         {
@@ -25,10 +25,32 @@ namespace Sharply
             var config = args
                 .Aggregate(existingConfiguration ?? new Configuration(), (config, arg) =>
                 {
+                    // 
+                    // Process positional parameters
+                    // 
+                    if (arg.EndsWith(".csx"))
+                    {
+                        if (!File.Exists(arg)) throw new FileNotFoundException($@"Script file ""{arg}"" was not found");
+                        config.LoadScript = File.ReadAllText(arg);
+                    }
+                    else if (arg.EndsWith(".rsp"))
+                    {
+                        string path = arg.TrimStart('@'); // a common convention is to prefix rsp files with '@'
+                        if (!File.Exists(path)) throw new FileNotFoundException($@"RSP file ""{path}"" was not found");
+                        if (existingConfiguration is not null) throw new InvalidOperationException("Response files cannot be nested.");
+                        var responseFile = File
+                            .ReadAllLines(path)
+                            .SelectMany(line =>
+                                new string(line.TakeWhile(ch => ch != '#').ToArray()) // ignore comments
+                                .Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.None)
+                            )
+                            .ToArray();
+                        config = ParseArguments(responseFile, config);
+                    }
                     //
                     // process option flags
                     //
-                    if (arg == "-v" || arg == "--version" || arg == "/v")
+                    else if (arg == "-v" || arg == "--version" || arg == "/v")
                         config.ShowVersionAndExit = true;
                     else if (arg == "-h" || arg == "--help" || arg == "/h" || arg == "/?" || arg == "-?")
                         config.ShowHelpAndExit = true;
@@ -78,30 +100,12 @@ namespace Sharply
                         config.Framework = arg;
                     else if (currentSwitch == "--theme")
                         config.Theme = arg;
-                    // 
-                    // Process positional parameters
-                    // 
-                    else if (arg.EndsWith(".csx"))
-                    {
-                        if (!File.Exists(arg)) throw new FileNotFoundException($@"Script file ""{arg}"" was not found");
-                        config.LoadScript = File.ReadAllText(arg);
-                    }
-                    else if (arg.EndsWith(".rsp"))
-                    {
-                        string path = arg.TrimStart('@'); // a common convention is to prefix rsp files with '@'
-                        if (!File.Exists(path)) throw new FileNotFoundException($@"RSP file ""{path}"" was not found");
-                        if (existingConfiguration is not null) throw new InvalidOperationException("Response files cannot be nested.");
-                        var responseFile = File
-                            .ReadAllText(path)
-                            .Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.None);
-                        config = ParseArguments(responseFile, config);
-                    }
                     else
                         throw new InvalidOperationException("Unknown command line option: " + arg);
                     return config;
                 });
 
-            if (!SharedFramework.SupportedFrameworks.Contains(config.Framework))
+            if (!SharedFramework.SupportedFrameworks.Contains(config.Framework.Split('/').First())) // allow trailing version numbers in framework name
             {
                 throw new ArgumentException("Unknown Framework: " + config.Framework + ". Expected one of " + string.Join(", ", SharedFramework.SupportedFrameworks));
             }
@@ -126,7 +130,7 @@ namespace Sharply
 
         public static string GetHelp() =>
             GetVersion() + NewLine +
-            "Usage: sharply [OPTIONS] [response-file.rsp] [script-file.csx]" + NewLine + NewLine +
+            "Usage: csharprepl [OPTIONS] [response-file.rsp] [script-file.csx]" + NewLine + NewLine +
             "Starts a REPL (read eval print loop) according to the provided [OPTIONS]." + NewLine +
             "These [OPTIONS] can be provided at the command line, or via a [response-file.rsp]." + NewLine +
             "A [script-file.csx], if provided, will be executed before the prompt starts." + NewLine + NewLine +
@@ -146,7 +150,7 @@ namespace Sharply
 
         public static string GetVersion()
         {
-            var product = nameof(Sharply);
+            var product = "C# REPL";
             var version = Assembly
                 .GetEntryAssembly()
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()

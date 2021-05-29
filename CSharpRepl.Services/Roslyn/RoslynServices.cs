@@ -11,6 +11,7 @@ using System.Threading;
 using Sharply.Services.SymbolExploration;
 using Sharply.Services.Completion;
 using Microsoft.Extensions.Caching.Memory;
+using PrettyPrompt.Consoles;
 
 namespace Sharply.Services.Roslyn
 {
@@ -24,28 +25,35 @@ namespace Sharply.Services.Roslyn
         private SymbolExplorer symbolExplorer;
         private AutoCompleteService autocompleteService;
 
-        public RoslynServices(Configuration config)
+        public RoslynServices(IConsole console, Configuration config)
         {
             var cache = new MemoryCache(new MemoryCacheOptions());
             this.highlighter = new SyntaxHighlighter(cache, config.Theme);
+            // initialization of roslyn and all dependent services is slow! do it asynchronously so we don't increase startup time.
             this.initialization = Task.Run(() =>
             {
                 var referenceService = new ReferenceAssemblyService(config);
+
                 var compilationOptions = new CSharpCompilationOptions(
                     OutputKind.DynamicallyLinkedLibrary,
-                    usings: referenceService.DefaultUsings
+                    usings: referenceService.DefaultUsings,
+                    allowUnsafe: true 
                 );
 
-                this.scriptRunner = new ScriptRunner(compilationOptions, referenceService);
+                // the script runner is used to actually execute the scripts, and the workspace manager
+                // is updated alongside. The workspace is a datamodel used in "editor services" like
+                // syntax highlighting, autocompletion, and roslyn symbol queries.
+                this.scriptRunner = new ScriptRunner(console, compilationOptions, referenceService);
                 this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService);
+
                 this.prettyPrinter = new PrettyPrinter();
                 this.symbolExplorer = new SymbolExplorer();
                 this.autocompleteService = new AutoCompleteService(cache);
             });
-            initialization.ContinueWith(task => Console.Error.WriteLine(task.Exception.Message), TaskContinuationOptions.OnlyOnFaulted);
+            initialization.ContinueWith(task => console.WriteErrorLine(task.Exception.Message), TaskContinuationOptions.OnlyOnFaulted);
         }
 
-        public async Task<EvaluationResult> Evaluate(string input, CancellationToken cancellationToken)
+        public async Task<EvaluationResult> Evaluate(string input, CancellationToken cancellationToken = default)
         {
             await initialization.ConfigureAwait(false);
 
@@ -87,7 +95,7 @@ namespace Sharply.Services.Roslyn
         public AnsiColor ToColor(string keyword) =>
             highlighter.GetColor(keyword);
 
-        public async Task<IReadOnlyCollection<HighlightedSpan>> ClassifySyntax(string text)
+        public async Task<IReadOnlyCollection<HighlightedSpan>> SyntaxHighlightAsync(string text)
         {
             if (!initialization.IsCompleted)
                 return Array.Empty<HighlightedSpan>();
@@ -112,13 +120,13 @@ namespace Sharply.Services.Roslyn
         /// Roslyn services can be a bit slow to initialize the first time they're executed.
         /// Warm them up in the background so it doesn't affect the user.
         /// </summary>
-        public void WarmUp() =>
+        public Task WarmUpAsync() =>
             Task.Run(async () =>
             {
                 await initialization.ConfigureAwait(false);
                 await Task.WhenAll(
                     Evaluate(@"_ = ""REPL Warmup""", CancellationToken.None),
-                    ClassifySyntax(@"_ = ""REPL Warmup"""),
+                    SyntaxHighlightAsync(@"_ = ""REPL Warmup"""),
                     Task.WhenAny((await Complete(@"C", 1)).Select(completion => completion.DescriptionProvider.Value))
                 ).ConfigureAwait(false);
             });

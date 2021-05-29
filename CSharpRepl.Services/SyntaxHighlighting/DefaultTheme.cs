@@ -63,5 +63,4 @@ namespace Sharply.Services.SyntaxHighlighting
         public string name { get; set; }
         public string foreground { get; set; }
     }
-
 }

@@ -8,22 +8,26 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
+using Microsoft.CodeAnalysis.Scripting.Hosting;
+using PrettyPrompt.Consoles;
 
 namespace Sharply.Services.Roslyn
 {
     class ScriptRunner
     {
+        private readonly InteractiveAssemblyLoader assemblyLoader;
         private readonly NugetMetadataResolver nugetResolver;
         private ScriptOptions scriptOptions;
         private ScriptState<object> state;
 
-        public ScriptRunner(CSharpCompilationOptions compilationOptions, ReferenceAssemblyService referenceAssemblyService)
+        public ScriptRunner(IConsole console, CSharpCompilationOptions compilationOptions, ReferenceAssemblyService referenceAssemblyService)
         {
-            this.nugetResolver = new NugetMetadataResolver(referenceAssemblyService.ImplementationAssemblyPaths);
+            this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
+            this.nugetResolver = new NugetMetadataResolver(console, referenceAssemblyService.ImplementationAssemblyPaths);
             this.scriptOptions = ScriptOptions.Default
                 .WithMetadataResolver(nugetResolver)
                 .WithReferences(referenceAssemblyService.DefaultImplementationAssemblies)
-                .WithEmitDebugInformation(true)
+                .WithAllowUnsafe(compilationOptions.AllowUnsafe)
                 .AddImports(compilationOptions.Usings);
         }
 
@@ -36,11 +40,11 @@ namespace Sharply.Services.Roslyn
                     .Where(nugetResolver.IsNugetReference);
                 foreach (var nugetCommand in nugetCommands)
                 {
-                    var nugetReferences = await nugetResolver.InstallNugetPackage(nugetCommand, cancellationToken).ConfigureAwait(false);
-                    this.scriptOptions = this.scriptOptions.AddReferences(nugetReferences);
+                    var assemblyReferences = await nugetResolver.InstallNugetPackageAsync(nugetCommand, cancellationToken).ConfigureAwait(false);
+                    this.scriptOptions = this.scriptOptions.AddReferences(assemblyReferences);
                 }
 
-                state = await EvaluateStringWithStateAsync(text, state, this.scriptOptions, cancellationToken).ConfigureAwait(false);
+                state = await EvaluateStringWithStateAsync(text, state, assemblyLoader, this.scriptOptions, cancellationToken).ConfigureAwait(false);
                 var evaluatedReferences = state.Script.GetCompilation().References.ToList();
 
                 return state.Exception is null
@@ -58,13 +62,10 @@ namespace Sharply.Services.Roslyn
             }
         }
 
-        public Script<object> CreateCompilation(string text) =>
-             CSharpScript.Create(text, scriptOptions);
-
-        private static Task<ScriptState<object>> EvaluateStringWithStateAsync(string text, ScriptState<object> state, ScriptOptions scriptOptions, CancellationToken cancellationToken)
+        private static Task<ScriptState<object>> EvaluateStringWithStateAsync(string text, ScriptState<object> state, InteractiveAssemblyLoader assemblyLoader, ScriptOptions scriptOptions, CancellationToken cancellationToken)
         {
             return state == null
-                ? CSharpScript.Create(text, scriptOptions).RunAsync(cancellationToken: cancellationToken)
+                ? CSharpScript.Create(text, scriptOptions, assemblyLoader: assemblyLoader).RunAsync(cancellationToken: cancellationToken)
                 : state.ContinueWithAsync(text, scriptOptions, cancellationToken: cancellationToken);
         }
     }

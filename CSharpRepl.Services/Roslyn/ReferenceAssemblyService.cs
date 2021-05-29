@@ -13,11 +13,8 @@ namespace Sharply.Services.Roslyn
     /// </remarks>
     class ReferenceAssemblyService
     {
-        private readonly IDictionary<string, MetadataReference> CachedMetadataReferences = new Dictionary<string, MetadataReference>();
-        private readonly HashSet<MetadataReference> UniqueMetadataReferences = new HashSet<MetadataReference>(new EqualityComparerFunc<MetadataReference>(
-            (r1, r2) => r1.Display.Equals(r2.Display),
-            (r1) => r1.Display.GetHashCode()
-        ));
+        private readonly Dictionary<string, MetadataReference> CachedMetadataReferences;
+        private readonly HashSet<MetadataReference> LoadedReferenceAssemblies;
 
         public IReadOnlyCollection<string> ReferenceAssemblyPaths { get; }
         public IReadOnlyCollection<string> ImplementationAssemblyPaths { get; }
@@ -27,7 +24,14 @@ namespace Sharply.Services.Roslyn
 
         public ReferenceAssemblyService(Configuration config)
         {
-            var sharedFrameworks = GetSharedFrameworkConfiguration(config.Framework);
+            this.CachedMetadataReferences = new Dictionary<string, MetadataReference>();
+            this.LoadedReferenceAssemblies = new HashSet<MetadataReference>(new EqualityComparerFunc<MetadataReference>(
+                (r1, r2) => r1.Display.Equals(r2.Display),
+                (r1) => r1.Display.GetHashCode()
+            ));
+
+            var (framework, version) = GetDesiredFrameworkVersion(config.Framework);
+            var sharedFrameworks = GetSharedFrameworkConfiguration(framework, version);
 
             this.ReferenceAssemblyPaths = sharedFrameworks.Select(framework => framework.ReferencePath).ToArray();
             this.ImplementationAssemblyPaths = sharedFrameworks.Select(framework => framework.ImplementationPath).ToArray();
@@ -54,42 +58,14 @@ namespace Sharply.Services.Roslyn
                 }
                 .Concat(config.Usings)
                 .ToList();
-
-            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(ChooseBestMatch);
-        }
-
-        /// <summary>
-        /// If we're missing an assembly (by exact match), try to find an assembly with the same name but different version.
-        /// </summary>
-        private Assembly ChooseBestMatch(object sender, ResolveEventArgs args)
-        {
-            var assemblyName = new AssemblyName(args.Name).Name;
-            var located = this.DefaultImplementationAssemblies
-                .Where(a => Path.GetFileNameWithoutExtension(a.Display) == assemblyName)
-                .Select(a => Assembly.LoadFile(a.Display))
-                .FirstOrDefault();
-            if (located is not null)
-            {
-                Console.WriteLine($@"Warning: Missing assembly: {args.Name}");
-                Console.WriteLine($@"            Using instead: {located.FullName}");
-                Console.WriteLine($@"             Requested by: {args.RequestingAssembly.FullName}");
-            }
-            return located;
-        }
-
-        private static string GetCurrentAssemblyImplementationPath(string sharedFramework)
-        {
-            return Path
-                .GetDirectoryName(typeof(object).Assembly.Location)
-                .Replace(SharedFramework.NetCoreApp, sharedFramework);
         }
 
         internal IReadOnlyCollection<MetadataReference> EnsureReferenceAssemblyWithDocumentation(IReadOnlyCollection<MetadataReference> references)
         {
-            UniqueMetadataReferences.UnionWith(
+            LoadedReferenceAssemblies.UnionWith(
                 references.Select(suppliedReference => EnsureReferenceAssembly(suppliedReference)).Where(reference => reference is not null)
             );
-            return UniqueMetadataReferences;
+            return LoadedReferenceAssemblies;
         }
 
         // a bit of a mismatch -- the scripting APIs use implementation assemblies only. The general workspace/project roslyn APIs use the reference
@@ -133,36 +109,64 @@ namespace Sharply.Services.Roslyn
             return completeMetadataReference;
         }
 
-        private SharedFramework[] GetSharedFrameworkConfiguration(string sharedFramework)
+        private SharedFramework[] GetSharedFrameworkConfiguration(string framework, string version)
         {
-            var referencePath = GetCurrentAssemblyReferencePath(sharedFramework);
-            var implementationPath = GetCurrentAssemblyImplementationPath(sharedFramework);
+            var referencePath = GetCurrentAssemblyReferencePath(framework, version);
+            var implementationPath = GetCurrentAssemblyImplementationPath(framework, version);
 
             var referenceDlls = Directory.GetFiles(referencePath, "*.dll", SearchOption.TopDirectoryOnly);
             var implementationDlls = Directory.GetFiles(implementationPath, "*.dll", SearchOption.TopDirectoryOnly);
 
-            // NetCore.App is always included.
-            // If we're including e.g. AspNetCore.App, include it alongside NetCore.App.
-            return sharedFramework switch
+            // Microsoft.NETCore.App is always included.
+            // If we're including e.g. Microsoft.AspNetCore.App, include it alongside Microsoft.NETCore.App.
+            return framework switch
             {
                 SharedFramework.NetCoreApp => new[] {
-                    new SharedFramework(sharedFramework, referencePath, implementationPath, referenceDlls, implementationDlls)
+                    new SharedFramework(referencePath, implementationPath, referenceDlls, implementationDlls)
                 },
-                _ => GetSharedFrameworkConfiguration(SharedFramework.NetCoreApp)
-                    .Append(new SharedFramework(sharedFramework, referencePath, implementationPath, referenceDlls, implementationDlls))
+                _ => GetSharedFrameworkConfiguration(SharedFramework.NetCoreApp, version)
+                    .Append(new SharedFramework(referencePath, implementationPath, referenceDlls, implementationDlls))
                     .ToArray()
             };
         }
 
-        private static string GetCurrentAssemblyReferencePath(string sharedFramework)
+        private static string GetCurrentAssemblyReferencePath(string framework, string version)
         {
-            var version = Environment.Version;
             var dotnetRuntimePath = RuntimeEnvironment.GetRuntimeDirectory();
-            var dotnetRoot = Path.Combine(dotnetRuntimePath, "../../../packs/", sharedFramework + ".Ref");
+            var dotnetRoot = Path.GetFullPath(Path.Combine(dotnetRuntimePath, "../../../packs/", framework + ".Ref"));
             var referenceAssemblyPath = Directory
-                .GetDirectories(dotnetRoot, "*net" + version.Major.ToString() + "*", SearchOption.AllDirectories)
+                .GetDirectories(dotnetRoot, "net*" + version + "*", SearchOption.AllDirectories)
                 .Last();
             return Path.GetFullPath(referenceAssemblyPath);
+        }
+
+        private static string GetCurrentAssemblyImplementationPath(string framework, string version)
+        {
+            var currentFrameworkPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location), ".."));
+            var configuredFramework = currentFrameworkPath.Replace(SharedFramework.NetCoreApp, framework);
+            var configuredFrameworkAndVersion = Directory
+                .GetDirectories(configuredFramework, version + "*")
+                .OrderBy(path => new Version(Path.GetFileName(path)))
+                .Last();
+
+            return configuredFrameworkAndVersion;
+        }
+
+        private static (string framework, string version) GetDesiredFrameworkVersion(string sharedFramework)
+        {
+            var parts = sharedFramework.Split('/');
+            if (parts.Length == 2)
+            {
+                return (parts[0], parts[1]);
+            }
+            else if (parts.Length == 1)
+            {
+                return (parts[0], Environment.Version.Major.ToString());
+            }
+            else
+            {
+                throw new InvalidOperationException("Unknown Shared Framework configuration: " + sharedFramework);
+            }
         }
 
         private IReadOnlyCollection<MetadataReference> CreateDefaultReferences(string assemblyPath, IReadOnlyCollection<string> assemblies)
@@ -197,7 +201,7 @@ namespace Sharply.Services.Roslyn
         }
     }
 
-    public record SharedFramework(string Name, string ReferencePath, string ImplementationPath, string[] ReferenceAssemblies, string[] ImplementationAssemblies)
+    public record SharedFramework(string ReferencePath, string ImplementationPath, string[] ReferenceAssemblies, string[] ImplementationAssemblies)
     {
         public const string NetCoreApp = "Microsoft.NETCore.App";
 
