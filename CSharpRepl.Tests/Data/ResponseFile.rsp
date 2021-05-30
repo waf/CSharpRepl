@@ -1,0 +1,11 @@
+﻿# C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\PrivateAssemblies\CSharpInteractive.rsp
+/r:System
+/r:System.ValueTuple.dll
+/u:System
+#/u:System.Console
+/u:System.Linq
+
+# more references
+/r:Foo.Main.Logic.dll
+/r:lib.dll
+/u:Foo.Main.Text
