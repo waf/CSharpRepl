@@ -126,3 +126,24 @@ Supported options are:
     - `-h` or `--help`: Show this help and exit.
 - `response-file.rsp`: A filepath of an .rsp file, containing any of the above command line options.
 - `script-file.csx`: A filepath of a .csx file, containing lines of C# to evaluate before starting the REPL.
+
+## Integrating with other software
+
+# Windows Terminal
+
+To add the C# REPL as a menu entry in Windows Terminal, add the following profile to Windows Terminal's `settings.json` configuration file (under the JSON property `profiles.list`):
+
+```json
+{
+    "name": "C# REPL",
+    "commandline": "csharprepl"
+},
+```
+
+# Visual Studio Code
+
+To use the C# REPL with Visual Studio Code, simply run the `csharprepl` command in the Visual Studio Code terminal. To send commands to the REPL, use the built-in `Terminal: Run Selected Text In Active Terminal` command from the Command Palette (`workbench.action.terminal.runSelectedText`).
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/vscode.png" alt="Visual Studio Code screenshot" style="max-width:100%;">
+</p>
