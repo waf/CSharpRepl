@@ -1,12 +1,12 @@
 # C# REPL
 
-C# REPL is a tool to promote rapid experimentation and exploration of C# expressions, statements, and nuget packages. It provides a command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> for C#, supporting intellisense, documentation, and nuget package installation.
+C# REPL is a tool for rapid experimentation and exploration of C# expressions, statements, and NuGet packages. It provides a command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> for C# that supports syntax highlighting, intellisense, and type/method documentation.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.png" alt="C# REPL screenshot" style="max-width:80%;">
 </p>
 
-C# REPL helps you explore how libraries work, both in the standard library and in nuget packages, as well as iteratively defining and refining functions when developing software.
+This C# REPL helps you explore the C# language and libraries, including the .NET SDK and NuGet packages. It's also useful for iteratively defining and refining functions when developing software.
 
 ## Installation
 
@@ -16,11 +16,11 @@ C# REPL is a .NET 5 global tool. It can be installed via:
 dotnet tool install -g csharprepl
 ```
 
-And then run by executing `csharprepl` at the command line.
+After installation is complete, run `csharprepl` to begin.
 
 ## Usage:
 
-Run `csharprepl` from the command line to start. The default colorscheme uses the color palette defined by your terminal, but these colors can be changed using a [`theme.json`](https://github.com/waf/CSharpRepl/blob/main/CSharpRepl/themes/dracula.json) file provided as a command line argument.
+Run `csharprepl` from the command line to begin an interactive session. The default colorscheme uses the color palette defined by your terminal, but these colors can be changed using a [`theme.json`](https://github.com/waf/CSharpRepl/blob/main/CSharpRepl/themes/dracula.json) file provided as a command line argument.
 
 ### Evaluating Code
 
@@ -50,11 +50,12 @@ Additionally, if the statement is not a "complete statement" a newline will auto
   | // caret position, after we press Enter on Line 1
 ```
 
-Pressing <kbd>Ctrl+Enter</kbd> will evaluate the current code, but show a "detailed view" of the response. For example, for the `DateTime.Now` expression below, on the first line we pressed <kbd>Enter</kbd>, and on the second line we pressed <kbd>Ctrl+Enter</kbd> to view more detailed output:
+Finally, pressing <kbd>Ctrl+Enter</kbd> will show a "detailed view" of the result. For example, for the `DateTime.Now` expression below, on the first line we pressed <kbd>Enter</kbd>, and on the second line we pressed <kbd>Ctrl+Enter</kbd> to view more detailed output:
 
 ```csharp
 > DateTime.Now // Pressing Enter shows a reasonable representation
 [5/30/2021 5:13:00 PM]
+
 > DateTime.Now // Pressing Ctrl+Enter shows a detailed representation
 [5/30/2021 5:13:00 PM] {
   Date: [5/30/2021 12:00:00 AM],
@@ -91,7 +92,7 @@ Pressing <kbd>Ctrl+Enter</kbd> will evaluate the current code, but show a "detai
 - Press <kbd>Ctrl+F1</kbd> to view its source code on https://source.dot.net/.
 - Press <kbd>Ctrl+Shift+C</kbd> to copy the current line of code to your clipboard, and <kbd>Ctrl+v</kbd> to paste.
 
-For example, pressing <kbd>F1</kbd> or <kbd>Ctrl+F1</kbd> when the caret is in the `AddDays` function will open 
+For example, pressing <kbd>F1</kbd> or <kbd>Ctrl+F1</kbd> when the caret is in the `AddDays` function will open
 the [MSDN documentation for `AddDays`](https://docs.microsoft.com/en-US/dotnet/api/System.DateTime.AddDays?view=net-5.0) and the [source code for `AddDays`](https://source.dot.net/#q=System.DateTime.AddDays) respectively.
 
 ```csharp
@@ -109,6 +110,12 @@ Use the `#r` command to add assembly or nuget references.
   <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/nuget.png" alt="Installing nuget packages" style="max-width:80%;">
 </p>
 
+To run ASP.NET applications inside the REPL, start the `csharprepl ` application with the `--framework` parameter, specifying the `Microsoft.AspNetCore.App` shared framework. Then, use the above `#r` command to reference the application DLL. See the *Command Line Configuration* section below for more details.
+
+```console
+csharprepl --framework  Microsoft.AspNetCore.App
+```
+
 ## Command Line Configuration
 
 The C# REPL supports multiple configuration flags to control startup, behavior, and appearance:
@@ -120,9 +127,9 @@ Usage: csharprepl [OPTIONS] [response-file.rsp] [script-file.csx]
 Supported options are:
 
 - OPTIONS:
-    - `-r <dll>` or `--reference <dll>`: Add an assembly reference. May be specified multiple times.
-    - `-u <namespace>` or `--using <namespace>`: Add a using statement. May be specified multiple times.
-    - `-f <framework>` or `--framework <framework>`: Reference a [shared framework](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/metapackage-app). Available shared frameworks depends on the local .NET installation, and can be useful when running a ASP.NET application from the REPL. Example frameworks are, but not limited to:
+    - `-r <dll>` or `--reference <dll>`: Add an assembly reference. Can be specified multiple times.
+    - `-u <namespace>` or `--using <namespace>`: Add a using statement. Can be specified multiple times.
+    - `-f <framework>` or `--framework <framework>`: Reference a [shared framework](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/metapackage-app). Available shared frameworks depends on the local .NET installation, and can be useful when running a ASP.NET application from the REPL. Example frameworks are:
         - Microsoft.NETCore.App (default)
         - Microsoft.AspNetCore.All
         - Microsoft.AspNetCore.App
@@ -135,9 +142,11 @@ Supported options are:
 
 ## Integrating with other software
 
+C# REPL is a standalone software application, but it can be useful to integrate it with other developer tools:
+
 ### Windows Terminal
 
-To add the C# REPL as a menu entry in Windows Terminal, add the following profile to Windows Terminal's `settings.json` configuration file (under the JSON property `profiles.list`):
+To add C# REPL as a menu entry in Windows Terminal, add the following profile to Windows Terminal's `settings.json` configuration file (under the JSON property `profiles.list`):
 
 ```json
 {
@@ -146,6 +155,8 @@ To add the C# REPL as a menu entry in Windows Terminal, add the following profil
 },
 ```
 
+To get the exact colors shown in the screenshots in this README, install the [Windows Terminal Dracula theme](https://github.com/dracula/windows-terminal).
+
 ### Visual Studio Code
 
 To use the C# REPL with Visual Studio Code, simply run the `csharprepl` command in the Visual Studio Code terminal. To send commands to the REPL, use the built-in `Terminal: Run Selected Text In Active Terminal` command from the Command Palette (`workbench.action.terminal.runSelectedText`).
@@ -153,3 +164,16 @@ To use the C# REPL with Visual Studio Code, simply run the `csharprepl` command 
 <p align="center">
   <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/vscode.png" alt="Visual Studio Code screenshot" style="max-width:90%;">
 </p>
+
+
+## Comparison with other REPLs
+
+This project is far from being the first REPL for C#. Here are some other projects; if this project doesn't suit you, another one might!
+
+**Visual Studio's C# Interactive pane** is full-featured (it has syntax highlighting and intellisense) and is part of Visual Studio. This deep integration with Visual Studio is both a benefit from a workflow perspective, and a drawback as it's not cross-platform. As far as I know, the C# Interactive pane does not support NuGet packages or navigating to documentation/source code. Subjectively, it does not follow typical command line keybindings, so can feel a bit foreign.
+
+**csi.exe** ships with C# and is a command line REPL. It's great because it's a cross platform REPL that comes out of the box, but it doesn't support syntax highlighting or autocompletion.
+
+**dotnet script** allows you to run C# scripts from the .NET CLI. It has a REPL built-in, but the predominant focus seems to be as a script runner. It's a good alternative though, and has a strong community following.
+
+**dotnet interactive** is a tool from Microsoft that creates a Jupyter notebook for C#, runnable through Visual Studio Code.
