@@ -3,7 +3,7 @@
 A tool to promote rapid experimentation and exploration of C# expressions, statements, and nuget libraries. Provides a command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> tool for C#, supporting intellisense, documentation, and nuget package installation.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.png" alt="C# REPL screenshot" style="max-width:100%;">
+  <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.png" alt="C# REPL screenshot" style="max-width:80%;">
 </p>
 
 ## Installation
@@ -103,6 +103,10 @@ Use the `#r` command to add assembly or nuget references.
 - For assembly references, run `#r "AssemblyName"` or `#r "path/to/assembly.dll"`
 - For nuget references, run `#r "nuget: PackageName"` to install the latest version of a package, or `#r "nuget: PackageName, 13.0.5"` to install a specific version (13.0.5 in this case).
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/nuget.png" alt="Installing nuget packages" style="max-width:80%;">
+</p>
+
 ## Command Line Configuration
 
 The C# REPL supports multiple configuration flags to control startup, behavior, and appearance:
@@ -129,7 +133,7 @@ Supported options are:
 
 ## Integrating with other software
 
-# Windows Terminal
+### Windows Terminal
 
 To add the C# REPL as a menu entry in Windows Terminal, add the following profile to Windows Terminal's `settings.json` configuration file (under the JSON property `profiles.list`):
 
@@ -140,10 +144,10 @@ To add the C# REPL as a menu entry in Windows Terminal, add the following profil
 },
 ```
 
-# Visual Studio Code
+### Visual Studio Code
 
 To use the C# REPL with Visual Studio Code, simply run the `csharprepl` command in the Visual Studio Code terminal. To send commands to the REPL, use the built-in `Terminal: Run Selected Text In Active Terminal` command from the Command Palette (`workbench.action.terminal.runSelectedText`).
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/vscode.png" alt="Visual Studio Code screenshot" style="max-width:100%;">
+  <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/vscode.png" alt="Visual Studio Code screenshot" style="max-width:90%;">
 </p>

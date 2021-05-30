@@ -6,9 +6,17 @@
     <TargetFramework>net5.0</TargetFramework>
     <LangVersion>latest</LangVersion>
 
+    <RepositoryUrl>https://github.com/waf/PrettyPrompt</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Authors>Will Fuqua</Authors>
+    <Company />
+
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>csharprepl</ToolCommandName>
+    <PackageTags>repl console cli csharp tool</PackageTags>
     <PackageOutputPath>./nupkg</PackageOutputPath>
+    <PackageProjectUrl>https://github.com/waf/PrettyPrompt</PackageProjectUrl>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

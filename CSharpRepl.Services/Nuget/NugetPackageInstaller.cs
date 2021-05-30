@@ -41,7 +41,7 @@ namespace CSharpRepl.Services.Nuget
         {
             ISettings settings = ReadSettings();
             var frameworkVersion = GetCurrentFramework();
-            var nuGetProject = CreateFolderProject("./packages");
+            var nuGetProject = CreateFolderProject(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".csharprepl", "packages"));
             var sourceRepositoryProvider = new SourceRepositoryProvider(new PackageSourceProvider(settings), Repository.Provider.GetCoreV3());
             var packageManager = CreatePackageManager(settings, nuGetProject, sourceRepositoryProvider);
 
