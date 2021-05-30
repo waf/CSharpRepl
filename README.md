@@ -1,10 +1,12 @@
 # C# REPL
 
-A tool to promote rapid experimentation and exploration of C# expressions, statements, and nuget libraries. Provides a command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> tool for C#, supporting intellisense, documentation, and nuget package installation.
+C# REPL is a tool to promote rapid experimentation and exploration of C# expressions, statements, and nuget packages. It provides a command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> for C#, supporting intellisense, documentation, and nuget package installation.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.png" alt="C# REPL screenshot" style="max-width:80%;">
 </p>
+
+C# REPL helps you explore how libraries work, both in the standard library and in nuget packages, as well as iteratively defining and refining functions when developing software.
 
 ## Installation
 
@@ -18,11 +20,11 @@ And then run by executing `csharprepl` at the command line.
 
 ## Usage:
 
-Run csharprepl from the command line to start. The default colors look good on terminals that use dark backgrounds; but these colors can be changed using a [`theme.json`](https://github.com/waf/CSharpRepl/blob/main/CSharpRepl/themes/dracula.json) file provided as a command line argument.
+Run `csharprepl` from the command line to start. The default colorscheme uses the color palette defined by your terminal, but these colors can be changed using a [`theme.json`](https://github.com/waf/CSharpRepl/blob/main/CSharpRepl/themes/dracula.json) file provided as a command line argument.
 
 ### Evaluating Code
 
-Type some C# into the prompt and press <kbd>Enter</kbd> to run it. Its result, if any, will be printed:
+Type some C# into the prompt and press <kbd>Enter</kbd> to run it. The result, if any, will be printed:
 
 ```csharp
 > Console.WriteLine("Hello World")
@@ -32,7 +34,7 @@ Hello World
 [6/7/2021 5:13:00 PM]
 ```
 
-If we want to evaluate multiple lines of code, we can use <kbd>Shift+Enter</kbd> to insert a newline:
+To evaluate multiple lines of code, use <kbd>Shift+Enter</kbd> to insert a newline:
 
 ```csharp
 > var x = 5;
@@ -48,12 +50,12 @@ Additionally, if the statement is not a "complete statement" a newline will auto
   | // caret position, after we press Enter on Line 1
 ```
 
-Pressing <kbd>Ctrl+Enter</kbd> will evaluate the current code, but show a "detailed view" of the response. For example, for the same expression below, on the first line we pressed <kbd>Enter</kbd>, but on the second line we pressed <kbd>Ctrl+Enter</kbd>:
+Pressing <kbd>Ctrl+Enter</kbd> will evaluate the current code, but show a "detailed view" of the response. For example, for the `DateTime.Now` expression below, on the first line we pressed <kbd>Enter</kbd>, and on the second line we pressed <kbd>Ctrl+Enter</kbd> to view more detailed output:
 
 ```csharp
-> DateTime.Now // we pressed Enter
+> DateTime.Now // Pressing Enter shows a reasonable representation
 [5/30/2021 5:13:00 PM]
-> DateTime.Now // we pressed Ctrl+Enter
+> DateTime.Now // Pressing Ctrl+Enter shows a detailed representation
 [5/30/2021 5:13:00 PM] {
   Date: [5/30/2021 12:00:00 AM],
   Day: 30,
@@ -74,7 +76,7 @@ Pressing <kbd>Ctrl+Enter</kbd> will evaluate the current code, but show a "detai
 }
 ```
 
-**A note on semicolons**: C# expressions do not require semicolons, but [statements](https://stackoverflow.com/questions/19132/expression-versus-statement) do:
+**A note on semicolons**: C# expressions do not require semicolons, but [statements](https://stackoverflow.com/questions/19132/expression-versus-statement) do. If a statement is missing a required semicolon, a newline will be added instead of trying to run the syntatically incomplete statement; simply type the semicolon to complete the statement.
 
 ```csharp
 > var now = DateTime.Now; // assignment statement, semicolon required
