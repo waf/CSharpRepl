@@ -10,7 +10,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace Sharply.Services.Roslyn
+namespace CSharpRepl.Services.Roslyn
 {
     /// <remarks>
     /// Useful notes https://github.com/dotnet/roslyn/blob/main/docs/wiki/Runtime-code-generation-using-Roslyn-compilations-in-.NET-Core-App.md

@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using Sharply.Services.SyntaxHighlighting;
+using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
@@ -12,12 +12,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
-using Sharply.Services.SymbolExploration;
-using Sharply.Services.Completion;
+using CSharpRepl.Services.SymbolExploration;
+using CSharpRepl.Services.Completion;
 using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt.Consoles;
 
-namespace Sharply.Services.Roslyn
+namespace CSharpRepl.Services.Roslyn
 {
     public class RoslynServices
     {

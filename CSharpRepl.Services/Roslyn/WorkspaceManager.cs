@@ -10,7 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Sharply.Services.Roslyn
+namespace CSharpRepl.Services.Roslyn
 {
     class WorkspaceManager
     {

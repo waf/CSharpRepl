@@ -25,7 +25,7 @@ using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Sharply.Services.Nuget
+namespace CSharpRepl.Services.Nuget
 {
     public class NugetPackageInstaller
     {

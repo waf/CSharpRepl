@@ -4,7 +4,7 @@
 
 using Microsoft.CodeAnalysis.Classification;
 
-namespace Sharply.Services.SyntaxHighlighting
+namespace CSharpRepl.Services.SyntaxHighlighting
 {
     class DefaultTheme : Theme
     {

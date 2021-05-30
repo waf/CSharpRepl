@@ -4,7 +4,7 @@
 
 using System.Collections.Generic;
 
-namespace Sharply.Services
+namespace CSharpRepl.Services
 {
     /// <summary>
     /// Configuration from command line parameters

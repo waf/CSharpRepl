@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using NuGet.Common;
 using PrettyPrompt.Consoles;
 
-namespace Sharply.Services.Nuget
+namespace CSharpRepl.Services.Nuget
 {
     public class ConsoleNugetLogger : ILogger
     {

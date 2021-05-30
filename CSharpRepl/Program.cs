@@ -4,19 +4,21 @@
 
 using System;
 using System.Threading.Tasks;
-using Sharply.Services.Roslyn;
+using CSharpRepl.Services.Roslyn;
 using PrettyPrompt.Highlighting;
 using PrettyPrompt.Consoles;
-using Sharply.Prompt;
-using Sharply.Services;
+using CSharpRepl.Prompt;
+using CSharpRepl.Services;
 using System.Threading;
+using PrettyPrompt;
 
-namespace Sharply
+namespace CSharpRepl
 {
     static class Program
     {
         private static IConsole console;
         private static RoslynServices roslyn;
+        private static IPrompt prompt;
 
         static async Task Main(string[] args)
         {
@@ -63,7 +65,7 @@ namespace Sharply
             // `roslyn` is required for the syntax highlighting in the text,
             // and `prompt` is required because it enables escape sequences.
             roslyn = new RoslynServices(console, config);
-            var prompt = PromptConfiguration.Create(roslyn);
+            prompt = PromptConfiguration.Create(roslyn);
 
             console.WriteLine($"Welcome to the C# REPL (Read Eval Print Loop)!");
             console.WriteLine("Type C# expressions and statements at the prompt and press Enter to evaluate them.");
@@ -163,18 +165,26 @@ namespace Sharply
             var argument = reference is null ? "" : Color("string") + @" """ + reference + @"""" + AnsiEscapeCodes.Reset;
 
             return preprocessor + argument;
-
         }
 
         private static string VariableDeclaration =>
-            Color("keyword") + "var" + AnsiEscapeCodes.Reset + " " +
-            Color("field name") + "x" + AnsiEscapeCodes.Reset + " " +
-            Color("operator") + "=" + AnsiEscapeCodes.Reset;
+            prompt.HasUserOptedOutFromColor
+            ? "var x ="
+            : (Color("keyword") + "var" + AnsiEscapeCodes.Reset + " " +
+               Color("field name") + "x" + AnsiEscapeCodes.Reset + " " +
+               Color("operator") + "=" + AnsiEscapeCodes.Reset);
 
         static string Color(string reference) =>
             AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(roslyn.ToColor(reference)));
 
-        private static string Help => AnsiEscapeCodes.Green + @"help" + AnsiEscapeCodes.Reset;
-        private static string Exit => AnsiEscapeCodes.BrightRed + @"exit" + AnsiEscapeCodes.Reset;
+        private static string Help =>
+            prompt.HasUserOptedOutFromColor
+            ? @"""help"""
+            : AnsiEscapeCodes.Green + "help" + AnsiEscapeCodes.Reset;
+
+        private static string Exit =>
+            prompt.HasUserOptedOutFromColor
+            ? @"""exit"""
+            : AnsiEscapeCodes.BrightRed + @"exit" + AnsiEscapeCodes.Reset;
     }
 }

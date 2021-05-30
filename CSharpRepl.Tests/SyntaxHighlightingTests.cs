@@ -3,13 +3,13 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using Microsoft.CodeAnalysis.Text;
-using Sharply.Services;
-using Sharply.Services.Roslyn;
+using CSharpRepl.Services;
+using CSharpRepl.Services.Roslyn;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Sharply.Tests
+namespace CSharpRepl.Tests
 {
     [Collection(nameof(RoslynServices))]
     public class SyntaxHighlightingTests : IAsyncLifetime

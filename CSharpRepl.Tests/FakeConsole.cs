@@ -6,7 +6,7 @@ using NSubstitute;
 using PrettyPrompt.Consoles;
 using System.Text;
 
-namespace Sharply.Tests
+namespace CSharpRepl.Tests
 {
     static class FakeConsole
     {

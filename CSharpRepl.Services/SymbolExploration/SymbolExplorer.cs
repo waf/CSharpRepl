@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Sharply.Services.SymbolExploration
+namespace CSharpRepl.Services.SymbolExploration
 {
     /// <summary>
     /// Provides information (e.g. types) of symbols in a <see cref="Document"/>.

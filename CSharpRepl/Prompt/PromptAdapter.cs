@@ -4,12 +4,12 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using Sharply.Services.SyntaxHighlighting;
+using CSharpRepl.Services.SyntaxHighlighting;
 using PrettyPrompt.Highlighting;
 using PromptCompletionItem = PrettyPrompt.Completion.CompletionItem;
-using Sharply.Services.Completion;
+using CSharpRepl.Services.Completion;
 
-namespace Sharply.Prompt
+namespace CSharpRepl.Prompt
 {
     /// <summary>
     /// Maps the classes produced by our roslyn code into the classes for interacting with our prompt library.

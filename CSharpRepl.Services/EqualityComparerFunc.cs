@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Sharply.Services
+namespace CSharpRepl.Services
 {
     public class EqualityComparerFunc<T> : IEqualityComparer<T>
     {

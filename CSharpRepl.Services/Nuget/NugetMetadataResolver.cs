@@ -15,7 +15,7 @@ using System.Runtime.Loader;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Sharply.Services.Nuget
+namespace CSharpRepl.Services.Nuget
 {
     public class NugetMetadataResolver : MetadataReferenceResolver
     {
@@ -32,7 +32,7 @@ namespace Sharply.Services.Nuget
             this.console = console;
             this.defaultResolver = ScriptMetadataResolver.Default;
             this.assemblyPaths = new HashSet<string>(implementationAssemblyPaths);
-            this.loadContext = new AssemblyLoadContext(nameof(Sharply) + "Repl");
+            this.loadContext = new AssemblyLoadContext(nameof(CSharpRepl) + "Repl");
             this.nugetInstaller = new NugetPackageInstaller(console);
             this.dummyPlaceholder = new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) }.ToImmutableArray();
 

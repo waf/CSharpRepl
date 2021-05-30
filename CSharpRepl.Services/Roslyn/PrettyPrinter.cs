@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using System;
 
-namespace Sharply.Services.Roslyn
+namespace CSharpRepl.Services.Roslyn
 {
     class PrettyPrinter
     {

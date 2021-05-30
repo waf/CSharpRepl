@@ -4,15 +4,15 @@
 
 using PrettyPrompt;
 using PrettyPrompt.Highlighting;
-using Sharply.Services.Roslyn;
-using Sharply.Services.SymbolExploration;
+using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.SymbolExploration;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Sharply.Prompt
+namespace CSharpRepl.Prompt
 {
     static class PromptConfiguration
     {
@@ -22,7 +22,7 @@ namespace Sharply.Prompt
         public static PrettyPrompt.Prompt Create(RoslynServices roslyn)
         {
             var adapter = new PromptAdapter();
-            var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), nameof(Sharply));
+            var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), nameof(CSharpRepl));
             var historyStorage = Path.Combine(appStorage, "prompt-history");
             Directory.CreateDirectory(appStorage);
 

@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "Sharply": {
+    "CSharpRepl": {
       "commandName": "Project",
       "workingDirectory": "C:\\Users\\will.fuqua\\Desktop\\orchard-examples\\Codesanook.Web\\"
     }

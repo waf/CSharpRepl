@@ -15,7 +15,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Sharply.Services.SyntaxHighlighting
+namespace CSharpRepl.Services.SyntaxHighlighting
 {
     /// <summary>
     /// Invokes roslyn's classification API on a code document, and combines the
