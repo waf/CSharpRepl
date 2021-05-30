@@ -22,7 +22,7 @@ namespace CSharpRepl.Prompt
         public static PrettyPrompt.Prompt Create(RoslynServices roslyn)
         {
             var adapter = new PromptAdapter();
-            var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), nameof(CSharpRepl));
+            var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
             var historyStorage = Path.Combine(appStorage, "prompt-history");
             Directory.CreateDirectory(appStorage);
 
