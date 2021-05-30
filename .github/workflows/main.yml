@@ -1,0 +1,38 @@
+name: main build
+
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    
+    - name: Install Dotnet
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '5.0.x'
+      
+    - name: Dotnet Installation Info
+      run: dotnet --info
+      
+    - name: Install Codecov
+      run: dotnet tool install --global Codecov.Tool
+      
+    - name: Build
+      run: dotnet build
+      
+    - name: Test
+      run: dotnet test --collect:"XPlat Code Coverage" --settings CSharpRepl.Tests\TestCoverageRunSettings.xml
+
+    - name: Code Coverage
+      shell: pwsh
+      run: |
+        $testCoverage = Get-ChildItem CSharpRepl.Tests\TestResults\*\*.xml
+        codecov -t ${{ secrets.CODECOV_TOKEN }} -f $testCoverage[0].ToString()
