@@ -1,4 +1,9 @@
-﻿using System;
+﻿#region License Header
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#endregion
+using System;
 using System.Threading.Tasks;
 using Sharply.Services.Roslyn;
 using PrettyPrompt.Highlighting;
@@ -139,7 +144,7 @@ namespace Sharply
                 $@"For nuget references, run {Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}" + Environment.NewLine + 
                 Environment.NewLine + 
                 "Exploring Code" + Environment.NewLine +
-                "=================" + Environment.NewLine +
+                "==============" + Environment.NewLine +
                 "Press F1 when your caret is in a type, method, or property to open its official MSDN documentation." + Environment.NewLine + 
                 "Press Ctrl+F1 to view its source code on https://source.dot.net/." + Environment.NewLine +
                 Environment.NewLine + 
