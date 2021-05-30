@@ -1,8 +1,7 @@
-﻿#region License Header
-// This Source Code Form is subject to the terms of the Mozilla Public
+﻿// This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
-#endregion
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Text;
@@ -18,6 +17,10 @@ using System.Threading.Tasks;
 
 namespace Sharply.Services.SyntaxHighlighting
 {
+    /// <summary>
+    /// Invokes roslyn's classification API on a code document, and combines the
+    /// classifications with a theme file to determine the resulting spans of color.
+    /// </summary>
     class SyntaxHighlighter
     {
         private readonly IReadOnlyDictionary<string, AnsiColor> theme;

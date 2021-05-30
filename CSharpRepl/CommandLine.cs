@@ -1,8 +1,7 @@
-﻿#region License Header
-// This Source Code Form is subject to the terms of the Mozilla Public
+﻿// This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
-#endregion
+
 using Sharply.Services;
 using Sharply.Services.Roslyn;
 using System;
@@ -145,7 +144,7 @@ namespace Sharply
             "  -f <framework> or --framework <framework>: Reference a shared framework. May be specified multiple times." + NewLine +
             "                                             Available shared frameworks: " + NewLine + GetInstalledFrameworks(
             "                                             ") + NewLine +
-            "  -t <theme.json> or --theme <theme.json>:   Read a theme file for syntax highlighting." + NewLine +
+            "  -t <theme.json> or --theme <theme.json>:   Read a theme file for syntax highlighting. The NO_COLOR standard is supported." + NewLine +
             "  -v or --version:                           Show version number and exit." + NewLine +
             "  -h or --help:                              Show this help and exit." + NewLine + NewLine +
             "response-file.rsp:" + NewLine +

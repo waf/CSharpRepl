@@ -1,8 +1,7 @@
-﻿#region License Header
-// This Source Code Form is subject to the terms of the Mozilla Public
+﻿// This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
-#endregion
+
 using System;
 using System.Collections.Generic;
 
@@ -19,14 +18,7 @@ namespace Sharply.Services
             _hash = hash;
         }
 
-        public bool Equals(T x, T y)
-        {
-            return _comparer(x, y);
-        }
-
-        public int GetHashCode(T obj)
-        {
-            return _hash(obj);
-        }
+        public bool Equals(T x, T y) => _comparer(x, y);
+        public int GetHashCode(T obj) => _hash(obj);
     }
 }
