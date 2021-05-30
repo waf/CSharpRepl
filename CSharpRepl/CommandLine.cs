@@ -141,7 +141,7 @@ namespace CSharpRepl
             "OPTIONS:" + NewLine +
             "  -r <dll> or --reference <dll>:             Add an assembly reference. May be specified multiple times." + NewLine +
             "  -u <namespace> or --using <namespace>:     Add a using statement. May be specified multiple times." + NewLine +
-            "  -f <framework> or --framework <framework>: Reference a shared framework. May be specified multiple times." + NewLine +
+            "  -f <framework> or --framework <framework>: Reference a shared framework." + NewLine +
             "                                             Available shared frameworks: " + NewLine + GetInstalledFrameworks(
             "                                             ") + NewLine +
             "  -t <theme.json> or --theme <theme.json>:   Read a theme file for syntax highlighting. The NO_COLOR standard is supported." + NewLine +
