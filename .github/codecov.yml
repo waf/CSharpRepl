@@ -1,0 +1,12 @@
+coverage:
+  range: 60..80 # test coverage thresholds. 60% and below fails (red), 80% and up passes (green), between is "yellow"
+  round: down
+  precision: 1
+  status:
+    project:
+      default:
+        target: 70% # require new commits to have at least 70% coverage
+        threshold: 2% # more than 2% coverage drop, fail.
+    patch:
+      default:
+        enabled: no
