@@ -16,6 +16,7 @@ namespace CSharpRepl.Services.Completion
 
     class AutoCompleteService
     {
+        private const string CacheKeyPrefix = "AutoCompleteService_";
         private readonly IMemoryCache cache;
 
         public AutoCompleteService(IMemoryCache cache)
@@ -25,7 +26,8 @@ namespace CSharpRepl.Services.Completion
 
         public async Task<CompletionItemWithDescription[]> Complete(Document document, string text, int caret)
         {
-            if (text != string.Empty && cache.Get<CompletionItemWithDescription[]>(text + caret) is CompletionItemWithDescription[] cached)
+            var cacheKey = CacheKeyPrefix + text + caret;
+            if (text != string.Empty && cache.Get<CompletionItemWithDescription[]>(cacheKey) is CompletionItemWithDescription[] cached)
                 return cached;
 
             var completions = await CompletionService.GetService(document).GetCompletionsAsync(document, caret).ConfigureAwait(false);
@@ -45,7 +47,7 @@ namespace CSharpRepl.Services.Completion
                 ??
                 Array.Empty<CompletionItemWithDescription>();
 
-            cache.Set(text + caret, completionsWithDescriptions, DateTimeOffset.Now.AddMinutes(1));
+            cache.Set(cacheKey, completionsWithDescriptions, DateTimeOffset.Now.AddMinutes(1));
 
             return completionsWithDescriptions;
         }

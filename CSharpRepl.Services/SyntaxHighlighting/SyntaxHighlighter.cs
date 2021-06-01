@@ -23,6 +23,7 @@ namespace CSharpRepl.Services.SyntaxHighlighting
     /// </summary>
     class SyntaxHighlighter
     {
+        private const string CacheKeyPrefix = "SyntaxHighlighter_";
         private readonly IReadOnlyDictionary<string, AnsiColor> theme;
         private readonly AnsiColor unhighlightedColor;
         private readonly IReadOnlyDictionary<string, AnsiColor> ansiColorNames;
@@ -82,7 +83,8 @@ namespace CSharpRepl.Services.SyntaxHighlighting
         internal async Task<IReadOnlyCollection<HighlightedSpan>> HighlightAsync(Document document)
         {
             var text = (await document.GetTextAsync()).ToString().Trim();
-            if (this.cache.Get<IReadOnlyCollection<HighlightedSpan>>(text) is IReadOnlyCollection<HighlightedSpan> spans)
+            var cacheKey = CacheKeyPrefix + text;
+            if (this.cache.Get<IReadOnlyCollection<HighlightedSpan>>(cacheKey) is IReadOnlyCollection<HighlightedSpan> spans)
                 return spans;
 
             var classified = await Classifier.GetClassifiedSpansAsync(document, TextSpan.FromBounds(0, text.Length)).ConfigureAwait(false);
@@ -100,7 +102,7 @@ namespace CSharpRepl.Services.SyntaxHighlighting
                 })
                 .ToList();
 
-            this.cache.Set(text, highlighted, DateTimeOffset.Now.AddMinutes(1));
+            this.cache.Set(cacheKey, highlighted, DateTimeOffset.Now.AddMinutes(1));
 
             return highlighted;
         }

@@ -40,5 +40,20 @@ namespace CSharpRepl.Tests
             var writeLineDescription = await writelines[1].DescriptionProvider.Value;
             Assert.Contains("Writes the current line terminator to the standard output", writeLineDescription);
         }
+
+        /// <remarks>https://github.com/waf/CSharpRepl/issues/4</remarks>
+        [Fact]
+        public async Task Complete_SyntaxHighlight_CachesAreIsolated()
+        {
+            // type "c" which triggers completion at index 1, and is cached
+            var completions = await this.services.Complete("c", 1);
+
+            // next, type the number 1, which could collide with the previous cached value if the caches
+            // aren't isolated, resulting in an exception
+            var highlights = await this.services.SyntaxHighlightAsync("c1");
+
+            Assert.NotEmpty(completions);
+            Assert.NotEmpty(highlights);
+        }
     }
 }
