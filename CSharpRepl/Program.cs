@@ -179,7 +179,7 @@ Note*
 Use #load <path-to-file>
 to include other .csx files 
 useful for example to build a "".profile.csx""
-and put there all the loads of your libraries...
+where you include all the libraries you want to load.
 
 " 
                 );
