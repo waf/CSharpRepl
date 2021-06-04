@@ -126,46 +126,75 @@ namespace CSharpRepl
         }
 
         private static void PrintHelp()
-        {
+            {
             console.WriteLine(
-                "Welcome to the C# REPL." + Environment.NewLine +
-                "This tool supports rapid experimentation and exploration of code." + Environment.NewLine +
-                Environment.NewLine +
-                "Evaluating Code" + Environment.NewLine +
-                "===============" + Environment.NewLine +
-                "Type some C# into the prompt and press Enter to run it. Its result, if any, will be printed." + Environment.NewLine +
-                "Shift+Enter will insert a newline instead, to support multiple lines of input." + Environment.NewLine +
-                $@"Additionally, if the code is not a complete statement (e.g. ""{VariableDeclaration}""), a newline will be inserted instead." + Environment.NewLine +
-                "Pressing Ctrl+Enter will evaluate the code, but provide more detailed output (e.g. full stack traces, full member info)." + Environment.NewLine +
-                Environment.NewLine +
-                "Adding References" + Environment.NewLine +
-                "=================" + Environment.NewLine +
-                $@"Use the {Reference()} command to add assembly or nuget references." + Environment.NewLine + 
-                $@"For assembly references, run {Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}" + Environment.NewLine + 
-                $@"For nuget references, run {Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}" + Environment.NewLine + 
-                Environment.NewLine + 
-                "Exploring Code" + Environment.NewLine +
-                "==============" + Environment.NewLine +
-                "Press F1 when your caret is in a type, method, or property to open its official MSDN documentation." + Environment.NewLine + 
-                "Press Ctrl+F1 to view its source code on https://source.dot.net/." + Environment.NewLine +
-                Environment.NewLine + 
-                "Configuration Options" + Environment.NewLine +
-                "=====================" + Environment.NewLine +
-                "All configuration, including theming, is done at startup via command line flags." + Environment.NewLine +
-                "Run --help at the command line to view these options." + Environment.NewLine
-            );
-        }
+@"
+Welcome to the C# REPL
+This tool supports rapid experimentation and exploration of code
+
+
+Evaluating Code
+===============
+Type some C# into the prompt and press Enter to run it. 
+Its result, if any, will be printed
+
+Shift+Enter will insert a newline instead, 
+to support multiple lines of input.
+"
++
+$@"
+Additionally, if the code is not a complete statement 
+(e.g. ""{VariableDeclaration}""), a newline will be inserted instead
+
+Pressing Ctrl+Enter will evaluate the code, 
+but provide more detailed output 
+(e.g. full stack traces, full member info).
+
+
+Adding References
+=================
+Use the {Reference()} command to add assembly or nuget references
+For assembly references, 
+run {Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}
+
+For nuget references, 
+run {Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}
+
+
+Exploring Code
+==============
+Press F1 when your caret is in a type, method, or property 
+to open its official MSDN documentation
+Press Ctrl+F1 to view its source code on https://source.dot.net/*
+
+
+Configuration Options
+=====================
+All configuration, including theming, 
+is done at startup via command line flags
+
+Run --help at the command line to view these options
+
+Note*
+Use #load <path-to-file>
+to include other .csx files 
+useful for example to build a "".profile.csx""
+where you include all the libraries you want to load.
+
+" 
+                );
+            }
 
         /// <summary>
         /// Produce syntax-highlighted strings like "#r reference" for the provided <paramref name="reference"/> string.
         /// </summary>
         private static string Reference(string reference = null)
-        {
+            {
             var preprocessor = Color("preprocessor keyword") + "#r" + AnsiEscapeCodes.Reset;
             var argument = reference is null ? "" : Color("string") + @" """ + reference + @"""" + AnsiEscapeCodes.Reset;
 
             return preprocessor + argument;
-        }
+            }
 
         private static string VariableDeclaration =>
             prompt.HasUserOptedOutFromColor
