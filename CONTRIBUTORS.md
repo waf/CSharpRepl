@@ -3,7 +3,7 @@
 Thanks to everyone who contributes! The following contributors have helped out
 with CSharpRepl:
 
-- Your name here!
+- [IBIT-ZEE](https://github.com/IBIT-ZEE)
 
 ## PrettyPrompt contributors
 
