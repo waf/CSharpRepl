@@ -150,7 +150,11 @@ namespace CSharpRepl.Services.Roslyn
             var configuredFramework = currentFrameworkPath.Replace(SharedFramework.NetCoreApp, framework);
             var configuredFrameworkAndVersion = Directory
                 .GetDirectories(configuredFramework, version + "*")
-                .OrderBy(path => new Version(Path.GetFileName(path)))
+                .OrderBy(path =>
+                {
+                    var versionString = Path.GetFileName(path).Split('-', 2).First(); // discard trailing preview versions, e.g. 6.0.0-preview.4.21253.7 
+                    return new Version(versionString);
+                })
                 .Last();
 
             return configuredFrameworkAndVersion;
