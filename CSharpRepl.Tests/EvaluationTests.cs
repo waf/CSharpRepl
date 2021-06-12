@@ -4,8 +4,7 @@
 
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
-using System;
-using System.Linq;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
@@ -68,14 +67,30 @@ namespace CSharpRepl.Tests
         }
 
         [Fact]
-        public async Task Evaluate_NugetPackageDoesNotExist_PrintsError()
+        public async Task Evaluate_RelativeAssemblyReference_CanReferenceAssembly()
         {
-            string missingNugetPackage = Guid.NewGuid().ToString();
-            var installation = await services.Evaluate(@$"#r ""nuget:{missingNugetPackage}""");
+            var referenceResult = await services.Evaluate(@"#r ""./Data/DemoLibrary.dll""");
+            var importResult = await services.Evaluate("using DemoLibrary;");
+            var multiplyResult = await services.Evaluate("DemoClass.Multiply(5, 6)");
 
-            var installationResult = Assert.IsType<EvaluationResult.Error>(installation);
+            Assert.IsType<EvaluationResult.Success>(referenceResult);
+            Assert.IsType<EvaluationResult.Success>(importResult);
+            var successfulResult = Assert.IsType<EvaluationResult.Success>(multiplyResult);
+            Assert.Equal(30, successfulResult.ReturnValue);
+        }
 
-            Assert.Equal($@"Could not find package ""{missingNugetPackage}""", installationResult.Exception.Message);
+        [Fact]
+        public async Task Evaluate_AbsoluteAssemblyReference_CanReferenceAssembly()
+        {
+            var absolutePath = Path.GetFullPath("./Data/DemoLibrary.dll");
+            var referenceResult = await services.Evaluate(@$"#r ""{absolutePath}""");
+            var importResult = await services.Evaluate("using DemoLibrary;");
+            var multiplyResult = await services.Evaluate("DemoClass.Multiply(7, 6)");
+
+            Assert.IsType<EvaluationResult.Success>(referenceResult);
+            Assert.IsType<EvaluationResult.Success>(importResult);
+            var successfulResult = Assert.IsType<EvaluationResult.Success>(multiplyResult);
+            Assert.Equal(42, successfulResult.ReturnValue);
         }
     }
 }

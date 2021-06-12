@@ -82,7 +82,7 @@ namespace CSharpRepl.Services.SyntaxHighlighting
 
         internal async Task<IReadOnlyCollection<HighlightedSpan>> HighlightAsync(Document document)
         {
-            var text = (await document.GetTextAsync()).ToString().Trim();
+            var text = (await document.GetTextAsync()).ToString();
             var cacheKey = CacheKeyPrefix + text;
             if (this.cache.Get<IReadOnlyCollection<HighlightedSpan>>(cacheKey) is IReadOnlyCollection<HighlightedSpan> spans)
                 return spans;

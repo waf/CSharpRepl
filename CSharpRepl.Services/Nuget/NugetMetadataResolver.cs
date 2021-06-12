@@ -52,8 +52,9 @@ namespace CSharpRepl.Services.Nuget
                 return dummyPlaceholder;
             }
 
-            assemblyPaths.Add(Path.GetDirectoryName(reference));
-            var references = defaultResolver.WithSearchPaths(assemblyPaths).ResolveReference(reference, baseFilePath, properties);
+            var path = Path.GetFullPath(reference);
+            assemblyPaths.Add(Path.GetDirectoryName(path));
+            var references = defaultResolver.WithSearchPaths(assemblyPaths).ResolveReference(path, baseFilePath, properties);
 
             return references;
         }
