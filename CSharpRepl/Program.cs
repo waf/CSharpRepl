@@ -126,75 +126,55 @@ namespace CSharpRepl
         }
 
         private static void PrintHelp()
-            {
+        {
             console.WriteLine(
-@"
+$@"
 Welcome to the C# REPL
-This tool supports rapid experimentation and exploration of code
-
+This tool is for rapid experimentation and exploration of code.
 
 Evaluating Code
 ===============
-Type some C# into the prompt and press Enter to run it. 
-Its result, if any, will be printed
-
-Shift+Enter will insert a newline instead, 
-to support multiple lines of input.
-"
-+
-$@"
-Additionally, if the code is not a complete statement 
-(e.g. ""{VariableDeclaration}""), a newline will be inserted instead
-
-Pressing Ctrl+Enter will evaluate the code, 
-but provide more detailed output 
-(e.g. full stack traces, full member info).
-
+Type C# at the prompt and press Enter to run it. Its result will be printed.
+Shift+Enter will insert a newline instead, to support multiple lines of input.
+Ctrl+Enter will evaluate the code, but show detailed member info / stack traces.
+If the code isn't complete (e.g. ""{VariableDeclaration}"") pressing Enter will insert a newline.
 
 Adding References
 =================
-Use the {Reference()} command to add assembly or nuget references
-For assembly references, 
-run {Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}
+Use the {Reference()} command to add assembly or nuget references.
+For assembly references, run {Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}
+For nuget packages, run {Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}
 
-For nuget references, 
-run {Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}
-
+Use {Preprocessor("#load", "path-to-file")} to evaluate C# stored in files (e.g. csx files). This can
+be useful, for example, to build a "".profile.csx"" that includes libraries you want
+to load.
 
 Exploring Code
 ==============
-Press F1 when your caret is in a type, method, or property 
-to open its official MSDN documentation
-Press Ctrl+F1 to view its source code on https://source.dot.net/*
-
+F1, when the caret is in a type or member, will open its MSDN documentation.
+Ctrl+F1 will open the type or member's source code on https://source.dot.net/
 
 Configuration Options
 =====================
-All configuration, including theming, 
-is done at startup via command line flags
-
+All configuration, including theming, is done at startup via command line flags.
 Run --help at the command line to view these options
-
-Note*
-Use #load <path-to-file>
-to include other .csx files 
-useful for example to build a "".profile.csx""
-where you include all the libraries you want to load.
-
 " 
-                );
-            }
+            );
+        }
+
+        private static string Reference(string argument = null) =>
+            Preprocessor("#r", argument);
 
         /// <summary>
-        /// Produce syntax-highlighted strings like "#r reference" for the provided <paramref name="reference"/> string.
+        /// Produce syntax-highlighted strings like "#r reference" for the provided <paramref name="argument"/> string.
         /// </summary>
-        private static string Reference(string reference = null)
-            {
-            var preprocessor = Color("preprocessor keyword") + "#r" + AnsiEscapeCodes.Reset;
-            var argument = reference is null ? "" : Color("string") + @" """ + reference + @"""" + AnsiEscapeCodes.Reset;
+        private static string Preprocessor(string keyword, string argument = null)
+        {
+            var highlightedKeyword = Color("preprocessor keyword") + keyword + AnsiEscapeCodes.Reset;
+            var highlightedArgument = argument is null ? "" : Color("string") + @" """ + argument + @"""" + AnsiEscapeCodes.Reset;
 
-            return preprocessor + argument;
-            }
+            return highlightedKeyword + highlightedArgument;
+        }
 
         private static string VariableDeclaration =>
             prompt.HasUserOptedOutFromColor
