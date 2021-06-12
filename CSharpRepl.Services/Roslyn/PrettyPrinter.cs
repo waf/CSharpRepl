@@ -5,6 +5,7 @@
 using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using System;
+using System.Text.RegularExpressions;
 
 namespace CSharpRepl.Services.Roslyn
 {
@@ -29,9 +30,12 @@ namespace CSharpRepl.Services.Roslyn
             };
         }
 
-        public string FormatObject(object obj, bool displayDetails) => obj is null
-            ? null // intercept null, don't print the string "null"
-            : formatter.FormatObject(obj, displayDetails ? detailedOptions : summaryOptions);
+        public string FormatObject(object obj, bool displayDetails) => obj switch
+        {
+            null => null, // intercept null, don't print the string "null"
+            string str when displayDetails => str, // when displayDetails is true, don't show the escaped string (i.e. interpret the escape characters, via displaying to console)
+            _ => formatter.FormatObject(obj, displayDetails ? detailedOptions : summaryOptions)
+        };
 
         public string FormatException(Exception obj, bool displayDetails) => displayDetails
             ? formatter.FormatException(obj)
