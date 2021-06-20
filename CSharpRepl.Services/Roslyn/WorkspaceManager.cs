@@ -12,6 +12,14 @@ using System.Linq;
 
 namespace CSharpRepl.Services.Roslyn
 {
+    /// <summary>
+    /// Editor services like code completion and syntax highlighting require the roslyn workspace/project/document model.
+    /// Evaluated script code becomes a document in a project, and then each subsequent evaluation adds a new project and
+    /// document. This new project has a project reference back to the previous project.
+    /// 
+    /// In this way, the list of REPL submissions is a linked list of projects, where each project has a single document
+    /// containing the REPL submission.
+    /// </summary>
     class WorkspaceManager
     {
         private readonly AdhocWorkspace workspace;
@@ -28,7 +36,7 @@ namespace CSharpRepl.Services.Roslyn
 
             this.CurrentDocument = EmptyProjectAndDocumentChangeset(
                     workspace.CurrentSolution,
-                    referenceAssemblyService.EnsureReferenceAssemblyWithDocumentation(referenceAssemblyService.DefaultReferenceAssemblies),
+                    referenceAssemblyService.EnsureReferenceAssemblyWithDocumentation(referenceAssemblyService.LoadedReferenceAssemblies),
                     compilationOptions,
                     out var documentId
                 )

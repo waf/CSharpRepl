@@ -92,5 +92,13 @@ namespace CSharpRepl.Tests
             var successfulResult = Assert.IsType<EvaluationResult.Success>(multiplyResult);
             Assert.Equal(42, successfulResult.ReturnValue);
         }
+
+        [Fact]
+        public async Task Evaluate_AssemblyReferenceInSearchPath_CanReferenceAssembly()
+        {
+            var referenceResult = await services.Evaluate(@$"#r ""System.Linq.dll""");
+
+            Assert.IsType<EvaluationResult.Success>(referenceResult);
+        }
     }
 }

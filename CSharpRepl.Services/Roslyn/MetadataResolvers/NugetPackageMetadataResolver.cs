@@ -2,47 +2,40 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.MetadataResolvers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using PrettyPrompt.Consoles;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace CSharpRepl.Services.Nuget
 {
-    public class NugetMetadataResolver : MetadataReferenceResolver
+    internal class NugetPackageMetadataResolver : IChildMetadataReferenceResolver
     {
         private const string NugetPrefix = "nuget:";
-        private readonly IConsole console;
-        private readonly ScriptMetadataResolver defaultResolver;
-        private readonly HashSet<string> assemblyPaths;
-        private readonly AssemblyLoadContext loadContext;
         private readonly NugetPackageInstaller nugetInstaller;
         private readonly ImmutableArray<PortableExecutableReference> dummyPlaceholder;
 
-        public NugetMetadataResolver(IConsole console, IReadOnlyCollection<string> implementationAssemblyPaths)
+        public NugetPackageMetadataResolver(IConsole console, ReferenceAssemblyService referenceAssemblyService)
         {
-            this.console = console;
-            this.defaultResolver = ScriptMetadataResolver.Default;
-            this.assemblyPaths = new HashSet<string>(implementationAssemblyPaths);
-            this.loadContext = new AssemblyLoadContext(nameof(CSharpRepl) + "Repl");
             this.nugetInstaller = new NugetPackageInstaller(console);
             this.dummyPlaceholder = new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) }.ToImmutableArray();
-
-            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(ChooseBestMatch);
         }
 
-        public override ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string baseFilePath, MetadataReferenceProperties properties)
+        public ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver rootResolver)
         {
-            reference = reference.Trim();
-
             // This is a bit of a kludge. roslyn does not yet support adding multiple references from a single ResolveReference call, which
             // can happen with nuget packages (because they can have multiple DLLs and dependencies). https://github.com/dotnet/roslyn/issues/6900
             // We still want to use the "mostly standard" syntax of `#r "nuget:PackageName"` though, so make this a no-op and install the package
@@ -52,11 +45,7 @@ namespace CSharpRepl.Services.Nuget
                 return dummyPlaceholder;
             }
 
-            var path = Path.GetFullPath(reference);
-            assemblyPaths.Add(Path.GetDirectoryName(path));
-            var references = defaultResolver.WithSearchPaths(assemblyPaths).ResolveReference(path, baseFilePath, properties);
-
-            return references;
+            return ImmutableArray<PortableExecutableReference>.Empty;
         }
 
         public bool IsNugetReference(string reference) =>
@@ -78,40 +67,5 @@ namespace CSharpRepl.Services.Nuget
                 _ => throw new InvalidOperationException(@"Malformed nuget reference. Expected #r ""nuget: PackageName"" or #r ""nuget: PackageName, version""")
             };
         }
-
-        /// <summary>
-        /// If we're missing an assembly (by exact match), try to find an assembly with the same name but different version.
-        /// </summary>
-        private Assembly ChooseBestMatch(object sender, ResolveEventArgs args)
-        {
-            var assemblyName = new AssemblyName(args.Name);
-
-            var located = this.assemblyPaths
-                .SelectMany(path => Directory.GetFiles(path, "*.dll"))
-                .Where(file => Path.GetFileNameWithoutExtension(file) == assemblyName.Name)
-                .Select(loadContext.LoadFromAssemblyPath)
-                .FirstOrDefault();
-            
-            if (located is not null && new AssemblyName(located.FullName).Version != assemblyName.Version)
-            {
-                console.WriteLine($@"Warning: Missing assembly: {args.Name}");
-                console.WriteLine($@"            Using instead: {located.FullName}");
-                console.WriteLine($@"             Requested by: {args.RequestingAssembly.FullName}");
-            }
-
-            return located;
-        }
-
-        public override bool ResolveMissingAssemblies =>
-            defaultResolver.ResolveMissingAssemblies;
-
-        public override PortableExecutableReference ResolveMissingAssembly(MetadataReference definition, AssemblyIdentity referenceIdentity) =>
-            defaultResolver.ResolveMissingAssembly(definition, referenceIdentity);
-
-        public override bool Equals(object other) =>
-            defaultResolver.Equals(other);
-
-        public override int GetHashCode() =>
-            defaultResolver.GetHashCode();
     }
 }

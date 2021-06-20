@@ -14,23 +14,31 @@ using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using PrettyPrompt.Consoles;
+using CSharpRepl.Services.Roslyn.MetadataResolvers;
 
 namespace CSharpRepl.Services.Roslyn
 {
     class ScriptRunner
     {
         private readonly InteractiveAssemblyLoader assemblyLoader;
-        private readonly NugetMetadataResolver nugetResolver;
+        private readonly NugetPackageMetadataResolver nugetResolver;
+        private readonly ReferenceAssemblyService referenceAssemblyService;
         private ScriptOptions scriptOptions;
         private ScriptState<object> state;
 
         public ScriptRunner(IConsole console, CSharpCompilationOptions compilationOptions, ReferenceAssemblyService referenceAssemblyService)
         {
+            this.referenceAssemblyService = referenceAssemblyService;
             this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
-            this.nugetResolver = new NugetMetadataResolver(console, referenceAssemblyService.ImplementationAssemblyPaths);
+            this.nugetResolver = new NugetPackageMetadataResolver(console, referenceAssemblyService);
+
             this.scriptOptions = ScriptOptions.Default
-                .WithMetadataResolver(nugetResolver)
-                .WithReferences(referenceAssemblyService.DefaultImplementationAssemblies)
+                .WithMetadataResolver(new CompositeMetadataResolver(
+                    nugetResolver,
+                    new ProjectFileMetadataResolver(console),
+                    new AssemblyReferenceMetadataResolver(console, referenceAssemblyService)
+                ))
+                .WithReferences(referenceAssemblyService.LoadedImplementationAssemblies)
                 .WithAllowUnsafe(compilationOptions.AllowUnsafe)
                 .AddImports(compilationOptions.Usings);
         }
@@ -49,11 +57,10 @@ namespace CSharpRepl.Services.Roslyn
                 }
 
                 state = await EvaluateStringWithStateAsync(text, state, assemblyLoader, this.scriptOptions, cancellationToken).ConfigureAwait(false);
-                var evaluatedReferences = state.Script.GetCompilation().References.ToList();
 
                 return state.Exception is null
-                    ? new EvaluationResult.Success(text, state.ReturnValue, evaluatedReferences)
-                    : new EvaluationResult.Error(state.Exception);
+                    ? CreateSuccessfulResult(text, state)
+                    : new EvaluationResult.Error(this.state.Exception);
             }
             catch (Exception oce) when (oce is OperationCanceledException || oce.InnerException is OperationCanceledException)
             {
@@ -64,6 +71,15 @@ namespace CSharpRepl.Services.Roslyn
             {
                 return new EvaluationResult.Error(exception);
             }
+        }
+
+        private EvaluationResult.Success CreateSuccessfulResult(string text, ScriptState<object> state)
+        {
+            referenceAssemblyService.AddImplementationAssemblyReferences(state.Script.GetCompilation().References);
+            var frameworkReferenceAssemblies = referenceAssemblyService.LoadedReferenceAssemblies;
+            var frameworkImplementationAssemblies = referenceAssemblyService.LoadedImplementationAssemblies;
+            this.scriptOptions = this.scriptOptions.WithReferences(frameworkImplementationAssemblies);
+            return new EvaluationResult.Success(text, state.ReturnValue, frameworkImplementationAssemblies.Concat(frameworkReferenceAssemblies).ToList());
         }
 
         private static Task<ScriptState<object>> EvaluateStringWithStateAsync(string text, ScriptState<object> state, InteractiveAssemblyLoader assemblyLoader, ScriptOptions scriptOptions, CancellationToken cancellationToken)
