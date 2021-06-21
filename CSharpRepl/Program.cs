@@ -20,7 +20,7 @@ namespace CSharpRepl
         private static RoslynServices roslyn;
         private static IPrompt prompt;
 
-        static async Task Main(string[] args)
+        internal static async Task Main(string[] args)
         {
             console = new SystemConsole();
             Configuration config = ParseArguments(args);
@@ -67,7 +67,7 @@ namespace CSharpRepl
             roslyn = new RoslynServices(console, config);
             prompt = PromptConfiguration.Create(roslyn);
 
-            console.WriteLine($"Welcome to the C# REPL (Read Eval Print Loop)!");
+            console.WriteLine("Welcome to the C# REPL (Read Eval Print Loop)!");
             console.WriteLine("Type C# expressions and statements at the prompt and press Enter to evaluate them.");
             console.WriteLine($"Type {Help} to learn more, and type {Exit} to quit.");
             console.WriteLine(string.Empty);

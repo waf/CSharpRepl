@@ -5,7 +5,6 @@
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using System;
-using System.Linq;
 using Xunit;
 
 namespace CSharpRepl.Tests

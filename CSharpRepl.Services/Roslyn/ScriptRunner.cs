@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using CSharpRepl.Services.Nuget;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
@@ -33,7 +32,7 @@ namespace CSharpRepl.Services.Roslyn
             this.nugetResolver = new NugetPackageMetadataResolver(console, referenceAssemblyService);
 
             this.scriptOptions = ScriptOptions.Default
-                .WithMetadataResolver(new CompositeMetadataResolver(
+                .WithMetadataResolver(new CompositeMetadataReferenceResolver(
                     nugetResolver,
                     new ProjectFileMetadataResolver(console),
                     new AssemblyReferenceMetadataResolver(console, referenceAssemblyService)

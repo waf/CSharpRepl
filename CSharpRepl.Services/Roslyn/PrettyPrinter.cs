@@ -5,7 +5,6 @@
 using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using System;
-using System.Text.RegularExpressions;
 
 namespace CSharpRepl.Services.Roslyn
 {

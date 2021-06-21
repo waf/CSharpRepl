@@ -67,6 +67,21 @@ namespace CSharpRepl.Tests
         }
 
         [Fact]
+        public async Task Evaluate_NugetPackageVersioned_InstallsPackageVersion()
+        {
+            var installation = await services.Evaluate(@"#r ""nuget:Newtonsoft.Json, 12.0.1""");
+            var usage = await services.Evaluate(@"Newtonsoft.Json.JsonConvert.SerializeObject(new { Foo = ""bar"" })");
+
+            var installationResult = Assert.IsType<EvaluationResult.Success>(installation);
+            var usageResult = Assert.IsType<EvaluationResult.Success>(usage);
+
+            Assert.Null(installationResult.ReturnValue);
+            Assert.Contains(installationResult.References, r => r.Display.EndsWith("Newtonsoft.Json.dll") && r.Display.Contains("Newtonsoft.Json.12.0.1"));
+            Assert.Contains("Adding references for Newtonsoft.Json", stdout.ToString());
+            Assert.Equal(@"{""Foo"":""bar""}", usageResult.ReturnValue);
+        }
+
+        [Fact]
         public async Task Evaluate_RelativeAssemblyReference_CanReferenceAssembly()
         {
             var referenceResult = await services.Evaluate(@"#r ""./Data/DemoLibrary.dll""");
@@ -96,9 +111,31 @@ namespace CSharpRepl.Tests
         [Fact]
         public async Task Evaluate_AssemblyReferenceInSearchPath_CanReferenceAssembly()
         {
-            var referenceResult = await services.Evaluate(@$"#r ""System.Linq.dll""");
+            var referenceResult = await services.Evaluate(@"#r ""System.Linq.dll""");
 
             Assert.IsType<EvaluationResult.Success>(referenceResult);
+        }
+
+        [Fact]
+        public async Task Evaluate_AssemblyReferenceWithSharedFramework_ReferencesSharedFramework()
+        {
+            var referenceResult = await services.Evaluate(@"#r ""./Data/WebApplication1.dll""");
+            var sharedFrameworkResult = await services.Evaluate(@"using Microsoft.AspNetCore.Hosting;");
+            var applicationResult = await services.Evaluate(@"using WebApplication1;");
+
+            Assert.IsType<EvaluationResult.Success>(referenceResult);
+            Assert.IsType<EvaluationResult.Success>(sharedFrameworkResult);
+            Assert.IsType<EvaluationResult.Success>(applicationResult);
+        }
+
+        [Fact]
+        public async Task Evaluate_ProjectReference_ReferencesProject()
+        {
+            var referenceResult = await services.Evaluate(@"#r ""./../../../../CSharpRepl.Services/CSharpRepl.Services.csproj""");
+            var importResult = await services.Evaluate(@"using CSharpRepl.Services;");
+
+            Assert.IsType<EvaluationResult.Success>(referenceResult);
+            Assert.IsType<EvaluationResult.Success>(importResult);
         }
     }
 }

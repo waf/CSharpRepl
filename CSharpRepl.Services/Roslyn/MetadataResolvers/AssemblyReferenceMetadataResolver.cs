@@ -1,21 +1,27 @@
-﻿using CSharpRepl.Services.Nuget;
+﻿// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+using CSharpRepl.Services.Nuget;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using PrettyPrompt.Consoles;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers
 {
-    class AssemblyReferenceMetadataResolver : IChildMetadataReferenceResolver
+    /// <summary>
+    /// Resolves absolute and relative assembly references. If the assembly has an adjacent
+    /// assembly.runtimeconfig.json file, the file will be read in order to determine required
+    /// Shared Frameworks. https://natemcmaster.com/blog/2018/08/29/netcore-primitives-2/
+    /// </summary>
+    class AssemblyReferenceMetadataResolver : IIndividualMetadataReferenceResolver
     {
         private readonly ReferenceAssemblyService referenceAssemblyService;
         private readonly AssemblyLoadContext loadContext;
@@ -27,11 +33,11 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
             this.referenceAssemblyService = referenceAssemblyService;
             this.loadContext = new AssemblyLoadContext(nameof(CSharpRepl) + "LoadContext");
 
-            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(ChooseBestMatch);
+            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(ResolveByAssemblyName);
         }
 
         public ImmutableArray<PortableExecutableReference> ResolveReference(
-            string reference, string baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver rootResolver)
+            string reference, string baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
         {
             // resolve relative filepaths
             var fileSystemPath = Path.GetFullPath(reference);
@@ -47,24 +53,26 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
 
         private void LoadSharedFramework(ImmutableArray<PortableExecutableReference> references)
         {
-            if (references.SingleOrDefault() is PortableExecutableReference resolvedReference)
+            if (references.Length != 1) return;
+
+            var configPath = Path.ChangeExtension(references[0].FilePath, "runtimeconfig.json");
+
+            if (!File.Exists(configPath))
             {
-                var configPath = Path.ChangeExtension(resolvedReference.FilePath, "runtimeconfig.json");
-                if (File.Exists(configPath))
-                {
-                    var content = File.ReadAllText(configPath);
-                    var config = JsonSerializer.Deserialize<RuntimeConfigJson>(content);
-                    var name = config.runtimeOptions.framework.name;
-                    var version = new Version(config.runtimeOptions.framework.version);
-                    referenceAssemblyService.LoadSharedFrameworkConfiguration(name, version);
-                }
+                return;
             }
+
+            var content = File.ReadAllText(configPath);
+            var config = JsonSerializer.Deserialize<RuntimeConfigJson>(content);
+            var name = config.runtimeOptions.framework.name;
+            var version = new Version(config.runtimeOptions.framework.version);
+            referenceAssemblyService.LoadSharedFrameworkConfiguration(name, version);
         }
 
         /// <summary>
         /// If we're missing an assembly (by exact match), try to find an assembly with the same name but different version.
         /// </summary>
-        private Assembly ChooseBestMatch(object sender, ResolveEventArgs args)
+        private Assembly ResolveByAssemblyName(object sender, ResolveEventArgs args)
         {
             var assemblyName = new AssemblyName(args.Name);
 
