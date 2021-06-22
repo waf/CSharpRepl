@@ -21,7 +21,7 @@ namespace CSharpRepl
     ///     - Supports response files (i.e. ".rsp" files) for compatibility with other interactive C# consoles (e.g. csi).
     ///     - Supports windows-style forward slash arguments (e.g. /u), again for compatibility with other C# consoles.
     /// </remarks>
-    public static class CommandLine
+    internal static class CommandLine
     {
         public static Configuration ParseArguments(string[] args, Configuration existingConfiguration = null)
         {
@@ -156,7 +156,7 @@ namespace CSharpRepl
         {
             var product = "C# REPL";
             var version = Assembly
-                .GetEntryAssembly()
+                .GetExecutingAssembly()
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
                 .InformationalVersion;
             return product + " " + version;

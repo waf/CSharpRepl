@@ -11,6 +11,7 @@ using CSharpRepl.Prompt;
 using CSharpRepl.Services;
 using System.Threading;
 using PrettyPrompt;
+using System.Linq;
 
 namespace CSharpRepl
 {
@@ -20,7 +21,7 @@ namespace CSharpRepl
         private static RoslynServices roslyn;
         private static IPrompt prompt;
 
-        static async Task Main(string[] args)
+        internal static async Task Main(string[] args)
         {
             console = new SystemConsole();
             Configuration config = ParseArguments(args);
@@ -67,7 +68,7 @@ namespace CSharpRepl
             roslyn = new RoslynServices(console, config);
             prompt = PromptConfiguration.Create(roslyn);
 
-            console.WriteLine($"Welcome to the C# REPL (Read Eval Print Loop)!");
+            console.WriteLine("Welcome to the C# REPL (Read Eval Print Loop)!");
             console.WriteLine("Type C# expressions and statements at the prompt and press Enter to evaluate them.");
             console.WriteLine($"Type {Help} to learn more, and type {Exit} to quit.");
             console.WriteLine(string.Empty);
@@ -93,15 +94,27 @@ namespace CSharpRepl
 
         private static async Task Preload(Configuration config)
         {
-            if (config.LoadScript is not null)
+            bool hasReferences = config.References.Count > 0;
+            bool hasLoadScript = config.LoadScript is not null;
+            if (!hasReferences && !hasLoadScript)
+            {
+                _ = roslyn.WarmUpAsync(); // don't await; we don't want to block the console while warmup happens.
+                return;
+            }
+
+            if(hasReferences)
+            {
+                console.WriteLine("Adding supplied references...");
+                var loadScript = string.Join("\r\n", config.References.Select(reference => $@"#r ""{reference}"""));
+                var loadScriptResult = await roslyn.Evaluate(loadScript, CancellationToken.None).ConfigureAwait(false);
+                Print(loadScriptResult, displayDetails: false);
+            }
+
+            if (hasLoadScript)
             {
                 console.WriteLine("Running supplied CSX file...");
                 var loadScriptResult = await roslyn.Evaluate(config.LoadScript, CancellationToken.None).ConfigureAwait(false);
                 Print(loadScriptResult, displayDetails: false);
-            }
-            else
-            {
-                _ = roslyn.WarmUpAsync(); //purposely don't await, we don't want to block the console while warmup happens.
             }
         }
 
@@ -129,7 +142,7 @@ namespace CSharpRepl
         {
             console.WriteLine(
 $@"
-Welcome to the C# REPL
+Welcome to the C# REPL.
 This tool is for rapid experimentation and exploration of code.
 
 Evaluating Code

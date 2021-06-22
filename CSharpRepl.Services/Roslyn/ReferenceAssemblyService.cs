@@ -17,44 +17,30 @@ namespace CSharpRepl.Services.Roslyn
     /// </remarks>
     class ReferenceAssemblyService
     {
-        private readonly Dictionary<string, MetadataReference> CachedMetadataReferences;
-        private readonly HashSet<MetadataReference> LoadedReferenceAssemblies;
+        private readonly Dictionary<string, MetadataReference> cachedMetadataReferences;
+        private readonly HashSet<MetadataReference> loadedReferenceAssemblies;
+        private readonly HashSet<MetadataReference> loadedImplementationAssemblies;
+        private readonly HashSet<string> referenceAssemblyPaths;
+        private readonly HashSet<string> implementationAssemblyPaths;
 
-        public IReadOnlyCollection<string> ReferenceAssemblyPaths { get; }
-        public IReadOnlyCollection<string> ImplementationAssemblyPaths { get; }
-        public IReadOnlyCollection<MetadataReference> DefaultImplementationAssemblies { get; }
-        public IReadOnlyCollection<MetadataReference> DefaultReferenceAssemblies { get; }
+        public IReadOnlySet<string> ImplementationAssemblyPaths => implementationAssemblyPaths;
+        public IReadOnlySet<MetadataReference> LoadedImplementationAssemblies => loadedImplementationAssemblies;
+        public IReadOnlySet<MetadataReference> LoadedReferenceAssemblies => loadedReferenceAssemblies;
         public IReadOnlyCollection<string> DefaultUsings { get; }
 
         public ReferenceAssemblyService(Configuration config)
         {
-            this.CachedMetadataReferences = new Dictionary<string, MetadataReference>();
-            this.LoadedReferenceAssemblies = new HashSet<MetadataReference>(new EqualityComparerFunc<MetadataReference>(
+            this.referenceAssemblyPaths = new();
+            this.implementationAssemblyPaths = new();
+            this.cachedMetadataReferences = new();
+            this.loadedReferenceAssemblies = new HashSet<MetadataReference>(new EqualityComparerFunc<MetadataReference>(
                 (r1, r2) => r1.Display.Equals(r2.Display),
                 (r1) => r1.Display.GetHashCode()
             ));
-
-            var (framework, version) = GetDesiredFrameworkVersion(config.Framework);
-            var sharedFrameworks = GetSharedFrameworkConfiguration(framework, version);
-
-            this.ReferenceAssemblyPaths = sharedFrameworks.Select(framework => framework.ReferencePath).ToArray();
-            this.ImplementationAssemblyPaths = sharedFrameworks.Select(framework => framework.ImplementationPath).ToArray();
-
-            this.DefaultReferenceAssemblies = sharedFrameworks
-                .SelectMany(sharedFramework => CreateDefaultReferences(
-                    sharedFramework.ReferencePath,
-                    sharedFramework.ReferenceAssemblies
-                ))
-                .ToList();
-
-            this.DefaultImplementationAssemblies = sharedFrameworks
-                .SelectMany(sharedFramework => CreateDefaultReferences(
-                    sharedFramework.ImplementationPath,
-                    sharedFramework.ImplementationAssemblies
-                ))
-                .Concat(CreateDefaultReferences("", config.References))
-                .ToList();
-
+            this.loadedImplementationAssemblies = new HashSet<MetadataReference>(new EqualityComparerFunc<MetadataReference>(
+                (r1, r2) => r1.Display.Equals(r2.Display),
+                (r1) => r1.Display.GetHashCode()
+            ));
             this.DefaultUsings = new[] {
                     "System", "System.IO", "System.Collections.Generic",
                     "System.Linq", "System.Net.Http",
@@ -62,14 +48,24 @@ namespace CSharpRepl.Services.Roslyn
                 }
                 .Concat(config.Usings)
                 .ToList();
+
+            var (framework, version) = GetDesiredFrameworkVersion(config.Framework);
+            var sharedFrameworks = GetSharedFrameworkConfiguration(framework, version);
+            LoadSharedFrameworkConfiguration(sharedFrameworks);
         }
 
         internal IReadOnlyCollection<MetadataReference> EnsureReferenceAssemblyWithDocumentation(IReadOnlyCollection<MetadataReference> references)
         {
-            LoadedReferenceAssemblies.UnionWith(
+            loadedReferenceAssemblies.UnionWith(
                 references.Select(suppliedReference => EnsureReferenceAssembly(suppliedReference)).Where(reference => reference is not null)
             );
-            return LoadedReferenceAssemblies;
+            return loadedReferenceAssemblies;
+        }
+
+        internal void AddImplementationAssemblyReferences(IEnumerable<MetadataReference> references)
+        {
+            this.implementationAssemblyPaths.UnionWith(references.Select(r => Path.GetDirectoryName(r.Display)));
+            this.loadedImplementationAssemblies.UnionWith(references);
         }
 
         // a bit of a mismatch -- the scripting APIs use implementation assemblies only. The general workspace/project roslyn APIs use the reference
@@ -78,30 +74,25 @@ namespace CSharpRepl.Services.Roslyn
         private MetadataReference EnsureReferenceAssembly(MetadataReference reference)
         {
             string suppliedAssemblyPath = reference.Display;
-            if (CachedMetadataReferences.TryGetValue(suppliedAssemblyPath, out MetadataReference cachedReference))
+            if (cachedMetadataReferences.TryGetValue(suppliedAssemblyPath, out MetadataReference cachedReference))
             {
                 return cachedReference;
             }
 
             // it's already a reference assembly, just cache it and use it.
-            if (ReferenceAssemblyPaths.Any(path => reference.Display.StartsWith(path)))
+            if (referenceAssemblyPaths.Any(path => reference.Display.StartsWith(path)))
             {
-                CachedMetadataReferences[suppliedAssemblyPath] = reference;
+                cachedMetadataReferences[suppliedAssemblyPath] = reference;
                 return reference;
             }
 
             // it's probably an implementation assembly, find the corresponding reference assembly and documentation if we can.
 
             var suppliedAssemblyName = Path.GetFileName(suppliedAssemblyPath);
-            var assembly = ReferenceAssemblyPaths
+            var assembly = referenceAssemblyPaths
                 .Select(path => Path.Combine(path, suppliedAssemblyName))
                 .FirstOrDefault(potentialReferencePath => File.Exists(potentialReferencePath))
                 ?? suppliedAssemblyPath;
-
-            if (ImplementationAssemblyPaths.Any(path => assembly.StartsWith(path)))
-            {
-                return null;
-            }
 
             var potentialDocumentationPath = Path.ChangeExtension(assembly, ".xml");
             var documentation = File.Exists(potentialDocumentationPath)
@@ -109,20 +100,40 @@ namespace CSharpRepl.Services.Roslyn
                 : null;
 
             var completeMetadataReference = MetadataReference.CreateFromFile(assembly, documentation: documentation);
-            CachedMetadataReferences[suppliedAssemblyPath] = completeMetadataReference;
+            cachedMetadataReferences[suppliedAssemblyPath] = completeMetadataReference;
             return completeMetadataReference;
         }
 
-        private SharedFramework[] GetSharedFrameworkConfiguration(string framework, string version)
+        public void LoadSharedFrameworkConfiguration(string framework, Version version)
+        {
+            var sharedFrameworks = GetSharedFrameworkConfiguration(framework, version);
+            LoadSharedFrameworkConfiguration(sharedFrameworks);
+        }
+
+        public void LoadSharedFrameworkConfiguration(SharedFramework[] sharedFrameworks)
+        {
+            this.referenceAssemblyPaths.UnionWith(sharedFrameworks.Select(framework => framework.ReferencePath));
+            this.implementationAssemblyPaths.UnionWith(sharedFrameworks.Select(framework => framework.ImplementationPath));
+            this.loadedReferenceAssemblies.UnionWith(sharedFrameworks.SelectMany(framework => framework.ReferenceAssemblies));
+            this.loadedImplementationAssemblies.UnionWith(sharedFrameworks.SelectMany(framework => framework.ImplementationAssemblies));
+        }
+
+        public SharedFramework[] GetSharedFrameworkConfiguration(string framework, Version version)
         {
             var referencePath = GetCurrentAssemblyReferencePath(framework, version);
             var implementationPath = GetCurrentAssemblyImplementationPath(framework, version);
 
-            var referenceDlls = Directory.GetFiles(referencePath, "*.dll", SearchOption.TopDirectoryOnly);
-            var implementationDlls = Directory.GetFiles(implementationPath, "*.dll", SearchOption.TopDirectoryOnly);
+            var referenceDlls = CreateDefaultReferences(
+                referencePath,
+                Directory.GetFiles(referencePath, "*.dll", SearchOption.TopDirectoryOnly)
+            );
+            var implementationDlls = CreateDefaultReferences(
+                implementationPath,
+                Directory.GetFiles(implementationPath, "*.dll", SearchOption.TopDirectoryOnly)
+            );
 
-            // Microsoft.NETCore.App is always included.
-            // If we're including e.g. Microsoft.AspNetCore.App, include it alongside Microsoft.NETCore.App.
+            // Microsoft.NETCore.App is always loaded.
+            // e.g. if we're loading Microsoft.AspNetCore.App, load it alongside Microsoft.NETCore.App.
             return framework switch
             {
                 SharedFramework.NetCoreApp => new[] {
@@ -134,22 +145,22 @@ namespace CSharpRepl.Services.Roslyn
             };
         }
 
-        private static string GetCurrentAssemblyReferencePath(string framework, string version)
+        private static string GetCurrentAssemblyReferencePath(string framework, Version version)
         {
             var dotnetRuntimePath = RuntimeEnvironment.GetRuntimeDirectory();
             var dotnetRoot = Path.GetFullPath(Path.Combine(dotnetRuntimePath, "../../../packs/", framework + ".Ref"));
             var referenceAssemblyPath = Directory
-                .GetDirectories(dotnetRoot, "net*" + version + "*", SearchOption.AllDirectories)
+                .GetDirectories(dotnetRoot, "net*" + version.Major + "." + version.Minor + "*", SearchOption.AllDirectories)
                 .Last();
             return Path.GetFullPath(referenceAssemblyPath);
         }
 
-        private static string GetCurrentAssemblyImplementationPath(string framework, string version)
+        private static string GetCurrentAssemblyImplementationPath(string framework, Version version)
         {
             var currentFrameworkPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location), ".."));
             var configuredFramework = currentFrameworkPath.Replace(SharedFramework.NetCoreApp, framework);
             var configuredFrameworkAndVersion = Directory
-                .GetDirectories(configuredFramework, version + "*")
+                .GetDirectories(configuredFramework, version.Major + "*")
                 .OrderBy(path =>
                 {
                     var versionString = Path.GetFileName(path).Split('-', 2).First(); // discard trailing preview versions, e.g. 6.0.0-preview.4.21253.7 
@@ -160,21 +171,15 @@ namespace CSharpRepl.Services.Roslyn
             return configuredFrameworkAndVersion;
         }
 
-        private static (string framework, string version) GetDesiredFrameworkVersion(string sharedFramework)
+        private static (string framework, Version version) GetDesiredFrameworkVersion(string sharedFramework)
         {
             var parts = sharedFramework.Split('/');
-            if (parts.Length == 2)
+            return parts.Length switch
             {
-                return (parts[0], parts[1]);
-            }
-            else if (parts.Length == 1)
-            {
-                return (parts[0], Environment.Version.Major.ToString());
-            }
-            else
-            {
-                throw new InvalidOperationException("Unknown Shared Framework configuration: " + sharedFramework);
-            }
+                1 => (parts[0], Environment.Version),
+                2 => (parts[0], new Version(parts[1])),
+                _ => throw new InvalidOperationException("Unknown Shared Framework configuration: " + sharedFramework)
+            };
         }
 
         private IReadOnlyCollection<MetadataReference> CreateDefaultReferences(string assemblyPath, IReadOnlyCollection<string> assemblies)
@@ -209,7 +214,9 @@ namespace CSharpRepl.Services.Roslyn
         }
     }
 
-    public record SharedFramework(string ReferencePath, string ImplementationPath, string[] ReferenceAssemblies, string[] ImplementationAssemblies)
+    public record SharedFramework(
+        string ReferencePath, string ImplementationPath,
+        IReadOnlyCollection<MetadataReference> ReferenceAssemblies, IReadOnlyCollection<MetadataReference> ImplementationAssemblies)
     {
         public const string NetCoreApp = "Microsoft.NETCore.App";
 
@@ -218,7 +225,7 @@ namespace CSharpRepl.Services.Roslyn
                 .GetDirectories(
                     Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location), "../../")
                 )
-            .Select(Path.GetFileName)
-            .ToArray();
+                .Select(Path.GetFileName)
+                .ToArray();
     }
 }
