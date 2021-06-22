@@ -4,6 +4,7 @@
 
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
@@ -21,7 +22,7 @@ namespace CSharpRepl.Tests
             this.services = new RoslynServices(console, new Configuration());
         }
 
-        public Task InitializeAsync() => services.WarmUpAsync();
+        public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
         public Task DisposeAsync() => Task.CompletedTask;
 
         [Fact]

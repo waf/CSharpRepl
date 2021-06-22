@@ -9,7 +9,6 @@ using PrettyPrompt.Highlighting;
 using PrettyPrompt.Consoles;
 using CSharpRepl.Prompt;
 using CSharpRepl.Services;
-using System.Threading;
 using PrettyPrompt;
 using System.Linq;
 
@@ -84,7 +83,7 @@ namespace CSharpRepl
                     if (response.Text == "help" || response.Text == "?") { PrintHelp(); continue; }
 
                     var result = await roslyn
-                        .Evaluate(response.Text, response.CancellationToken)
+                        .Evaluate(response.Text, config.LoadScriptArgs, response.CancellationToken)
                         .ConfigureAwait(false);
 
                     Print(result, displayDetails: response.IsHardEnter);
@@ -98,22 +97,22 @@ namespace CSharpRepl
             bool hasLoadScript = config.LoadScript is not null;
             if (!hasReferences && !hasLoadScript)
             {
-                _ = roslyn.WarmUpAsync(); // don't await; we don't want to block the console while warmup happens.
+                _ = roslyn.WarmUpAsync(config.LoadScriptArgs); // don't await; we don't want to block the console while warmup happens.
                 return;
             }
 
             if(hasReferences)
             {
                 console.WriteLine("Adding supplied references...");
-                var loadScript = string.Join("\r\n", config.References.Select(reference => $@"#r ""{reference}"""));
-                var loadScriptResult = await roslyn.Evaluate(loadScript, CancellationToken.None).ConfigureAwait(false);
-                Print(loadScriptResult, displayDetails: false);
+                var loadReferenceScript = string.Join("\r\n", config.References.Select(reference => $@"#r ""{reference}"""));
+                var loadReferenceScriptResult = await roslyn.Evaluate(loadReferenceScript).ConfigureAwait(false);
+                Print(loadReferenceScriptResult, displayDetails: false);
             }
 
             if (hasLoadScript)
             {
                 console.WriteLine("Running supplied CSX file...");
-                var loadScriptResult = await roslyn.Evaluate(config.LoadScript, CancellationToken.None).ConfigureAwait(false);
+                var loadScriptResult = await roslyn.Evaluate(config.LoadScript, config.LoadScriptArgs).ConfigureAwait(false);
                 Print(loadScriptResult, displayDetails: false);
             }
         }

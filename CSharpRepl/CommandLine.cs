@@ -5,6 +5,7 @@
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -26,13 +27,22 @@ namespace CSharpRepl
         public static Configuration ParseArguments(string[] args, Configuration existingConfiguration = null)
         {
             string currentSwitch = "";
+            List<string> loadScriptArgs = null;
             var config = args
                 .Aggregate(existingConfiguration ?? new Configuration(), (config, arg) =>
                 {
                     // 
                     // Process positional parameters
                     // 
-                    if (arg.EndsWith(".csx"))
+                    if(arg == "--")
+                    {
+                        loadScriptArgs = new List<string>();
+                    }
+                    else if (loadScriptArgs is not null)
+                    {
+                        loadScriptArgs.Add(arg);
+                    }
+                    else if (arg.EndsWith(".csx"))
                     {
                         if (!File.Exists(arg)) throw new FileNotFoundException($@"Script file ""{arg}"" was not found");
                         config.LoadScript = File.ReadAllText(arg);
@@ -109,6 +119,11 @@ namespace CSharpRepl
                     return config;
                 });
 
+            if(loadScriptArgs is not null)
+            {
+                config.LoadScriptArgs = loadScriptArgs.ToArray();
+            }
+
             if (!SharedFramework.SupportedFrameworks.Contains(config.Framework.Split('/').First())) // allow trailing version numbers in framework name
             {
                 throw new ArgumentException("Unknown Framework: " + config.Framework + ". Expected one of " + string.Join(", ", SharedFramework.SupportedFrameworks));
@@ -134,23 +149,24 @@ namespace CSharpRepl
 
         public static string GetHelp() =>
             GetVersion() + NewLine +
-            "Usage: csharprepl [OPTIONS] [response-file.rsp] [script-file.csx]" + NewLine + NewLine +
+            "Usage: csharprepl [OPTIONS] [response-file.rsp] [script-file.csx] [-- <additional-arguments>]" + NewLine + NewLine +
             "Starts a REPL (read eval print loop) according to the provided [OPTIONS]." + NewLine +
             "These [OPTIONS] can be provided at the command line, or via a [response-file.rsp]." + NewLine +
             "A [script-file.csx], if provided, will be executed before the prompt starts." + NewLine + NewLine +
             "OPTIONS:" + NewLine +
-            "  -r <dll> or --reference <dll>:             Add an assembly reference. May be specified multiple times." + NewLine +
+            "  -r <dll> or --reference <dll>:             Reference an assembly or csproj file. May be specified multiple times." + NewLine +
             "  -u <namespace> or --using <namespace>:     Add a using statement. May be specified multiple times." + NewLine +
             "  -f <framework> or --framework <framework>: Reference a shared framework." + NewLine +
             "                                             Available shared frameworks: " + NewLine + GetInstalledFrameworks(
             "                                             ") + NewLine +
-            "  -t <theme.json> or --theme <theme.json>:   Read a theme file for syntax highlighting. The NO_COLOR standard is supported." + NewLine +
+            "  -t <theme.json> or --theme <theme.json>:   Read a theme file for syntax highlighting. Respects the NO_COLOR standard." + NewLine +
             "  -v or --version:                           Show version number and exit." + NewLine +
             "  -h or --help:                              Show this help and exit." + NewLine + NewLine +
             "response-file.rsp:" + NewLine +
             "  A file, with extension .rsp, containing the above command line [OPTIONS], one option per line." + NewLine + NewLine +
             "script-file.csx:" + NewLine +
-            "  A file, with extension .csx, containing lines of C# to evaluate before starting the REPL." + NewLine;
+            "  A file, with extension .csx, containing lines of C# to evaluate before starting the REPL." + NewLine +
+            "  Arguments to this script can be passed as <additional-arguments> and will be available in a global `args` variable." + NewLine;
 
         public static string GetVersion()
         {

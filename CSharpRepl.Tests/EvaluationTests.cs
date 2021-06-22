@@ -4,6 +4,7 @@
 
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
+using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,7 +25,7 @@ namespace CSharpRepl.Tests
             this.stdout = stdout;
         }
 
-        public Task InitializeAsync() => services.WarmUpAsync();
+        public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
         public Task DisposeAsync() => Task.CompletedTask;
 
         [Fact]
