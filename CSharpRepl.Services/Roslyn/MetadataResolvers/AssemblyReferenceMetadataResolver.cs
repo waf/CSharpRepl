@@ -92,4 +92,24 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
             return located;
         }
     }
+
+    /// <summary>
+    /// Schema for assembly.runtimeconfig.json files.
+    /// </summary>
+    public class RuntimeConfigJson
+    {
+        public RuntimeOptions runtimeOptions { get; set; }
+
+        public class RuntimeOptions
+        {
+            public string tfm { get; set; }
+            public Framework framework { get; set; }
+        }
+
+        public class Framework
+        {
+            public string name { get; set; }
+            public string version { get; set; }
+        }
+    }
 }
