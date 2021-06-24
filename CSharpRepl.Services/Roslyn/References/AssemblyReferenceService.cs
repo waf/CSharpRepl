@@ -58,7 +58,7 @@ namespace CSharpRepl.Services.Roslyn.References
         internal IReadOnlyCollection<MetadataReference> EnsureReferenceAssemblyWithDocumentation(IReadOnlyCollection<MetadataReference> references)
         {
             loadedReferenceAssemblies.UnionWith(
-                references.Select(suppliedReference => EnsureReferenceAssembly(suppliedReference)).Where(reference => reference is not null)
+                references.Select(suppliedReference => EnsureReferenceAssembly(suppliedReference)).WhereNotNull()
             );
             return loadedReferenceAssemblies;
         }
@@ -79,7 +79,7 @@ namespace CSharpRepl.Services.Roslyn.References
         /// here. If it's a reference assembly, pass it through unchanged. If it's an implementation assembly, try to locate the corresponding reference assembly.
         /// </summary>
         /// <remarks>This method can run in multiple threads due to the "main" thread and the "background initialization" thread.</remarks>
-        private MetadataReference EnsureReferenceAssembly(MetadataReference reference)
+        private MetadataReference? EnsureReferenceAssembly(MetadataReference reference)
         {
             string? suppliedAssemblyPath = reference.Display;
 
@@ -107,6 +107,11 @@ namespace CSharpRepl.Services.Roslyn.References
                 .Select(path => Path.Combine(path, suppliedAssemblyName))
                 .FirstOrDefault(potentialReferencePath => File.Exists(potentialReferencePath))
                 ?? suppliedAssemblyPath;
+
+            if (ImplementationAssemblyPaths.Any(path => assembly.StartsWith(path)))
+            {
+                return null;
+            }
 
             var potentialDocumentationPath = Path.ChangeExtension(assembly, ".xml");
             var documentation = File.Exists(potentialDocumentationPath)
