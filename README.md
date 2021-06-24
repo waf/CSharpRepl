@@ -104,6 +104,7 @@ the [MSDN documentation for `AddDays`](https://docs.microsoft.com/en-US/dotnet/a
 Use the `#r` command to add assembly or nuget references.
 
 - For assembly references, run `#r "AssemblyName"` or `#r "path/to/assembly.dll"`
+- For project references, run `#r "path/to/project.csproj"`. Solution files (.sln) can also be referenced.
 - For nuget references, run `#r "nuget: PackageName"` to install the latest version of a package, or `#r "nuget: PackageName, 13.0.5"` to install a specific version (13.0.5 in this case).
 
 <p align="center">
@@ -121,24 +122,25 @@ csharprepl --framework  Microsoft.AspNetCore.App
 The C# REPL supports multiple configuration flags to control startup, behavior, and appearance:
 
 ```
-Usage: csharprepl [OPTIONS] [response-file.rsp] [script-file.csx]
+csharprepl [OPTIONS] [response-file.rsp] [script-file.csx] [-- <additional-arguments>]
 ```
 
 Supported options are:
 
 - OPTIONS:
-    - `-r <dll>` or `--reference <dll>`: Add an assembly reference. Can be specified multiple times.
+    - `-r <dll>` or `--reference <dll>`: Reference an assembly, project file, or nuget package. Can be specified multiple times. Uses the same syntax as `#r` statements inside the REPL. For example, `csharprepl -r "nuget:Newtonsoft.Json" "path/to/myproj.csproj"`
+      - When an assembly or project is referenced, assemblies in the containing directory will be added to the assembly search path. This means that you don't need to manually add references to all of your assembly's dependencies (e.g. other references and nuget packages). Referencing the main entry assembly is enough.
     - `-u <namespace>` or `--using <namespace>`: Add a using statement. Can be specified multiple times.
-    - `-f <framework>` or `--framework <framework>`: Reference a [shared framework](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/metapackage-app). Available shared frameworks depends on the local .NET installation, and can be useful when running a ASP.NET application from the REPL. Example frameworks are:
+    - `-f <framework>` or `--framework <framework>`: Reference a [shared framework](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/metapackage-app). The available shared frameworks depends on the local .NET installation, and can be useful when running an ASP.NET application from the REPL. Example frameworks are:
         - Microsoft.NETCore.App (default)
         - Microsoft.AspNetCore.All
         - Microsoft.AspNetCore.App
         - Microsoft.WindowsDesktop.App
-    - `-t <theme.json>` or `--theme <theme.json>`: Read a theme file for syntax highlighting. The [NO_COLOR](https://no-color.org/) standard is supported.
+    - `-t <theme.json>` or `--theme <theme.json>`: Read a theme file for syntax highlighting. This theme file associates C# syntax classifications with colors. The color values can be full RGB, or ANSI color names (defined in your terminal's theme). The [NO_COLOR](https://no-color.org/) standard is supported.
     - `-v` or `--version`: Show version number and exit.
-    - `-h` or `--help`: Show this help and exit.
+    - `-h` or `--help`: Show help and exit.
 - `response-file.rsp`: A filepath of an .rsp file, containing any of the above command line options.
-- `script-file.csx`: A filepath of a .csx file, containing lines of C# to evaluate before starting the REPL.
+- `script-file.csx`: A filepath of a .csx file, containing lines of C# to evaluate before starting the REPL. Arguments to this script can be passed as `<additional-arguments>`, after a double hyphen (`--`), and will be available in a global `args` variable.
 
 ## Integrating with other software
 
@@ -174,6 +176,16 @@ This project is far from being the first REPL for C#. Here are some other projec
 
 **csi.exe** ships with C# and is a command line REPL. It's great because it's a cross platform REPL that comes out of the box, but it doesn't support syntax highlighting or autocompletion.
 
-**dotnet script** allows you to run C# scripts from the .NET CLI. It has a REPL built-in, but the predominant focus seems to be as a script runner. It's a good alternative though, and has a strong community following.
+**dotnet script** allows you to run C# scripts from the command line. It has a REPL built-in, but the predominant focus seems to be as a script runner. It's a great tool, though, and has a strong community following.
 
-**dotnet interactive** is a tool from Microsoft that creates a Jupyter notebook for C#, runnable through Visual Studio Code.
+**dotnet interactive** is a tool from Microsoft that creates a Jupyter notebook for C#, runnable through Visual Studio Code. It also provides a general framework useful for running REPLs.
+
+## Contributing
+
+If you'd like to help out, thanks! We use Visual Studio 2022 for development, though any standard .NET 5 development environment should work. Please read through these guidelines to get started:
+
+- Read through the [ARCHITECTURE.md](/ARCHITECTURE.md) file to understand how csharprepl works. Depending on what you want to do, changes to the underlying PrettyPrompt library may be required.
+- For new features, please open an issue first to discuss and design the feature. This will help reduce the chance of conflicting designs.
+- Please include an xunit test, and ensure any code warnings are resolved.
+
+Thanks!
