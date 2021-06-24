@@ -3,9 +3,10 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using CSharpRepl.Services;
-using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.References;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -24,10 +25,10 @@ namespace CSharpRepl
     /// </remarks>
     internal static class CommandLine
     {
-        public static Configuration ParseArguments(string[] args, Configuration existingConfiguration = null)
+        public static Configuration ParseArguments(string[] args, Configuration? existingConfiguration = null)
         {
             string currentSwitch = "";
-            List<string> loadScriptArgs = null;
+            List<string>? loadScriptArgs = null;
             var config = args
                 .Aggregate(existingConfiguration ?? new Configuration(), (config, arg) =>
                 {
@@ -74,7 +75,7 @@ namespace CSharpRepl
                     else if (arg.StartsWith("-r") || arg.StartsWith("--reference") || arg.StartsWith("/r"))
                     {
                         currentSwitch = "--reference";
-                        if(TryGetConcatenatedValue(arg, out string reference))
+                        if(TryGetConcatenatedValue(arg, out string? reference))
                         {
                             config.References.Add(reference);
                         }
@@ -82,7 +83,7 @@ namespace CSharpRepl
                     else if (arg.StartsWith("-u") || arg.StartsWith("--using") || arg.StartsWith("/u"))
                     { 
                         currentSwitch = "--using";
-                        if(TryGetConcatenatedValue(arg, out string usingNamespace))
+                        if(TryGetConcatenatedValue(arg, out string? usingNamespace))
                         {
                             config.Usings.Add(usingNamespace);
                         }
@@ -90,7 +91,7 @@ namespace CSharpRepl
                     else if (arg.StartsWith("-f") || arg.StartsWith("--framework") || arg.StartsWith("/f"))
                     { 
                         currentSwitch = "--framework";
-                        if(TryGetConcatenatedValue(arg, out string framework))
+                        if(TryGetConcatenatedValue(arg, out string? framework))
                         {
                              config.Framework = framework;
                         }
@@ -98,7 +99,7 @@ namespace CSharpRepl
                     else if (arg.StartsWith("-t") || arg.StartsWith("--theme") || arg.StartsWith("/t"))
                     { 
                         currentSwitch = "--theme";
-                        if(TryGetConcatenatedValue(arg, out string theme))
+                        if(TryGetConcatenatedValue(arg, out string? theme))
                         {
                              config.Theme = theme;
                         }
@@ -135,7 +136,7 @@ namespace CSharpRepl
         /// <summary>
         /// Parse value in a string like "/u:foo"
         /// </summary>
-        private static bool TryGetConcatenatedValue(string arg, out string value)
+        private static bool TryGetConcatenatedValue(string arg, [NotNullWhen(true)] out string? value)
         {
             var referenceValue = arg.Split(new[] { ':', '=' }, 2);
             if (referenceValue.Length == 2)
@@ -174,7 +175,7 @@ namespace CSharpRepl
             var version = Assembly
                 .GetExecutingAssembly()
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-                .InformationalVersion;
+                ?.InformationalVersion ?? "unversioned";
             return product + " " + version;
         }
 

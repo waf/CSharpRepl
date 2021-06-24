@@ -17,7 +17,7 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
     /// Allows referencing a csproj or sln, e.g. #r "path/to/foo.csproj" or #r "path/to/foo.sln"
     /// Simply runs "dotnet build" on the csproj/sln and then resolves the final assembly.
     /// </summary>
-    internal class ProjectFileMetadataResolver : IIndividualMetadataReferenceResolver
+    internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReferenceResolver
     {
         private readonly IConsole console;
 
@@ -26,7 +26,7 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
             this.console = console;
         }
 
-        public ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
+        public ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
         {
             if (IsProjectReference(reference))
             {
@@ -42,7 +42,7 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
             return extension == ".csproj" || extension == ".sln";
         }
 
-        private ImmutableArray<PortableExecutableReference> LoadProjectReference(string reference, string baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
+        private ImmutableArray<PortableExecutableReference> LoadProjectReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
         {
             console.WriteLine("Building " + reference);
             var (exitCode, output) = RunDotNetBuild(reference);
@@ -53,7 +53,7 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
                 return ImmutableArray<PortableExecutableReference>.Empty;
             }
 
-            string assembly = ParseBuildOutput(output);
+            string? assembly = ParseBuildOutput(output);
 
             if (assembly is null)
             {
@@ -115,7 +115,7 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
         /// 
         /// Time Elapsed 00:00:02.15
         /// </remarks>
-        private static string ParseBuildOutput(IReadOnlyList<string> output) =>
+        private static string? ParseBuildOutput(IReadOnlyList<string> output) =>
             output
                 .LastOrDefault(line => line.Contains(" -> "))
                 ?.Split(" -> ", 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

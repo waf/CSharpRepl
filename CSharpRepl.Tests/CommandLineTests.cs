@@ -3,7 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using CSharpRepl.Services;
-using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.References;
 using System;
 using Xunit;
 

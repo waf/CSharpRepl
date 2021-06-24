@@ -6,30 +6,34 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
+using Microsoft.CodeAnalysis.Scripting.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
-using Microsoft.CodeAnalysis.Scripting.Hosting;
 using PrettyPrompt.Consoles;
 using CSharpRepl.Services.Roslyn.MetadataResolvers;
+using CSharpRepl.Services.Roslyn.References;
 
 namespace CSharpRepl.Services.Roslyn
 {
-    class ScriptRunner
+    /// <summary>
+    /// Uses the Roslyn Scripting APIs to execute C# code in a string.
+    /// </summary>
+    internal sealed class ScriptRunner
     {
         private readonly InteractiveAssemblyLoader assemblyLoader;
         private readonly NugetPackageMetadataResolver nugetResolver;
-        private readonly ReferenceAssemblyService referenceAssemblyService;
+        private readonly AssemblyReferenceService referenceAssemblyService;
         private ScriptOptions scriptOptions;
-        private ScriptState<object> state;
+        private ScriptState<object>? state;
 
-        public ScriptRunner(IConsole console, CSharpCompilationOptions compilationOptions, ReferenceAssemblyService referenceAssemblyService)
+        public ScriptRunner(IConsole console, CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceAssemblyService)
         {
             this.referenceAssemblyService = referenceAssemblyService;
             this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
-            this.nugetResolver = new NugetPackageMetadataResolver(console, referenceAssemblyService);
+            this.nugetResolver = new NugetPackageMetadataResolver(console);
 
             this.scriptOptions = ScriptOptions.Default
                 .WithMetadataResolver(new CompositeMetadataReferenceResolver(
@@ -42,7 +46,10 @@ namespace CSharpRepl.Services.Roslyn
                 .AddImports(compilationOptions.Usings);
         }
 
-        public async Task<EvaluationResult> RunCompilation(string text, string[] args = null, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Accepts a string containing C# code and runs it. Subsequent invocations will use the state from earlier invocations.
+        /// </summary>
+        public async Task<EvaluationResult> RunCompilation(string text, string[]? args = null, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -81,12 +88,12 @@ namespace CSharpRepl.Services.Roslyn
             return new EvaluationResult.Success(text, state.ReturnValue, frameworkImplementationAssemblies.Concat(frameworkReferenceAssemblies).ToList());
         }
 
-        private static Task<ScriptState<object>> EvaluateStringWithStateAsync(string text, ScriptState<object> state, InteractiveAssemblyLoader assemblyLoader, ScriptOptions scriptOptions, string[] args = null, CancellationToken cancellationToken = default)
+        private static Task<ScriptState<object>> EvaluateStringWithStateAsync(string text, ScriptState<object>? state, InteractiveAssemblyLoader assemblyLoader, ScriptOptions scriptOptions, string[]? args = null, CancellationToken cancellationToken = default)
         {
-            return state == null
+            return state is null
                 ? CSharpScript
                     .Create(text, scriptOptions, globalsType: typeof(ScriptGlobals), assemblyLoader: assemblyLoader)
-                    .RunAsync(globals: new ScriptGlobals { args = args }, cancellationToken: cancellationToken)
+                    .RunAsync(globals: new ScriptGlobals { args = args ?? Array.Empty<string>() }, cancellationToken: cancellationToken)
                 : state
                     .ContinueWithAsync(text, scriptOptions, cancellationToken: cancellationToken);
         }
@@ -94,20 +101,23 @@ namespace CSharpRepl.Services.Roslyn
 
     public abstract record EvaluationResult
     {
-        public record Success(string Input, object ReturnValue, IReadOnlyCollection<MetadataReference> References) : EvaluationResult;
-        public record Error(Exception Exception) : EvaluationResult;
-        public record Cancelled() : EvaluationResult;
+        public sealed record Success(string Input, object ReturnValue, IReadOnlyCollection<MetadataReference> References) : EvaluationResult;
+        public sealed record Error(Exception Exception) : EvaluationResult;
+        public sealed record Cancelled() : EvaluationResult;
     }
 
+    #pragma warning disable IDE1006 // Naming Styles, the properties in this class will be available as local variable in the script.
     /// <summary>
-    /// Global variable available in the C# Script environment
+    /// Defines variables that are available in the C# Script environment.
     /// </summary>
-    public class ScriptGlobals
+    /// <remarks>Must be public so it can be referenced by the script</remarks>
+    public sealed class ScriptGlobals
     {
         /// <summary>
-        /// arguments provided at the command line after a double dash.
+        /// Arguments provided at the command line after a double dash.
         /// e.g. csharprepl -- argA argB argC
         /// </summary>
-        public string[] args { get; set; }
+        public string[] args { get; set; } = Array.Empty<string>();
     }
+    #pragma warning restore IDE1006 // Naming Styles
 }

@@ -8,7 +8,7 @@ using System;
 
 namespace CSharpRepl.Services.Roslyn
 {
-    class PrettyPrinter
+    internal sealed class PrettyPrinter
     {
         private readonly ObjectFormatter formatter;
         private readonly PrintOptions summaryOptions;
@@ -29,7 +29,7 @@ namespace CSharpRepl.Services.Roslyn
             };
         }
 
-        public string FormatObject(object obj, bool displayDetails) => obj switch
+        public string? FormatObject(object? obj, bool displayDetails) => obj switch
         {
             null => null, // intercept null, don't print the string "null"
             string str when displayDetails => str, // when displayDetails is true, don't show the escaped string (i.e. interpret the escape characters, via displaying to console)

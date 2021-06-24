@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using PrettyPrompt.Consoles;
@@ -20,13 +21,13 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
     /// assembly.runtimeconfig.json file, the file will be read in order to determine required
     /// Shared Frameworks. https://natemcmaster.com/blog/2018/08/29/netcore-primitives-2/
     /// </summary>
-    class AssemblyReferenceMetadataResolver : IIndividualMetadataReferenceResolver
+    internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataReferenceResolver
     {
-        private readonly ReferenceAssemblyService referenceAssemblyService;
+        private readonly AssemblyReferenceService referenceAssemblyService;
         private readonly AssemblyLoadContext loadContext;
         private readonly IConsole console;
 
-        public AssemblyReferenceMetadataResolver(IConsole console, ReferenceAssemblyService referenceAssemblyService)
+        public AssemblyReferenceMetadataResolver(IConsole console, AssemblyReferenceService referenceAssemblyService)
         {
             this.console = console;
             this.referenceAssemblyService = referenceAssemblyService;
@@ -36,7 +37,7 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
         }
 
         public ImmutableArray<PortableExecutableReference> ResolveReference(
-            string reference, string baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
+            string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
         {
             // resolve relative filepaths
             var fileSystemPath = Path.GetFullPath(reference);
@@ -55,23 +56,24 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
             if (references.Length != 1) return;
 
             var configPath = Path.ChangeExtension(references[0].FilePath, "runtimeconfig.json");
-
-            if (!File.Exists(configPath))
+            if (configPath is null || !File.Exists(configPath))
             {
                 return;
             }
 
             var content = File.ReadAllText(configPath);
-            var config = JsonSerializer.Deserialize<RuntimeConfigJson>(content);
-            var name = config.runtimeOptions.framework.name;
-            var version = new Version(config.runtimeOptions.framework.version);
-            referenceAssemblyService.LoadSharedFrameworkConfiguration(name, version);
+            if (JsonSerializer.Deserialize<RuntimeConfigJson>(content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) is RuntimeConfigJson config)
+            {
+                var name = config.RuntimeOptions.Framework.Name;
+                var version = new Version(config.RuntimeOptions.Framework.Version);
+                referenceAssemblyService.LoadSharedFrameworkConfiguration(name, version);
+            }
         }
 
         /// <summary>
         /// If we're missing an assembly (by exact match), try to find an assembly with the same name but different version.
         /// </summary>
-        private Assembly ResolveByAssemblyName(object sender, ResolveEventArgs args)
+        private Assembly? ResolveByAssemblyName(object? sender, ResolveEventArgs args)
         {
             var assemblyName = new AssemblyName(args.Name);
 
@@ -81,11 +83,14 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
                 .Select(loadContext.LoadFromAssemblyPath)
                 .FirstOrDefault();
             
-            if (located is not null && new AssemblyName(located.FullName).Version != assemblyName.Version)
+            if (located?.FullName is not null && new AssemblyName(located.FullName).Version != assemblyName.Version)
             {
                 console.WriteLine($"Warning: Missing assembly: {args.Name}");
                 console.WriteLine($"            Using instead: {located.FullName}");
-                console.WriteLine($"             Requested by: {args.RequestingAssembly.FullName}");
+                if(args.RequestingAssembly is not null)
+                {
+                    console.WriteLine($"             Requested by: {args.RequestingAssembly.FullName}");
+                }
             }
 
             return located;
@@ -95,20 +100,37 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
     /// <summary>
     /// Schema for assembly.runtimeconfig.json files.
     /// </summary>
-    public class RuntimeConfigJson
+    internal sealed class RuntimeConfigJson
     {
-        public RuntimeOptions runtimeOptions { get; set; }
+        public RuntimeOptionsKey RuntimeOptions { get; }
 
-        public class RuntimeOptions
+        public RuntimeConfigJson(RuntimeOptionsKey runtimeOptions)
         {
-            public string tfm { get; set; }
-            public Framework framework { get; set; }
+            this.RuntimeOptions = runtimeOptions;
         }
 
-        public class Framework
+        public sealed class RuntimeOptionsKey
         {
-            public string name { get; set; }
-            public string version { get; set; }
+            public RuntimeOptionsKey(string tfm, FrameworkKey framework)
+            {
+                this.Tfm = tfm;
+                this.Framework = framework;
+            }
+
+            public string Tfm { get; }
+            public FrameworkKey Framework { get; }
+        }
+
+        public sealed class FrameworkKey
+        {
+            public FrameworkKey(string name, string version)
+            {
+                this.Name = name;
+                this.Version = version;
+            }
+
+            public string Name { get; }
+            public string Version { get; }
         }
     }
 }

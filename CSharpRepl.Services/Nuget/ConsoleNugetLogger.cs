@@ -8,7 +8,10 @@ using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Nuget
 {
-    public class ConsoleNugetLogger : ILogger
+    /// <summary>
+    /// Implementation of <see cref="NuGet.Common.ILogger"/> that logs minimal output to the console.
+    /// </summary>
+    internal sealed class ConsoleNugetLogger : ILogger
     {
         private readonly IConsole console;
 

@@ -15,19 +15,19 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
     /// <summary>
     /// Resolves nuget references, e.g. #r "nuget: Newtonsoft.Json" or #r "nuget: Newtonsoft.Json, 13.0.1"
     /// </summary>
-    internal class NugetPackageMetadataResolver : IIndividualMetadataReferenceResolver
+    internal sealed class NugetPackageMetadataResolver : IIndividualMetadataReferenceResolver
     {
         private const string NugetPrefix = "nuget:";
         private readonly NugetPackageInstaller nugetInstaller;
         private readonly ImmutableArray<PortableExecutableReference> dummyPlaceholder;
 
-        public NugetPackageMetadataResolver(IConsole console, ReferenceAssemblyService referenceAssemblyService)
+        public NugetPackageMetadataResolver(IConsole console)
         {
             this.nugetInstaller = new NugetPackageInstaller(console);
             this.dummyPlaceholder = new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) }.ToImmutableArray();
         }
 
-        public ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
+        public ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
         {
             // This is a bit of a kludge. roslyn does not yet support adding multiple references from a single ResolveReference call, which
             // can happen with nuget packages (because they can have multiple DLLs and dependencies). https://github.com/dotnet/roslyn/issues/6900

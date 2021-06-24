@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace CSharpRepl.Prompt
 {
-    static class PromptConfiguration
+    internal static class PromptConfiguration
     {
         /// <summary>
         /// Create our callbacks for configuring <see cref="PrettyPrompt"/>
