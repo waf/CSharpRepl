@@ -16,21 +16,21 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
     /// </summary>
     internal interface IIndividualMetadataReferenceResolver
     {
-        ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver);
+        ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver);
     }
 
     /// <summary>
     /// A top-level metadata resolver. We can only specify a single <see cref="MetadataReferenceResolver"/> in roslyn scripting.
     /// This composite class delegates to individual implementations (nuget resolver, assembly resolver, csproj resolver, etc).
     /// </summary>
-    internal class CompositeMetadataReferenceResolver : MetadataReferenceResolver, IEquatable<CompositeMetadataReferenceResolver>
+    internal sealed class CompositeMetadataReferenceResolver : MetadataReferenceResolver, IEquatable<CompositeMetadataReferenceResolver>
     {
         private readonly IIndividualMetadataReferenceResolver[] resolvers;
 
         public CompositeMetadataReferenceResolver(params IIndividualMetadataReferenceResolver[] resolvers) =>
             this.resolvers = resolvers;
 
-        public override ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string baseFilePath, MetadataReferenceProperties properties)
+        public override ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string? baseFilePath, MetadataReferenceProperties properties)
         {
             reference = reference.Trim();
 
@@ -46,10 +46,10 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
             return ImmutableArray<PortableExecutableReference>.Empty;
         }
 
-        public override bool Equals(object other) =>
+        public override bool Equals(object? other) =>
             Equals(other as CompositeMetadataReferenceResolver);
 
-        public bool Equals(CompositeMetadataReferenceResolver other) =>
+        public bool Equals(CompositeMetadataReferenceResolver? other) =>
             other != null
             && EqualityComparer<IIndividualMetadataReferenceResolver[]>.Default.Equals(resolvers, other.resolvers);
 

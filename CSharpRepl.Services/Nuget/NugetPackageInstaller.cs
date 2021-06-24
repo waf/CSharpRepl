@@ -27,7 +27,7 @@ using System.Threading.Tasks;
 
 namespace CSharpRepl.Services.Nuget
 {
-    public class NugetPackageInstaller
+    internal sealed class NugetPackageInstaller
     {
         private readonly ConsoleNugetLogger logger;
 
@@ -37,7 +37,7 @@ namespace CSharpRepl.Services.Nuget
         }
 
         public async Task<ImmutableArray<PortableExecutableReference>> InstallAsync(
-            string packageId, string version = null, CancellationToken cancellationToken = default)
+            string packageId, string? version = null, CancellationToken cancellationToken = default)
         {
             ISettings settings = ReadSettings();
             var frameworkVersion = GetCurrentFramework();
@@ -77,7 +77,7 @@ namespace CSharpRepl.Services.Nuget
             return references;
         }
 
-        private async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity, CancellationToken cancellationToken)
+        private static async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity, CancellationToken cancellationToken)
         {
             var packages = await GetDependencies(frameworkVersion, nuGetProject, packageIdentity, cancellationToken);
 
@@ -188,8 +188,7 @@ namespace CSharpRepl.Services.Nuget
                 resolutionContext, primarySourceRepositories,
                 logger, cancellationToken
             );
-            PackageIdentity packageIdentity = new PackageIdentity(packageId, resolvePackage.LatestVersion);
-            return packageIdentity;
+            return new PackageIdentity(packageId, resolvePackage.LatestVersion);
         }
 
         private static NuGetPackageManager CreatePackageManager(ISettings settings, FolderNuGetProject nuGetProject, SourceRepositoryProvider sourceRepositoryProvider)

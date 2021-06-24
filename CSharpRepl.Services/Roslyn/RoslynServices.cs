@@ -16,27 +16,37 @@ using CSharpRepl.Services.SymbolExploration;
 using CSharpRepl.Services.Completion;
 using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt.Consoles;
+using System.Diagnostics.CodeAnalysis;
+using CSharpRepl.Services.Roslyn.References;
 
 namespace CSharpRepl.Services.Roslyn
 {
-    public class RoslynServices
+    /// <summary>
+    /// The main entry point of all services. This is a facade for other services that manages their startup and initialization.
+    /// It also ensures two different areas of the Roslyn API, the Scripting and Workspace APIs, remain in sync.
+    /// </summary>
+    public sealed class RoslynServices
     {
-        private readonly Task initialization;
         private readonly SyntaxHighlighter highlighter;
-        private ScriptRunner scriptRunner;
-        private WorkspaceManager workspaceManager;
-        private PrettyPrinter prettyPrinter;
-        private SymbolExplorer symbolExplorer;
-        private AutoCompleteService autocompleteService;
+
+        private ScriptRunner? scriptRunner;
+        private WorkspaceManager? workspaceManager;
+        private PrettyPrinter? prettyPrinter;
+        private SymbolExplorer? symbolExplorer;
+        private AutoCompleteService? autocompleteService;
+
+        // when this Initialization task successfully completes, all the above members will not be null.
+        [MemberNotNull(nameof(scriptRunner), nameof(workspaceManager), nameof(prettyPrinter), nameof(symbolExplorer), nameof(autocompleteService))]
+        private Task Initialization { get; }
 
         public RoslynServices(IConsole console, Configuration config)
         {
             var cache = new MemoryCache(new MemoryCacheOptions());
             this.highlighter = new SyntaxHighlighter(cache, config.Theme);
             // initialization of roslyn and all dependent services is slow! do it asynchronously so we don't increase startup time.
-            this.initialization = Task.Run(() =>
+            this.Initialization = Task.Run(() =>
             {
-                var referenceService = new ReferenceAssemblyService(config);
+                var referenceService = new AssemblyReferenceService(config);
 
                 var compilationOptions = new CSharpCompilationOptions(
                     OutputKind.DynamicallyLinkedLibrary,
@@ -54,12 +64,12 @@ namespace CSharpRepl.Services.Roslyn
                 this.symbolExplorer = new SymbolExplorer();
                 this.autocompleteService = new AutoCompleteService(cache);
             });
-            initialization.ContinueWith(task => console.WriteErrorLine(task.Exception.Message), TaskContinuationOptions.OnlyOnFaulted);
+            Initialization.ContinueWith(task => console.WriteErrorLine(task.Exception?.Message ?? "Unknown error"), TaskContinuationOptions.OnlyOnFaulted);
         }
 
-        public async Task<EvaluationResult> Evaluate(string input, string[] args = null, CancellationToken cancellationToken = default)
+        public async Task<EvaluationResult> Evaluate(string input, string[]? args = null, CancellationToken cancellationToken = default)
         {
-            await initialization.ConfigureAwait(false);
+            await Initialization.ConfigureAwait(false);
 
             var result = await scriptRunner
                 .RunCompilation(input.Trim(), args, cancellationToken)
@@ -69,20 +79,23 @@ namespace CSharpRepl.Services.Roslyn
             {
                 // update our final document text, and add a new, empty project that can be
                 // used for future evaluations (whether evaluation, syntax highlighting, or completion)
-                workspaceManager.UpdateCurrentDocument(success);
+                workspaceManager!.UpdateCurrentDocument(success);
             }
 
             return result;
         }
 
-        public string PrettyPrint(object obj, bool displayDetails) =>
-            obj is Exception ex
-            ? prettyPrinter.FormatException(ex, displayDetails)
-            : prettyPrinter.FormatObject(obj, displayDetails);
+        public async Task<string?> PrettyPrint(object? obj, bool displayDetails)
+        {
+            await Initialization.ConfigureAwait(false);
+            return obj is Exception ex
+                ? prettyPrinter.FormatException(ex, displayDetails)
+                : prettyPrinter.FormatObject(obj, displayDetails);
+        }
 
         public async Task<IReadOnlyCollection<CompletionItemWithDescription>> Complete(string text, int caret)
         {
-            if (!initialization.IsCompleted)
+            if (!Initialization.IsCompleted)
                 return Array.Empty<CompletionItemWithDescription>();
 
             var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
@@ -91,7 +104,7 @@ namespace CSharpRepl.Services.Roslyn
 
         public async Task<SymbolResult> GetSymbolAtIndex(string text, int caret)
         {
-            await initialization.ConfigureAwait(false);
+            await Initialization.ConfigureAwait(false);
             var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
             return await symbolExplorer.GetSymbolAtPosition(document, caret);
         }
@@ -101,7 +114,7 @@ namespace CSharpRepl.Services.Roslyn
 
         public async Task<IReadOnlyCollection<HighlightedSpan>> SyntaxHighlightAsync(string text)
         {
-            if (!initialization.IsCompleted)
+            if (!Initialization.IsCompleted)
                 return Array.Empty<HighlightedSpan>();
 
             var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
@@ -112,12 +125,12 @@ namespace CSharpRepl.Services.Roslyn
 
         public async Task<bool> IsTextCompleteStatement(string text)
         {
-            if (!initialization.IsCompleted)
+            if (!Initialization.IsCompleted)
                 return true;
 
             var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
             var root = await document.GetSyntaxRootAsync().ConfigureAwait(false);
-            return SyntaxFactory.IsCompleteSubmission(root.SyntaxTree);
+            return root is null || SyntaxFactory.IsCompleteSubmission(root.SyntaxTree); // if something's wrong and we can't get the syntax tree, we don't want to prevent evaluation.
         }
 
         /// <summary>
@@ -127,7 +140,7 @@ namespace CSharpRepl.Services.Roslyn
         public Task WarmUpAsync(string[] args) =>
             Task.Run(async () =>
             {
-                await initialization.ConfigureAwait(false);
+                await Initialization.ConfigureAwait(false);
                 await Task.WhenAll(
                     Evaluate(@"_ = ""REPL Warmup""", args),
                     SyntaxHighlightAsync(@"_ = ""REPL Warmup"""),

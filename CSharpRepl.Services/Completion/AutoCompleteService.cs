@@ -30,26 +30,33 @@ namespace CSharpRepl.Services.Completion
             if (text != string.Empty && cache.Get<CompletionItemWithDescription[]>(cacheKey) is CompletionItemWithDescription[] cached)
                 return cached;
 
-            var completions = await CompletionService.GetService(document).GetCompletionsAsync(document, caret).ConfigureAwait(false);
+            var completions = await CompletionService
+                .GetService(document)
+                .GetCompletionsAsync(document, caret)
+                .ConfigureAwait(false);
+
             var completionsWithDescriptions = completions?.Items
-                .Select(item => new CompletionItemWithDescription(item, new Lazy<Task<string>>(async () =>
-                {
-                    var currentText = await document.GetTextAsync().ConfigureAwait(false);
-                    var completedText = currentText.Replace(item.Span, item.DisplayText);
-                    var completedDocument = document.WithText(completedText);
-                    var infoService = QuickInfoService.GetService(completedDocument);
-                    var info = await infoService.GetQuickInfoAsync(completedDocument, item.Span.End).ConfigureAwait(false);
-                    return info is null
-                        ? string.Empty
-                        : string.Join(Environment.NewLine, info.Sections.Select(s => s.Text));
-                })))
-                .ToArray()
-                ??
-                Array.Empty<CompletionItemWithDescription>();
+                .Select(item => new CompletionItemWithDescription(item, new Lazy<Task<string>>(() => GetExtendedDescription(document, item))))
+                .ToArray() ?? Array.Empty<CompletionItemWithDescription>();
 
             cache.Set(cacheKey, completionsWithDescriptions, DateTimeOffset.Now.AddMinutes(1));
 
             return completionsWithDescriptions;
+        }
+
+        private static async Task<string> GetExtendedDescription(Document document, CompletionItem item)
+        {
+            var currentText = await document.GetTextAsync().ConfigureAwait(false);
+            var completedText = currentText.Replace(item.Span, item.DisplayText);
+            var completedDocument = document.WithText(completedText);
+
+            var infoService = QuickInfoService.GetService(completedDocument);
+            if (infoService is null) return string.Empty;
+
+            var info = await infoService.GetQuickInfoAsync(completedDocument, item.Span.End).ConfigureAwait(false);
+            return info is null
+                ? string.Empty
+                : string.Join(Environment.NewLine, info.Sections.Select(s => s.Text));
         }
     }
 }

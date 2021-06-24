@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Host.Mef;
@@ -20,15 +21,15 @@ namespace CSharpRepl.Services.Roslyn
     /// In this way, the list of REPL submissions is a linked list of projects, where each project has a single document
     /// containing the REPL submission.
     /// </summary>
-    class WorkspaceManager
+    internal sealed class WorkspaceManager
     {
         private readonly AdhocWorkspace workspace;
         private readonly CSharpCompilationOptions compilationOptions;
-        private readonly ReferenceAssemblyService referenceAssemblyService;
+        private readonly AssemblyReferenceService referenceAssemblyService;
 
         public Document CurrentDocument { get; private set; }
 
-        public WorkspaceManager(CSharpCompilationOptions compilationOptions, ReferenceAssemblyService referenceAssemblyService)
+        public WorkspaceManager(CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceAssemblyService)
         {
             this.compilationOptions = compilationOptions;
             this.referenceAssemblyService = referenceAssemblyService;
@@ -41,7 +42,7 @@ namespace CSharpRepl.Services.Roslyn
                     out var documentId
                 )
                 .ApplyChanges(workspace)
-                .GetDocument(documentId);
+                .GetDocument(documentId)!;
         }
 
         public void UpdateCurrentDocument(EvaluationResult.Success result)
@@ -54,7 +55,7 @@ namespace CSharpRepl.Services.Roslyn
                 )
                 .WithDocumentText(CurrentDocument.Id, SourceText.From(result.Input))
                 .ApplyChanges(workspace)
-                .GetDocument(documentId);
+                .GetDocument(documentId)!;
         }
 
         private static Solution EmptyProjectAndDocumentChangeset(
