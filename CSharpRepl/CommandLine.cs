@@ -155,8 +155,8 @@ namespace CSharpRepl
             "These [OPTIONS] can be provided at the command line, or via a [response-file.rsp]." + NewLine +
             "A [script-file.csx], if provided, will be executed before the prompt starts." + NewLine + NewLine +
             "OPTIONS:" + NewLine +
-            "  -r <dll> or --reference <dll>:             Reference an assembly or csproj file. May be specified multiple times." + NewLine +
-            "  -u <namespace> or --using <namespace>:     Add a using statement. May be specified multiple times." + NewLine +
+            "  -r <dll> or --reference <dll>:             Reference assemblies, nuget packages, and csproj files." + NewLine +
+            "  -u <namespace> or --using <namespace>:     Add using statements." + NewLine +
             "  -f <framework> or --framework <framework>: Reference a shared framework." + NewLine +
             "                                             Available shared frameworks: " + NewLine + GetInstalledFrameworks(
             "                                             ") + NewLine +
