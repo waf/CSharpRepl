@@ -42,6 +42,21 @@ namespace CSharpRepl.Tests
             Assert.Contains("Writes the current line terminator to the standard output", writeLineDescription);
         }
 
+        [Fact]
+        public async Task Complete_GivenLinq_ReturnsCompletions()
+        {
+            // LINQ tends to be a good canary for whether or not our reference / implementation assemblies are correct.
+            var completions = await this.services.Complete("new[] { 1, 2, 3 }.Wher", 21);
+
+            var whereCompletion = completions.SingleOrDefault(c => c.Item.DisplayText.StartsWith("Where"));
+
+            Assert.NotNull(whereCompletion);
+            Assert.Equal("Where", whereCompletion.Item.DisplayText);
+
+            var whereDescription = await whereCompletion.DescriptionProvider.Value;
+            Assert.Contains("Filters a sequence of values based on a predicate", whereDescription);
+        }
+
         /// <remarks>https://github.com/waf/CSharpRepl/issues/4</remarks>
         [Fact]
         public async Task Complete_SyntaxHighlight_CachesAreIsolated()
