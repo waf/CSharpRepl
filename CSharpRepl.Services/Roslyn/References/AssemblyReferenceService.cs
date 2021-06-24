@@ -28,6 +28,7 @@ namespace CSharpRepl.Services.Roslyn.References
         private readonly HashSet<MetadataReference> loadedImplementationAssemblies;
         private readonly HashSet<string> referenceAssemblyPaths;
         private readonly HashSet<string> implementationAssemblyPaths;
+        private readonly HashSet<string> sharedFrameworkImplementationAssemblyPaths;
 
         public IReadOnlySet<string> ImplementationAssemblyPaths => implementationAssemblyPaths;
         public IReadOnlySet<MetadataReference> LoadedImplementationAssemblies => loadedImplementationAssemblies;
@@ -38,6 +39,7 @@ namespace CSharpRepl.Services.Roslyn.References
         {
             this.referenceAssemblyPaths = new();
             this.implementationAssemblyPaths = new();
+            this.sharedFrameworkImplementationAssemblyPaths = new();
             this.cachedMetadataReferences = new();
             this.loadedReferenceAssemblies = new(new AssemblyReferenceComparer());
             this.loadedImplementationAssemblies = new(new AssemblyReferenceComparer());
@@ -61,16 +63,6 @@ namespace CSharpRepl.Services.Roslyn.References
                 references.Select(suppliedReference => EnsureReferenceAssembly(suppliedReference)).WhereNotNull()
             );
             return loadedReferenceAssemblies;
-        }
-
-        internal void AddImplementationAssemblyReferences(IEnumerable<MetadataReference> references)
-        {
-            var paths = references
-                .Select(r => Path.GetDirectoryName(r.Display) ?? r.Display) // GetDirectoryName returns null when at root directory
-                .WhereNotNull();
-
-            this.implementationAssemblyPaths.UnionWith(paths);
-            this.loadedImplementationAssemblies.UnionWith(references);
         }
 
         /// <summary>
@@ -108,7 +100,7 @@ namespace CSharpRepl.Services.Roslyn.References
                 .FirstOrDefault(potentialReferencePath => File.Exists(potentialReferencePath))
                 ?? suppliedAssemblyPath;
 
-            if (ImplementationAssemblyPaths.Any(path => assembly.StartsWith(path)))
+            if (sharedFrameworkImplementationAssemblyPaths.Any(path => assembly.StartsWith(path)))
             {
                 return null;
             }
@@ -123,6 +115,16 @@ namespace CSharpRepl.Services.Roslyn.References
             return completeMetadataReference;
         }
 
+        internal void AddImplementationAssemblyReferences(IEnumerable<MetadataReference> references)
+        {
+            var paths = references
+                .Select(r => Path.GetDirectoryName(r.Display) ?? r.Display) // GetDirectoryName returns null when at root directory
+                .WhereNotNull();
+
+            this.implementationAssemblyPaths.UnionWith(paths);
+            this.loadedImplementationAssemblies.UnionWith(references);
+        }
+
         public void LoadSharedFrameworkConfiguration(string framework, Version version)
         {
             var sharedFrameworks = GetSharedFrameworkConfiguration(framework, version);
@@ -133,6 +135,7 @@ namespace CSharpRepl.Services.Roslyn.References
         {
             this.referenceAssemblyPaths.UnionWith(sharedFrameworks.Select(framework => framework.ReferencePath));
             this.implementationAssemblyPaths.UnionWith(sharedFrameworks.Select(framework => framework.ImplementationPath));
+            this.sharedFrameworkImplementationAssemblyPaths.UnionWith(sharedFrameworks.Select(framework => framework.ImplementationPath));
             this.loadedReferenceAssemblies.UnionWith(sharedFrameworks.SelectMany(framework => framework.ReferenceAssemblies));
             this.loadedImplementationAssemblies.UnionWith(sharedFrameworks.SelectMany(framework => framework.ImplementationAssemblies));
         }

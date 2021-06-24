@@ -6,6 +6,7 @@ using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
@@ -127,6 +128,9 @@ namespace CSharpRepl.Tests
             Assert.IsType<EvaluationResult.Success>(referenceResult);
             Assert.IsType<EvaluationResult.Success>(sharedFrameworkResult);
             Assert.IsType<EvaluationResult.Success>(applicationResult);
+
+            var completions = await services.Complete(@"using WebApplicat", 17);
+            Assert.Contains("WebApplication1", completions.Select(c => c.Item.DisplayText).First(text => text.StartsWith("WebApplicat")));
         }
 
         [Fact]
