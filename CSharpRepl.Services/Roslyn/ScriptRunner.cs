@@ -42,7 +42,7 @@ namespace CSharpRepl.Services.Roslyn
                 .AddImports(compilationOptions.Usings);
         }
 
-        public async Task<EvaluationResult> RunCompilation(string text, CancellationToken cancellationToken)
+        public async Task<EvaluationResult> RunCompilation(string text, string[] args = null, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -55,7 +55,7 @@ namespace CSharpRepl.Services.Roslyn
                     this.scriptOptions = this.scriptOptions.AddReferences(assemblyReferences);
                 }
 
-                state = await EvaluateStringWithStateAsync(text, state, assemblyLoader, this.scriptOptions, cancellationToken).ConfigureAwait(false);
+                state = await EvaluateStringWithStateAsync(text, state, assemblyLoader, this.scriptOptions, args, cancellationToken).ConfigureAwait(false);
 
                 return state.Exception is null
                     ? CreateSuccessfulResult(text, state)
@@ -81,11 +81,14 @@ namespace CSharpRepl.Services.Roslyn
             return new EvaluationResult.Success(text, state.ReturnValue, frameworkImplementationAssemblies.Concat(frameworkReferenceAssemblies).ToList());
         }
 
-        private static Task<ScriptState<object>> EvaluateStringWithStateAsync(string text, ScriptState<object> state, InteractiveAssemblyLoader assemblyLoader, ScriptOptions scriptOptions, CancellationToken cancellationToken)
+        private static Task<ScriptState<object>> EvaluateStringWithStateAsync(string text, ScriptState<object> state, InteractiveAssemblyLoader assemblyLoader, ScriptOptions scriptOptions, string[] args = null, CancellationToken cancellationToken = default)
         {
             return state == null
-                ? CSharpScript.Create(text, scriptOptions, assemblyLoader: assemblyLoader).RunAsync(cancellationToken: cancellationToken)
-                : state.ContinueWithAsync(text, scriptOptions, cancellationToken: cancellationToken);
+                ? CSharpScript
+                    .Create(text, scriptOptions, globalsType: typeof(ScriptGlobals), assemblyLoader: assemblyLoader)
+                    .RunAsync(globals: new ScriptGlobals { args = args }, cancellationToken: cancellationToken)
+                : state
+                    .ContinueWithAsync(text, scriptOptions, cancellationToken: cancellationToken);
         }
     }
 
@@ -94,5 +97,17 @@ namespace CSharpRepl.Services.Roslyn
         public record Success(string Input, object ReturnValue, IReadOnlyCollection<MetadataReference> References) : EvaluationResult;
         public record Error(Exception Exception) : EvaluationResult;
         public record Cancelled() : EvaluationResult;
+    }
+
+    /// <summary>
+    /// Global variable available in the C# Script environment
+    /// </summary>
+    public class ScriptGlobals
+    {
+        /// <summary>
+        /// arguments provided at the command line after a double dash.
+        /// e.g. csharprepl -- argA argB argC
+        /// </summary>
+        public string[] args { get; set; }
     }
 }

@@ -8,6 +8,7 @@ using CSharpRepl.Services.Roslyn;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
+using System;
 
 namespace CSharpRepl.Tests
 {
@@ -25,7 +26,7 @@ namespace CSharpRepl.Tests
             });
         }
 
-        public Task InitializeAsync() => this.services.WarmUpAsync();
+        public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
         public Task DisposeAsync() => Task.CompletedTask;
 
         [Fact]

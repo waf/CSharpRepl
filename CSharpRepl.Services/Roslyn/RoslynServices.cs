@@ -57,12 +57,12 @@ namespace CSharpRepl.Services.Roslyn
             initialization.ContinueWith(task => console.WriteErrorLine(task.Exception.Message), TaskContinuationOptions.OnlyOnFaulted);
         }
 
-        public async Task<EvaluationResult> Evaluate(string input, CancellationToken cancellationToken = default)
+        public async Task<EvaluationResult> Evaluate(string input, string[] args = null, CancellationToken cancellationToken = default)
         {
             await initialization.ConfigureAwait(false);
 
             var result = await scriptRunner
-                .RunCompilation(input.Trim(), cancellationToken)
+                .RunCompilation(input.Trim(), args, cancellationToken)
                 .ConfigureAwait(false);
 
             if (result is EvaluationResult.Success success)
@@ -124,12 +124,12 @@ namespace CSharpRepl.Services.Roslyn
         /// Roslyn services can be a bit slow to initialize the first time they're executed.
         /// Warm them up in the background so it doesn't affect the user.
         /// </summary>
-        public Task WarmUpAsync() =>
+        public Task WarmUpAsync(string[] args) =>
             Task.Run(async () =>
             {
                 await initialization.ConfigureAwait(false);
                 await Task.WhenAll(
-                    Evaluate(@"_ = ""REPL Warmup""", CancellationToken.None),
+                    Evaluate(@"_ = ""REPL Warmup""", args),
                     SyntaxHighlightAsync(@"_ = ""REPL Warmup"""),
                     Task.WhenAny((await Complete(@"C", 1)).Select(completion => completion.DescriptionProvider.Value))
                 ).ConfigureAwait(false);
