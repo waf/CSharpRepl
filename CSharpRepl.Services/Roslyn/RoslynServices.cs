@@ -18,6 +18,7 @@ using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt.Consoles;
 using System.Diagnostics.CodeAnalysis;
 using CSharpRepl.Services.Roslyn.References;
+using CSharpRepl.Services.Roslyn.Scripting;
 
 namespace CSharpRepl.Services.Roslyn
 {

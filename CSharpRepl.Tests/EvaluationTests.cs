@@ -4,6 +4,7 @@
 
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.Scripting;
 using System;
 using System.IO;
 using System.Linq;
