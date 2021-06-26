@@ -80,6 +80,7 @@ namespace CSharpRepl
                 if (response.IsSuccess)
                 {
                     if (response.Text == "exit") { break; }
+                    if (response.Text == "clear" || response.Text == "cls") { console.Clear(); continue; }
                     if (response.Text == "help" || response.Text == "?") { PrintHelp(); continue; }
 
                     var result = await roslyn
