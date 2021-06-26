@@ -21,7 +21,7 @@ namespace CSharpRepl.Services.SyntaxHighlighting
     /// Invokes roslyn's classification API on a code document, and combines the
     /// classifications with a theme file to determine the resulting spans of color.
     /// </summary>
-    class SyntaxHighlighter
+    internal sealed class SyntaxHighlighter
     {
         private const string CacheKeyPrefix = "SyntaxHighlighter_";
         private readonly IReadOnlyDictionary<string, AnsiColor> theme;
@@ -29,7 +29,7 @@ namespace CSharpRepl.Services.SyntaxHighlighting
         private readonly IReadOnlyDictionary<string, AnsiColor> ansiColorNames;
         private readonly MemoryCache cache;
 
-        public SyntaxHighlighter(MemoryCache cache, string themeName)
+        public SyntaxHighlighter(MemoryCache cache, string? themeName)
         {
             this.cache = cache;
             this.ansiColorNames = new Dictionary<string, AnsiColor>
@@ -54,10 +54,13 @@ namespace CSharpRepl.Services.SyntaxHighlighting
 
             var selectedTheme = themeName is null
                 ? new DefaultTheme()
-                : JsonSerializer.Deserialize<Theme>(File.ReadAllText(themeName));
+                : JsonSerializer.Deserialize<Theme>(
+                    File.ReadAllText(themeName),
+                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
+                  ) ?? new DefaultTheme();
             this.theme = selectedTheme
-                .colors
-                .ToDictionary(t => t.name, t => ToAnsiColor(t.foreground));
+                .Colors
+                .ToDictionary(t => t.Name, t => ToAnsiColor(t.Foreground));
             this.unhighlightedColor = theme["text"];
         }
 
@@ -72,7 +75,7 @@ namespace CSharpRepl.Services.SyntaxHighlighting
                 return AnsiColor.RGB(r, g, b);
             }
 
-            if (ansiColorNames.TryGetValue(foreground, out AnsiColor color))
+            if (ansiColorNames.TryGetValue(foreground, out AnsiColor? color))
             {
                 return color;
             }
@@ -82,7 +85,7 @@ namespace CSharpRepl.Services.SyntaxHighlighting
 
         internal async Task<IReadOnlyCollection<HighlightedSpan>> HighlightAsync(Document document)
         {
-            var text = (await document.GetTextAsync()).ToString().Trim();
+            var text = (await document.GetTextAsync()).ToString();
             var cacheKey = CacheKeyPrefix + text;
             if (this.cache.Get<IReadOnlyCollection<HighlightedSpan>>(cacheKey) is IReadOnlyCollection<HighlightedSpan> spans)
                 return spans;
@@ -95,7 +98,7 @@ namespace CSharpRepl.Services.SyntaxHighlighting
                 .Select(classifications =>
                 {
                     var highlight = classifications
-                        .Select(classification => theme.GetValueOrDefault(classification.ClassificationType, null))
+                        .Select(classification => theme.GetValueOrDefault(classification.ClassificationType))
                         .FirstOrDefault(themeColor => themeColor is not null)
                         ?? unhighlightedColor;
                     return new HighlightedSpan(classifications.Key, highlight);

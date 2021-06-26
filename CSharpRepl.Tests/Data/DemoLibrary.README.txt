@@ -1,0 +1,12 @@
+DemoLibrary is used for #r unit tests. It contains a single class with the following source code:
+
+
+using System;
+
+namespace DemoLibrary
+{
+    public static class DemoClass
+    {
+        public static int Multiply(int a, int b) => a * b;
+    }
+}

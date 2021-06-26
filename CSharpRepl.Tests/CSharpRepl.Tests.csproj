@@ -7,12 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Data\LoadScript.csx" />
-    <None Remove="Data\ResponseFile.rsp" />
-    <None Remove="Data\theme.json" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Data\ResponseFile.rsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -22,12 +16,21 @@
     <Content Include="Data\theme.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Data\DemoLibrary.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\WebApplication1.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\WebApplication1.runtimeconfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.10.0" />
     <PackageReference Include="NSubstitute" Version="4.2.2" />
-    <PackageReference Include="PrettyPrompt" Version="0.9.4" />
+    <PackageReference Include="PrettyPrompt" Version="0.9.6" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -43,5 +46,4 @@
     <ProjectReference Include="..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
     <ProjectReference Include="..\CSharpRepl\CSharpRepl.csproj" />
   </ItemGroup>
-
 </Project>

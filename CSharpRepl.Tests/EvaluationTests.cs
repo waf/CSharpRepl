@@ -4,7 +4,9 @@
 
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.Scripting;
 using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,7 +27,7 @@ namespace CSharpRepl.Tests
             this.stdout = stdout;
         }
 
-        public Task InitializeAsync() => services.WarmUpAsync();
+        public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
         public Task DisposeAsync() => Task.CompletedTask;
 
         [Fact]
@@ -68,14 +70,78 @@ namespace CSharpRepl.Tests
         }
 
         [Fact]
-        public async Task Evaluate_NugetPackageDoesNotExist_PrintsError()
+        public async Task Evaluate_NugetPackageVersioned_InstallsPackageVersion()
         {
-            string missingNugetPackage = Guid.NewGuid().ToString();
-            var installation = await services.Evaluate(@$"#r ""nuget:{missingNugetPackage}""");
+            var installation = await services.Evaluate(@"#r ""nuget:Newtonsoft.Json, 12.0.1""");
+            var usage = await services.Evaluate(@"Newtonsoft.Json.JsonConvert.SerializeObject(new { Foo = ""bar"" })");
 
-            var installationResult = Assert.IsType<EvaluationResult.Error>(installation);
+            var installationResult = Assert.IsType<EvaluationResult.Success>(installation);
+            var usageResult = Assert.IsType<EvaluationResult.Success>(usage);
 
-            Assert.Equal($@"Could not find package ""{missingNugetPackage}""", installationResult.Exception.Message);
+            Assert.Null(installationResult.ReturnValue);
+            Assert.Contains(installationResult.References, r => r.Display.EndsWith("Newtonsoft.Json.dll") && r.Display.Contains("Newtonsoft.Json.12.0.1"));
+            Assert.Contains("Adding references for Newtonsoft.Json", stdout.ToString());
+            Assert.Equal(@"{""Foo"":""bar""}", usageResult.ReturnValue);
+        }
+
+        [Fact]
+        public async Task Evaluate_RelativeAssemblyReference_CanReferenceAssembly()
+        {
+            var referenceResult = await services.Evaluate(@"#r ""./Data/DemoLibrary.dll""");
+            var importResult = await services.Evaluate("using DemoLibrary;");
+            var multiplyResult = await services.Evaluate("DemoClass.Multiply(5, 6)");
+
+            Assert.IsType<EvaluationResult.Success>(referenceResult);
+            Assert.IsType<EvaluationResult.Success>(importResult);
+            var successfulResult = Assert.IsType<EvaluationResult.Success>(multiplyResult);
+            Assert.Equal(30, successfulResult.ReturnValue);
+        }
+
+        [Fact]
+        public async Task Evaluate_AbsoluteAssemblyReference_CanReferenceAssembly()
+        {
+            var absolutePath = Path.GetFullPath("./Data/DemoLibrary.dll");
+            var referenceResult = await services.Evaluate(@$"#r ""{absolutePath}""");
+            var importResult = await services.Evaluate("using DemoLibrary;");
+            var multiplyResult = await services.Evaluate("DemoClass.Multiply(7, 6)");
+
+            Assert.IsType<EvaluationResult.Success>(referenceResult);
+            Assert.IsType<EvaluationResult.Success>(importResult);
+            var successfulResult = Assert.IsType<EvaluationResult.Success>(multiplyResult);
+            Assert.Equal(42, successfulResult.ReturnValue);
+        }
+
+        [Fact]
+        public async Task Evaluate_AssemblyReferenceInSearchPath_CanReferenceAssembly()
+        {
+            var referenceResult = await services.Evaluate(@"#r ""System.Linq.dll""");
+
+            Assert.IsType<EvaluationResult.Success>(referenceResult);
+        }
+
+        [Fact]
+        public async Task Evaluate_AssemblyReferenceWithSharedFramework_ReferencesSharedFramework()
+        {
+            var referenceResult = await services.Evaluate(@"#r ""./Data/WebApplication1.dll""");
+            var sharedFrameworkResult = await services.Evaluate(@"using Microsoft.AspNetCore.Hosting;");
+            var applicationResult = await services.Evaluate(@"using WebApplication1;");
+
+            Assert.IsType<EvaluationResult.Success>(referenceResult);
+            Assert.IsType<EvaluationResult.Success>(sharedFrameworkResult);
+            Assert.IsType<EvaluationResult.Success>(applicationResult);
+
+            var completions = await services.Complete(@"using WebApplicat", 17);
+            Assert.Contains("WebApplication1", completions.Select(c => c.Item.DisplayText).First(text => text.StartsWith("WebApplicat")));
+        }
+
+        [Fact]
+        public async Task Evaluate_ProjectReference_ReferencesProject()
+        {
+            var referenceResult = await services.Evaluate(@"#r ""./../../../../CSharpRepl.Services/CSharpRepl.Services.csproj""");
+            var importResult = await services.Evaluate(@"using CSharpRepl.Services;");
+
+            Assert.IsType<EvaluationResult.Success>(referenceResult);
+            Assert.IsType<EvaluationResult.Success>(importResult);
         }
     }
 }

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -9,11 +10,17 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.9.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="3.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.10.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="3.10.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="5.0.0" />
-    <PackageReference Include="NuGet.PackageManagement" Version="5.9.1" />
-    <PackageReference Include="PrettyPrompt" Version="0.9.4" />
+    <PackageReference Include="NuGet.PackageManagement" Version="5.10.0" />
+    <PackageReference Include="PrettyPrompt" Version="0.9.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+    <_Parameter1>CSharpRepl.Tests</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
 </Project>

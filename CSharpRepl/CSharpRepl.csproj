@@ -1,10 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.2.2</Version>
+    <Version>0.2.6</Version>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
 
     <Description>A dotnet global tool for a command line C# REPL with syntax highlighting. Explore the language, libraries and NuGet packages interactively.</Description>
     <RepositoryUrl>https://github.com/waf/CSharpRepl</RepositoryUrl>
@@ -29,11 +30,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\.editorconfig" Link=".editorconfig" />
+    <PackageReference Include="PrettyPrompt" Version="0.9.6" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="PrettyPrompt" Version="0.9.4" />
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+    <_Parameter1>CSharpRepl.Tests</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
 </Project>

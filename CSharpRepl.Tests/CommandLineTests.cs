@@ -3,9 +3,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using CSharpRepl.Services;
-using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.References;
 using System;
-using System.Linq;
 using Xunit;
 
 namespace CSharpRepl.Tests
@@ -104,6 +103,19 @@ namespace CSharpRepl.Tests
             Assert.Equal(SharedFramework.NetCoreApp, result.Framework);
             Assert.Equal(new[] { "System", "System.Linq", "Foo.Main.Text" }, result.Usings);
             Assert.Equal(new[] { "System", "System.ValueTuple.dll", "Foo.Main.Logic.dll", "lib.dll" }, result.References);
+        }
+
+        [Fact]
+        public void ParseArguments_TrailingArgumentsAfterDoubleDash_SetAsLoadScriptArgs()
+        {
+            var csxResult = CommandLine.ParseArguments(new[] { "Data/LoadScript.csx", "--", "Data/LoadScript.csx" });
+            // load script filename passed before "--" is a load script, after "--" we just pass it to the load script as an arg.
+            Assert.Equal(new[] { "Data/LoadScript.csx" }, csxResult.LoadScriptArgs);
+            Assert.Equal(@"Console.WriteLine(""Hello World!"");", csxResult.LoadScript);
+
+            var quotedResult = CommandLine.ParseArguments(new[] { "-r", "Foo.dll", "--", @"""a b c""", @"""d e f""" });
+            Assert.Equal(new[] { @"""a b c""", @"""d e f""" }, quotedResult.LoadScriptArgs);
+            Assert.Equal(new[] { @"Foo.dll" }, quotedResult.References);
         }
 
         private static Configuration Parse(string commandline) =>

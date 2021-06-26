@@ -7,5 +7,5 @@ using PrettyPrompt.Highlighting;
 
 namespace CSharpRepl.Services.SyntaxHighlighting
 {
-    public record HighlightedSpan(TextSpan TextSpan, AnsiColor Color);
+    public sealed record HighlightedSpan(TextSpan TextSpan, AnsiColor Color);
 }

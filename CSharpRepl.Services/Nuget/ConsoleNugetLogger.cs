@@ -2,14 +2,16 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using System;
 using System.Threading.Tasks;
 using NuGet.Common;
 using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Nuget
 {
-    public class ConsoleNugetLogger : ILogger
+    /// <summary>
+    /// Implementation of <see cref="NuGet.Common.ILogger"/> that logs minimal output to the console.
+    /// </summary>
+    internal sealed class ConsoleNugetLogger : ILogger
     {
         private readonly IConsole console;
 

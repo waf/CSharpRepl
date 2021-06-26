@@ -9,21 +9,21 @@ using PrettyPrompt.Highlighting;
 using PrettyPrompt.Consoles;
 using CSharpRepl.Prompt;
 using CSharpRepl.Services;
-using System.Threading;
 using PrettyPrompt;
+using System.Linq;
+using CSharpRepl.Services.Roslyn.Scripting;
 
 namespace CSharpRepl
 {
     static class Program
     {
-        private static IConsole console;
-        private static RoslynServices roslyn;
-        private static IPrompt prompt;
+        private static RoslynServices? roslyn;
+        private static IPrompt? prompt;
 
-        static async Task Main(string[] args)
+        internal static async Task Main(string[] args)
         {
-            console = new SystemConsole();
-            Configuration config = ParseArguments(args);
+            var console = new SystemConsole();
+            Configuration? config = ParseArguments(args);
             if (config is null)
                 return;
 
@@ -39,10 +39,10 @@ namespace CSharpRepl
                 return;
             }
 
-            await RunPrompt(config).ConfigureAwait(false);
+            await ReadEvalPrintLoop(console, config).ConfigureAwait(false);
         }
 
-        private static Configuration ParseArguments(string[] args)
+        private static Configuration? ParseArguments(string[] args)
         {
             try
             {
@@ -59,7 +59,7 @@ namespace CSharpRepl
             }
         }
 
-        private static async Task RunPrompt(Configuration config)
+        private static async Task ReadEvalPrintLoop(IConsole console, Configuration config)
         {
             // these are required to run before displaying the welcome text.
             // `roslyn` is required for the syntax highlighting in the text,
@@ -67,12 +67,12 @@ namespace CSharpRepl
             roslyn = new RoslynServices(console, config);
             prompt = PromptConfiguration.Create(roslyn);
 
-            console.WriteLine($"Welcome to the C# REPL (Read Eval Print Loop)!");
+            console.WriteLine("Welcome to the C# REPL (Read Eval Print Loop)!");
             console.WriteLine("Type C# expressions and statements at the prompt and press Enter to evaluate them.");
             console.WriteLine($"Type {Help} to learn more, and type {Exit} to quit.");
             console.WriteLine(string.Empty);
 
-            await Preload(config).ConfigureAwait(false);
+            await Preload(roslyn, console, config).ConfigureAwait(false);
 
             while (true)
             {
@@ -81,41 +81,58 @@ namespace CSharpRepl
                 {
                     if (response.Text == "exit") { break; }
                     if (response.Text == "clear" || response.Text == "cls") { console.Clear(); continue; }
-                    if (response.Text == "help" || response.Text == "?") { PrintHelp(); continue; }
+                    if (new[] { "help", "#help", "?" }.Contains(response.Text.ToLowerInvariant()))
+                    {
+                        PrintHelp(console);
+                        continue;
+                    }
 
                     var result = await roslyn
-                        .Evaluate(response.Text, response.CancellationToken)
+                        .Evaluate(response.Text, config.LoadScriptArgs, response.CancellationToken)
                         .ConfigureAwait(false);
 
-                    Print(result, displayDetails: response.IsHardEnter);
+                    bool shouldVerbosePrint = response.IsHardEnter;
+                    await Print(roslyn, console, result, shouldVerbosePrint);
                 }
             }
         }
 
-        private static async Task Preload(Configuration config)
+        private static async Task Preload(RoslynServices roslyn, IConsole console, Configuration config)
         {
-            if (config.LoadScript is not null)
+            bool hasReferences = config.References.Count > 0;
+            bool hasLoadScript = config.LoadScript is not null;
+            if (!hasReferences && !hasLoadScript)
+            {
+                _ = roslyn.WarmUpAsync(config.LoadScriptArgs); // don't await; we don't want to block the console while warmup happens.
+                return;
+            }
+
+            if(hasReferences)
+            {
+                console.WriteLine("Adding supplied references...");
+                var loadReferenceScript = string.Join("\r\n", config.References.Select(reference => $@"#r ""{reference}"""));
+                var loadReferenceScriptResult = await roslyn.Evaluate(loadReferenceScript).ConfigureAwait(false);
+                await Print(roslyn, console, loadReferenceScriptResult, displayDetails: false).ConfigureAwait(false);
+            }
+
+            if (hasLoadScript)
             {
                 console.WriteLine("Running supplied CSX file...");
-                var loadScriptResult = await roslyn.Evaluate(config.LoadScript, CancellationToken.None).ConfigureAwait(false);
-                Print(loadScriptResult, displayDetails: false);
-            }
-            else
-            {
-                _ = roslyn.WarmUpAsync(); //purposely don't await, we don't want to block the console while warmup happens.
+                var loadScriptResult = await roslyn.Evaluate(config.LoadScript!, config.LoadScriptArgs).ConfigureAwait(false);
+                await Print(roslyn, console, loadScriptResult, displayDetails: false).ConfigureAwait(false);
             }
         }
 
-        private static void Print(EvaluationResult result, bool displayDetails)
+        private static async Task Print(RoslynServices roslyn, IConsole console, EvaluationResult result, bool displayDetails)
         {
             switch (result)
             {
                 case EvaluationResult.Success ok:
-                    var formatted = roslyn.PrettyPrint(ok?.ReturnValue, displayDetails);
+                    var formatted = await roslyn.PrettyPrint(ok?.ReturnValue, displayDetails);
                     console.WriteLine(formatted);
                     break;
                 case EvaluationResult.Error err:
-                    var formattedError = roslyn.PrettyPrint(err.Exception, displayDetails);
+                    var formattedError = await roslyn.PrettyPrint(err.Exception, displayDetails);
                     console.WriteErrorLine(AnsiEscapeCodes.Red + formattedError + AnsiEscapeCodes.Reset);
                     break;
                 case EvaluationResult.Cancelled:
@@ -126,94 +143,74 @@ namespace CSharpRepl
             }
         }
 
-        private static void PrintHelp()
-            {
+        private static void PrintHelp(IConsole console)
+        {
             console.WriteLine(
-@"
-Welcome to the C# REPL
-This tool supports rapid experimentation and exploration of code
-
+$@"
+Welcome to the C# REPL.
+This tool is for rapid experimentation and exploration of code.
 
 Evaluating Code
 ===============
-Type some C# into the prompt and press Enter to run it. 
-Its result, if any, will be printed
-
-Shift+Enter will insert a newline instead, 
-to support multiple lines of input.
-"
-+
-$@"
-Additionally, if the code is not a complete statement 
-(e.g. ""{VariableDeclaration}""), a newline will be inserted instead
-
-Pressing Ctrl+Enter will evaluate the code, 
-but provide more detailed output 
-(e.g. full stack traces, full member info).
-
+Type C# at the prompt and press Enter to run it. Its result will be printed.
+Shift+Enter will insert a newline instead, to support multiple lines of input.
+Ctrl+Enter will evaluate the code, but show detailed member info / stack traces.
+If the code isn't complete (e.g. ""{VariableDeclaration}"") pressing Enter will insert a newline.
 
 Adding References
 =================
-Use the {Reference()} command to add assembly or nuget references
-For assembly references, 
-run {Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}
+Use the {Reference()} command to add assembly or nuget references.
+For assembly references, run {Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}
+For nuget packages, run {Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}
 
-For nuget references, 
-run {Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}
-
+Use {Preprocessor("#load", "path-to-file")} to evaluate C# stored in files (e.g. csx files). This can
+be useful, for example, to build a "".profile.csx"" that includes libraries you want
+to load.
 
 Exploring Code
 ==============
-Press F1 when your caret is in a type, method, or property 
-to open its official MSDN documentation
-Press Ctrl+F1 to view its source code on https://source.dot.net/*
-
+F1, when the caret is in a type or member, will open its MSDN documentation.
+Ctrl+F1 will open the type or member's source code on https://source.dot.net/
 
 Configuration Options
 =====================
-All configuration, including theming, 
-is done at startup via command line flags
-
+All configuration, including theming, is done at startup via command line flags.
 Run --help at the command line to view these options
-
-Note*
-Use #load <path-to-file>
-to include other .csx files 
-useful for example to build a "".profile.csx""
-where you include all the libraries you want to load.
-
 " 
-                );
-            }
+            );
+        }
+
+        private static string Reference(string? argument = null) =>
+            Preprocessor("#r", argument);
 
         /// <summary>
-        /// Produce syntax-highlighted strings like "#r reference" for the provided <paramref name="reference"/> string.
+        /// Produce syntax-highlighted strings like "#r reference" for the provided <paramref name="argument"/> string.
         /// </summary>
-        private static string Reference(string reference = null)
-            {
-            var preprocessor = Color("preprocessor keyword") + "#r" + AnsiEscapeCodes.Reset;
-            var argument = reference is null ? "" : Color("string") + @" """ + reference + @"""" + AnsiEscapeCodes.Reset;
+        private static string Preprocessor(string keyword, string? argument = null)
+        {
+            var highlightedKeyword = Color("preprocessor keyword") + keyword + AnsiEscapeCodes.Reset;
+            var highlightedArgument = argument is null ? "" : Color("string") + @" """ + argument + @"""" + AnsiEscapeCodes.Reset;
 
-            return preprocessor + argument;
-            }
+            return highlightedKeyword + highlightedArgument;
+        }
 
         private static string VariableDeclaration =>
-            prompt.HasUserOptedOutFromColor
+            prompt!.HasUserOptedOutFromColor
             ? "var x ="
             : (Color("keyword") + "var" + AnsiEscapeCodes.Reset + " " +
                Color("field name") + "x" + AnsiEscapeCodes.Reset + " " +
                Color("operator") + "=" + AnsiEscapeCodes.Reset);
 
-        static string Color(string reference) =>
-            AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(roslyn.ToColor(reference)));
+        private static string Color(string reference) =>
+            AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(roslyn!.ToColor(reference)));
 
         private static string Help =>
-            prompt.HasUserOptedOutFromColor
+            prompt!.HasUserOptedOutFromColor
             ? @"""help"""
             : AnsiEscapeCodes.Green + "help" + AnsiEscapeCodes.Reset;
 
         private static string Exit =>
-            prompt.HasUserOptedOutFromColor
+            prompt!.HasUserOptedOutFromColor
             ? @"""exit"""
             : AnsiEscapeCodes.BrightRed + @"exit" + AnsiEscapeCodes.Reset;
     }

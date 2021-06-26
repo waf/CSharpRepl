@@ -12,7 +12,7 @@ namespace CSharpRepl.Services.SymbolExploration
     /// <summary>
     /// Provides information (e.g. types) of symbols in a <see cref="Document"/>.
     /// </summary>
-    class SymbolExplorer
+    internal sealed class SymbolExplorer
     {
         private readonly SymbolDisplayFormat displayOptions;
 
@@ -36,19 +36,18 @@ namespace CSharpRepl.Services.SymbolExploration
         public async Task<SymbolResult> GetSymbolAtPosition(Document document, int position)
         {
             var semanticModel = await document.GetSemanticModelAsync();
-            var tree = semanticModel.SyntaxTree;
+            if (semanticModel is null) return SymbolResult.Unknown;
 
             // the most obvious way to implement this would be using GetEnclosingSymbol or ChildThatContainsPosition.
             // however, neither of those appears to work for script-type projects. GetEnclosingSymbol always returns "<Initialize>".
             var symbols =
-                from node in tree.GetRoot().DescendantNodes()
+                from node in semanticModel.SyntaxTree.GetRoot().DescendantNodes()
                 where node.Span.Start < position && position < node.Span.End
                 orderby node.Span.Length
                 let symbolInfo = semanticModel.GetSymbolInfo(node)
                 select new { node, symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault() };
 
             var mostSpecificSymbol = symbols.FirstOrDefault();
-
             if (mostSpecificSymbol is null) return SymbolResult.Unknown;
 
             return new SymbolResult(
@@ -58,7 +57,7 @@ namespace CSharpRepl.Services.SymbolExploration
         }
     }
 
-    public record SymbolResult(string[] Kind, string SymbolDisplay)
+    public record SymbolResult(string[] Kind, string? SymbolDisplay)
     {
         public static readonly SymbolResult Unknown = new SymbolResult(new[] { "Unknown" }, "Unknown");
     }

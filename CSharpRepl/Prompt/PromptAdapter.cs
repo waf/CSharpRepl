@@ -14,7 +14,7 @@ namespace CSharpRepl.Prompt
     /// <summary>
     /// Maps the classes produced by our roslyn code into the classes for interacting with our prompt library.
     /// </summary>
-    sealed class PromptAdapter
+    internal sealed class PromptAdapter
     {
         public IReadOnlyCollection<FormatSpan> AdaptSyntaxClassification(IReadOnlyCollection<HighlightedSpan> classifications) =>
             classifications

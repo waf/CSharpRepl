@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using CSharpRepl.Services.Roslyn.References;
+using CSharpRepl.Services.Roslyn.Scripting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Host.Mef;
@@ -12,15 +14,23 @@ using System.Linq;
 
 namespace CSharpRepl.Services.Roslyn
 {
-    class WorkspaceManager
+    /// <summary>
+    /// Editor services like code completion and syntax highlighting require the roslyn workspace/project/document model.
+    /// Evaluated script code becomes a document in a project, and then each subsequent evaluation adds a new project and
+    /// document. This new project has a project reference back to the previous project.
+    /// 
+    /// In this way, the list of REPL submissions is a linked list of projects, where each project has a single document
+    /// containing the REPL submission.
+    /// </summary>
+    internal sealed class WorkspaceManager
     {
         private readonly AdhocWorkspace workspace;
         private readonly CSharpCompilationOptions compilationOptions;
-        private readonly ReferenceAssemblyService referenceAssemblyService;
+        private readonly AssemblyReferenceService referenceAssemblyService;
 
         public Document CurrentDocument { get; private set; }
 
-        public WorkspaceManager(CSharpCompilationOptions compilationOptions, ReferenceAssemblyService referenceAssemblyService)
+        public WorkspaceManager(CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceAssemblyService)
         {
             this.compilationOptions = compilationOptions;
             this.referenceAssemblyService = referenceAssemblyService;
@@ -28,12 +38,12 @@ namespace CSharpRepl.Services.Roslyn
 
             this.CurrentDocument = EmptyProjectAndDocumentChangeset(
                     workspace.CurrentSolution,
-                    referenceAssemblyService.EnsureReferenceAssemblyWithDocumentation(referenceAssemblyService.DefaultReferenceAssemblies),
+                    referenceAssemblyService.EnsureReferenceAssemblyWithDocumentation(referenceAssemblyService.LoadedReferenceAssemblies),
                     compilationOptions,
                     out var documentId
                 )
                 .ApplyChanges(workspace)
-                .GetDocument(documentId);
+                .GetDocument(documentId)!;
         }
 
         public void UpdateCurrentDocument(EvaluationResult.Success result)
@@ -46,7 +56,7 @@ namespace CSharpRepl.Services.Roslyn
                 )
                 .WithDocumentText(CurrentDocument.Id, SourceText.From(result.Input))
                 .ApplyChanges(workspace)
-                .GetDocument(documentId);
+                .GetDocument(documentId)!;
         }
 
         private static Solution EmptyProjectAndDocumentChangeset(
