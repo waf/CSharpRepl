@@ -2,13 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
@@ -16,13 +14,14 @@ using PrettyPrompt.Consoles;
 using CSharpRepl.Services.Roslyn.MetadataResolvers;
 using CSharpRepl.Services.Roslyn.References;
 
-namespace CSharpRepl.Services.Roslyn
+namespace CSharpRepl.Services.Roslyn.Scripting
 {
     /// <summary>
     /// Uses the Roslyn Scripting APIs to execute C# code in a string.
     /// </summary>
     internal sealed class ScriptRunner
     {
+        private readonly IConsole console;
         private readonly InteractiveAssemblyLoader assemblyLoader;
         private readonly NugetPackageMetadataResolver nugetResolver;
         private readonly AssemblyReferenceService referenceAssemblyService;
@@ -31,6 +30,7 @@ namespace CSharpRepl.Services.Roslyn
 
         public ScriptRunner(IConsole console, CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceAssemblyService)
         {
+            this.console = console;
             this.referenceAssemblyService = referenceAssemblyService;
             this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
             this.nugetResolver = new NugetPackageMetadataResolver(console);
@@ -88,36 +88,19 @@ namespace CSharpRepl.Services.Roslyn
             return new EvaluationResult.Success(text, state.ReturnValue, frameworkImplementationAssemblies.Concat(frameworkReferenceAssemblies).ToList());
         }
 
-        private static Task<ScriptState<object>> EvaluateStringWithStateAsync(string text, ScriptState<object>? state, InteractiveAssemblyLoader assemblyLoader, ScriptOptions scriptOptions, string[]? args = null, CancellationToken cancellationToken = default)
+        private Task<ScriptState<object>> EvaluateStringWithStateAsync(string text, ScriptState<object>? state, InteractiveAssemblyLoader assemblyLoader, ScriptOptions scriptOptions, string[]? args = null, CancellationToken cancellationToken = default)
         {
             return state is null
                 ? CSharpScript
                     .Create(text, scriptOptions, globalsType: typeof(ScriptGlobals), assemblyLoader: assemblyLoader)
-                    .RunAsync(globals: new ScriptGlobals { args = args ?? Array.Empty<string>() }, cancellationToken: cancellationToken)
+                    .RunAsync(globals: CreateGlobalsObject(args), cancellationToken: cancellationToken)
                 : state
                     .ContinueWithAsync(text, scriptOptions, cancellationToken: cancellationToken);
         }
-    }
 
-    public abstract record EvaluationResult
-    {
-        public sealed record Success(string Input, object ReturnValue, IReadOnlyCollection<MetadataReference> References) : EvaluationResult;
-        public sealed record Error(Exception Exception) : EvaluationResult;
-        public sealed record Cancelled() : EvaluationResult;
+        private ScriptGlobals CreateGlobalsObject(string[]? args)
+        {
+            return new ScriptGlobals(console, args ?? Array.Empty<string>());
+        }
     }
-
-    #pragma warning disable IDE1006 // Naming Styles, the properties in this class will be available as local variable in the script.
-    /// <summary>
-    /// Defines variables that are available in the C# Script environment.
-    /// </summary>
-    /// <remarks>Must be public so it can be referenced by the script</remarks>
-    public sealed class ScriptGlobals
-    {
-        /// <summary>
-        /// Arguments provided at the command line after a double dash.
-        /// e.g. csharprepl -- argA argB argC
-        /// </summary>
-        public string[] args { get; set; } = Array.Empty<string>();
-    }
-    #pragma warning restore IDE1006 // Naming Styles
 }

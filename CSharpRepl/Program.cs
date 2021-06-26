@@ -11,6 +11,7 @@ using CSharpRepl.Prompt;
 using CSharpRepl.Services;
 using PrettyPrompt;
 using System.Linq;
+using CSharpRepl.Services.Roslyn.Scripting;
 
 namespace CSharpRepl
 {
@@ -38,7 +39,7 @@ namespace CSharpRepl
                 return;
             }
 
-            await RunPrompt(console, config).ConfigureAwait(false);
+            await ReadEvalPrintLoop(console, config).ConfigureAwait(false);
         }
 
         private static Configuration? ParseArguments(string[] args)
@@ -58,7 +59,7 @@ namespace CSharpRepl
             }
         }
 
-        private static async Task RunPrompt(IConsole console, Configuration config)
+        private static async Task ReadEvalPrintLoop(IConsole console, Configuration config)
         {
             // these are required to run before displaying the welcome text.
             // `roslyn` is required for the syntax highlighting in the text,
@@ -79,7 +80,12 @@ namespace CSharpRepl
                 if (response.IsSuccess)
                 {
                     if (response.Text == "exit") { break; }
-                    if (response.Text == "help" || response.Text == "?") { PrintHelp(console); continue; }
+
+                    if (new[] { "help", "#help", "?" }.Contains(response.Text.ToLowerInvariant()))
+                    {
+                        PrintHelp(console);
+                        continue;
+                    }
 
                     var result = await roslyn
                         .Evaluate(response.Text, config.LoadScriptArgs, response.CancellationToken)
