@@ -2,9 +2,12 @@
 
 C# REPL is a tool for rapid experimentation and exploration of C# expressions, statements, and NuGet packages. It provides a command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> for C# that supports syntax highlighting, intellisense, and type/method documentation.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.png" alt="C# REPL screenshot" style="max-width:80%;">
-</p>
+<div align="center">
+  <a href="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.webp">
+    <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.png" alt="C# REPL screenshot" style="max-width:80%;">
+  </a>
+  <p align="center"><i>(click to view animation)</i></p>
+</div>
 
 This C# REPL helps you explore the C# language and libraries, including the .NET SDK and NuGet packages. It's also useful for iteratively defining and refining functions when developing software.
 
