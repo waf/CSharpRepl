@@ -4,12 +4,10 @@
 
 using Microsoft.CodeAnalysis;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace CSharpRepl.Services.Roslyn
+namespace CSharpRepl.Services.Extensions
 {
-    internal static class Extensions
+    internal static class RoslynExtensions
     {
         public static Solution ApplyChanges(this Solution edit, Workspace workspace)
         {
@@ -18,12 +16,6 @@ namespace CSharpRepl.Services.Roslyn
                 throw new InvalidOperationException("Failed to apply edit to workspace");
             }
             return workspace.CurrentSolution;
-        }
-
-        // purely for nullable reference type analysis
-        public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) where T : class
-        {
-            return source.Where(x => x != null)!;
         }
     }
 }

@@ -20,8 +20,8 @@ namespace CSharpRepl.Tests
             var args = new[] { "Howdy" };
 
             await services.WarmUpAsync(args);
-            var variableAssignment = await services.Evaluate($@"var x = {argsAccessor};");
-            var variableUsage = await services.Evaluate(@"x");
+            var variableAssignment = await services.EvaluateAsync($@"var x = {argsAccessor};");
+            var variableUsage = await services.EvaluateAsync(@"x");
 
             Assert.IsType<EvaluationResult.Success>(variableAssignment);
             var usage = Assert.IsType<EvaluationResult.Success>(variableUsage);
@@ -35,7 +35,7 @@ namespace CSharpRepl.Tests
             var services = new RoslynServices(console, new Configuration());
 
             await services.WarmUpAsync(Array.Empty<string>());
-            var printStatement = await services.Evaluate("Print(DateTime.MinValue)");
+            var printStatement = await services.EvaluateAsync("Print(DateTime.MinValue)");
 
             Assert.IsType<EvaluationResult.Success>(printStatement);
             Assert.Equal("[1/1/0001 12:00:00 AM]" + Environment.NewLine, stdOut.ToString());

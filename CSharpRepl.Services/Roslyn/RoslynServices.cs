@@ -52,7 +52,7 @@ namespace CSharpRepl.Services.Roslyn
                 var compilationOptions = new CSharpCompilationOptions(
                     OutputKind.DynamicallyLinkedLibrary,
                     usings: referenceService.DefaultUsings,
-                    allowUnsafe: true 
+                    allowUnsafe: true
                 );
 
                 // the script runner is used to actually execute the scripts, and the workspace manager
@@ -68,7 +68,7 @@ namespace CSharpRepl.Services.Roslyn
             Initialization.ContinueWith(task => console.WriteErrorLine(task.Exception?.Message ?? "Unknown error"), TaskContinuationOptions.OnlyOnFaulted);
         }
 
-        public async Task<EvaluationResult> Evaluate(string input, string[]? args = null, CancellationToken cancellationToken = default)
+        public async Task<EvaluationResult> EvaluateAsync(string input, string[]? args = null, CancellationToken cancellationToken = default)
         {
             await Initialization.ConfigureAwait(false);
 
@@ -86,7 +86,7 @@ namespace CSharpRepl.Services.Roslyn
             return result;
         }
 
-        public async Task<string?> PrettyPrint(object? obj, bool displayDetails)
+        public async Task<string?> PrettyPrintAsync(object? obj, bool displayDetails)
         {
             await Initialization.ConfigureAwait(false);
             return obj is Exception ex
@@ -94,7 +94,7 @@ namespace CSharpRepl.Services.Roslyn
                 : prettyPrinter.FormatObject(obj, displayDetails);
         }
 
-        public async Task<IReadOnlyCollection<CompletionItemWithDescription>> Complete(string text, int caret)
+        public async Task<IReadOnlyCollection<CompletionItemWithDescription>> CompleteAsync(string text, int caret)
         {
             if (!Initialization.IsCompleted)
                 return Array.Empty<CompletionItemWithDescription>();
@@ -103,11 +103,11 @@ namespace CSharpRepl.Services.Roslyn
             return await autocompleteService.Complete(document, text, caret).ConfigureAwait(false);
         }
 
-        public async Task<SymbolResult> GetSymbolAtIndex(string text, int caret)
+        public async Task<SymbolResult> GetSymbolAtIndexAsync(string text, int caret)
         {
             await Initialization.ConfigureAwait(false);
             var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
-            return await symbolExplorer.GetSymbolAtPosition(document, caret);
+            return await symbolExplorer.GetSymbolAtPositionAsync(document, caret);
         }
 
         public AnsiColor ToColor(string keyword) =>
@@ -124,7 +124,7 @@ namespace CSharpRepl.Services.Roslyn
             return highlighted;
         }
 
-        public async Task<bool> IsTextCompleteStatement(string text)
+        public async Task<bool> IsTextCompleteStatementAsync(string text)
         {
             if (!Initialization.IsCompleted)
                 return true;
@@ -142,11 +142,17 @@ namespace CSharpRepl.Services.Roslyn
             Task.Run(async () =>
             {
                 await Initialization.ConfigureAwait(false);
-                await Task.WhenAll(
-                    Evaluate(@"_ = ""REPL Warmup""", args),
-                    SyntaxHighlightAsync(@"_ = ""REPL Warmup"""),
-                    Task.WhenAny((await Complete(@"C", 1)).Select(completion => completion.DescriptionProvider.Value))
-                ).ConfigureAwait(false);
+
+                var evaluationTask = EvaluateAsync(@"_ = ""REPL Warmup""", args);
+                var highlightTask = SyntaxHighlightAsync(@"_ = ""REPL Warmup""");
+                var completionTask = Task.WhenAny(
+                    (await CompleteAsync(@"C", 1))
+                        .Where(completion => completion.Item.DisplayText.StartsWith("C"))
+                        .Take(15)
+                        .Select(completion => completion.DescriptionProvider.Value)
+                );
+
+                await Task.WhenAll(evaluationTask, highlightTask, completionTask).ConfigureAwait(false);
             });
     }
 }

@@ -28,7 +28,7 @@ namespace CSharpRepl.Tests
         [Fact]
         public async Task Complete_GivenCode_ReturnsCompletions()
         {
-            var completions = await this.services.Complete("Console.Writ", 12);
+            var completions = await this.services.CompleteAsync("Console.Writ", 12);
             var writelines = completions
                 .Where(c => c.Item.DisplayText.StartsWith("Write"))
                 .ToList();
@@ -46,7 +46,7 @@ namespace CSharpRepl.Tests
         public async Task Complete_GivenLinq_ReturnsCompletions()
         {
             // LINQ tends to be a good canary for whether or not our reference / implementation assemblies are correct.
-            var completions = await this.services.Complete("new[] { 1, 2, 3 }.Wher", 21);
+            var completions = await this.services.CompleteAsync("new[] { 1, 2, 3 }.Wher", 21);
 
             var whereCompletion = completions.SingleOrDefault(c => c.Item.DisplayText.StartsWith("Where"));
 
@@ -62,7 +62,7 @@ namespace CSharpRepl.Tests
         public async Task Complete_SyntaxHighlight_CachesAreIsolated()
         {
             // type "c" which triggers completion at index 1, and is cached
-            var completions = await this.services.Complete("c", 1);
+            var completions = await this.services.CompleteAsync("c", 1);
 
             // next, type the number 1, which could collide with the previous cached value if the caches
             // aren't isolated, resulting in an exception

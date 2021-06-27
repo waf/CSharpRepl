@@ -33,7 +33,7 @@ namespace CSharpRepl.Services.SymbolExploration
             );
         }
 
-        public async Task<SymbolResult> GetSymbolAtPosition(Document document, int position)
+        public async Task<SymbolResult> GetSymbolAtPositionAsync(Document document, int position)
         {
             var semanticModel = await document.GetSemanticModelAsync();
             if (semanticModel is null) return SymbolResult.Unknown;
