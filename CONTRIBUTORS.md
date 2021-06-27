@@ -4,6 +4,7 @@ Thanks to everyone who contributes! The following contributors have helped out
 with CSharpRepl:
 
 - [IBIT-ZEE](https://github.com/IBIT-ZEE)
+- Nattapong Nunpan ([aixasz](https://github.com/aixasz))
 
 ## PrettyPrompt contributors
 
