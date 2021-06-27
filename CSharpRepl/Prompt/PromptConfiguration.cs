@@ -39,19 +39,19 @@ namespace CSharpRepl.Prompt
             });
 
             async Task<IReadOnlyList<PrettyPrompt.Completion.CompletionItem>> completionHandler(string text, int caret) =>
-                adapter.AdaptCompletions(await roslyn.Complete(text, caret).ConfigureAwait(false));
+                adapter.AdaptCompletions(await roslyn.CompleteAsync(text, caret).ConfigureAwait(false));
 
             async Task<IReadOnlyCollection<FormatSpan>> highlightHandler(string text) =>
                 adapter.AdaptSyntaxClassification(await roslyn.SyntaxHighlightAsync(text).ConfigureAwait(false));
 
             async Task<bool> forceSoftEnterHandler(string text) =>
-                !await roslyn.IsTextCompleteStatement(text).ConfigureAwait(false);
+                !await roslyn.IsTextCompleteStatementAsync(text).ConfigureAwait(false);
 
             async Task LaunchHelpForSymbol(string text, int caret) =>
-                LaunchDocumentation(await roslyn.GetSymbolAtIndex(text, caret));
+                LaunchDocumentation(await roslyn.GetSymbolAtIndexAsync(text, caret));
 
             async Task LaunchSourceForSymbol(string text, int caret) =>
-                LaunchSource(await roslyn.GetSymbolAtIndex(text, caret));
+                LaunchSource(await roslyn.GetSymbolAtIndexAsync(text, caret));
         }
 
         private static void LaunchDocumentation(SymbolResult type)

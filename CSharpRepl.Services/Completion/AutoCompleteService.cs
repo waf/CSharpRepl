@@ -14,7 +14,7 @@ namespace CSharpRepl.Services.Completion
 {
     public record CompletionItemWithDescription(CompletionItem Item, Lazy<Task<string>> DescriptionProvider);
 
-    class AutoCompleteService
+    internal sealed class AutoCompleteService
     {
         private const string CacheKeyPrefix = "AutoCompleteService_";
         private readonly IMemoryCache cache;

@@ -28,7 +28,7 @@ namespace CSharpRepl.Tests
         [InlineData("if you're happy and you know it, syntax error!", false)]
         public async Task IsCompleteStatement(string code, bool shouldBeCompleteStatement)
         {
-            bool isCompleteStatement = await services.IsTextCompleteStatement(code);
+            bool isCompleteStatement = await services.IsTextCompleteStatementAsync(code);
             Assert.Equal(shouldBeCompleteStatement, isCompleteStatement);
         }
     }

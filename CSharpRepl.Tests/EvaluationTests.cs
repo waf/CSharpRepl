@@ -33,7 +33,7 @@ namespace CSharpRepl.Tests
         [Fact]
         public async Task Evaluate_LiteralInteger_ReturnsInteger()
         {
-            var result = await services.Evaluate("5");
+            var result = await services.EvaluateAsync("5");
 
             var success = Assert.IsType<EvaluationResult.Success>(result);
             Assert.Equal("5", success.Input);
@@ -45,8 +45,8 @@ namespace CSharpRepl.Tests
         [Fact]
         public async Task Evaluate_Variable_ReturnsValue()
         {
-            var variableAssignment = await services.Evaluate(@"var x = ""Hello World"";");
-            var variableUsage = await services.Evaluate(@"x.Replace(""World"", ""Mundo"")");
+            var variableAssignment = await services.EvaluateAsync(@"var x = ""Hello World"";");
+            var variableUsage = await services.EvaluateAsync(@"x.Replace(""World"", ""Mundo"")");
 
             var assignment = Assert.IsType<EvaluationResult.Success>(variableAssignment);
             var usage = Assert.IsType<EvaluationResult.Success>(variableUsage);
@@ -57,8 +57,8 @@ namespace CSharpRepl.Tests
         [Fact]
         public async Task Evaluate_NugetPackage_InstallsPackage()
         {
-            var installation = await services.Evaluate(@"#r ""nuget:Newtonsoft.Json""");
-            var usage = await services.Evaluate(@"Newtonsoft.Json.JsonConvert.SerializeObject(new { Foo = ""bar"" })");
+            var installation = await services.EvaluateAsync(@"#r ""nuget:Newtonsoft.Json""");
+            var usage = await services.EvaluateAsync(@"Newtonsoft.Json.JsonConvert.SerializeObject(new { Foo = ""bar"" })");
 
             var installationResult = Assert.IsType<EvaluationResult.Success>(installation);
             var usageResult = Assert.IsType<EvaluationResult.Success>(usage);
@@ -72,8 +72,8 @@ namespace CSharpRepl.Tests
         [Fact]
         public async Task Evaluate_NugetPackageVersioned_InstallsPackageVersion()
         {
-            var installation = await services.Evaluate(@"#r ""nuget:Newtonsoft.Json, 12.0.1""");
-            var usage = await services.Evaluate(@"Newtonsoft.Json.JsonConvert.SerializeObject(new { Foo = ""bar"" })");
+            var installation = await services.EvaluateAsync(@"#r ""nuget:Newtonsoft.Json, 12.0.1""");
+            var usage = await services.EvaluateAsync(@"Newtonsoft.Json.JsonConvert.SerializeObject(new { Foo = ""bar"" })");
 
             var installationResult = Assert.IsType<EvaluationResult.Success>(installation);
             var usageResult = Assert.IsType<EvaluationResult.Success>(usage);
@@ -87,9 +87,9 @@ namespace CSharpRepl.Tests
         [Fact]
         public async Task Evaluate_RelativeAssemblyReference_CanReferenceAssembly()
         {
-            var referenceResult = await services.Evaluate(@"#r ""./Data/DemoLibrary.dll""");
-            var importResult = await services.Evaluate("using DemoLibrary;");
-            var multiplyResult = await services.Evaluate("DemoClass.Multiply(5, 6)");
+            var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoLibrary.dll""");
+            var importResult = await services.EvaluateAsync("using DemoLibrary;");
+            var multiplyResult = await services.EvaluateAsync("DemoClass.Multiply(5, 6)");
 
             Assert.IsType<EvaluationResult.Success>(referenceResult);
             Assert.IsType<EvaluationResult.Success>(importResult);
@@ -101,9 +101,9 @@ namespace CSharpRepl.Tests
         public async Task Evaluate_AbsoluteAssemblyReference_CanReferenceAssembly()
         {
             var absolutePath = Path.GetFullPath("./Data/DemoLibrary.dll");
-            var referenceResult = await services.Evaluate(@$"#r ""{absolutePath}""");
-            var importResult = await services.Evaluate("using DemoLibrary;");
-            var multiplyResult = await services.Evaluate("DemoClass.Multiply(7, 6)");
+            var referenceResult = await services.EvaluateAsync(@$"#r ""{absolutePath}""");
+            var importResult = await services.EvaluateAsync("using DemoLibrary;");
+            var multiplyResult = await services.EvaluateAsync("DemoClass.Multiply(7, 6)");
 
             Assert.IsType<EvaluationResult.Success>(referenceResult);
             Assert.IsType<EvaluationResult.Success>(importResult);
@@ -114,7 +114,7 @@ namespace CSharpRepl.Tests
         [Fact]
         public async Task Evaluate_AssemblyReferenceInSearchPath_CanReferenceAssembly()
         {
-            var referenceResult = await services.Evaluate(@"#r ""System.Linq.dll""");
+            var referenceResult = await services.EvaluateAsync(@"#r ""System.Linq.dll""");
 
             Assert.IsType<EvaluationResult.Success>(referenceResult);
         }
@@ -122,23 +122,23 @@ namespace CSharpRepl.Tests
         [Fact]
         public async Task Evaluate_AssemblyReferenceWithSharedFramework_ReferencesSharedFramework()
         {
-            var referenceResult = await services.Evaluate(@"#r ""./Data/WebApplication1.dll""");
-            var sharedFrameworkResult = await services.Evaluate(@"using Microsoft.AspNetCore.Hosting;");
-            var applicationResult = await services.Evaluate(@"using WebApplication1;");
+            var referenceResult = await services.EvaluateAsync(@"#r ""./Data/WebApplication1.dll""");
+            var sharedFrameworkResult = await services.EvaluateAsync(@"using Microsoft.AspNetCore.Hosting;");
+            var applicationResult = await services.EvaluateAsync(@"using WebApplication1;");
 
             Assert.IsType<EvaluationResult.Success>(referenceResult);
             Assert.IsType<EvaluationResult.Success>(sharedFrameworkResult);
             Assert.IsType<EvaluationResult.Success>(applicationResult);
 
-            var completions = await services.Complete(@"using WebApplicat", 17);
+            var completions = await services.CompleteAsync(@"using WebApplicat", 17);
             Assert.Contains("WebApplication1", completions.Select(c => c.Item.DisplayText).First(text => text.StartsWith("WebApplicat")));
         }
 
         [Fact]
         public async Task Evaluate_ProjectReference_ReferencesProject()
         {
-            var referenceResult = await services.Evaluate(@"#r ""./../../../../CSharpRepl.Services/CSharpRepl.Services.csproj""");
-            var importResult = await services.Evaluate(@"using CSharpRepl.Services;");
+            var referenceResult = await services.EvaluateAsync(@"#r ""./../../../../CSharpRepl.Services/CSharpRepl.Services.csproj""");
+            var importResult = await services.EvaluateAsync(@"using CSharpRepl.Services;");
 
             Assert.IsType<EvaluationResult.Success>(referenceResult);
             Assert.IsType<EvaluationResult.Success>(importResult);

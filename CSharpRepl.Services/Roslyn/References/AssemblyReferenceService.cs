@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using CSharpRepl.Services.Extensions;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
@@ -21,7 +22,7 @@ namespace CSharpRepl.Services.Roslyn.References
     /// <remarks>
     /// Useful notes https://github.com/dotnet/roslyn/blob/main/docs/wiki/Runtime-code-generation-using-Roslyn-compilations-in-.NET-Core-App.md
     /// </remarks>
-    class AssemblyReferenceService
+    internal sealed class AssemblyReferenceService
     {
         private readonly ConcurrentDictionary<string, MetadataReference> cachedMetadataReferences;
         private readonly HashSet<MetadataReference> loadedReferenceAssemblies;

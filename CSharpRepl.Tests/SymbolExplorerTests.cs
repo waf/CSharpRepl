@@ -27,7 +27,7 @@ namespace CSharpRepl.Tests
         [Fact]
         public async Task GetSymbolAtIndex_ReturnsFullyQualifiedName()
         {
-            var symbol = await services.GetSymbolAtIndex(@"Console.WriteLine(""howdy"")", "Console.Wri".Length);
+            var symbol = await services.GetSymbolAtIndexAsync(@"Console.WriteLine(""howdy"")", "Console.Wri".Length);
             Assert.Equal("System.Console.WriteLine", symbol.SymbolDisplay);
         }
     }
