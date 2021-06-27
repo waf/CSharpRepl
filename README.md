@@ -86,19 +86,6 @@ Finally, pressing <kbd>Ctrl+Enter</kbd> will show a "detailed view" of the resul
 [6/7/2021 5:03:05 PM]
 ```
 
-### Exploring Code
-
-- Press <kbd>F1</kbd> when your caret is in a type, method, or property to open its official MSDN documentation.
-- Press <kbd>Ctrl+F1</kbd> to view its source code on https://source.dot.net/.
-- Press <kbd>Ctrl+Shift+C</kbd> to copy the current line of code to your clipboard, and <kbd>Ctrl+v</kbd> to paste.
-
-For example, pressing <kbd>F1</kbd> or <kbd>Ctrl+F1</kbd> when the caret is in the `AddDays` function will open
-the [MSDN documentation for `AddDays`](https://docs.microsoft.com/en-US/dotnet/api/System.DateTime.AddDays?view=net-5.0) and the [source code for `AddDays`](https://source.dot.net/#q=System.DateTime.AddDays) respectively.
-
-```csharp
-> DateTime.Now.AddD|ays(8) // "|" denotes caret position
-```
-
 ### Keyboard Shortcuts
 
 - **Basic Usage**
@@ -110,8 +97,8 @@ the [MSDN documentation for `AddDays`](https://docs.microsoft.com/en-US/dotnet/a
   - <kbd>Ctrl+Shift+C</kbd> - Copy current line to clipboard
   - <kbd>Ctrl+V</kbd>, <kbd>Shift+Insert</kbd>, and <kbd>Ctrl+Shift+V</kbd> - Paste text to prompt. Automatically trims leading indent
 - **Code Actions**
-  - <kbd>F1</kbd> - Opens the MSDN documentation for the class/method under the caret
-  - <kbd>Ctrl+F1</kbd> - Opens the source code on source.dot.net for the class/method under the caret
+  - <kbd>F1</kbd> - Opens the MSDN documentation for the class/method under the caret ([example](https://docs.microsoft.com/en-US/dotnet/api/System.DateTime.AddDays?view=net-5.0))
+  - <kbd>Ctrl+F1</kbd> - Opens the source code on source.dot.net for the class/method under the caret ([example](https://source.dot.net/#q=System.DateTime.AddDays))
 - **Autocompletion**
   - <kbd>Ctrl+Space</kbd> - Open autocomplete menu. If there's a single option, pressing <kbd>Ctrl+Space</kbd> again will select the option
   - <kbd>Enter</kbd>, <kbd>Right Arrow</kbd>, <kbd>Tab</kbd> - Select active autocompletion option
