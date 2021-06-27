@@ -99,6 +99,31 @@ the [MSDN documentation for `AddDays`](https://docs.microsoft.com/en-US/dotnet/a
 > DateTime.Now.AddD|ays(8) // "|" denotes caret position
 ```
 
+### Keyboard Shortcuts
+
+- **Basic Usage**
+  - <kbd>Ctrl+C</kbd> - Cancel current line
+  - <kbd>Ctrl+L</kbd> - Clear screen
+  - <kbd>Enter</kbd> - Evaluate the current line if it's a syntactically complete statement; otherwise add a newline
+  - <kbd>Control+Enter</kbd> - Evaluate the current line, and return a more detailed representation of the result
+  - <kbd>Shift+Enter</kbd> - Insert a new line (this does not currently work on Linux or Mac OS; Hopefully this will work in .NET 7)
+  - <kbd>Ctrl+Shift+C</kbd> - Copy current line to clipboard
+  - <kbd>Ctrl+V</kbd>, <kbd>Shift+Insert</kbd>, and <kbd>Ctrl+Shift+V</kbd> - Paste text to prompt. Automatically trims leading indent
+- **Code Actions**
+  - <kbd>F1</kbd> - Opens the MSDN documentation for the class/method under the caret
+  - <kbd>Ctrl+F1</kbd> - Opens the source code on source.dot.net for the class/method under the caret
+- **Autocompletion**
+  - <kbd>Ctrl+Space</kbd> - Open autocomplete menu. If there's a single option, pressing <kbd>Ctrl+Space</kbd> again will select the option
+  - <kbd>Enter</kbd>, <kbd>Right Arrow</kbd>, <kbd>Tab</kbd> - Select active autocompletion option
+  - <kbd>Escape</kbd> - closes autocomplete menu
+- **Text Navigation**
+  - <kbd>Home</kbd> and <kbd>End</kbd> - Navigate to beginning of a single line and end of a single line, respectively
+  - <kbd>Ctrl+Home</kbd> and <kbd>Ctrl+End</kbd> - Navigate to beginning of line and end across multiple lines in a multiline prompt, respectively
+  - <kbd>Arrows</kbd> - Navigate characters within text
+  - <kbd>Ctrl+Arrows</kbd> - Navigate words within text
+  - <kbd>Ctrl+Backspace</kbd> - Delete previous word
+  - <kbd>Ctrl+Delete</kbd> - Delete next word
+
 ### Adding References
 
 Use the `#r` command to add assembly or nuget references.
