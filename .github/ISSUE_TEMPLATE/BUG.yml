@@ -1,0 +1,26 @@
+name: Bug Report
+description: File a bug report
+labels: [bug]
+assignees:
+  - waf
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version of `csharprepl` are you running? You can check with `csharprepl -v`
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you see.
+      value: "Something went wrong :("
+    validations:
+      required: true

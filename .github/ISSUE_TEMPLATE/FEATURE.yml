@@ -1,0 +1,17 @@
+name: Feature
+description: Request or design a new feature
+labels: [enhancement]
+assignees:
+  - waf
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to discuss this feature!
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: Does this work in other REPLs, and is it compatible across Mac/Linux/Windows?
+    validations:
+      required: true
