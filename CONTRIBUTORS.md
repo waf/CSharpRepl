@@ -5,6 +5,7 @@ with CSharpRepl:
 
 - [IBIT-ZEE](https://github.com/IBIT-ZEE)
 - Nattapong Nunpan ([aixasz](https://github.com/aixasz))
+- Ivan Kara ([realivanjx](https://github.com/realivanjx))
 
 ## PrettyPrompt contributors
 
