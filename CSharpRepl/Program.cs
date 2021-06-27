@@ -80,7 +80,7 @@ namespace CSharpRepl
                 if (response.IsSuccess)
                 {
                     if (response.Text == "exit") { break; }
-
+                    if (response.Text == "clear") { console.Clear(); continue; }
                     if (new[] { "help", "#help", "?" }.Contains(response.Text.ToLowerInvariant()))
                     {
                         PrintHelp(console);
