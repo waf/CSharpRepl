@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.2.8</Version>
+    <Version>0.2.9</Version>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <LangVersion>latest</LangVersion>
@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="PrettyPrompt" Version="0.9.8" />
+    <PackageReference Include="PrettyPrompt" Version="0.9.9" />
   </ItemGroup>
 
   <ItemGroup>
