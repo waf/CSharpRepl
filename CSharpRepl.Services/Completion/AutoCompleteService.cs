@@ -26,7 +26,7 @@ namespace CSharpRepl.Services.Completion
 
         public async Task<CompletionItemWithDescription[]> Complete(Document document, string text, int caret)
         {
-            var cacheKey = CacheKeyPrefix + text + caret;
+            var cacheKey = CacheKeyPrefix + document.Name + text + caret;
             if (text != string.Empty && cache.Get<CompletionItemWithDescription[]>(cacheKey) is CompletionItemWithDescription[] cached)
                 return cached;
 
