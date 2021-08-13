@@ -4,6 +4,7 @@
     <Version>0.3.0</Version>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
 
