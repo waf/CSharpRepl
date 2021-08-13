@@ -8,8 +8,11 @@ on:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, windows-latest]
 
-    runs-on: windows-latest
+    runs-on: ${{ matrix.platform }}
 
     steps:
     - uses: actions/checkout@v1
@@ -23,15 +26,17 @@ jobs:
       run: dotnet --info
       
     - name: Install Codecov
+      if: matrix.platform == 'windows-latest' # only generate and upload code coverage once
       run: dotnet tool install --global Codecov.Tool
       
     - name: Build
       run: dotnet build
       
     - name: Test
-      run: dotnet test --collect:"XPlat Code Coverage" --settings CSharpRepl.Tests\TestCoverageRunSettings.xml
+      run: dotnet test --collect:"XPlat Code Coverage" --settings CSharpRepl.Tests/TestCoverageRunSettings.xml
 
     - name: Code Coverage
+      if: matrix.platform == 'windows-latest' # only generate and upload code coverage once
       shell: pwsh
       run: |
         $testCoverage = Get-ChildItem CSharpRepl.Tests\TestResults\*\*.xml

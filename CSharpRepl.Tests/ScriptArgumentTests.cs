@@ -35,6 +35,8 @@ namespace CSharpRepl.Tests
             var services = new RoslynServices(console, new Configuration());
 
             await services.WarmUpAsync(Array.Empty<string>());
+            _ = await services.EvaluateAsync("using System.Globalization;");
+            _ = await services.EvaluateAsync("CultureInfo.DefaultThreadCurrentCulture = new System.Globalization.CultureInfo(\"en-US\");");
             var printStatement = await services.EvaluateAsync("Print(DateTime.MinValue)");
 
             Assert.IsType<EvaluationResult.Success>(printStatement);
