@@ -75,7 +75,7 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
             {
                 StartInfo =
                 {
-                    FileName = "dotnet.exe",
+                    FileName = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet",
                     ArgumentList = { "build", reference },
                     RedirectStandardOutput = true
                 }
