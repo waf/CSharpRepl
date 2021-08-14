@@ -183,6 +183,26 @@ To use the C# REPL with Visual Studio Code, simply run the `csharprepl` command 
 </p>
 
 
+### Windows OS
+
+To add the C# REPL to the Windows Start Menu for quick access, you can run the following PowerShell command, which will start C# REPL in Windows Terminal:
+
+```powershell
+$shell = New-Object -ComObject WScript.Shell
+$shortcut = $shell.CreateShortcut("$env:appdata\Microsoft\Windows\Start Menu\Programs\csharprepl.lnk")
+$shortcut.TargetPath = "wt.exe"
+$shortcut.Arguments = "-w 0 nt csharprepl.exe"
+$shortcut.Save()
+```
+
+You may also wish to add a shorter alias for C# REPL, which can be done by creating a `.cmd` file somewhere on your path. For example, put the following contents in `C:\Users\username\.dotnet\tools\csr.cmd`:
+
+```shell
+wt -w 0 nt csharprepl
+```
+
+This will allow you to launch C# REPL by running `csr` from anywhere that accepts Windows commands, like the Window Run dialog.
+
 ## Comparison with other REPLs
 
 This project is far from being the first REPL for C#. Here are some other projects; if this project doesn't suit you, another one might!
