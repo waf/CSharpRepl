@@ -2,22 +2,15 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Data\Disassembly.Input.cs" />
-    <Compile Remove="Data\Disassembly\TypeDeclaration.Input.cs" />
+    <Compile Include="Data\Disassembly\TopLevelProgram.Input.txt" />
+    <Compile Include="Data\Disassembly\TypeDeclaration.Input.txt" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Data\Disassembly\TypeDeclaration.Input.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Data\Disassembly\TopLevelProgram.Input.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="Data\ResponseFile.rsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -34,6 +27,24 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\WebApplication1.runtimeconfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Disassembly\TypeDeclaration.Input.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Data\Disassembly\TypeDeclaration.Output.Debug.il">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Data\Disassembly\TypeDeclaration.Output.Release.il">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Disassembly\TopLevelProgram.Input.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Data\Disassembly\TopLevelProgram.Output.Debug.il">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Data\Disassembly\TopLevelProgram.Output.Release.il">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -56,20 +67,5 @@
   <ItemGroup>
     <ProjectReference Include="..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
     <ProjectReference Include="..\CSharpRepl\CSharpRepl.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Data\Disassembly\TypeDeclaration.Output.Debug.il">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Data\Disassembly\TypeDeclaration.Output.Release.il">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Data\Disassembly\TopLevelProgram.Output.Debug.il">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Data\Disassembly\TopLevelProgram.Output.Release.il">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 </Project>

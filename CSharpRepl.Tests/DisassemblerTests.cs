@@ -48,7 +48,7 @@ namespace CSharpRepl.Tests
         [InlineData(OptimizationLevel.Release, "TypeDeclaration")]
         public void Disassemble_InputCSharp_OutputIL(OptimizationLevel optimizationLevel, string testCase)
         {
-            var input = File.ReadAllText($"./Data/Disassembly/{testCase}.Input.cs").Replace("\r\n", "\n");
+            var input = File.ReadAllText($"./Data/Disassembly/{testCase}.Input.txt").Replace("\r\n", "\n");
             var expectedOutput = File.ReadAllText($"./Data/Disassembly/{testCase}.Output.{optimizationLevel}.il").Replace("\r\n", "\n");
 
             var result = disassembler.Disassemble(input, debugMode: optimizationLevel == OptimizationLevel.Debug);

@@ -49,26 +49,26 @@ namespace CSharpRepl.Prompt
             async Task<bool> forceSoftEnterHandler(string text) =>
                 !await roslyn.IsTextCompleteStatementAsync(text).ConfigureAwait(false);
 
-            async Task<KeyPressCallbackResult> LaunchHelpForSymbol(string text, int caret) =>
+            async Task<KeyPressCallbackResult?> LaunchHelpForSymbol(string text, int caret) =>
                 LaunchDocumentation(await roslyn.GetSymbolAtIndexAsync(text, caret));
 
-            async Task<KeyPressCallbackResult> LaunchSourceForSymbol(string text, int caret) =>
+            async Task<KeyPressCallbackResult?> LaunchSourceForSymbol(string text, int caret) =>
                 LaunchSource(await roslyn.GetSymbolAtIndexAsync(text, caret));
 
-            Task<KeyPressCallbackResult> DisassembleDebug(string text, int caret) =>
+            Task<KeyPressCallbackResult?> DisassembleDebug(string text, int caret) =>
                 Disassemble(roslyn, text, debugMode: true);
 
-            Task<KeyPressCallbackResult> DisassembleRelease(string text, int caret) =>
+            Task<KeyPressCallbackResult?> DisassembleRelease(string text, int caret) =>
                 Disassemble(roslyn, text, debugMode: false);
         }
 
-        private static async Task<KeyPressCallbackResult> Disassemble(RoslynServices roslyn, string text, bool debugMode)
+        private static async Task<KeyPressCallbackResult?> Disassemble(RoslynServices roslyn, string text, bool debugMode)
         {
             var ilOutput = await roslyn.ConvertToSyntaxHighlightedIntermediateLanguage(text, debugMode);
             return new KeyPressCallbackResult(text, ilOutput);
         }
 
-        private static KeyPressCallbackResult LaunchDocumentation(SymbolResult type)
+        private static KeyPressCallbackResult? LaunchDocumentation(SymbolResult type)
         {
             if (type != SymbolResult.Unknown && type.SymbolDisplay is not null)
             {
@@ -78,7 +78,7 @@ namespace CSharpRepl.Prompt
             return null;
         }
 
-        private static KeyPressCallbackResult LaunchSource(SymbolResult type)
+        private static KeyPressCallbackResult? LaunchSource(SymbolResult type)
         {
             if(type != SymbolResult.Unknown && type.SymbolDisplay is not null)
             {
@@ -88,7 +88,7 @@ namespace CSharpRepl.Prompt
             return null;
         }
 
-        private static KeyPressCallbackResult LaunchBrowser(string url)
+        private static KeyPressCallbackResult? LaunchBrowser(string url)
         {
             var opener =
                 OperatingSystem.IsWindows() ? "explorer" :

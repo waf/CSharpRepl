@@ -6,6 +6,7 @@
     <TargetFramework>net5.0</TargetFramework>
     <RollForward>LatestMajor</RollForward>
     <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
 
     <Description>A dotnet global tool for a command line C# REPL with syntax highlighting. Explore the language, libraries and NuGet packages interactively.</Description>
     <RepositoryUrl>https://github.com/waf/CSharpRepl</RepositoryUrl>
