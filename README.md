@@ -102,6 +102,8 @@ Finally, pressing <kbd>Ctrl+Enter</kbd> will show a "detailed view" of the resul
 - **Code Actions**
   - <kbd>F1</kbd> - Opens the MSDN documentation for the class/method under the caret ([example](https://docs.microsoft.com/en-US/dotnet/api/System.DateTime.AddDays?view=net-5.0))
   - <kbd>Ctrl+F1</kbd> - Opens the source code on source.dot.net for the class/method under the caret ([example](https://source.dot.net/#q=System.DateTime.AddDays))
+  - <kbd>F11</kbd> - Shows the IL (intermediate language) for the current statement in Debug mode.
+  - <kbd>Ctrl+F11</kbd> - Shows the IL for the current statement with Release mode optimizations.
 - **Autocompletion**
   - <kbd>Ctrl+Space</kbd> - Open autocomplete menu. If there's a single option, pressing <kbd>Ctrl+Space</kbd> again will select the option
   - <kbd>Enter</kbd>, <kbd>Right Arrow</kbd>, <kbd>Tab</kbd> - Select active autocompletion option

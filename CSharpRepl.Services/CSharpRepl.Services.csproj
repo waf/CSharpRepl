@@ -6,15 +6,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ICSharpCode.Decompiler" Version="7.1.0.6543" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.10.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="3.10.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.11.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="3.11.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="5.0.0" />
-    <PackageReference Include="NuGet.PackageManagement" Version="5.10.0" />
-    <PackageReference Include="PrettyPrompt" Version="1.0.0" />
+    <PackageReference Include="NuGet.PackageManagement" Version="5.11.0" />
+    <PackageReference Include="PrettyPrompt" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>

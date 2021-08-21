@@ -6,7 +6,6 @@
     <TargetFramework>net5.0</TargetFramework>
     <RollForward>LatestMajor</RollForward>
     <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
 
     <Description>A dotnet global tool for a command line C# REPL with syntax highlighting. Explore the language, libraries and NuGet packages interactively.</Description>
     <RepositoryUrl>https://github.com/waf/CSharpRepl</RepositoryUrl>
@@ -31,13 +30,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="PrettyPrompt" Version="1.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
     <_Parameter1>CSharpRepl.Tests</_Parameter1>
     </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PrettyPrompt" Version="2.0.0" />
   </ItemGroup>
 
 </Project>

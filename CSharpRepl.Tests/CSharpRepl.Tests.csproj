@@ -7,6 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Data\Disassembly.Input.cs" />
+    <Compile Remove="Data\Disassembly\TypeDeclaration.Input.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Data\Disassembly\TypeDeclaration.Input.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Disassembly\TopLevelProgram.Input.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Data\ResponseFile.rsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -28,9 +39,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.10.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageReference Include="NSubstitute" Version="4.2.2" />
-    <PackageReference Include="PrettyPrompt" Version="1.0.0" />
+    <PackageReference Include="PrettyPrompt" Version="2.0.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -45,5 +56,20 @@
   <ItemGroup>
     <ProjectReference Include="..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
     <ProjectReference Include="..\CSharpRepl\CSharpRepl.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Data\Disassembly\TypeDeclaration.Output.Debug.il">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Disassembly\TypeDeclaration.Output.Release.il">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Disassembly\TopLevelProgram.Output.Debug.il">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Disassembly\TopLevelProgram.Output.Release.il">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

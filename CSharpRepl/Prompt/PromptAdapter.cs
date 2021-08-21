@@ -17,14 +17,7 @@ namespace CSharpRepl.Prompt
     internal sealed class PromptAdapter
     {
         public IReadOnlyCollection<FormatSpan> AdaptSyntaxClassification(IReadOnlyCollection<HighlightedSpan> classifications) =>
-            classifications
-                .Select(r => new FormatSpan(
-                    r.TextSpan.Start,
-                    r.TextSpan.Length,
-                    new ConsoleFormat(Foreground: r.Color)
-                ))
-                .Where(f => f.Formatting is not null)
-                .ToArray();
+            classifications.ToFormatSpans();
 
         public IReadOnlyList<PromptCompletionItem> AdaptCompletions(IReadOnlyCollection<CompletionItemWithDescription> completions) =>
             completions

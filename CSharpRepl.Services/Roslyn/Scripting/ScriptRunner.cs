@@ -13,6 +13,7 @@ using System.Threading;
 using PrettyPrompt.Consoles;
 using CSharpRepl.Services.Roslyn.MetadataResolvers;
 using CSharpRepl.Services.Roslyn.References;
+using Microsoft.CodeAnalysis;
 
 namespace CSharpRepl.Services.Roslyn.Scripting
 {
@@ -24,6 +25,7 @@ namespace CSharpRepl.Services.Roslyn.Scripting
         private readonly IConsole console;
         private readonly InteractiveAssemblyLoader assemblyLoader;
         private readonly NugetPackageMetadataResolver nugetResolver;
+        private readonly MetadataReferenceResolver metadataResolver;
         private readonly AssemblyReferenceService referenceAssemblyService;
         private ScriptOptions scriptOptions;
         private ScriptState<object>? state;
@@ -35,12 +37,13 @@ namespace CSharpRepl.Services.Roslyn.Scripting
             this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
             this.nugetResolver = new NugetPackageMetadataResolver(console);
 
+            this.metadataResolver = new CompositeMetadataReferenceResolver(
+                nugetResolver,
+                new ProjectFileMetadataResolver(console),
+                new AssemblyReferenceMetadataResolver(console, referenceAssemblyService)
+            );
             this.scriptOptions = ScriptOptions.Default
-                .WithMetadataResolver(new CompositeMetadataReferenceResolver(
-                    nugetResolver,
-                    new ProjectFileMetadataResolver(console),
-                    new AssemblyReferenceMetadataResolver(console, referenceAssemblyService)
-                ))
+                .WithMetadataResolver(metadataResolver)
                 .WithReferences(referenceAssemblyService.LoadedImplementationAssemblies)
                 .WithAllowUnsafe(compilationOptions.AllowUnsafe)
                 .AddImports(compilationOptions.Usings);
@@ -62,6 +65,9 @@ namespace CSharpRepl.Services.Roslyn.Scripting
                     this.scriptOptions = this.scriptOptions.AddReferences(assemblyReferences);
                 }
 
+                var usings = referenceAssemblyService.GetUsings(text);
+                referenceAssemblyService.TrackUsings(usings);
+
                 state = await EvaluateStringWithStateAsync(text, state, assemblyLoader, this.scriptOptions, args, cancellationToken).ConfigureAwait(false);
 
                 return state.Exception is null
@@ -77,6 +83,23 @@ namespace CSharpRepl.Services.Roslyn.Scripting
             {
                 return new EvaluationResult.Error(exception);
             }
+        }
+
+        /// <summary>
+        /// Compiles the provided code, with references to all previous script evaluations.
+        /// However, the provided code is not run or persisted; future evaluations will not
+        /// know about the code provided to this method.
+        /// </summary>
+        public Compilation CompileTransient(string code, OptimizationLevel optimizationLevel)
+        {
+            return CSharpCompilation.CreateScriptCompilation(
+                "CompilationTransient",
+                CSharpSyntaxTree.ParseText(code, CSharpParseOptions.Default.WithKind(SourceCodeKind.Script).WithLanguageVersion(LanguageVersion.Latest)),
+                scriptOptions.MetadataReferences,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, usings: scriptOptions.Imports, optimizationLevel: optimizationLevel, allowUnsafe: scriptOptions.AllowUnsafe, metadataReferenceResolver: metadataResolver),
+                previousScriptCompilation: state?.Script.GetCompilation() is CSharpCompilation previous ? previous : null,
+                globalsType: typeof(ScriptGlobals)
+            );
         }
 
         private EvaluationResult.Success CreateSuccessfulResult(string text, ScriptState<object> state)

@@ -34,7 +34,9 @@ namespace CSharpRepl.Prompt
                 KeyPressCallbacks =
                 {
                     [ConsoleKey.F1] = LaunchHelpForSymbol,
-                    [(ConsoleModifiers.Control, ConsoleKey.F1)] = LaunchSourceForSymbol
+                    [(ConsoleModifiers.Control, ConsoleKey.F1)] = LaunchSourceForSymbol,
+                    [ConsoleKey.F11] = DisassembleDebug,
+                    [(ConsoleModifiers.Control, ConsoleKey.F11)] = DisassembleRelease,
                 }
             });
 
@@ -47,38 +49,56 @@ namespace CSharpRepl.Prompt
             async Task<bool> forceSoftEnterHandler(string text) =>
                 !await roslyn.IsTextCompleteStatementAsync(text).ConfigureAwait(false);
 
-            async Task LaunchHelpForSymbol(string text, int caret) =>
+            async Task<KeyPressCallbackResult> LaunchHelpForSymbol(string text, int caret) =>
                 LaunchDocumentation(await roslyn.GetSymbolAtIndexAsync(text, caret));
 
-            async Task LaunchSourceForSymbol(string text, int caret) =>
+            async Task<KeyPressCallbackResult> LaunchSourceForSymbol(string text, int caret) =>
                 LaunchSource(await roslyn.GetSymbolAtIndexAsync(text, caret));
+
+            Task<KeyPressCallbackResult> DisassembleDebug(string text, int caret) =>
+                Disassemble(roslyn, text, debugMode: true);
+
+            Task<KeyPressCallbackResult> DisassembleRelease(string text, int caret) =>
+                Disassemble(roslyn, text, debugMode: false);
         }
 
-        private static void LaunchDocumentation(SymbolResult type)
+        private static async Task<KeyPressCallbackResult> Disassemble(RoslynServices roslyn, string text, bool debugMode)
         {
-            if(type != SymbolResult.Unknown && type.SymbolDisplay is not null)
+            var ilOutput = await roslyn.ConvertToSyntaxHighlightedIntermediateLanguage(text, debugMode);
+            return new KeyPressCallbackResult(text, ilOutput);
+        }
+
+        private static KeyPressCallbackResult LaunchDocumentation(SymbolResult type)
+        {
+            if (type != SymbolResult.Unknown && type.SymbolDisplay is not null)
             {
                 var culture = System.Globalization.CultureInfo.CurrentCulture.Name;
                 LaunchBrowser($"https://docs.microsoft.com/{culture}/dotnet/api/{type.SymbolDisplay}");
             }
+            return null;
         }
 
-        private static void LaunchSource(SymbolResult type)
+        private static KeyPressCallbackResult LaunchSource(SymbolResult type)
         {
             if(type != SymbolResult.Unknown && type.SymbolDisplay is not null)
             {
                 LaunchBrowser($"https://source.dot.net/#q={type.SymbolDisplay}");
             }
+
+            return null;
         }
 
-        private static void LaunchBrowser(string url)
+        private static KeyPressCallbackResult LaunchBrowser(string url)
         {
             var opener =
                 OperatingSystem.IsWindows() ? "explorer" :
                 OperatingSystem.IsMacOS() ? "open" :
                 "xdg-open";
 
-            Process.Start(new ProcessStartInfo(opener, '"' + url + '"')); // wrap in quotes so we can pass through url hashes (#)
+            var browser = Process.Start(new ProcessStartInfo(opener, '"' + url + '"')); // wrap in quotes so we can pass through url hashes (#)
+            browser?.WaitForExit(); // wait for exit seems to make this work better on WSL2.
+
+            return null;
         }
     }
 }
