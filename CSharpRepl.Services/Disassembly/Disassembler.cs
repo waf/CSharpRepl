@@ -76,7 +76,11 @@ namespace CSharpRepl.Services.Disassembly
                     var file = new PEFile(Guid.NewGuid().ToString(), stream, PEStreamOptions.LeaveOpen);
                     disassembler.WriteModuleContents(file); // writes to the "ilCodeOutput" variable
                     var ilCode = 
-                        string.Join('\n', ilCodeOutput.ToString().Split("\r\n").Select(line => line.TrimEnd()))
+                        string.Join('\n', ilCodeOutput
+                            .ToString()
+                            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                            .Select(line => line.TrimEnd()) // output has trailing spaces on some lines, clean those up
+                        )
                         + string.Join('\n', commentFooter);
                     return new EvaluationResult.Success(code, ilCode, Array.Empty<MetadataReference>());
                 }
