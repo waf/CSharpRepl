@@ -6,11 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Data\Disassembly\TopLevelProgram.Input.txt" />
-    <Compile Include="Data\Disassembly\TypeDeclaration.Input.txt" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Data\ResponseFile.rsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -32,19 +27,19 @@
     <Content Include="Data\Disassembly\TypeDeclaration.Input.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Update="Data\Disassembly\TypeDeclaration.Output.Debug.il">
+    <Content Include="Data\Disassembly\TypeDeclaration.Output.Debug.il">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Update="Data\Disassembly\TypeDeclaration.Output.Release.il">
+    <Content Include="Data\Disassembly\TypeDeclaration.Output.Release.il">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\Disassembly\TopLevelProgram.Input.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Update="Data\Disassembly\TopLevelProgram.Output.Debug.il">
+    <Content Include="Data\Disassembly\TopLevelProgram.Output.Debug.il">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Update="Data\Disassembly\TopLevelProgram.Output.Release.il">
+    <Content Include="Data\Disassembly\TopLevelProgram.Output.Release.il">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
