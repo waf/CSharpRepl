@@ -12,7 +12,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		ARCHITECTURE.md = ARCHITECTURE.md
 		nuget.config = nuget.config
-		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpRepl.Tests", "CSharpRepl.Tests\CSharpRepl.Tests.csproj", "{35584632-2D73-4767-B2C0-7DB1ABB2812E}"

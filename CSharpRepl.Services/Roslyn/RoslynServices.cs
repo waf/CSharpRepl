@@ -71,7 +71,7 @@ namespace CSharpRepl.Services.Roslyn
 
                 this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
                 this.prettyPrinter = new PrettyPrinter();
-                this.symbolExplorer = new SymbolExplorer();
+                this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
                 this.autocompleteService = new AutoCompleteService(cache);
             });
             Initialization.ContinueWith(task => console.WriteErrorLine(task.Exception?.Message ?? "Unknown error"), TaskContinuationOptions.OnlyOnFaulted);
@@ -115,8 +115,7 @@ namespace CSharpRepl.Services.Roslyn
         public async Task<SymbolResult> GetSymbolAtIndexAsync(string text, int caret)
         {
             await Initialization.ConfigureAwait(false);
-            var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
-            return await symbolExplorer.GetSymbolAtPositionAsync(document, caret);
+            return await symbolExplorer.LookupSymbolAtPosition(text, caret);
         }
 
         public AnsiColor ToColor(string keyword) =>
