@@ -25,13 +25,9 @@ namespace CSharpRepl.PrettyPromptConfig
         /// <summary>
         /// Create our callbacks for configuring <see cref="PrettyPrompt"/>
         /// </summary>
-        public static Prompt Create(SystemConsole console, RoslynServices roslyn)
+        public static PromptCallbacks Configure(IConsole console, RoslynServices roslyn)
         {
-            var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
-            var historyStorage = Path.Combine(appStorage, "prompt-history");
-            Directory.CreateDirectory(appStorage);
-
-            return new Prompt(historyStorage, new PromptCallbacks
+            return new PromptCallbacks
             {
                 CompletionCallback = completionHandler,
                 HighlightCallback = highlightHandler,
@@ -43,7 +39,7 @@ namespace CSharpRepl.PrettyPromptConfig
                     [ConsoleKey.F11] = DisassembleDebug,
                     [(ConsoleModifiers.Control, ConsoleKey.F11)] = DisassembleRelease,
                 }
-            });
+            };
 
             async Task<IReadOnlyList<CompletionItem>> completionHandler(string text, int caret) =>
                 AdaptCompletions(await roslyn.CompleteAsync(text, caret).ConfigureAwait(false));

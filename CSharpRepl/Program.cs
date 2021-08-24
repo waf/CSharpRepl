@@ -8,6 +8,8 @@ using PrettyPrompt.Consoles;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.PrettyPromptConfig;
+using System.IO;
+using PrettyPrompt;
 
 namespace CSharpRepl
 {
@@ -24,24 +26,36 @@ namespace CSharpRepl
             if (config is null)
                 return;
 
-            if(config.ShowHelpAndExit)
+            if (config.ShowHelpAndExit)
             {
                 console.WriteLine(CommandLine.GetHelp());
                 return;
             }
 
-            if(config.ShowVersionAndExit)
+            if (config.ShowVersionAndExit)
             {
                 console.WriteLine(CommandLine.GetVersion());
                 return;
             }
 
+            var appStorage = CreateApplicationStorageDirectory();
+
             var roslyn = new RoslynServices(console, config);
-            var prompt = PromptConfiguration.Create(console, roslyn);
+            var prompt = new Prompt(
+                persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
+                callbacks: PromptConfiguration.Configure(console, roslyn)
+            );
 
             await new ReadEvalPrintLoop(roslyn, prompt, console)
                 .RunAsync(config)
                 .ConfigureAwait(false);
+        }
+
+        private static string CreateApplicationStorageDirectory()
+        {
+            var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
+            Directory.CreateDirectory(appStorage);
+            return appStorage;
         }
 
         private static Configuration? ParseArguments(string[] args)
