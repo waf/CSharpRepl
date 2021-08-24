@@ -4,6 +4,8 @@
 
 using CSharpRepl.Services.Extensions;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -30,11 +32,12 @@ namespace CSharpRepl.Services.Roslyn.References
         private readonly HashSet<string> referenceAssemblyPaths;
         private readonly HashSet<string> implementationAssemblyPaths;
         private readonly HashSet<string> sharedFrameworkImplementationAssemblyPaths;
+        private readonly HashSet<UsingDirectiveSyntax> usings;
 
         public IReadOnlySet<string> ImplementationAssemblyPaths => implementationAssemblyPaths;
         public IReadOnlySet<MetadataReference> LoadedImplementationAssemblies => loadedImplementationAssemblies;
         public IReadOnlySet<MetadataReference> LoadedReferenceAssemblies => loadedReferenceAssemblies;
-        public IReadOnlyCollection<string> DefaultUsings { get; }
+        public IReadOnlyCollection<UsingDirectiveSyntax> Usings => usings;
 
         public AssemblyReferenceService(Configuration config)
         {
@@ -45,13 +48,14 @@ namespace CSharpRepl.Services.Roslyn.References
             this.loadedReferenceAssemblies = new(new AssemblyReferenceComparer());
             this.loadedImplementationAssemblies = new(new AssemblyReferenceComparer());
 
-            this.DefaultUsings = new[] {
+            this.usings = new[] {
                     "System", "System.IO", "System.Collections.Generic",
                     "System.Linq", "System.Net.Http",
                     "System.Text", "System.Threading.Tasks"
                 }
                 .Concat(config.Usings)
-                .ToList();
+                .Select(name => SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(name)))
+                .ToHashSet();
 
             var (framework, version) = GetDesiredFrameworkVersion(config.Framework);
             var sharedFrameworks = GetSharedFrameworkConfiguration(framework, version);
@@ -235,6 +239,16 @@ namespace CSharpRepl.Services.Roslyn.References
             catch (FileNotFoundException) { return false; }
             catch (BadImageFormatException) { return false; }
         }
+
+        internal IReadOnlyCollection<UsingDirectiveSyntax> GetUsings(string code) =>
+            CSharpSyntaxTree.ParseText(code)
+                .GetRoot()
+                .DescendantNodes()
+                .OfType<UsingDirectiveSyntax>()
+                .ToList();
+
+        internal void TrackUsings(IReadOnlyCollection<UsingDirectiveSyntax> usingsToAdd) =>
+            usings.UnionWith(usingsToAdd);
     }
 
     public class SharedFramework

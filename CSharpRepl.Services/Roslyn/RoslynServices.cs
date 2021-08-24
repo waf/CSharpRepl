@@ -2,23 +2,25 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using CSharpRepl.Services.SyntaxHighlighting;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Text;
-using PrettyPrompt.Highlighting;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
+using Microsoft.Extensions.Caching.Memory;
+using PrettyPrompt;
+using PrettyPrompt.Consoles;
+using PrettyPrompt.Highlighting;
 using CSharpRepl.Services.SymbolExploration;
 using CSharpRepl.Services.Completion;
-using Microsoft.Extensions.Caching.Memory;
-using PrettyPrompt.Consoles;
-using System.Diagnostics.CodeAnalysis;
+using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Roslyn.Scripting;
+using CSharpRepl.Services.Disassembly;
 
 namespace CSharpRepl.Services.Roslyn
 {
@@ -32,12 +34,18 @@ namespace CSharpRepl.Services.Roslyn
 
         private ScriptRunner? scriptRunner;
         private WorkspaceManager? workspaceManager;
+        private Disassembler? disassembler;
         private PrettyPrinter? prettyPrinter;
         private SymbolExplorer? symbolExplorer;
         private AutoCompleteService? autocompleteService;
+        private AssemblyReferenceService? referenceService;
+        private CSharpCompilationOptions? compilationOptions;
 
         // when this Initialization task successfully completes, all the above members will not be null.
-        [MemberNotNull(nameof(scriptRunner), nameof(workspaceManager), nameof(prettyPrinter), nameof(symbolExplorer), nameof(autocompleteService))]
+        [MemberNotNull(
+            nameof(scriptRunner), nameof(workspaceManager), nameof(disassembler),
+            nameof(prettyPrinter), nameof(symbolExplorer), nameof(autocompleteService),
+            nameof(referenceService), nameof(compilationOptions))]
         private Task Initialization { get; }
 
         public RoslynServices(IConsole console, Configuration config)
@@ -47,11 +55,11 @@ namespace CSharpRepl.Services.Roslyn
             // initialization of roslyn and all dependent services is slow! do it asynchronously so we don't increase startup time.
             this.Initialization = Task.Run(() =>
             {
-                var referenceService = new AssemblyReferenceService(config);
+                this.referenceService = new AssemblyReferenceService(config);
 
-                var compilationOptions = new CSharpCompilationOptions(
+                this.compilationOptions = new CSharpCompilationOptions(
                     OutputKind.DynamicallyLinkedLibrary,
-                    usings: referenceService.DefaultUsings,
+                    usings: referenceService.Usings.Select(u => u.Name.ToString()),
                     allowUnsafe: true
                 );
 
@@ -61,6 +69,7 @@ namespace CSharpRepl.Services.Roslyn
                 this.scriptRunner = new ScriptRunner(console, compilationOptions, referenceService);
                 this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService);
 
+                this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
                 this.prettyPrinter = new PrettyPrinter();
                 this.symbolExplorer = new SymbolExplorer();
                 this.autocompleteService = new AutoCompleteService(cache);
@@ -132,6 +141,12 @@ namespace CSharpRepl.Services.Roslyn
             var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
             var root = await document.GetSyntaxRootAsync().ConfigureAwait(false);
             return root is null || SyntaxFactory.IsCompleteSubmission(root.SyntaxTree); // if something's wrong and we can't get the syntax tree, we don't want to prevent evaluation.
+        }
+
+        public async Task<EvaluationResult> ConvertToIntermediateLanguage(string csharpCode, bool debugMode)
+        {
+            await Initialization.ConfigureAwait(false);
+            return disassembler.Disassemble(csharpCode, debugMode);
         }
 
         /// <summary>

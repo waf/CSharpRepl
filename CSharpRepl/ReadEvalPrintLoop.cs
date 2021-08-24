@@ -51,6 +51,12 @@ namespace CSharpRepl
                         continue;
                     }
 
+                    if(response is KeyPressCallbackResult callbackOutput)
+                    {
+                        console.WriteLine(Environment.NewLine + callbackOutput.Output);
+                        continue;
+                    }
+
                     var result = await roslyn
                         .EvaluateAsync(response.Text, config.LoadScriptArgs, response.CancellationToken)
                         .ConfigureAwait(false);
@@ -136,6 +142,8 @@ Exploring Code
 ==============
 F1, when the caret is in a type or member, will open its MSDN documentation.
 Ctrl+F1 will open the type or member's source code on https://source.dot.net/
+F11 will show the IL (intermediate language) for the current statement in Debug mode.
+Ctrl+F11 will show the IL for the current statement in Release mode.
 
 Configuration Options
 =====================

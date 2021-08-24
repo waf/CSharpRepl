@@ -31,13 +31,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="PrettyPrompt" Version="1.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
     <_Parameter1>CSharpRepl.Tests</_Parameter1>
     </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PrettyPrompt" Version="2.0.0" />
   </ItemGroup>
 
 </Project>
