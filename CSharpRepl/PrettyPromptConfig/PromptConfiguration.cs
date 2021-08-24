@@ -11,22 +11,27 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using CSharpRepl.Services.Roslyn.Scripting;
+using PrettyPrompt.Consoles;
+using CSharpRepl.Services.SyntaxHighlighting;
+using CSharpRepl.Services.Completion;
+using System.Linq;
+using PrettyPrompt.Completion;
 
-namespace CSharpRepl.Prompt
+namespace CSharpRepl.PrettyPromptConfig
 {
     internal static class PromptConfiguration
     {
         /// <summary>
         /// Create our callbacks for configuring <see cref="PrettyPrompt"/>
         /// </summary>
-        public static PrettyPrompt.Prompt Create(RoslynServices roslyn)
+        public static Prompt Create(SystemConsole console, RoslynServices roslyn)
         {
-            var adapter = new PromptAdapter();
             var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
             var historyStorage = Path.Combine(appStorage, "prompt-history");
             Directory.CreateDirectory(appStorage);
 
-            return new PrettyPrompt.Prompt(historyStorage, new PromptCallbacks
+            return new Prompt(historyStorage, new PromptCallbacks
             {
                 CompletionCallback = completionHandler,
                 HighlightCallback = highlightHandler,
@@ -40,11 +45,11 @@ namespace CSharpRepl.Prompt
                 }
             });
 
-            async Task<IReadOnlyList<PrettyPrompt.Completion.CompletionItem>> completionHandler(string text, int caret) =>
-                adapter.AdaptCompletions(await roslyn.CompleteAsync(text, caret).ConfigureAwait(false));
+            async Task<IReadOnlyList<CompletionItem>> completionHandler(string text, int caret) =>
+                AdaptCompletions(await roslyn.CompleteAsync(text, caret).ConfigureAwait(false));
 
             async Task<IReadOnlyCollection<FormatSpan>> highlightHandler(string text) =>
-                adapter.AdaptSyntaxClassification(await roslyn.SyntaxHighlightAsync(text).ConfigureAwait(false));
+                AdaptSyntaxClassification(await roslyn.SyntaxHighlightAsync(text).ConfigureAwait(false));
 
             async Task<bool> forceSoftEnterHandler(string text) =>
                 !await roslyn.IsTextCompleteStatementAsync(text).ConfigureAwait(false);
@@ -56,16 +61,29 @@ namespace CSharpRepl.Prompt
                 LaunchSource(await roslyn.GetSymbolAtIndexAsync(text, caret));
 
             Task<KeyPressCallbackResult?> DisassembleDebug(string text, int caret) =>
-                Disassemble(roslyn, text, debugMode: true);
+                Disassemble(roslyn, text, console, debugMode: true);
 
             Task<KeyPressCallbackResult?> DisassembleRelease(string text, int caret) =>
-                Disassemble(roslyn, text, debugMode: false);
+                Disassemble(roslyn, text, console, debugMode: false);
         }
 
-        private static async Task<KeyPressCallbackResult?> Disassemble(RoslynServices roslyn, string text, bool debugMode)
+        private static async Task<KeyPressCallbackResult?> Disassemble(RoslynServices roslyn, string text, IConsole console, bool debugMode)
         {
-            var ilOutput = await roslyn.ConvertToSyntaxHighlightedIntermediateLanguage(text, debugMode);
-            return new KeyPressCallbackResult(text, ilOutput);
+            var result = await roslyn.ConvertToIntermediateLanguage(text, debugMode);
+
+            switch (result)
+            {
+                case EvaluationResult.Success success:
+                    var ilCode = success.ReturnValue.ToString()!;
+                    var highlighting = await roslyn.SyntaxHighlightAsync(ilCode).ConfigureAwait(false);
+                    var syntaxHighlightedOutput = Prompt.RenderAnsiOutput(ilCode, highlighting.ToFormatSpans(), console.BufferWidth);
+                    return new KeyPressCallbackResult(text, syntaxHighlightedOutput);
+                case EvaluationResult.Error err:
+                    return new KeyPressCallbackResult(text, AnsiEscapeCodes.Red + err.Exception.Message + AnsiEscapeCodes.Reset);
+                default:
+                    // this should never happen, as the disassembler cannot be cancelled.
+                    throw new InvalidOperationException("Could not process disassembly result");
+            }
         }
 
         private static KeyPressCallbackResult? LaunchDocumentation(SymbolResult type)
@@ -100,5 +118,20 @@ namespace CSharpRepl.Prompt
 
             return null;
         }
+
+        private static IReadOnlyCollection<FormatSpan> AdaptSyntaxClassification(IReadOnlyCollection<HighlightedSpan> classifications) =>
+            classifications.ToFormatSpans();
+
+        private static IReadOnlyList<CompletionItem> AdaptCompletions(IReadOnlyCollection<CompletionItemWithDescription> completions) =>
+            completions
+                .OrderByDescending(i => i.Item.Rules.MatchPriority)
+                .Select(r => new CompletionItem
+                {
+                    StartIndex = r.Item.Span.Start,
+                    ReplacementText = r.Item.DisplayText,
+                    DisplayText = r.Item.DisplayTextPrefix + r.Item.DisplayText + r.Item.DisplayTextSuffix,
+                    ExtendedDescription = r.DescriptionProvider
+                })
+                .ToArray();
     }
 }

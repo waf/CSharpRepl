@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using PrettyPrompt.Consoles;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
-using CSharpRepl.Prompt;
+using CSharpRepl.PrettyPromptConfig;
 
 namespace CSharpRepl
 {
@@ -37,7 +37,7 @@ namespace CSharpRepl
             }
 
             var roslyn = new RoslynServices(console, config);
-            var prompt = PromptConfiguration.Create(roslyn);
+            var prompt = PromptConfiguration.Create(console, roslyn);
 
             await new ReadEvalPrintLoop(roslyn, prompt, console)
                 .RunAsync(config)
