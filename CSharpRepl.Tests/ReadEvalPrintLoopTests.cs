@@ -53,7 +53,6 @@ namespace CSharpRepl.Tests
             prompt
                 .ReadLineAsync("> ")
                 .Returns(
-                    new PromptResult(true, @"""foobar""", false),
                     new PromptResult(true, "clear", false),
                     new PromptResult(true, "exit", false)
                 );
