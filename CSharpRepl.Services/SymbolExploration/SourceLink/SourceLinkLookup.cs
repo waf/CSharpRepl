@@ -1,7 +1,12 @@
-﻿using System;
+﻿// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+using System;
 using System.Collections.Generic;
 using System.Reflection.Metadata;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace CSharpRepl.Services.SymbolExploration
@@ -10,7 +15,7 @@ namespace CSharpRepl.Services.SymbolExploration
     /// Looks up SourceLink metadata in a PDB for a given Sequence Point to get the corresponding URL of the document, e.g. on GitHub.
     /// </summary>
     /// <remarks>https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md#sequence-points-blob</remarks>
-    sealed class SourceLinkLookup
+    internal sealed class SourceLinkLookup
     {
         private static readonly Guid SourceLinkId = new("CC110556-A091-4D38-9FEC-25AB9A351A6A");
         private readonly GitHubSourceLinkHost[] sourceLinkHosts;
@@ -65,7 +70,7 @@ namespace CSharpRepl.Services.SymbolExploration
         {
             if (json is null || file is null) return null;
 
-            foreach (var key in json.documents.Keys)
+            foreach (var key in json.Documents.Keys)
             {
                 if (key.Contains('*'))
                 {
@@ -73,19 +78,21 @@ namespace CSharpRepl.Services.SymbolExploration
                     var regex = new Regex(pattern);
                     var m = regex.Match(file);
                     if (!m.Success) continue;
-                    var url = json.documents[key];
+                    var url = json.Documents[key];
                     var path = m.Groups[1].Value.Replace(@"\", "/");
                     return url.Replace("*", path);
                 }
                 else
                 {
                     if (!key.Equals(file, StringComparison.Ordinal)) continue;
-                    return json.documents[key];
+                    return json.Documents[key];
                 }
             }
             return null;
         }
 
-        private record SourceLinkJson(IDictionary<string, string> documents);
+        private record SourceLinkJson(
+            [property: JsonPropertyName("documents")] IDictionary<string, string> Documents
+        );
     }
 }

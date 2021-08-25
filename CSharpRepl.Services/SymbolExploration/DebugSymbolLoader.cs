@@ -1,4 +1,8 @@
-﻿using Microsoft.SymbolStore;
+﻿// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+using Microsoft.SymbolStore;
 using Microsoft.SymbolStore.KeyGenerators;
 using Microsoft.SymbolStore.SymbolStores;
 using System;
@@ -16,6 +20,9 @@ namespace CSharpRepl.Services.SymbolExploration
     /// Downloads PDB files from symbol servers for a given assembly file,
     /// and provides a <see cref="MetadataReader"/> for navigating them.
     /// </summary>
+    /// <remarks>
+    /// This code has been adapted from https://github.com/dotnet/symstore/tree/main/src/dotnet-symbol
+    /// </remarks>
     sealed class DebugSymbolLoader : IDisposable
     {
         private readonly string assemblyFilePath;
