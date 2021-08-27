@@ -99,10 +99,11 @@ namespace CSharpRepl.Services.Roslyn.References
 
             // it's probably an implementation assembly, find the corresponding reference assembly and documentation if we can.
 
-            var suppliedAssemblyName = Path.GetFileName(suppliedAssemblyPath);
+            var suppliedAssemblyFileName = Path.GetFileName(suppliedAssemblyPath);
+            var suppliedAssemblyName = AssemblyName.GetAssemblyName(suppliedAssemblyPath).ToString();
             var assembly = referenceAssemblyPaths
-                .Select(path => Path.Combine(path, suppliedAssemblyName))
-                .FirstOrDefault(potentialReferencePath => File.Exists(potentialReferencePath))
+                .Select(path => Path.Combine(path, suppliedAssemblyFileName))
+                .FirstOrDefault(potentialReferencePath => File.Exists(potentialReferencePath) && AssemblyName.GetAssemblyName(potentialReferencePath).ToString() == suppliedAssemblyName)
                 ?? suppliedAssemblyPath;
 
             if (sharedFrameworkImplementationAssemblyPaths.Any(path => assembly.StartsWith(path)))

@@ -44,7 +44,7 @@ namespace CSharpRepl.Tests
             await repl.RunAsync(new Configuration());
 
             console.Received().WriteLine(Arg.Is<string>(str => str.Contains("Welcome to the C# REPL")));
-            console.Received().WriteLine(Arg.Is<string>(str => str.Contains("Type C# at the prompt and press Enter to run it.")));
+            console.Received().WriteLine(Arg.Is<string>(str => str.Contains("Type C# at the prompt")));
         }
 
         [Fact]
@@ -53,7 +53,6 @@ namespace CSharpRepl.Tests
             prompt
                 .ReadLineAsync("> ")
                 .Returns(
-                    new PromptResult(true, @"""foobar""", false),
                     new PromptResult(true, "clear", false),
                     new PromptResult(true, "exit", false)
                 );

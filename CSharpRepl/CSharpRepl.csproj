@@ -9,6 +9,7 @@
     <Nullable>enable</Nullable>
 
     <Description>A dotnet global tool for a command line C# REPL with syntax highlighting. Explore the language, libraries and NuGet packages interactively.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/waf/CSharpRepl</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <Authors>Will Fuqua</Authors>
@@ -23,11 +24,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
+    <PackageReference Include="PrettyPrompt" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="themes\" />
+    <ProjectReference Include="..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,7 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="PrettyPrompt" Version="2.0.0" />
+    <!-- Include README here so it shows up in the nuget.org page -->
+    <None Include="..\README.md" Link="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
-
 </Project>

@@ -9,7 +9,6 @@ using CSharpRepl.Services.SymbolExploration;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Roslyn.Scripting;
 using PrettyPrompt.Consoles;
@@ -38,6 +37,7 @@ namespace CSharpRepl.PrettyPromptConfig
                     [(ConsoleModifiers.Control, ConsoleKey.F1)] = LaunchSourceForSymbol,
                     [ConsoleKey.F11] = DisassembleDebug,
                     [(ConsoleModifiers.Control, ConsoleKey.F11)] = DisassembleRelease,
+                    [ConsoleKey.F12] = LaunchSourceForSymbol,
                 }
             };
 
@@ -94,7 +94,11 @@ namespace CSharpRepl.PrettyPromptConfig
 
         private static KeyPressCallbackResult? LaunchSource(SymbolResult type)
         {
-            if(type != SymbolResult.Unknown && type.SymbolDisplay is not null)
+            if(type.Url is not null)
+            {
+                LaunchBrowser(type.Url);
+            }
+            else if(type != SymbolResult.Unknown && type.SymbolDisplay is not null)
             {
                 LaunchBrowser($"https://source.dot.net/#q={type.SymbolDisplay}");
             }

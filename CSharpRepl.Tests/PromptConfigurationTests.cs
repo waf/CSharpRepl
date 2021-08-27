@@ -1,11 +1,9 @@
 ﻿using CSharpRepl.PrettyPromptConfig;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
-using PrettyPrompt;
 using PrettyPrompt.Consoles;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;

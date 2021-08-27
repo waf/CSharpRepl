@@ -5,6 +5,7 @@
 using CSharpRepl.Services.Roslyn.References;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace CSharpRepl.Services
 {
@@ -26,5 +27,15 @@ namespace CSharpRepl.Services
 
         public bool ShowVersionAndExit { get; set; }
         public bool ShowHelpAndExit { get; set; }
+
+        public static string ApplicationDirectory => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            ".csharprepl"
+        );
+
+        public static IReadOnlyCollection<string> SymbolServers => new[] {
+            "https://symbols.nuget.org/download/symbols/",
+            "http://msdl.microsoft.com/download/symbols/"
+        };
     }
 }

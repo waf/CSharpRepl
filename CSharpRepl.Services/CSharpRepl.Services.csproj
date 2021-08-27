@@ -24,4 +24,13 @@
     </AssemblyAttribute>
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Microsoft.FileFormats">
+      <HintPath>lib\Microsoft.FileFormats.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.SymbolStore">
+      <HintPath>lib\Microsoft.SymbolStore.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

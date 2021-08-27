@@ -122,10 +122,10 @@ https://github.com/waf/CSharpRepl/blob/main/README.md
 
 Evaluating Code
 ===============
-Type C# at the prompt and press Enter to run it. The result will be printed.
-Ctrl+Enter will also run the code, but show detailed member info / stack traces.
-Shift+Enter will insert a newline, to support multiple lines of input.
-If the code isn't complete (e.g. ""{VariableDeclaration}"") pressing Enter will insert a newline.
+Type C# at the prompt and press {Blue("Enter")} to run it. The result will be printed.
+{Blue("Ctrl+Enter")} will also run the code, but show detailed member info / stack traces.
+{Blue("Shift+Enter")} will insert a newline, to support multiple lines of input.
+If the code isn't a complete statement, pressing Enter will insert a newline.
 
 Adding References
 =================
@@ -140,10 +140,10 @@ to load.
 
 Exploring Code
 ==============
-F1, when the caret is in a type or member, will open its MSDN documentation.
-Ctrl+F1 will open the type or member's source code on https://source.dot.net/
-F11 will show the IL (intermediate language) for the current statement in Debug mode.
-Ctrl+F11 will show the IL for the current statement in Release mode.
+{Blue("F1")}: when the caret is in a type or member, open the corresponding MSDN documentation.
+{Blue("F11")}: show the IL (intermediate language) for the current statement in Debug mode.
+{Blue("Ctrl+F11")}: show the IL for the current statement in Release mode.
+{Blue("F12")}: open the type's source code in the browser, if the assembly supports Source Link.
 
 Configuration Options
 =====================
@@ -176,6 +176,10 @@ Run --help at the command line to view these options
 
         private string Color(string reference) =>
             AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(roslyn!.ToColor(reference)));
+
+        private string Blue(string word) =>
+            AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(Underline: true))
+            + word + AnsiEscapeCodes.Reset;
 
         private string Help =>
             prompt.HasUserOptedOutFromColor
