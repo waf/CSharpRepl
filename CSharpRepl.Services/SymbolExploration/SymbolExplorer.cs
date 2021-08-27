@@ -15,7 +15,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Roslyn.Scripting;
-using Document = Microsoft.CodeAnalysis.Document;
 
 namespace CSharpRepl.Services.SymbolExploration
 {
@@ -87,7 +86,7 @@ namespace CSharpRepl.Services.SymbolExploration
             {
                 using SymbolStoreFile symbolFile = await debugSymbolLoader.DownloadSymbolFile(key, CancellationToken.None);
 
-                var symbolReader = debugSymbolLoader.ReadAsPortablePdb(symbolFile);
+                var symbolReader = debugSymbolLoader.ReadPortablePdb(symbolFile);
                 if (symbolReader is null)
                 {
                     continue;

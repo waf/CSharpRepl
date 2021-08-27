@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
-using System.Reflection.PortableExecutable;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -23,21 +22,22 @@ namespace CSharpRepl.Services.SymbolExploration
     /// <remarks>
     /// This code has been adapted from https://github.com/dotnet/symstore/tree/main/src/dotnet-symbol
     /// </remarks>
-    sealed class DebugSymbolLoader : IDisposable
+    internal sealed class DebugSymbolLoader : IDisposable
     {
-        private readonly string assemblyFilePath;
         private readonly NullLogger logger;
         private readonly CacheSymbolStore symbolStore;
-        private readonly FileStream assemblyStream;
+        private readonly SymbolStoreFile symbolStoreFile;
 
         private bool disposedValue;
 
         public DebugSymbolLoader(string assemblyFilePath)
         {
-            this.assemblyFilePath = assemblyFilePath;
             this.logger = new NullLogger();
             this.symbolStore = BuildSymbolStore();
-            this.assemblyStream = File.Open(assemblyFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            this.symbolStoreFile = new SymbolStoreFile(
+                File.Open(assemblyFilePath, FileMode.Open, FileAccess.Read, FileShare.Read),
+                assemblyFilePath
+            );
         }
 
         /// <summary>
@@ -55,7 +55,8 @@ namespace CSharpRepl.Services.SymbolExploration
                 store = new HttpSymbolStore(logger, store, new Uri(server), null);
             }
 
-            return new CacheSymbolStore(logger, store, Path.Combine(Configuration.ApplicationDirectory, "symbols"));
+            var cacheDirectory = Path.Combine(Configuration.ApplicationDirectory, "symbols");
+            return new CacheSymbolStore(logger, store, cacheDirectory);
         }
 
         /// <summary>
@@ -63,7 +64,7 @@ namespace CSharpRepl.Services.SymbolExploration
         /// is used to query the symbol stores.
         /// </summary>
         public IEnumerable<SymbolStoreKey> GetSymbolFileNames() =>
-            new FileKeyGenerator(logger, new SymbolStoreFile(assemblyStream, assemblyFilePath))
+            new FileKeyGenerator(logger, symbolStoreFile)
                 .GetKeys(KeyTypeFlags.SymbolKey)
                 .ToList();
 
@@ -71,33 +72,31 @@ namespace CSharpRepl.Services.SymbolExploration
             await symbolStore.GetFile(key, cancellationToken);
 
         /// <summary>
-        /// Associate the symbol file (PDB) with the assembly and produce a metadata reader we can use to navigate the PDB.
+        /// Produce a metadata reader we can use to navigate the PDB.
         /// </summary>
-        public MetadataReader? ReadAsPortablePdb(SymbolStoreFile symbolFile)
+        public MetadataReader? ReadPortablePdb(SymbolStoreFile symbolFile)
         {
-            assemblyStream.Position = 0;
-
             if (symbolFile is null
-                || !TryOpenAssociatedPortablePdb(new PEReader(assemblyStream), symbolFile.FileName, _ => symbolFile.Stream, out var mrp, out var pdbPath)
-                || mrp is null)
+                || !TryOpenPortablePdb(symbolFile, out var metadataReader)
+                || metadataReader is null)
             {
                 return null;
             }
 
-            return mrp.GetMetadataReader();
+            return metadataReader;
         }
 
-        /// <see cref="PEReader.TryOpenAssociatedPortablePdb" />
-        private static bool TryOpenAssociatedPortablePdb(PEReader peReader, string peImagePath, Func<string, Stream?> pdbFileStreamProvider, out MetadataReaderProvider? pdbReaderProvider, out string? pdbPath)
+        private static bool TryOpenPortablePdb(SymbolStoreFile symbolFile, out MetadataReader? mr)
         {
             try
             {
-                return peReader.TryOpenAssociatedPortablePdb(peImagePath, pdbFileStreamProvider, out pdbReaderProvider, out pdbPath);
+                var pdb = MetadataReaderProvider.FromPortablePdbStream(symbolFile.Stream, MetadataStreamOptions.Default);
+                mr = pdb.GetMetadataReader();
+                return true;
             }
             catch (BadImageFormatException) // can happen if a Windows PDB is returned
             {
-                pdbReaderProvider = null;
-                pdbPath = null;
+                mr = null;
                 return false;
             }
         }
@@ -116,7 +115,7 @@ namespace CSharpRepl.Services.SymbolExploration
                 if (disposing)
                 {
                     this.symbolStore.Dispose();
-                    this.assemblyStream.Dispose();
+                    this.symbolStoreFile.Dispose();
                 }
                 disposedValue = true;
             }
