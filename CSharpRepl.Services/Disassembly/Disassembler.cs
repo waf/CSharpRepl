@@ -54,7 +54,7 @@ namespace CSharpRepl.Services.Disassembly
             {
                 $"// Disassembled in {optimizationLevel} Mode."
                 + (optimizationLevel == OptimizationLevel.Debug
-                    ? " Press Ctrl+F11 to disassemble in Release Mode."
+                    ? " Press Ctrl+F9 to disassemble in Release Mode."
                     : string.Empty)
             };
 

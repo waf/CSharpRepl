@@ -37,5 +37,5 @@
 
 } // end of class <Program>$
 
-// Disassembled in Debug Mode. Press Ctrl+F11 to disassemble in Release Mode.
+// Disassembled in Debug Mode. Press Ctrl+F9 to disassemble in Release Mode.
 // Compiling code as Console Application (with top-level statements): succeeded.

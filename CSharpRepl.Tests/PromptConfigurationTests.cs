@@ -31,7 +31,7 @@ namespace CSharpRepl.Tests
 
         [Theory]
         [MemberData(nameof(KeyPresses))]
-        public void PromptCOnfiguration_CanCreate(object keyPress)
+        public void PromptConfiguration_CanCreate(object keyPress)
         {
             var configuration = PromptConfiguration.Configure(console, services);
             configuration.KeyPressCallbacks[keyPress].Invoke("Console.WriteLine(\"Hi!\");", 0);
@@ -41,8 +41,8 @@ namespace CSharpRepl.Tests
         {
             yield return new object[] { ConsoleKey.F1 };
             yield return new object[] { (ConsoleModifiers.Control, ConsoleKey.F1) };
-            yield return new object[] { ConsoleKey.F11 };
-            yield return new object[] { (ConsoleModifiers.Control, ConsoleKey.F11) };
+            yield return new object[] { ConsoleKey.F9 };
+            yield return new object[] { (ConsoleModifiers.Control, ConsoleKey.F9) };
         }
     }
 }

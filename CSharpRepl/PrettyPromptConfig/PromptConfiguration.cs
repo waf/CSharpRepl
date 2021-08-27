@@ -35,8 +35,8 @@ namespace CSharpRepl.PrettyPromptConfig
                 {
                     [ConsoleKey.F1] = LaunchHelpForSymbol,
                     [(ConsoleModifiers.Control, ConsoleKey.F1)] = LaunchSourceForSymbol,
-                    [ConsoleKey.F11] = DisassembleDebug,
-                    [(ConsoleModifiers.Control, ConsoleKey.F11)] = DisassembleRelease,
+                    [ConsoleKey.F9] = DisassembleDebug,
+                    [(ConsoleModifiers.Control, ConsoleKey.F9)] = DisassembleRelease,
                     [ConsoleKey.F12] = LaunchSourceForSymbol,
                 }
             };

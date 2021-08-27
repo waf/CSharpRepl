@@ -141,8 +141,7 @@ to load.
 Exploring Code
 ==============
 {Blue("F1")}: when the caret is in a type or member, open the corresponding MSDN documentation.
-{Blue("F11")}: show the IL (intermediate language) for the current statement in Debug mode.
-{Blue("Ctrl+F11")}: show the IL for the current statement in Release mode.
+{Blue("F9")}: show the IL (intermediate language) for the current statement.
 {Blue("F12")}: open the type's source code in the browser, if the assembly supports Source Link.
 
 Configuration Options
