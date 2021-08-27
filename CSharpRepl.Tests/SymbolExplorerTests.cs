@@ -33,23 +33,6 @@ namespace CSharpRepl.Tests
         }
 
         [Fact]
-        public async Task GetSymbolAtIndex_MethodInSourceLinkedAssembly_ReturnsSourceLinkUrl()
-        {
-            // should return a string like https://www.github.com/dotnet/runtime/blob/208e377a5329ad6eb1db5e5fb9d4590fa50beadd/src/libraries/System.Console/src/System/Console.cs#L635-L636
-            var symbol = await services.GetSymbolAtIndexAsync(@"Console.WriteLine(""howdy"")", "Console.Wri".Length);
-
-            var urlParts = symbol.Url.Split('#');
-            Assert.Equal(2, urlParts.Length);
-
-            var url = urlParts[0];
-            Assert.StartsWith("https://www.github.com/dotnet/runtime/", url);
-
-            var lineHash = urlParts[1];
-            const string LinePattern = "L[0-9]+";
-            Assert.Matches($"^{LinePattern}-{LinePattern}$", lineHash);
-        }
-
-        [Fact]
         public async Task GetSymbolAtIndex_ClassInSourceLinkedAssembly_ReturnsSourceLinkUrl()
         {
             // should return a string like https://www.github.com/dotnet/runtime/blob/208e377a5329ad6eb1db5e5fb9d4590fa50beadd/src/libraries/System.Console/src/System/Console.cs
@@ -57,6 +40,33 @@ namespace CSharpRepl.Tests
 
             Assert.StartsWith("https://www.github.com/dotnet/runtime/", symbol.Url);
             Assert.EndsWith("Console.cs", symbol.Url);
+        }
+
+        [Fact]
+        public async Task GetSymbolAtIndex_MethodInSourceLinkedAssembly_ReturnsSourceLinkUrl()
+        {
+            // should return a string like https://www.github.com/dotnet/runtime/blob/208e377a5329ad6eb1db5e5fb9d4590fa50beadd/src/libraries/System.Console/src/System/Console.cs#L635-L636
+            var symbol = await services.GetSymbolAtIndexAsync(@"Console.WriteLine(""howdy"")", "Console.Wri".Length);
+
+            AssertLinkWithLineNumber(symbol);
+        }
+
+        [Fact]
+        public async Task GetSymbolAtIndex_PropertyInSourceLinkedAssembly_ReturnsSourceLinkUrl()
+        {
+            // should return a string like https://www.github.com/dotnet/runtime/blob/208e377a5329ad6eb1db5e5fb9d4590fa50beadd/src/libraries/System.Console/src/System/Console.cs
+            var symbol = await services.GetSymbolAtIndexAsync(@"Console.Out", "Console.Ou".Length);
+
+            AssertLinkWithLineNumber(symbol);
+        }
+
+        [Fact]
+        public async Task GetSymbolAtIndex_EventInSourceLinkedAssembly_ReturnsSourceLinkUrl()
+        {
+            // should return a string like https://www.github.com/dotnet/runtime/blob/208e377a5329ad6eb1db5e5fb9d4590fa50beadd/src/libraries/System.Console/src/System/Console.cs
+            var symbol = await services.GetSymbolAtIndexAsync(@"Console.CancelKeyPress", "Console.CancelKe".Length);
+
+            AssertLinkWithLineNumber(symbol);
         }
 
         [Fact]
@@ -77,5 +87,19 @@ namespace CSharpRepl.Tests
             Assert.Equal("DemoLibrary.DemoClass.Multiply", symbol.SymbolDisplay);
             Assert.Null(symbol.Url);
         }
+
+        private static void AssertLinkWithLineNumber(SymbolResult symbol)
+        {
+            var urlParts = symbol.Url.Split('#');
+            Assert.Equal(2, urlParts.Length);
+
+            var url = urlParts[0];
+            Assert.StartsWith("https://www.github.com/dotnet/runtime/", url);
+
+            var lineHash = urlParts[1];
+            const string LinePattern = "L[0-9]+";
+            Assert.Matches($"^{LinePattern}-{LinePattern}$", lineHash);
+        }
+
     }
 }
