@@ -12,9 +12,15 @@ using System.Text.RegularExpressions;
 namespace CSharpRepl.Services.SymbolExploration
 {
     /// <summary>
-    /// Looks up SourceLink metadata in a PDB for a given Sequence Point to get the corresponding URL of the document, e.g. on GitHub.
+    /// Looks up SourceLink JSON metadata in a PDB for a given Sequence Point to get
+    /// the URL of the document, e.g. on GitHub.
     /// </summary>
-    /// <remarks>https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md#sequence-points-blob</remarks>
+    /// <remarks>
+    /// The following archived code was used as reference for how to interact with sourcelink json documents:
+    /// https://github.com/ctaggart/SourceLink/blob/master/dotnet-sourcelink/Program.cs
+    /// See also
+    /// https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md#sequence-points-blob
+    /// </remarks>
     internal sealed class SourceLinkLookup
     {
         private static readonly Guid SourceLinkId = new("CC110556-A091-4D38-9FEC-25AB9A351A6A");
@@ -30,14 +36,15 @@ namespace CSharpRepl.Services.SymbolExploration
         {
             var sourceLinkMetadata = FindSourceLinkMetadata(symbolReader);
 
-            var documentName = symbolReader.GetString(
+            var sequencePointDocumentName = symbolReader.GetString(
                 symbolReader.GetDocument(sequencePointRange.Start.Document).Name
             );
 
-            url = GetUrl(sourceLinkMetadata, documentName);
+            url = GetUrl(sourceLinkMetadata, sequencePointDocumentName);
 
             if (url is null) return false;
 
+            // optionally rewrite the url to something more friendly, based on the host.
             foreach (var host in sourceLinkHosts)
             {
                 if (host.Rewrite(url, sequencePointRange) is string rewrittenUrl)
@@ -46,10 +53,12 @@ namespace CSharpRepl.Services.SymbolExploration
                     break;
                 }
             }
-
             return true;
         }
 
+        /// <summary>
+        /// Returns the source link json for the provided PDB metadata reader
+        /// </summary>
         private static SourceLinkJson? FindSourceLinkMetadata(MetadataReader symbolReader)
         {
             // https://github.com/ctaggart/SourceLink/blob/master/dotnet-sourcelink/Program.cs
@@ -66,6 +75,9 @@ namespace CSharpRepl.Services.SymbolExploration
             return json;
         }
 
+        /// <summary>
+        /// Retrieves the SourceLink URL for the provided Sequence Points Blob document.
+        /// </summary>
         private static string? GetUrl(SourceLinkJson? json, string? file)
         {
             if (json is null || file is null) return null;

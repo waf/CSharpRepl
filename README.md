@@ -1,6 +1,6 @@
 # C# REPL
 
-C# REPL is a tool for rapid experimentation and exploration of C# expressions, statements, and NuGet packages. It's a command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> for C# that supports syntax highlighting, intellisense, and type/method documentation.
+A cross-platform command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> for the rapid experimentation and exploration of C#. It supports intellisense, installing NuGet packages, and referencing local .NET projects and assemblies.
 
 <div align="center">
   <a href="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.webp">
@@ -9,7 +9,14 @@ C# REPL is a tool for rapid experimentation and exploration of C# expressions, s
   <p align="center"><i>(click to view animation)</i></p>
 </div>
 
-This C# REPL helps you explore the C# language and libraries, including the .NET SDK and NuGet packages. It's also useful for iteratively defining and refining functions when developing software.
+C# REPL provides the following features:
+
+- Syntax highlighting
+- Intellisense with fly-out documentation
+- Nuget package installation
+- Reference local assemblies, solutions, and projects
+- Navigate to source via Source Link
+- IL disassembly (both Debug and Release mode)
 
 ## Installation
 
@@ -101,9 +108,9 @@ Finally, pressing <kbd>Ctrl+Enter</kbd> will show a "detailed view" of the resul
   - <kbd>Ctrl+V</kbd>, <kbd>Shift+Insert</kbd>, and <kbd>Ctrl+Shift+V</kbd> - Paste text to prompt. Automatically trims leading indent
 - **Code Actions**
   - <kbd>F1</kbd> - Opens the MSDN documentation for the class/method under the caret ([example](https://docs.microsoft.com/en-US/dotnet/api/System.DateTime.AddDays?view=net-5.0))
-  - <kbd>Ctrl+F1</kbd> - Opens the source code on source.dot.net for the class/method under the caret ([example](https://source.dot.net/#q=System.DateTime.AddDays))
   - <kbd>F11</kbd> - Shows the IL (intermediate language) for the current statement in Debug mode.
   - <kbd>Ctrl+F11</kbd> - Shows the IL for the current statement with Release mode optimizations.
+  - <kbd>F12</kbd> - Opens the source code in the browser for the class/method under the caret, if the assembly supports [Source Link](https://github.com/dotnet/sourcelink).
 - **Autocompletion**
   - <kbd>Ctrl+Space</kbd> - Open autocomplete menu. If there's a single option, pressing <kbd>Ctrl+Space</kbd> again will select the option
   - <kbd>Enter</kbd>, <kbd>Right Arrow</kbd>, <kbd>Tab</kbd> - Select active autocompletion option

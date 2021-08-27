@@ -26,6 +26,7 @@ namespace CSharpRepl.Services.SymbolExploration
     sealed class DebugSymbolLoader : IDisposable
     {
         private readonly string assemblyFilePath;
+        private readonly NullLogger logger;
         private readonly CacheSymbolStore symbolStore;
         private readonly FileStream assemblyStream;
 
@@ -34,36 +35,44 @@ namespace CSharpRepl.Services.SymbolExploration
         public DebugSymbolLoader(string assemblyFilePath)
         {
             this.assemblyFilePath = assemblyFilePath;
-            this.symbolStore = BuildSymbolStore(new NullLogger());
+            this.logger = new NullLogger();
+            this.symbolStore = BuildSymbolStore();
             this.assemblyStream = File.Open(assemblyFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
-        private CacheSymbolStore BuildSymbolStore(ITracer tracer)
+        /// <summary>
+        /// Creates our configuration of symbol stores (either remote or a local cache).
+        /// Symbol stores are chained, and if a given store does not contain the requested symbol
+        /// the next one in the chain will be called. If a symbol store contains the requested symbol,
+        /// previous symbols in the chain will have a chance to add them (this is how caching works).
+        /// </summary>
+        private CacheSymbolStore BuildSymbolStore()
         {
             SymbolStore? store = null;
 
             foreach (var server in Configuration.SymbolServers)
             {
-                store = new HttpSymbolStore(tracer, store, new Uri(server), null);
+                store = new HttpSymbolStore(logger, store, new Uri(server), null);
             }
 
-            return new CacheSymbolStore(tracer, store, Path.Combine(Configuration.ApplicationDirectory, "symbols"));
+            return new CacheSymbolStore(logger, store, Path.Combine(Configuration.ApplicationDirectory, "symbols"));
         }
 
-        public IEnumerable<SymbolStoreKey> GetSymbolFileNames()
-        {
-            return new FileKeyGenerator(new NullLogger(), new SymbolStoreFile(assemblyStream, assemblyFilePath))
+        /// <summary>
+        /// Calculate assembly key (i.e. an identifier) for the assembly. This key
+        /// is used to query the symbol stores.
+        /// </summary>
+        public IEnumerable<SymbolStoreKey> GetSymbolFileNames() =>
+            new FileKeyGenerator(logger, new SymbolStoreFile(assemblyStream, assemblyFilePath))
                 .GetKeys(KeyTypeFlags.SymbolKey)
                 .ToList();
-        }
 
-        public async Task<SymbolStoreFile> DownloadSymbolFile(SymbolStoreKey key, CancellationToken none)
-        {
-            var symbolFile = await symbolStore.GetFile(key, CancellationToken.None);
-            return symbolFile;
-        }
+        public async Task<SymbolStoreFile> DownloadSymbolFile(SymbolStoreKey key, CancellationToken cancellationToken) =>
+            await symbolStore.GetFile(key, cancellationToken);
 
-        // associate the symbol file (PDB) with the assembly and produce a metadata reader we can use to navigate the PDB.
+        /// <summary>
+        /// Associate the symbol file (PDB) with the assembly and produce a metadata reader we can use to navigate the PDB.
+        /// </summary>
         public MetadataReader? ReadAsPortablePdb(SymbolStoreFile symbolFile)
         {
             assemblyStream.Position = 0;

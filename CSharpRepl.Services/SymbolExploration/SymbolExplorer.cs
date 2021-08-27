@@ -20,7 +20,7 @@ using Document = Microsoft.CodeAnalysis.Document;
 namespace CSharpRepl.Services.SymbolExploration
 {
     /// <summary>
-    /// Provides information (e.g. types) of symbols in a <see cref="Document"/>.
+    /// Provides information (e.g. fully qualified names and SourceLink urls) of symbols.
     /// </summary>
     internal sealed class SymbolExplorer
     {
