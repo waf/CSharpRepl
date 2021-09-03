@@ -52,7 +52,7 @@ namespace CSharpRepl.Services.SyntaxHighlighting
                 { nameof(AnsiColor.White), AnsiColor.White },
             };
 
-            var selectedTheme = themeName is null
+            var selectedTheme = string.IsNullOrEmpty(themeName)
                 ? new DefaultTheme()
                 : JsonSerializer.Deserialize<Theme>(
                     File.ReadAllText(themeName),

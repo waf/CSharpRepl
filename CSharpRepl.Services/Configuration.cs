@@ -14,19 +14,17 @@ namespace CSharpRepl.Services
     /// </summary>
     public sealed class Configuration
     {
-        public HashSet<string> References { get; } = new();
-        public HashSet<string> Usings { get; } = new();
+        public HashSet<string> References { get; init; } = new();
+        public HashSet<string> Usings { get; init; } = new();
 
         public const string FrameworkDefault = SharedFramework.NetCoreApp;
-        public string Framework { get; set; } = FrameworkDefault;
+        public string Framework { get; init; } = FrameworkDefault;
 
-        public string? Theme { get; set; }
-        public string? ResponseFile { get; set; }
-        public string? LoadScript { get; set; }
-        public string[] LoadScriptArgs { get; set; } = Array.Empty<string>();
+        public string? Theme { get; init; }
+        public string? LoadScript { get; init; }
+        public string[] LoadScriptArgs { get; init; } = Array.Empty<string>();
 
-        public bool ShowVersionAndExit { get; set; }
-        public bool ShowHelpAndExit { get; set; }
+        public string? OutputForEarlyExit { get; init; }
 
         public static string ApplicationDirectory => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),

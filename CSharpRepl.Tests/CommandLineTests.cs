@@ -32,7 +32,7 @@ namespace CSharpRepl.Tests
         }
 
         [Theory]
-        [InlineData("-u"), InlineData("--usings"), InlineData("/u")]
+        [InlineData("-u"), InlineData("--using"), InlineData("/u")]
         public void ParseArguments_UsingArguments_ProducesUsings(string flag)
         {
             var result = Parse($"{flag} System.Linq System.Data Newtonsoft.Json");
@@ -44,7 +44,7 @@ namespace CSharpRepl.Tests
         }
 
         [Theory]
-        [InlineData("-r"), InlineData("--references"), InlineData("/r")]
+        [InlineData("-r"), InlineData("--reference"), InlineData("/r")]
         public void ParseArguments_ReferencesArguments_ProducesUsings(string flag)
         {
             var result = Parse($"{flag} Foo.dll Bar.dll");
@@ -70,7 +70,7 @@ namespace CSharpRepl.Tests
         {
             var result = Parse(flag);
             Assert.NotNull(result);
-            Assert.True(result.ShowVersionAndExit);
+            Assert.Contains("C# REPL ", result.OutputForEarlyExit);
         }
 
         [Theory]
@@ -79,7 +79,7 @@ namespace CSharpRepl.Tests
         {
             var result = Parse(flag);
             Assert.NotNull(result);
-            Assert.True(result.ShowHelpAndExit);
+            Assert.Contains("Usage: ", result.OutputForEarlyExit);
         }
 
         [Fact]
@@ -91,7 +91,7 @@ namespace CSharpRepl.Tests
             Assert.Equal(new[] { "System.Linq", "System.Data", "Newtonsoft.Json" }, result.Usings);
             Assert.Equal(new[] { "foo.dll", "bar.dll", "baz.dll" }, result.References);
             Assert.Equal("Microsoft.AspNetCore.App", result.Framework);
-            Assert.Equal(@"Console.WriteLine(""Hello World!"");", result.LoadScript);
+            Assert.Equal(@"Console.WriteLine(""Hello World!"");" + Environment.NewLine, result.LoadScript);
         }
 
         [Fact]
@@ -108,17 +108,38 @@ namespace CSharpRepl.Tests
         [Fact]
         public void ParseArguments_TrailingArgumentsAfterDoubleDash_SetAsLoadScriptArgs()
         {
-            var csxResult = CommandLine.ParseArguments(new[] { "Data/LoadScript.csx", "--", "Data/LoadScript.csx" });
+            var csxResult = CommandLine.Parse(new[] { "Data/LoadScript.csx", "--", "Data/LoadScript.csx" });
             // load script filename passed before "--" is a load script, after "--" we just pass it to the load script as an arg.
             Assert.Equal(new[] { "Data/LoadScript.csx" }, csxResult.LoadScriptArgs);
-            Assert.Equal(@"Console.WriteLine(""Hello World!"");", csxResult.LoadScript);
+            Assert.Equal(@"Console.WriteLine(""Hello World!"");" + Environment.NewLine, csxResult.LoadScript);
 
-            var quotedResult = CommandLine.ParseArguments(new[] { "-r", "Foo.dll", "--", @"""a b c""", @"""d e f""" });
+            var quotedResult = CommandLine.Parse(new[] { "-r", "Foo.dll", "--", @"""a b c""", @"""d e f""" });
             Assert.Equal(new[] { @"""a b c""", @"""d e f""" }, quotedResult.LoadScriptArgs);
             Assert.Equal(new[] { @"Foo.dll" }, quotedResult.References);
         }
 
+        [Fact]
+        public void ParseArguments_DotNetSuggestFrameworkParameter_IsAutocompleted()
+        {
+            var result = Parse("[suggest:3] --f");
+            Assert.Equal("--framework" + Environment.NewLine, result.OutputForEarlyExit);
+        }
+
+        [Fact]
+        public void ParseArguments_DotNetSuggestFrameworkValue_IsAutocompleted()
+        {
+            var result = CommandLine.Parse(new[] { "[suggest:12]", "--framework "});
+            Assert.Contains("Microsoft.NETCore.App", result.OutputForEarlyExit);
+        }
+
+        [Fact]
+        public void ParseArguments_DotNetSuggestUsingValue_IsAutocompleted()
+        {
+            var result = CommandLine.Parse(new[] { "[suggest:25]", "--using System.Collection"});
+            Assert.Contains("System.Collections.Immutable", result.OutputForEarlyExit);
+        }
+
         private static Configuration Parse(string commandline) =>
-            CommandLine.ParseArguments(commandline?.Split(' ') ?? Array.Empty<string>());
+            CommandLine.Parse(commandline?.Split(' ') ?? Array.Empty<string>());
     }
 }
