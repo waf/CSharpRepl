@@ -122,7 +122,7 @@ namespace CSharpRepl.Tests
         public void ParseArguments_DotNetSuggestFrameworkParameter_IsAutocompleted()
         {
             var result = Parse("[suggest:3] --f");
-            Assert.Equal("--framework\r\n", result.OutputForEarlyExit);
+            Assert.Equal("--framework" + Environment.NewLine, result.OutputForEarlyExit);
         }
 
         [Fact]
