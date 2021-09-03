@@ -23,18 +23,13 @@ namespace CSharpRepl
         {
             var console = new SystemConsole();
             Configuration? config = ParseArguments(args);
-            if (config is null)
+
+            if (config is null) // parsing error
                 return;
 
-            if (config.ShowHelpAndExit)
+            if (config.OutputForEarlyExit is not null)
             {
-                console.WriteLine(CommandLine.GetHelp());
-                return;
-            }
-
-            if (config.ShowVersionAndExit)
-            {
-                console.WriteLine(CommandLine.GetVersion());
+                console.WriteLine(config.OutputForEarlyExit);
                 return;
             }
 
@@ -51,28 +46,27 @@ namespace CSharpRepl
                 .ConfigureAwait(false);
         }
 
-        private static string CreateApplicationStorageDirectory()
-        {
-            var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
-            Directory.CreateDirectory(appStorage);
-            return appStorage;
-        }
-
         private static Configuration? ParseArguments(string[] args)
         {
             try
             {
-                return CommandLine.ParseArguments(args);
+                return CommandLine.Parse(args);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(CommandLine.GetHelp());
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Error.WriteLine(ex.Message);
                 Console.ResetColor();
                 Console.WriteLine();
                 return null;
             }
+        }
+
+        private static string CreateApplicationStorageDirectory()
+        {
+            var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
+            Directory.CreateDirectory(appStorage);
+            return appStorage;
         }
     }
 }

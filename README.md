@@ -166,6 +166,8 @@ Supported options are:
 - `response-file.rsp`: A filepath of an .rsp file, containing any of the above command line options.
 - `script-file.csx`: A filepath of a .csx file, containing lines of C# to evaluate before starting the REPL. Arguments to this script can be passed as `<additional-arguments>`, after a double hyphen (`--`), and will be available in a global `args` variable.
 
+If you have [`dotnet-suggest`](https://github.com/dotnet/command-line-api/blob/main/docs/dotnet-suggest.md) enabled, all options can be tab-completed, including values provided to `--framework` and .NET namespaces provided to `--using`.
+
 ## Integrating with other software
 
 C# REPL is a standalone software application, but it can be useful to integrate it with other developer tools:

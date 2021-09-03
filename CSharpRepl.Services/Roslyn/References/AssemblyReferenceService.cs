@@ -270,7 +270,7 @@ namespace CSharpRepl.Services.Roslyn.References
             this.ImplementationAssemblies = ImplementationAssemblies;
         }
 
-        public static IReadOnlyCollection<string> SupportedFrameworks { get; } =
+        public static string[] SupportedFrameworks { get; } =
             Path.GetDirectoryName(typeof(object).Assembly.Location) is string frameworkDirectory
             ? Directory
                 .GetDirectories(Path.Combine(frameworkDirectory, "../../"))
