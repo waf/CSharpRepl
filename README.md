@@ -11,20 +11,23 @@ A cross-platform command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%
 
 C# REPL provides the following features:
 
-- Syntax highlighting
+- Syntax highlighting via ANSI escape sequences
 - Intellisense with fly-out documentation
 - Nuget package installation
 - Reference local assemblies, solutions, and projects
 - Navigate to source via Source Link
 - IL disassembly (both Debug and Release mode)
+- Fast and flicker-free rendering. A "diff" algorithm is used to only render what's changed.
 
 ## Installation
 
-C# REPL is a .NET 5 global tool. It can be installed via:
+C# REPL is a .NET 5 global tool, and runs on Windows 10, Mac OS, and Linux. It can be installed via:
 
 ```console
 dotnet tool install -g csharprepl
 ```
+
+If you're running on Mac OS Catalina (10.15) or later, make sure you follow any additional directions printed to the screen. You may to update your PATH variable in order to use .NET global tools.
 
 After installation is complete, run `csharprepl` to begin. C# REPL can be updated via `dotnet tool update -g csharprepl`.
 
