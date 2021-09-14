@@ -20,6 +20,7 @@ namespace CSharpRepl.Services
         public const string FrameworkDefault = SharedFramework.NetCoreApp;
         public string Framework { get; init; } = FrameworkDefault;
 
+        public bool Trace { get; init; }
         public string? Theme { get; init; }
         public string? LoadScript { get; init; }
         public string[] LoadScriptArgs { get; init; } = Array.Empty<string>();

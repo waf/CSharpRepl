@@ -52,6 +52,11 @@ namespace CSharpRepl
             getDefaultValue: () => string.Empty
         );
 
+        private static readonly Option<bool> Trace = new(
+            aliases: new[] { "--trace" },
+            description: "Enable a trace log, written to the current directory."
+        );
+
         private static readonly Option<bool> Help = new(
             aliases: new[] { "--help", "-h", "-?", "/h", "/?" },
             description: "Show this help and exit."
@@ -62,13 +67,13 @@ namespace CSharpRepl
             description: "Show version number and exit."
         );
 
-        public static Configuration? Parse(string[] args)
+        public static Configuration Parse(string[] args)
         {
             var parseArgs = RemoveScriptArguments(args).ToArray();
 
             var commandLine =
                 new CommandLineBuilder(
-                    new RootCommand("C# REPL") { References, Usings, Framework, Theme, Help, Version }
+                    new RootCommand("C# REPL") { References, Usings, Framework, Theme, Trace, Help, Version }
                 )
                 .UseSuggestDirective() // support autocompletion via dotnet-suggest
                 .Build()
@@ -91,6 +96,7 @@ namespace CSharpRepl
                 LoadScript = ProcessScriptArguments(args),
                 LoadScriptArgs = commandLine.UnparsedTokens.ToArray(),
                 Theme = commandLine.ValueForOption(Theme),
+                Trace = commandLine.ValueForOption(Trace)
             };
 
             return config;
@@ -177,7 +183,8 @@ namespace CSharpRepl
             "                                             ") + NewLine +
             "  -t <theme.json> or --theme <theme.json>:   Read a theme file for syntax highlighting. Respects the NO_COLOR standard." + NewLine +
             "  -v or --version:                           Show version number and exit." + NewLine +
-            "  -h or --help:                              Show this help and exit." + NewLine + NewLine +
+            "  -h or --help:                              Show this help and exit." + NewLine +
+            "  --trace:                                   Produce a trace file in the current directory, for CSharpRepl bug reports." + NewLine + NewLine +
             "@response-file.rsp:" + NewLine +
             "  A file, with extension .rsp, containing the above command line [OPTIONS], one option per line." + NewLine + NewLine +
             "script-file.csx:" + NewLine +

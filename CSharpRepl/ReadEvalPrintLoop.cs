@@ -41,28 +41,30 @@ namespace CSharpRepl
                 var response = await prompt.ReadLineAsync("> ").ConfigureAwait(false);
                 if (response.IsSuccess)
                 {
-                    if (response.Text == "exit") { break; }
+                    var commandText = response.Text.Trim().ToLowerInvariant();
 
-                    if (response.Text == "clear") { console.Clear(); continue; }
-
-                    if (new[] { "help", "#help", "?" }.Contains(response.Text.ToLowerInvariant()))
+                    // process built in commands
+                    if (commandText == "exit") { break; }
+                    if (commandText == "clear") { console.Clear(); continue; }
+                    if (new[] { "help", "#help", "?" }.Contains(commandText))
                     {
                         PrintHelp();
                         continue;
                     }
 
+                    // process results returned by special keybindings (configured in the PromptConfiguration.cs)
                     if(response is KeyPressCallbackResult callbackOutput)
                     {
                         console.WriteLine(Environment.NewLine + callbackOutput.Output);
                         continue;
                     }
 
+                    // process C# code and directives
                     var result = await roslyn
                         .EvaluateAsync(response.Text, config.LoadScriptArgs, response.CancellationToken)
                         .ConfigureAwait(false);
 
-                    bool shouldVerbosePrint = response.IsHardEnter;
-                    await PrintAsync(roslyn, console, result, shouldVerbosePrint);
+                    await PrintAsync(roslyn, console, result, displayDetails: response.IsHardEnter);
                 }
             }
         }

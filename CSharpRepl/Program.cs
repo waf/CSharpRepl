@@ -10,6 +10,9 @@ using CSharpRepl.Services.Roslyn;
 using CSharpRepl.PrettyPromptConfig;
 using System.IO;
 using PrettyPrompt;
+using CSharpRepl.Logging;
+using CSharpRepl.Services.Logging;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CSharpRepl
 {
@@ -19,23 +22,23 @@ namespace CSharpRepl
     /// </summary>
     static class Program
     {
-        internal static async Task Main(string[] args)
+        internal static async Task<int> Main(string[] args)
         {
             var console = new SystemConsole();
-            Configuration? config = ParseArguments(args);
 
-            if (config is null) // parsing error
-                return;
+            if (!TryParseArguments(args, out var config))
+                return 1;
 
             if (config.OutputForEarlyExit is not null)
             {
                 console.WriteLine(config.OutputForEarlyExit);
-                return;
+                return 0;
             }
 
             var appStorage = CreateApplicationStorageDirectory();
 
-            var roslyn = new RoslynServices(console, config);
+            var logger = InitializeLogging(config.Trace);
+            var roslyn = new RoslynServices(console, config, logger);
             var prompt = new Prompt(
                 persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
                 callbacks: PromptConfiguration.Configure(console, roslyn)
@@ -44,13 +47,16 @@ namespace CSharpRepl
             await new ReadEvalPrintLoop(roslyn, prompt, console)
                 .RunAsync(config)
                 .ConfigureAwait(false);
+
+            return 0;
         }
 
-        private static Configuration? ParseArguments(string[] args)
+        private static bool TryParseArguments(string[] args, [NotNullWhen(true)] out Configuration? configuration)
         {
             try
             {
-                return CommandLine.Parse(args);
+                configuration = CommandLine.Parse(args);
+                return true;
             }
             catch (Exception ex)
             {
@@ -58,15 +64,33 @@ namespace CSharpRepl
                 Console.Error.WriteLine(ex.Message);
                 Console.ResetColor();
                 Console.WriteLine();
-                return null;
+                configuration = null;
+                return false;
             }
         }
 
+        /// <summary>
+        /// Create application storage directory and return its path.
+        /// This is where prompt history and nuget packages are stored.
+        /// </summary>
         private static string CreateApplicationStorageDirectory()
         {
             var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
             Directory.CreateDirectory(appStorage);
             return appStorage;
+        }
+
+        /// <summary>
+        /// Initialize logging. It's off by default, unless the user passes the --trace flag.
+        /// </summary>
+        private static ITraceLogger InitializeLogging(bool trace)
+        {
+            if (!trace)
+            {
+                return new NullLogger();
+            }
+
+            return TraceLogger.Create($"csharprepl-tracelog-{DateTime.UtcNow:yyyy-MM-dd}.txt");
         }
     }
 }

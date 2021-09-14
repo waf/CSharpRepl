@@ -20,6 +20,7 @@ using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.Disassembly;
+using CSharpRepl.Services.Logging;
 
 namespace CSharpRepl.Services.Roslyn
 {
@@ -30,7 +31,7 @@ namespace CSharpRepl.Services.Roslyn
     public sealed class RoslynServices
     {
         private readonly SyntaxHighlighter highlighter;
-
+        private readonly ITraceLogger logger;
         private ScriptRunner? scriptRunner;
         private WorkspaceManager? workspaceManager;
         private Disassembler? disassembler;
@@ -47,14 +48,16 @@ namespace CSharpRepl.Services.Roslyn
             nameof(referenceService), nameof(compilationOptions))]
         private Task Initialization { get; }
 
-        public RoslynServices(IConsole console, Configuration config)
+        public RoslynServices(IConsole console, Configuration config, ITraceLogger logger)
         {
             var cache = new MemoryCache(new MemoryCacheOptions());
+            this.logger = logger;
             this.highlighter = new SyntaxHighlighter(cache, config.Theme);
             // initialization of roslyn and all dependent services is slow! do it asynchronously so we don't increase startup time.
             this.Initialization = Task.Run(() =>
             {
-                this.referenceService = new AssemblyReferenceService(config);
+                logger.Log("Starting background initialization");
+                this.referenceService = new AssemblyReferenceService(config, logger);
 
                 this.compilationOptions = new CSharpCompilationOptions(
                     OutputKind.DynamicallyLinkedLibrary,
@@ -66,12 +69,13 @@ namespace CSharpRepl.Services.Roslyn
                 // is updated alongside. The workspace is a datamodel used in "editor services" like
                 // syntax highlighting, autocompletion, and roslyn symbol queries.
                 this.scriptRunner = new ScriptRunner(console, compilationOptions, referenceService);
-                this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService);
+                this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger);
 
                 this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
                 this.prettyPrinter = new PrettyPrinter();
                 this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
                 this.autocompleteService = new AutoCompleteService(cache);
+                logger.Log("Background initialization complete");
             });
             Initialization.ContinueWith(task => console.WriteErrorLine(task.Exception?.Message ?? "Unknown error"), TaskContinuationOptions.OnlyOnFaulted);
         }
@@ -156,6 +160,8 @@ namespace CSharpRepl.Services.Roslyn
             {
                 await Initialization.ConfigureAwait(false);
 
+                logger.Log("Warm-up Starting");
+
                 var evaluationTask = EvaluateAsync(@"_ = ""REPL Warmup""", args);
                 var highlightTask = SyntaxHighlightAsync(@"_ = ""REPL Warmup""");
                 var completionTask = Task.WhenAny(
@@ -166,6 +172,7 @@ namespace CSharpRepl.Services.Roslyn
                 );
 
                 await Task.WhenAll(evaluationTask, highlightTask, completionTask).ConfigureAwait(false);
+                logger.Log("Warm-up Complete");
             });
     }
 }

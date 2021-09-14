@@ -23,7 +23,7 @@ namespace CSharpRepl.Tests
         public EvaluationTests()
         {
             var (console, stdout) = FakeConsole.CreateStubbedOutput();
-            this.services = new RoslynServices(console, new Configuration());
+            this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
             this.stdout = stdout;
         }
 

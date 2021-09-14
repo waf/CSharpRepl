@@ -24,7 +24,7 @@ namespace CSharpRepl.Services.SymbolExploration
     /// </remarks>
     internal sealed class DebugSymbolLoader : IDisposable
     {
-        private readonly NullLogger logger;
+        private readonly NullSymbolLogger logger;
         private readonly CacheSymbolStore symbolStore;
         private readonly SymbolStoreFile symbolStoreFile;
 
@@ -32,7 +32,7 @@ namespace CSharpRepl.Services.SymbolExploration
 
         public DebugSymbolLoader(string assemblyFilePath)
         {
-            this.logger = new NullLogger();
+            this.logger = new NullSymbolLogger();
             this.symbolStore = BuildSymbolStore();
             this.symbolStoreFile = new SymbolStoreFile(
                 File.Open(assemblyFilePath, FileMode.Open, FileAccess.Read, FileShare.Read),

@@ -4,7 +4,7 @@
 
 namespace CSharpRepl.Services.SymbolExploration
 {
-    internal sealed class NullLogger : Microsoft.SymbolStore.ITracer
+    internal sealed class NullSymbolLogger : Microsoft.SymbolStore.ITracer
     {
         public void WriteLine(string message) { }
 
