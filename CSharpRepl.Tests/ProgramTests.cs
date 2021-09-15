@@ -28,7 +28,7 @@ namespace CSharpRepl.Tests
             var output = capturedOutput.ToString();
 
             Assert.Contains("C# REPL", output);
-            var version = new Version(output[8..]);
+            var version = new Version(output.Trim("C# REPL-rc-alpha-beta\r\n".ToCharArray()));
             Assert.True(version.Major + version.Minor > 0);
         }
     }
