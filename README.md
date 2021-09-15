@@ -27,7 +27,7 @@ C# REPL is a .NET 5 global tool, and runs on Windows 10, Mac OS, and Linux. It c
 dotnet tool install -g csharprepl
 ```
 
-If you're running on Mac OS Catalina (10.15) or later, make sure you follow any additional directions printed to the screen. You may to update your PATH variable in order to use .NET global tools.
+If you're running on Mac OS Catalina (10.15) or later, make sure you follow any additional directions printed to the screen. You may need to update your PATH variable in order to use .NET global tools.
 
 After installation is complete, run `csharprepl` to begin. C# REPL can be updated via `dotnet tool update -g csharprepl`.
 

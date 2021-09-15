@@ -23,7 +23,7 @@ namespace CSharpRepl.Tests
             this.services = new RoslynServices(console, new Configuration
             {
                 Theme = "Data/theme.json"
-            });
+            }, new TestTraceLogger());
         }
 
         public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());

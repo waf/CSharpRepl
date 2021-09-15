@@ -21,7 +21,7 @@ namespace CSharpRepl.Tests
         {
             this.console = Substitute.For<IConsole>();
             this.prompt = Substitute.For<IPrompt>();
-            this.services = new RoslynServices(console, new Configuration());
+            this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
             this.repl = new ReadEvalPrintLoop(services, prompt, console);
         }
 

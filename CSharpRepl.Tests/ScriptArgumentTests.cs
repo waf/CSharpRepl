@@ -16,7 +16,7 @@ namespace CSharpRepl.Tests
         public async Task Evaluate_WithArguments_ArgumentsAvailable(string argsAccessor)
         {
             var (console, _) = FakeConsole.CreateStubbedOutput();
-            var services = new RoslynServices(console, new Configuration());
+            var services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
             var args = new[] { "Howdy" };
 
             await services.WarmUpAsync(args);
@@ -32,7 +32,7 @@ namespace CSharpRepl.Tests
         public async Task Evaluate_PrettyPrint_PrintsPrettily()
         {
             var (console, stdOut) = FakeConsole.CreateStubbedOutput();
-            var services = new RoslynServices(console, new Configuration());
+            var services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
 
             await services.WarmUpAsync(Array.Empty<string>());
             _ = await services.EvaluateAsync("using System.Globalization;");

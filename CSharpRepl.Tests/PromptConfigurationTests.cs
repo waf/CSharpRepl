@@ -23,7 +23,7 @@ namespace CSharpRepl.Tests
             this.console = console;
             this.stdout = stdout;
 
-            this.services = new RoslynServices(console, new Configuration());
+            this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
         }
 
         public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());

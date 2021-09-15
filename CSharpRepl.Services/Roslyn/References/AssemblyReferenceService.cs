@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using CSharpRepl.Services.Extensions;
+using CSharpRepl.Services.Logging;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -39,7 +40,7 @@ namespace CSharpRepl.Services.Roslyn.References
         public IReadOnlySet<MetadataReference> LoadedReferenceAssemblies => loadedReferenceAssemblies;
         public IReadOnlyCollection<UsingDirectiveSyntax> Usings => usings;
 
-        public AssemblyReferenceService(Configuration config)
+        public AssemblyReferenceService(Configuration config, ITraceLogger logger)
         {
             this.referenceAssemblyPaths = new();
             this.implementationAssemblyPaths = new();
@@ -60,6 +61,13 @@ namespace CSharpRepl.Services.Roslyn.References
             var (framework, version) = GetDesiredFrameworkVersion(config.Framework);
             var sharedFrameworks = GetSharedFrameworkConfiguration(framework, version);
             LoadSharedFrameworkConfiguration(sharedFrameworks);
+
+            logger.Log(() => $".NET Version: {framework} / {version}");
+            logger.Log(() => $"Reference Assembly Paths: {string.Join(", ", referenceAssemblyPaths)}");
+            logger.Log(() => $"Implementation Assembly Paths: {string.Join(", ", implementationAssemblyPaths)}");
+            logger.Log(() => $"Shared Framework Paths: {string.Join(", ", sharedFrameworkImplementationAssemblyPaths)}");
+            logger.Log(() => $"Loaded Reference Assemblies: {GroupPathsByPrefixForLogging(loadedReferenceAssemblies.Select(a => a.Display))}");
+            logger.Log(() => $"Loaded Implementation Assemblies: {GroupPathsByPrefixForLogging(loadedImplementationAssemblies.Select(a => a.Display))}");
         }
 
         internal IReadOnlyCollection<MetadataReference> EnsureReferenceAssemblyWithDocumentation(IReadOnlyCollection<MetadataReference> references)
@@ -179,7 +187,13 @@ namespace CSharpRepl.Services.Roslyn.References
             var dotnetRoot = Path.GetFullPath(Path.Combine(dotnetRuntimePath, "../../../packs/", framework + ".Ref"));
             var referenceAssemblyPath = Directory
                 .GetDirectories(dotnetRoot, "net*" + version.Major + "." + version.Minor + "*", SearchOption.AllDirectories)
-                .Last();
+                .LastOrDefault();
+
+            if(referenceAssemblyPath is null)
+            {
+                throw new InvalidOperationException($"Could not find {framework} {version} installation in {dotnetRoot} -- is it installed?");
+            }
+
             return Path.GetFullPath(referenceAssemblyPath);
         }
 
@@ -250,6 +264,15 @@ namespace CSharpRepl.Services.Roslyn.References
 
         internal void TrackUsings(IReadOnlyCollection<UsingDirectiveSyntax> usingsToAdd) =>
             usings.UnionWith(usingsToAdd);
+
+
+        private static string GroupPathsByPrefixForLogging(IEnumerable<string?> paths) =>
+            string.Join(
+                ", ",
+                paths
+                    .GroupBy(Path.GetDirectoryName)
+                    .Select(group => $@"""{group.Key}"": [{string.Join(", ", group.Select(path => $@"""{Path.GetFileName(path)}"""))}]")
+            );
     }
 
     public class SharedFramework
