@@ -1,32 +1,32 @@
 ﻿using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using NSubstitute;
+using NSubstitute.ClearExtensions;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
-using System;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace CSharpRepl.Tests
 {
     [Collection(nameof(RoslynServices))]
-    public class ReadEvalPrintLoopTests : IAsyncLifetime
+    public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
     {
         private readonly ReadEvalPrintLoop repl;
         private readonly IConsole console;
         private readonly IPrompt prompt;
         private readonly RoslynServices services;
 
-        public ReadEvalPrintLoopTests()
+        public ReadEvalPrintLoopTests(RoslynServicesFixture fixture)
         {
-            this.console = Substitute.For<IConsole>();
-            this.prompt = Substitute.For<IPrompt>();
-            this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
+            this.console = fixture.ConsoleStub;
+            this.prompt = fixture.PromptStub;
+            this.services = fixture.RoslynServices;
             this.repl = new ReadEvalPrintLoop(services, prompt, console);
-        }
 
-        public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
-        public Task DisposeAsync() => Task.CompletedTask;
+            this.console.ClearSubstitute();
+            this.prompt.ClearSubstitute();
+        }
 
         [Theory]
         [InlineData("help")]

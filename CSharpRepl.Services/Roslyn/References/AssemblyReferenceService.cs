@@ -60,7 +60,7 @@ namespace CSharpRepl.Services.Roslyn.References
                 .ToHashSet();
 
             var (framework, version) = GetDesiredFrameworkVersion(config.Framework);
-            var sharedFrameworks = dotnetInstallationLocator.GetSharedFrameworkConfiguration(framework, version);
+            var sharedFrameworks = GetSharedFrameworkConfiguration(framework, version);
             LoadSharedFrameworkConfiguration(sharedFrameworks);
 
             logger.Log(() => $".NET Version: {framework} / {version}");
@@ -69,6 +69,40 @@ namespace CSharpRepl.Services.Roslyn.References
             logger.Log(() => $"Shared Framework Paths: {string.Join(", ", sharedFrameworkImplementationAssemblyPaths)}");
             logger.LogPaths("Loaded Reference Assemblies", () => loadedReferenceAssemblies.Select(a => a.Display));
             logger.LogPaths("Loaded Implementation Assemblies", () => loadedImplementationAssemblies.Select(a => a.Display));
+        }
+
+        /// <summary>
+        /// Returns a SharedFramework that contains a list of reference and implementation assemblies in that framework.
+        /// It first tries to use a globally installed shared framework (e.g. in C:\Program Files\dotnet\) and falls back
+        /// to a shared framework installed in C:\Users\username\.nuget\packages\.
+        ///
+        /// Microsoft.NETCore.App is always returned, in addition to any other specified framework.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">If no shared framework could be found</exception>
+        public SharedFramework[] GetSharedFrameworkConfiguration(string framework, Version version)
+        {
+            var (referencePath, implementationPath) = dotnetInstallationLocator.FindInstallation(framework, version);
+
+            var referenceDlls = CreateDefaultReferences(
+                referencePath,
+                Directory.GetFiles(referencePath, "*.dll", SearchOption.TopDirectoryOnly)
+            );
+            var implementationDlls = CreateDefaultReferences(
+                implementationPath,
+                Directory.GetFiles(implementationPath, "*.dll", SearchOption.TopDirectoryOnly)
+            );
+
+            // Microsoft.NETCore.App is always loaded.
+            // e.g. if we're loading Microsoft.AspNetCore.App, load it alongside Microsoft.NETCore.App.
+            return framework switch
+            {
+                SharedFramework.NetCoreApp => new[] {
+                    new SharedFramework(referencePath, referenceDlls, implementationPath, implementationDlls)
+                },
+                _ => GetSharedFrameworkConfiguration(SharedFramework.NetCoreApp, version)
+                    .Append(new SharedFramework(referencePath, referenceDlls, implementationPath, implementationDlls))
+                    .ToArray()
+            };
         }
 
         internal IReadOnlyCollection<MetadataReference> EnsureReferenceAssemblyWithDocumentation(IReadOnlyCollection<MetadataReference> references)
@@ -153,7 +187,7 @@ namespace CSharpRepl.Services.Roslyn.References
 
         public void LoadSharedFrameworkConfiguration(string framework, Version version)
         {
-            var sharedFrameworks = dotnetInstallationLocator.GetSharedFrameworkConfiguration(framework, version);
+            var sharedFrameworks = GetSharedFrameworkConfiguration(framework, version);
             LoadSharedFrameworkConfiguration(sharedFrameworks);
         }
 
@@ -175,5 +209,36 @@ namespace CSharpRepl.Services.Roslyn.References
 
         internal void TrackUsings(IReadOnlyCollection<UsingDirectiveSyntax> usingsToAdd) =>
             usings.UnionWith(usingsToAdd);
+
+        private IReadOnlyCollection<MetadataReference> CreateDefaultReferences(string assemblyPath, IReadOnlyCollection<string> assemblies)
+        {
+            return assemblies
+                .AsParallel()
+                .Select(dll =>
+                {
+                    string fullReferencePath = Path.Combine(assemblyPath, dll);
+                    string fullDocumentationPath = Path.ChangeExtension(fullReferencePath, ".xml");
+
+                    if (!IsManagedAssembly(fullReferencePath))
+                        return null;
+
+                    return File.Exists(fullDocumentationPath)
+                        ? MetadataReference.CreateFromFile(fullReferencePath, documentation: XmlDocumentationProvider.CreateFromFile(fullDocumentationPath))
+                        : MetadataReference.CreateFromFile(fullReferencePath);
+                })
+                .WhereNotNull()
+                .ToList();
+        }
+
+        private static bool IsManagedAssembly(string assemblyPath)
+        {
+            try
+            {
+                _ = AssemblyName.GetAssemblyName(assemblyPath);
+                return true;
+            }
+            catch (FileNotFoundException) { return false; }
+            catch (BadImageFormatException) { return false; }
+        }
     }
 }
