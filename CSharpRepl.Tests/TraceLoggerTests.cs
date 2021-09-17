@@ -1,6 +1,7 @@
 ﻿using CSharpRepl.Logging;
 using CSharpRepl.Services.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Xunit;
 
@@ -27,10 +28,15 @@ namespace CSharpRepl.Tests
         }
     }
 
+    /// <summary>
+    /// Executes the delayed evaluation Funcs for testing purposes (to make sure they don't throw).
+    /// </summary>
     public class TestTraceLogger : ITraceLogger
     {
-        public void Log(string message) => Console.WriteLine(message);
+        public void Log(string message) { }
 
-        public void Log(Func<string> message) => Console.WriteLine(message());
+        public void Log(Func<string> message) { message(); }
+
+        public void LogPaths(string message, Func<IEnumerable<string>> paths) => paths();
     }
 }
