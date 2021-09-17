@@ -39,10 +39,7 @@ namespace CSharpRepl
 
             var logger = InitializeLogging(config.Trace);
             var roslyn = new RoslynServices(console, config, logger);
-            var prompt = new Prompt(
-                persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
-                callbacks: PromptConfiguration.Configure(console, roslyn)
-            );
+            var prompt = InitializePrompt(console, appStorage, roslyn);
 
             await new ReadEvalPrintLoop(roslyn, prompt, console)
                 .RunAsync(config)
@@ -50,6 +47,7 @@ namespace CSharpRepl
 
             return 0;
         }
+
 
         private static bool TryParseArguments(string[] args, [NotNullWhen(true)] out Configuration? configuration)
         {
@@ -91,6 +89,26 @@ namespace CSharpRepl
             }
 
             return TraceLogger.Create($"csharprepl-tracelog-{DateTime.UtcNow:yyyy-MM-dd}.txt");
+        }
+
+        private static Prompt InitializePrompt(SystemConsole console, string appStorage, RoslynServices roslyn)
+        {
+            try
+            {
+                return new Prompt(
+                    persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
+                    callbacks: PromptConfiguration.Configure(console, roslyn)
+                );
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("error code: 87"))
+            {
+                Console.Error.WriteLine(
+                    "Failed to initialize prompt. Please make sure that:" + Environment.NewLine
+                    + " - The OS is Windows 10 version 1511 (build number 10586) or greater." + Environment.NewLine
+                    + " - The current terminal supports ANSI escape sequences. For Command Prompt, make sure \"Use legacy console\" is disabled." + Environment.NewLine
+                );
+                throw;
+            }
         }
     }
 }
