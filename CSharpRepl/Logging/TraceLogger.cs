@@ -4,11 +4,16 @@
 
 using CSharpRepl.Services.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace CSharpRepl.Logging
 {
+    /// <summary>
+    /// TraceLogger is used when the --trace flag is provided, and logs debugging details to a file.
+    /// </summary>
     internal sealed class TraceLogger : ITraceLogger
     {
         private readonly string path;
@@ -16,7 +21,10 @@ namespace CSharpRepl.Logging
         private TraceLogger(string path) => this.path = path;
 
         public void Log(string message) => File.AppendAllText(path, $"{DateTime.UtcNow:s} - {message}{Environment.NewLine}");
+
         public void Log(Func<string> message) => Log(message());
+
+        public void LogPaths(string message, Func<IEnumerable<string?>> paths) => Log(message + ": " + GroupPathsByPrefixForLogging(paths()));
 
         public static ITraceLogger Create(string path)
         {
@@ -38,5 +46,13 @@ namespace CSharpRepl.Logging
 
             return logger;
         }
+
+        private static string GroupPathsByPrefixForLogging(IEnumerable<string?> paths) =>
+            string.Join(
+                ", ",
+                paths
+                    .GroupBy(Path.GetDirectoryName)
+                    .Select(group => $@"""{group.Key}"": [{string.Join(", ", group.Select(path => $@"""{Path.GetFileName(path)}"""))}]")
+            );
     }
 }

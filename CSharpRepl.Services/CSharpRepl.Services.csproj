@@ -16,6 +16,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="5.0.0" />
     <PackageReference Include="NuGet.PackageManagement" Version="5.11.0" />
     <PackageReference Include="PrettyPrompt" Version="2.0.0" />
+    <PackageReference Include="System.IO.Abstractions" Version="13.2.47" />
   </ItemGroup>
 
   <ItemGroup>

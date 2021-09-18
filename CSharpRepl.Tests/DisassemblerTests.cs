@@ -29,7 +29,7 @@ namespace CSharpRepl.Tests
             var console = Substitute.For<IConsole>();
             console.BufferWidth.Returns(200);
             var referenceService = new AssemblyReferenceService(new Configuration(), new TestTraceLogger());
-            var scriptRunner = new ScriptRunner(console, options, referenceService);
+            var scriptRunner = new ScriptRunner(options, referenceService, console);
 
             this.disassembler = new Disassembler(options, referenceService, scriptRunner);
             this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());

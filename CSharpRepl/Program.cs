@@ -22,34 +22,36 @@ namespace CSharpRepl
     /// </summary>
     static class Program
     {
+
         internal static async Task<int> Main(string[] args)
         {
             var console = new SystemConsole();
 
             if (!TryParseArguments(args, out var config))
-                return 1;
+                return ExitCodes.ErrorParseArguments;
 
             if (config.OutputForEarlyExit is not null)
             {
                 console.WriteLine(config.OutputForEarlyExit);
-                return 0;
+                return ExitCodes.Success;
             }
 
             var appStorage = CreateApplicationStorageDirectory();
 
             var logger = InitializeLogging(config.Trace);
             var roslyn = new RoslynServices(console, config, logger);
-            var prompt = new Prompt(
-                persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
-                callbacks: PromptConfiguration.Configure(console, roslyn)
-            );
+            var (prompt, exitCode) = InitializePrompt(console, appStorage, roslyn);
 
-            await new ReadEvalPrintLoop(roslyn, prompt, console)
-                .RunAsync(config)
-                .ConfigureAwait(false);
+            if (prompt is not null)
+            {
+                await new ReadEvalPrintLoop(roslyn, prompt, console)
+                    .RunAsync(config)
+                    .ConfigureAwait(false);
+            }
 
-            return 0;
+            return exitCode;
         }
+
 
         private static bool TryParseArguments(string[] args, [NotNullWhen(true)] out Configuration? configuration)
         {
@@ -92,5 +94,40 @@ namespace CSharpRepl
 
             return TraceLogger.Create($"csharprepl-tracelog-{DateTime.UtcNow:yyyy-MM-dd}.txt");
         }
+
+        private static (Prompt? prompt, int exitCode) InitializePrompt(SystemConsole console, string appStorage, RoslynServices roslyn)
+        {
+            try
+            {
+                var prompt = new Prompt(
+                    persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
+                    callbacks: PromptConfiguration.Configure(console, roslyn)
+                );
+                return (prompt, ExitCodes.Success);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 87", StringComparison.Ordinal))
+            {
+                Console.Error.WriteLine(
+                    "Failed to initialize prompt. Please make sure that the current terminal supports ANSI escape sequences." + Environment.NewLine
+                    + (OperatingSystem.IsWindows()
+                        ? @"This requires at least Windows 10 version 1511 (build number 10586) and ""Use legacy console"" to be disabled in the Command Prompt." + Environment.NewLine
+                        : string.Empty)
+                );
+                return (null, ExitCodes.ErrorAnsiEscapeSequencesNotSupported);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 6", StringComparison.Ordinal))
+            {
+                Console.Error.WriteLine("Failed to initialize prompt. Invalid output mode -- is output redirected?");
+                return (null, ExitCodes.ErrorInvalidConsoleHandle);
+            }
+        }
+    }
+
+    internal static class ExitCodes
+    {
+        public const int Success = 0;
+        public const int ErrorParseArguments = 1;
+        public const int ErrorAnsiEscapeSequencesNotSupported = 2;
+        public const int ErrorInvalidConsoleHandle = 3;
     }
 }

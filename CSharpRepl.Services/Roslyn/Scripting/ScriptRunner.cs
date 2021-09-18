@@ -30,7 +30,7 @@ namespace CSharpRepl.Services.Roslyn.Scripting
         private ScriptOptions scriptOptions;
         private ScriptState<object>? state;
 
-        public ScriptRunner(IConsole console, CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceAssemblyService)
+        public ScriptRunner(CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceAssemblyService, IConsole console)
         {
             this.console = console;
             this.referenceAssemblyService = referenceAssemblyService;

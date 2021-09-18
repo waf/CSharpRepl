@@ -39,11 +39,12 @@ namespace CSharpRepl
             while (true)
             {
                 var response = await prompt.ReadLineAsync("> ").ConfigureAwait(false);
+
                 if (response.IsSuccess)
                 {
                     var commandText = response.Text.Trim().ToLowerInvariant();
 
-                    // process built in commands
+                    // evaluate built in commands
                     if (commandText == "exit") { break; }
                     if (commandText == "clear") { console.Clear(); continue; }
                     if (new[] { "help", "#help", "?" }.Contains(commandText))
@@ -52,14 +53,14 @@ namespace CSharpRepl
                         continue;
                     }
 
-                    // process results returned by special keybindings (configured in the PromptConfiguration.cs)
+                    // evaluate results returned by special keybindings (configured in the PromptConfiguration.cs)
                     if(response is KeyPressCallbackResult callbackOutput)
                     {
                         console.WriteLine(Environment.NewLine + callbackOutput.Output);
                         continue;
                     }
 
-                    // process C# code and directives
+                    // evaluate C# code and directives
                     var result = await roslyn
                         .EvaluateAsync(response.Text, config.LoadScriptArgs, response.CancellationToken)
                         .ConfigureAwait(false);
@@ -124,9 +125,9 @@ https://github.com/waf/CSharpRepl/blob/main/README.md
 
 Evaluating Code
 ===============
-Type C# at the prompt and press {Blue("Enter")} to run it. The result will be printed.
-{Blue("Ctrl+Enter")} will also run the code, but show detailed member info / stack traces.
-{Blue("Shift+Enter")} will insert a newline, to support multiple lines of input.
+Type C# at the prompt and press {Underline("Enter")} to run it. The result will be printed.
+{Underline("Ctrl+Enter")} will also run the code, but show detailed member info / stack traces.
+{Underline("Shift+Enter")} will insert a newline, to support multiple lines of input.
 If the code isn't a complete statement, pressing Enter will insert a newline.
 
 Adding References
@@ -142,9 +143,9 @@ to load.
 
 Exploring Code
 ==============
-{Blue("F1")}: when the caret is in a type or member, open the corresponding MSDN documentation.
-{Blue("F9")}: show the IL (intermediate language) for the current statement.
-{Blue("F12")}: open the type's source code in the browser, if the assembly supports Source Link.
+{Underline("F1")}: when the caret is in a type or member, open the corresponding MSDN documentation.
+{Underline("F9")}: show the IL (intermediate language) for the current statement.
+{Underline("F12")}: open the type's source code in the browser, if the assembly supports Source Link.
 
 Configuration Options
 =====================
@@ -168,17 +169,12 @@ Run --help at the command line to view these options
             return highlightedKeyword + highlightedArgument;
         }
 
-        private string VariableDeclaration =>
-            prompt.HasUserOptedOutFromColor
-            ? "var x ="
-            : (Color("keyword") + "var" + AnsiEscapeCodes.Reset + " " +
-               Color("field name") + "x" + AnsiEscapeCodes.Reset + " " +
-               Color("operator") + "=" + AnsiEscapeCodes.Reset);
-
         private string Color(string reference) =>
-            AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(roslyn!.ToColor(reference)));
+            prompt.HasUserOptedOutFromColor
+            ? string.Empty
+            : AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(roslyn!.ToColor(reference)));
 
-        private string Blue(string word) =>
+        private static string Underline(string word) =>
             AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(Underline: true))
             + word + AnsiEscapeCodes.Reset;
 

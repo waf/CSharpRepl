@@ -68,7 +68,7 @@ namespace CSharpRepl.Services.Roslyn
                 // the script runner is used to actually execute the scripts, and the workspace manager
                 // is updated alongside. The workspace is a datamodel used in "editor services" like
                 // syntax highlighting, autocompletion, and roslyn symbol queries.
-                this.scriptRunner = new ScriptRunner(console, compilationOptions, referenceService);
+                this.scriptRunner = new ScriptRunner(compilationOptions, referenceService, console);
                 this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger);
 
                 this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);

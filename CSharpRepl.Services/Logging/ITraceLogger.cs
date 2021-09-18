@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Collections.Generic;
 
 namespace CSharpRepl.Services.Logging
 {
@@ -10,5 +11,6 @@ namespace CSharpRepl.Services.Logging
     {
         void Log(string message);
         void Log(Func<string> message);
+        void LogPaths(string message, Func<IEnumerable<string?>> paths);
     }
 }

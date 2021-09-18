@@ -24,12 +24,27 @@ namespace CSharpRepl.Tests
         public async Task MainMethod_Version_ShowsVersion()
         {
             using var outputCollector = OutputCollector.Capture(out var capturedOutput);
-            await Program.Main(new[] { "-v" });
-            var output = capturedOutput.ToString();
 
+            await Program.Main(new[] { "-v" });
+
+            var output = capturedOutput.ToString();
             Assert.Contains("C# REPL", output);
             var version = new Version(output.Trim("C# REPL-rc-alpha-beta\r\n".ToCharArray()));
             Assert.True(version.Major + version.Minor > 0);
+        }
+
+        [Fact]
+        public async Task MainMethod_CannotParse_DoesNotThrow()
+        {
+            using var outputCollector = OutputCollector.Capture(out _, out var capturedError);
+
+            await Program.Main(new[] { "bonk" });
+
+            var error = capturedError.ToString();
+            Assert.Equal(
+                "Unrecognized command or argument 'bonk'" + Environment.NewLine,
+                error
+            );
         }
     }
 
@@ -40,14 +55,19 @@ namespace CSharpRepl.Tests
     public sealed class OutputCollector : IDisposable
     {
         private readonly TextWriter normalStandardOutput;
+        private readonly TextWriter normalStandardError;
         private readonly StringWriter fakeConsoleOutput;
+        private readonly StringWriter fakeConsoleError;
         private static readonly Semaphore semaphore = new(1, 1);
 
         private OutputCollector()
         {
             normalStandardOutput = Console.Out;
+            normalStandardError = Console.Error;
             fakeConsoleOutput = new StringWriter();
+            fakeConsoleError = new StringWriter();
             Console.SetOut(fakeConsoleOutput);
+            Console.SetError(fakeConsoleError);
         }
 
         public static OutputCollector Capture(out StringWriter capturedOutput)
@@ -59,9 +79,20 @@ namespace CSharpRepl.Tests
             return outputCollector;
         }
 
+        public static OutputCollector Capture(out StringWriter capturedOutput, out StringWriter capturedError)
+        {
+            semaphore.WaitOne();
+
+            var outputCollector = new OutputCollector();
+            capturedOutput = outputCollector.fakeConsoleOutput;
+            capturedError = outputCollector.fakeConsoleError;
+            return outputCollector;
+        }
+
         public void Dispose()
         {
             Console.SetOut(normalStandardOutput);
+            Console.SetOut(normalStandardError);
             semaphore.Release();
         }
     }
