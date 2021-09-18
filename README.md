@@ -164,6 +164,7 @@ Supported options are:
         - Microsoft.AspNetCore.App
         - Microsoft.WindowsDesktop.App
     - `-t <theme.json>` or `--theme <theme.json>`: Read a theme file for syntax highlighting. This theme file associates C# syntax classifications with colors. The color values can be full RGB, or ANSI color names (defined in your terminal's theme). The [NO_COLOR](https://no-color.org/) standard is supported.
+    - `--trace`: Produce a trace file in the current directory that logs CSharpRepl internals. Useful for CSharpRepl bug reports.
     - `-v` or `--version`: Show version number and exit.
     - `-h` or `--help`: Show help and exit.
 - `response-file.rsp`: A filepath of an .rsp file, containing any of the above command line options.
@@ -231,10 +232,4 @@ This project is far from being the first REPL for C#. Here are some other projec
 
 ## Contributing
 
-If you'd like to help out, thanks! We use Visual Studio 2022 for development, though any standard .NET 5 development environment should work. Please read through these guidelines to get started:
-
-- Read through the [ARCHITECTURE.md](/ARCHITECTURE.md) file to understand how csharprepl works. Depending on what you want to do, changes to the underlying PrettyPrompt library may be required.
-- For new features, please open an issue first to discuss and design the feature. This will help reduce the chance of conflicting designs.
-- Please include an xunit test, and ensure any code warnings are resolved.
-
-Thanks!
+Thanks for the interest! Check out [CONTRIBUTING.md](https://github.com/waf/CSharpRepl/blob/main/CONTRIBUTING.md) for more info.

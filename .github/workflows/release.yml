@@ -1,0 +1,34 @@
+# On pushing a tag like v0.3.2, publish to nuget.org
+# Use publish-release.ps1 to push a release
+name: release
+
+on:
+  push:
+    tags:
+    - "^v[0-9]+\..*" # require a vX. prefix on tags to signify a release
+    
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    
+    - name: Install Dotnet
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '5.0.x'
+      
+    - name: Dotnet Installation Info
+      run: dotnet --info
+      
+    - name: Pack
+      run: dotnet pack -c Release /p:ContinuousIntegrationBuild=true
+      
+    # publish to nuget. This will publish both a nupkg and snupkg file.
+    - name: Publish
+      shell: pwsh
+      run: |
+        cd CSharpRepl/nupkg
+        dotnet nuget push ./CSharpRepl.*.nupkg --api-key= ${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json
