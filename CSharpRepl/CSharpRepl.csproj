@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.3.4-rc</Version>
+    <Version>0.3.4</Version>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <RollForward>LatestMajor</RollForward>
@@ -20,6 +20,7 @@
     <PackageTags>repl console cli csharp tool</PackageTags>
     <PackageOutputPath>./nupkg</PackageOutputPath>
     <PackageProjectUrl>https://github.com/waf/CSharpRepl</PackageProjectUrl>
+    <PackageReleaseNotes>https://github.com/waf/CSharpRepl/blob/main/CHANGELOG.md</PackageReleaseNotes>
     <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
   </PropertyGroup>
 
