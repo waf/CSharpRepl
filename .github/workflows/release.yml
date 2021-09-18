@@ -5,7 +5,7 @@ name: release
 on:
   push:
     tags:
-    - "^v[0-9]+\..*" # require a vX. prefix on tags to signify a release
+    - "v[0-9]+.*" # not a regex! ".*" means a period followed by any character https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
     
 jobs:
   build:
@@ -30,5 +30,7 @@ jobs:
     - name: Publish
       shell: pwsh
       run: |
+        pwd
         cd CSharpRepl/nupkg
-        dotnet nuget push ./CSharpRepl.*.nupkg --api-key= ${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json
+        ls
+        dotnet nuget push CSharpRepl.*.nupkg --api-key=${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json
