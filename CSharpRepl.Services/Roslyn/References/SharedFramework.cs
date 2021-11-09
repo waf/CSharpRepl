@@ -39,5 +39,9 @@ namespace CSharpRepl.Services.Roslyn.References
                 .Select(dir => Path.GetFileName(dir))
                 .ToArray()
             : Array.Empty<string>();
+
+        public static Version ToDotNetVersion(string version) =>
+            // discard trailing preview versions, e.g. 6.0.0-preview.4.21253.7 
+            new Version(version.Split('-', 2).First());
     }
 }

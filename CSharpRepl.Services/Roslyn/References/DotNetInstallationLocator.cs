@@ -108,16 +108,10 @@ namespace CSharpRepl.Services.Roslyn.References
 
             var configuredFrameworkAndVersion = io.Directory
                 .GetDirectories(implementationAssemblyRoot, version.Major + "." + version.Minor + "*")
-                .OrderBy(path => ParseDotNetVersion(path))
+                .OrderBy(path => SharedFramework.ToDotNetVersion(Path.GetFileName(path)))
                 .LastOrDefault();
 
             return configuredFrameworkAndVersion;
-
-            Version ParseDotNetVersion(string path)
-            {
-                var versionString = Path.GetFileName(path).Split('-', 2).First(); // discard trailing preview versions, e.g. 6.0.0-preview.4.21253.7 
-                return new Version(versionString);
-            }
         }
 
         /// <summary>
