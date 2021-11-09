@@ -71,11 +71,14 @@ namespace CSharpRepl
         {
             var parseArgs = RemoveScriptArguments(args).ToArray();
 
-            Framework.AddValidator(r =>
-                SharedFramework.SupportedFrameworks.Any(f => r.GetValueOrDefault<string>().StartsWith(f, StringComparison.OrdinalIgnoreCase))
-                ? null // success
-                : "Unrecognized --framework value"
-            );
+            Framework.AddValidator(r => {
+                if (!r.Children.Any()) return null;
+
+                string frameworkValue = r.GetValueOrDefault<string>() ?? string.Empty;
+                return SharedFramework.SupportedFrameworks.Any(f => frameworkValue.StartsWith(f, StringComparison.OrdinalIgnoreCase))
+                    ? null // success
+                    : "Unrecognized --framework value";
+            });
 
             var commandLine =
                 new CommandLineBuilder(
