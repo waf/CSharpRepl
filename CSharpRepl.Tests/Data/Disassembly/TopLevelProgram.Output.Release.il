@@ -2,7 +2,7 @@
 {
 } // end of class <Module>
 
-.class private auto ansi abstract sealed beforefieldinit '<Program>$'
+.class private auto ansi beforefieldinit Program
     extends [System.Runtime]System.Object
 {
     .custom instance void [System.Runtime]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
@@ -29,9 +29,21 @@
         IL_0004: add
         IL_0005: call void [System.Console]System.Console::WriteLine(int32)
         IL_000a: ret
-    } // end of method '<Program>$'::'<Main>$'
+    } // end of method Program::'<Main>$'
 
-} // end of class <Program>$
+    .method public hidebysig specialname rtspecialname
+        instance void .ctor () cil managed
+    {
+        // Method begins at RVA 0x2067
+        // Code size 7 (0x7)
+        .maxstack 8
+
+        IL_0000: ldarg.0
+        IL_0001: call instance void [System.Runtime]System.Object::.ctor()
+        IL_0006: ret
+    } // end of method Program::.ctor
+
+} // end of class Program
 
 // Disassembled in Release Mode.
 // Compiling code as Console Application (with top-level statements): succeeded.
