@@ -43,6 +43,8 @@ namespace CSharpRepl.Tests
             yield return new object[] { (ConsoleModifiers.Control, ConsoleKey.F1) };
             yield return new object[] { ConsoleKey.F9 };
             yield return new object[] { (ConsoleModifiers.Control, ConsoleKey.F9) };
+            yield return new object[] { ConsoleKey.F12 };
+            yield return new object[] { (ConsoleModifiers.Control, ConsoleKey.D) };
         }
     }
 }
