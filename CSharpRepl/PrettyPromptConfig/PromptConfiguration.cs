@@ -38,6 +38,7 @@ namespace CSharpRepl.PrettyPromptConfig
                     [ConsoleKey.F9] = DisassembleDebug,
                     [(ConsoleModifiers.Control, ConsoleKey.F9)] = DisassembleRelease,
                     [ConsoleKey.F12] = LaunchSourceForSymbol,
+                    [(ConsoleModifiers.Control, ConsoleKey.D)] = ExitApplication,
                 }
             };
 
@@ -61,6 +62,9 @@ namespace CSharpRepl.PrettyPromptConfig
 
             Task<KeyPressCallbackResult?> DisassembleRelease(string text, int caret) =>
                 Disassemble(roslyn, text, console, debugMode: false);
+
+            Task<KeyPressCallbackResult?> ExitApplication(string text, int caret) =>
+                Task.FromResult<KeyPressCallbackResult?>(new ExitApplicationKeyPress());
         }
 
         private static async Task<KeyPressCallbackResult?> Disassemble(RoslynServices roslyn, string text, IConsole console, bool debugMode)
@@ -134,4 +138,9 @@ namespace CSharpRepl.PrettyPromptConfig
                 })
                 .ToArray();
     }
+
+    /// <summary>
+    /// Used when the user presses an "exit application" key combo (ctrl-d) to instruct the main REPL loop to end.
+    /// </summary>
+    sealed record ExitApplicationKeyPress() : KeyPressCallbackResult(null, null);
 }

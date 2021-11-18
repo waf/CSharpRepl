@@ -1,4 +1,5 @@
-﻿using CSharpRepl.Services;
+﻿using CSharpRepl.PrettyPromptConfig;
+using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using NSubstitute;
 using NSubstitute.ClearExtensions;
@@ -126,6 +127,20 @@ namespace CSharpRepl.Tests
             await repl.RunAsync(new Configuration());
 
             console.Received().WriteErrorLine(Arg.Is<string>(message => message.Contains("bonk")));
+        }
+
+        [Fact]
+        public async Task RunAsync_ExitCommand_ExitsRepl()
+        {
+            prompt
+                .ReadLineAsync("> ")
+                .Returns(
+                    new ExitApplicationKeyPress()
+                );
+
+            await repl.RunAsync(new Configuration());
+
+            // by reaching here, the application correctly exited.
         }
     }
 }

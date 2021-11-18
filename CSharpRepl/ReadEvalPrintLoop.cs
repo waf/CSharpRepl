@@ -1,4 +1,5 @@
-﻿using CSharpRepl.Services;
+﻿using CSharpRepl.PrettyPromptConfig;
+using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using PrettyPrompt;
@@ -40,6 +41,11 @@ namespace CSharpRepl
             {
                 var response = await prompt.ReadLineAsync("> ").ConfigureAwait(false);
 
+                if (response is ExitApplicationKeyPress)
+                {
+                    break;
+                }
+
                 if (response.IsSuccess)
                 {
                     var commandText = response.Text.Trim().ToLowerInvariant();
@@ -59,6 +65,8 @@ namespace CSharpRepl
                         console.WriteLine(Environment.NewLine + callbackOutput.Output);
                         continue;
                     }
+
+                    response.CancellationToken.Register(() => Environment.Exit(1));
 
                     // evaluate C# code and directives
                     var result = await roslyn
