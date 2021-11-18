@@ -92,6 +92,7 @@ namespace CSharpRepl.Services.Roslyn.References
 
             var referenceAssemblyPath = io.Directory
                 .GetDirectories(referenceAssemblyRoot, "net*" + version.Major + "." + version.Minor + "*", SearchOption.AllDirectories)
+                .OrderBy(path => path)
                 .LastOrDefault();
 
             if (referenceAssemblyPath is null) return null;
@@ -108,16 +109,11 @@ namespace CSharpRepl.Services.Roslyn.References
 
             var configuredFrameworkAndVersion = io.Directory
                 .GetDirectories(implementationAssemblyRoot, version.Major + "." + version.Minor + "*")
-                .OrderBy(path => ParseDotNetVersion(path))
+                .OrderBy(path => SharedFramework.ToDotNetVersion(Path.GetFileName(path)))
+                    .ThenBy(path => path + ".") // trick to get e.g. 6.0 to come after 6.0-preview
                 .LastOrDefault();
 
             return configuredFrameworkAndVersion;
-
-            Version ParseDotNetVersion(string path)
-            {
-                var versionString = Path.GetFileName(path).Split('-', 2).First(); // discard trailing preview versions, e.g. 6.0.0-preview.4.21253.7 
-                return new Version(versionString);
-            }
         }
 
         /// <summary>

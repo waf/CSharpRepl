@@ -15,29 +15,25 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@230611dbd0eb52da1e1f4f7bc8bb0c3a339fc8b7
     
     - name: Install Dotnet
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@e3ce4164b306e5cd25c71d9fcd57e1647b6af302
       with:
-        dotnet-version: '5.0.x'
+        dotnet-version: '6.0.x'
       
     - name: Dotnet Installation Info
       run: dotnet --info
-      
-    - name: Install Codecov
-      if: matrix.platform == 'windows-latest' # only generate and upload code coverage once
-      run: dotnet tool install --global Codecov.Tool
       
     - name: Build
       run: dotnet build
       
     - name: Test
-      run: dotnet test --collect:"XPlat Code Coverage" --settings CSharpRepl.Tests/TestCoverageRunSettings.xml
+      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
-    - name: Code Coverage
+    - name: Report Code Coverage
       if: matrix.platform == 'windows-latest' # only generate and upload code coverage once
-      shell: pwsh
-      run: |
-        $testCoverage = Get-ChildItem CSharpRepl.Tests\TestResults\*\*.xml
-        codecov -t ${{ secrets.CODECOV_TOKEN }} -f $testCoverage[0].ToString()
+      uses: codecov/codecov-action@260aa3b4b2f265b8578bc0e721e33ebf8ff53313
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: CSharpRepl.Tests/coverage.opencover.xml

@@ -72,16 +72,15 @@ namespace CSharpRepl.Tests
         [Fact]
         public async Task Evaluate_NugetPackageVersioned_InstallsPackageVersion()
         {
-            var installation = await services.EvaluateAsync(@"#r ""nuget:Newtonsoft.Json, 12.0.1""");
-            var usage = await services.EvaluateAsync(@"Newtonsoft.Json.JsonConvert.SerializeObject(new { Foo = ""bar"" })");
+            var installation = await services.EvaluateAsync(@"#r ""nuget:Microsoft.CodeAnalysis.CSharp, 3.11.0""");
+            var usage = await services.EvaluateAsync(@"Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(""5"")");
 
             var installationResult = Assert.IsType<EvaluationResult.Success>(installation);
             var usageResult = Assert.IsType<EvaluationResult.Success>(usage);
 
             Assert.Null(installationResult.ReturnValue);
-            Assert.Contains(installationResult.References, r => r.Display.EndsWith("Newtonsoft.Json.dll") && r.Display.Contains("Newtonsoft.Json.12.0.1"));
-            Assert.Contains("Adding references for Newtonsoft.Json", stdout.ToString());
-            Assert.Equal(@"{""Foo"":""bar""}", usageResult.ReturnValue);
+            Assert.NotNull(usageResult.ReturnValue);
+            Assert.Contains("Adding references for Microsoft.CodeAnalysis.CSharp.3.11.0", stdout.ToString());
         }
 
         [Fact]

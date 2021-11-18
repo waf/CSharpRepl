@@ -44,7 +44,7 @@ namespace CSharpRepl
             aliases: new[] { "--framework", "-f", "/f" },
             description: "Reference a shared framework.",
             getDefaultValue: () => Configuration.FrameworkDefault
-        ).FromAmong(SharedFramework.SupportedFrameworks);
+        ).AddSuggestions(SharedFramework.SupportedFrameworks);
 
         private static readonly Option<string> Theme = new(
             aliases: new[] { "--theme", "-t", "/t" },
@@ -70,6 +70,15 @@ namespace CSharpRepl
         public static Configuration Parse(string[] args)
         {
             var parseArgs = RemoveScriptArguments(args).ToArray();
+
+            Framework.AddValidator(r => {
+                if (!r.Children.Any()) return null;
+
+                string frameworkValue = r.GetValueOrDefault<string>() ?? string.Empty;
+                return SharedFramework.SupportedFrameworks.Any(f => frameworkValue.StartsWith(f, StringComparison.OrdinalIgnoreCase))
+                    ? null // success
+                    : "Unrecognized --framework value";
+            });
 
             var commandLine =
                 new CommandLineBuilder(

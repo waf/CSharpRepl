@@ -136,7 +136,11 @@ namespace CSharpRepl.Services.Nuget
             var reader = new PackageFolderReader(installedPath);
             aggregatedDependencies[packageIdentity] = reader;
 
-            var dependencyGroup = await reader.GetPackageDependenciesAsync(cancellationToken);
+            var dependencyGroup = (await reader.GetPackageDependenciesAsync(cancellationToken)).ToArray();
+
+            if (!dependencyGroup.Any())
+                return;
+
             var firstLevelDependencies = dependencyGroup
                 .Last(group => DefaultCompatibilityProvider.Instance.IsCompatible(frameworkVersion, group.TargetFramework))
                 .Packages

@@ -65,7 +65,7 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers
             if (JsonSerializer.Deserialize<RuntimeConfigJson>(content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) is RuntimeConfigJson config)
             {
                 var name = config.RuntimeOptions.Framework.Name;
-                var version = new Version(config.RuntimeOptions.Framework.Version);
+                var version = SharedFramework.ToDotNetVersion(config.RuntimeOptions.Framework.Version);
                 referenceAssemblyService.LoadSharedFrameworkConfiguration(name, version);
             }
         }
