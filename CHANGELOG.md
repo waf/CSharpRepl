@@ -1,3 +1,11 @@
+## Release 0.3.5
+
+- .NET 6 and C# 10 support
+- Exit when user presses ctrl-d
+- If the user presses ctrl-c when there's a long running (or infinite!) evaluation, exit the application. This allows a way of interrupting infinite or slow processes.
+- Roslyn library upgrade
+- Bugfix for NuGet packages that don't specify any dependency groups (for target frameworks)
+
 ## Release 0.3.4
 
 - Add a --trace command line option for generating trace logs of CSharpRepl internals

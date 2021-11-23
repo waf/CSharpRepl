@@ -14,10 +14,9 @@ if ( $null -ne $remoteChanges ) {
 $csproj = [xml](Get-Content ./CSharpRepl/CSharpRepl.csproj)
 $version = $csproj.Project.PropertyGroup.Version
 
-git tag "v$version"
-
 Write-Output "Reminder: Did you update the CHANGELOG.md?"
 Write-Output "Press Enter to create tag ""v$version"" and publish to nuget.org"
 Read-Host
 
+git tag "v$version"
 git push origin "v$version"
