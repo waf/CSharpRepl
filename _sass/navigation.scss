@@ -1,33 +1,9 @@
-.nav-open nav {
-	border-bottom: 1px dotted rgba(255, 255, 255, .2);
-	padding: 10px 0;
-	a {
-		display: block;
-	}
-
-	@media #{$mid-point} {
-		border: 0;
-		padding: 0 20px;
-
-		a {
-			display: inline;
-		}
-	}
-}
-
 nav {
 	text-transform: uppercase;
 	font-size: 1em;
-	width: 100%;
-
-	@media #{$mid-point} {
-		text-align: right;
-		position: absolute;
-		top: 13px;
-		right: 0;
-		padding: 0 20px;
-	}
-
+    position: absolute;
+    top: 12px;
+    right: 0;
 
 	a {
 		margin: 0 3px;
@@ -35,52 +11,16 @@ nav {
 		border-bottom: 1px solid rgba(255,255,255,0);
 		color: rgba(255,255,255,.8);
 		transition: .2s ease-in-out;
-		display: none;
-
-		@media #{$mid-point} {
-			display: inline;
-			padding: 10px;
-		}
-
-
-		&.nav-toggle {
-			display: inline;
-			position: absolute;
-			right: 10px;
-			top: -22px;
-			font-size: 1.9em;
-			border: 0;
-
-			@media #{$mid-point} {
-				display: none;
-			}
-
-			&:hover {
-				border: 0;
-			}
-		}
+        display: inline;
+        padding: 10px;
 	}
 
 	a:hover {
-
 		border-bottom: 1px solid rgba(255,255,255,.3);
 		color: #fff;
-	}
-
-	@media #{$mid-point} {
-		a.highlight {
-			border: 1px #ccc solid;
-			border-radius: 5px;
-
-			&:hover {
-				background: #fff;
-				color: $brand-color;
-			}
-		}
 	}
 
 	a.active {
 		color: #fff;
 	}
-
 }
