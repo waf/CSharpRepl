@@ -25,32 +25,9 @@ social:
 
 timezone: Etc/UTC
 
-collections:
-  staff_members:
-    _hide_content: true
-
-paginate: 10
-paginate_path: "/blog/:num/"
 permalink: pretty
 
 defaults:
-  - scope:
-      path: ""
-      type: "posts"
-    values:
-      layout: "post"
-      _options:
-        content:
-          width: 1500
-          height: 2500
-  - scope:
-      path: ""
-      type: "staff_members"
-    values:
-      _options:
-        image_path:
-          width: 600
-          height: 600
   - scope:
       path: ""
     values:
@@ -59,16 +36,6 @@ defaults:
       path: "index.html"
     values:
       layout: "default"
-  - scope:
-      path: "contact.html"
-    values:
-      full_width: true
-
-jekyll-archives:
-  enabled:
-    - categories
-
-plugins:
 
 exclude:
   - Gemfile
@@ -76,19 +43,6 @@ exclude:
   - README.md
   - LICENCE
 
-# -----------
-# CloudCannon
-
 _select_data:
   social_icons:
     - GitHub
-
-_comments:
-  map: Update the map location and display settings.
-  latitude: Coordinates for the center marker on the map.
-  longitude: Coordinates for the center marker on the map.
-  zoom: The zoom level for the map.
-  pricing_table: Update the information in the pricing tables.
-  highlight: Emphasis the text
-  color: The background colour used in the plan name and call to action.
-  new_window: Open link in new window
