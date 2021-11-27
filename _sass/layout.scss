@@ -1,0 +1,100 @@
+.container, .text-container {
+	margin: 0 auto;
+	padding: 0 20px;
+}
+
+.container {
+	max-width: 1140px;
+
+	&.max-container {
+		max-width: 100%;
+		padding: 0;
+	}
+}
+
+header {
+	color: #fff;
+	padding: 20px 0;
+	background: $brand-color; /* Old browsers */
+	background: linear-gradient(to bottom, $brand-color 0%, $middle-gradient-color 100%) no-repeat $brand-color;
+
+	a {
+		color: #fff;
+		text-decoration: none;
+		z-index: 1;
+
+		&:hover {
+			text-decoration: none;
+		}
+	}
+
+	.company-name {
+		font-size:1.4em;
+		line-height:2em;
+
+		a {
+			display: inline-block;
+		}
+
+		img {
+			display: block;
+			width: auto;
+		}
+	}
+}
+
+.content {
+	background: #fff;
+	padding: 1px 0 0 0;
+}
+
+.screenshot{
+	max-width: 100%;
+	height: auto;
+	display: block;
+	border-radius: 4px;
+	margin-left: auto;
+	margin-right: auto;
+	padding: 0;
+}
+
+section {
+	padding: 100px 0;
+}
+
+section + section {
+	padding-top: 0;
+}
+
+.subtext {
+	margin-top: 10px;
+	text-align: center;
+}
+
+
+.cta {
+	margin: 60px 0;
+}
+
+.page h2 {
+	text-align: center;
+}
+
+.page {
+	margin-bottom: 0;
+	padding-bottom: 80px;
+}
+
+.center-text {
+	text-align: center;
+}
+code {
+	display:block;
+	padding:20px;
+	font-size:1.4em;
+	background-color: #282936;
+	color: #fff;
+	font-family:Consolas, Inconsolata, Menlo;
+	cursor:pointer;
+	width:30%;
+}

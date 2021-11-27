@@ -1,0 +1,167 @@
+---
+title: CSharpRepl
+---
+<section class="hero">
+	<div class="text-container">
+		<h1>A cross-platform command-line C# <abbr title="Read Eval Print Loop"><a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" style="color:inherit">REPL</a></abbr></h1>
+		<p class="subtext">Explore the language, libraries and nuget packages interactively</p>
+		<code class="cta" style="margin: 40px auto" onclick="copy(this)">dotnet tool install -g csharprepl</code>
+
+		<div>
+			<video autoplay controls src="{{ site.baseurl }}/images/videos/csharprepl-intro.mp4" class="screenshot" />
+		</div>
+	</div>
+</section>
+
+<div class="content">
+	<section>
+		<div class="container flex">
+			<div class="text">
+				<h2><strong>Experiment</strong> with C# and .NET APIs</h2>
+				<p>Quickly try out C# syntax and .NET APIs, without needing to litter your filesystem with testing projects. Command-line autocompletion helps you find answers fast.</p>
+			</div>
+			<div class="image">
+				<a href="{{ site.baseurl }}/images/screenshots/experiment.png" onclick="microLite(this); return false;">
+					<img src="{{ site.baseurl }}/images/screenshots/experiment.png" class="screenshot" width="530" height="275" />
+				</a>
+			</div>
+		</div>
+	</section>
+
+	<section>
+		<div class="container flex">
+			<div class="text">
+				<h2><strong>Install</strong> NuGet packages</h2>
+				<p>Use the <strong>#r</strong> command to reference NuGet packages; the autocompletion window shows relevant method/class documentation.</p>
+			</div>
+			<div class="image">
+				<a href="{{ site.baseurl }}/images/screenshots/nuget.png" onclick="microLite(this); return false;">
+					<img src="{{ site.baseurl }}/images/screenshots/nuget.png" class="screenshot" />
+				</a>
+			</div>
+		</div>
+	</section>
+
+	<section>
+		<div class="container flex">
+			<div class="text">
+				<h2><strong>Navigate</strong> to source code</h2>
+				<p>Ever find yourself Googling for a library's source code? For NuGet packages and assemblies that support SourceLink, browse their original source code by simply pressing F12.</p>
+			</div>
+			<div class="image">
+				<a href="{{ site.baseurl }}/images/screenshots/sourcelink.png" onclick="microLite(this); return false;">
+					<img src="{{ site.baseurl }}/images/screenshots/sourcelink.png" class="screenshot" />
+				</a>
+			</div>
+		</div>
+	</section>
+
+	<section>
+		<div class="container flex">
+			<div class="text">
+				<h2><strong>Reference</strong> your existing projects</h2>
+				<p>The <strong>#r</strong> command can also reference assemblies by name and filepath, as well as your own .csproj and .sln files.</p>
+			</div>
+			<div class="image">
+				<a href="{{ site.baseurl }}/images/screenshots/reference.png" onclick="microLite(this); return false;">
+					<img src="{{ site.baseurl }}/images/screenshots/reference.png" class="screenshot" />
+				</a>
+			</div>
+		</div>
+	</section>
+
+	<section>
+		<div class="container flex">
+			<div class="text">
+				<h2><strong>Dive</strong> into the IL code</h2>
+				<p>Curious how a feature in C# works? Press F9 to view the IL code of any statement or expression you've typed.</p>
+			</div>
+			<div class="image">
+				<a href="{{ site.baseurl }}/images/screenshots/intermediate-language.png" onclick="microLite(this); return false;">
+					<img src="{{ site.baseurl }}/images/screenshots/intermediate-language.png" class="screenshot" />
+				</a>
+			</div>
+		</div>
+	</section>
+
+	<section class="bottom-cta">
+		<h2>Free and Open Source. Install it now by running:</h2>
+		<code class="cta" style="margin: 40px auto 20px auto" onclick="copy(this)">dotnet tool install -g csharprepl</code>
+	</section>
+</div>
+
+<script>
+function copy(el) {
+  window.getSelection().selectAllChildren(el);
+  navigator.clipboard.writeText(el.textContent);
+}
+
+// lightbox effect https://github.com/danklammer/microlite
+function microLite(i) {
+  var childNode = i.children[0],
+    body = document.body,
+    zoomPadding = 50,
+    windowWidth = window.innerWidth - (zoomPadding * 2),
+    windowHeight = window.innerHeight - (zoomPadding * 2),
+    imgWidth = childNode.width,
+    imgHeight = childNode.height,
+    imgX = childNode.offsetLeft,
+    imgY = parseInt(childNode.offsetTop - (document.documentElement.scrollTop || body.scrollTop)),
+    scaleX = windowWidth / imgWidth,
+    scaleY = windowHeight / imgHeight,
+    scaleMax = Math.min(scaleX, scaleY),
+    mlite = document.createElement('div');
+
+  if (scaleX <= scaleY) {
+    var zoomX = zoomPadding,
+      zoomY = ((windowHeight - (imgHeight * scaleMax)) / 2) + zoomPadding;
+  } else {
+    var zoomX = ((windowWidth - (imgWidth * scaleMax)) / 2) + zoomPadding,
+      zoomY = zoomPadding;
+  }
+  console.log(imgY);
+
+  mlite.setAttribute('id', 'ml');
+  mlite.setAttribute(
+    'onclick',
+    'this.className = " "; addEventListener("transitionend", function() { if (this.parentNode) { this.parentNode.removeChild(this); } });'
+  );
+  mlite.innerHTML = '<div class="mlbg"></div><div class="mli"></div><style>#ml{cursor:pointer;position:fixed;top:0;left:0;width:100%;height:100%}.mlbg{position:fixed;width:100%;height:100%;background:#0a0a0a;opacity:0;will-change:opacity;transition:opacity .4s ease}.mli{background:url(' + i.href + ')no-repeat center,url(' + childNode.src + ')no-repeat center;background-size:contain;width:' + childNode.width + 'px;height:' + childNode.height + 'px;transform:translate3d(' + imgX + 'px, ' + imgY + 'px, 0) scale(1);transform-origin:top left;will-change:transform;transition:transform .4s ease}.s .mlbg{opacity:0.8}.s .mli{transform: translate3d(' + zoomX + 'px, ' + zoomY + 'px, 0) scale(' + scaleMax + ')}</style>';
+  body.appendChild(mlite);
+
+  setTimeout(function() {
+    mlite.className = 's';
+  }, 20);
+
+  ['keydown', 'wheel'].forEach(function(action) {
+    window.addEventListener(action, mliteEventHandler);
+  });
+}
+
+function mliteEventHandler(e) {
+  var mliteOpen = document.getElementById('ml');
+  var isEscape = false;
+  if (mliteOpen) {
+    if (e.type == "wheel") {
+      e.preventDefault();
+    } else {
+      if ("key" in e) {
+        isEscape = (e.key == "Escape" || e.key == "Esc");
+      } else {
+        isEscape = (e.keyCode == 27);
+      }
+      if (isEscape) {
+        mliteOpen.className = " ";
+        addEventListener("transitionend", function() {
+          if (mliteOpen.parentNode) {
+            mliteOpen.parentNode.removeChild(mliteOpen);
+          }
+        });
+      }
+    }
+  } else {
+    window.removeEventListener('keydown', mliteEventHandler);
+    window.removeEventListener('wheel', mliteEventHandler);
+  }
+}
+</script>

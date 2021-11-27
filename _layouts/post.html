@@ -1,0 +1,45 @@
+---
+layout: page
+---
+<div class="blog-post text-container">
+	{% include post-title.html post=page %}
+
+	<div class="post-content">
+		{{ content }}
+
+		<div class="author">
+			{% assign author_id = page.author_staff_member | prepend: "/staff_members/" | append: "/" %}
+			{% assign author = site.staff_members | where: "url", author_id | first %}
+			<div class="square-image"><img src="{% include relative-src.html src=author.image_path %}" alt="{{ author.name }}"/></div>
+			<p class="blurb">{{ author.blurb }}</p>
+		</div>
+
+		<div class="blog-navigation">
+			{% if page.previous.url %}
+				<a class="prev" href="{% include relative-src.html src=page.previous.url %}">&laquo; {{ page.previous.title }}</a>
+			{% endif %}
+			{% if page.next.url %}
+				<a class="next" href="{% include relative-src.html src=page.next.url %}">{{ page.next.title }} &raquo;</a>
+			{% endif %}
+		</div>
+
+		{% if site.disqus_shortname and page.comments %}
+			<div id="disqus_thread"></div>
+			<script>
+				var disqus_shortname = '{{ site.disqus_shortname }}';
+				var disqus_config = function () {
+					this.page.url = "{{ page.url | prepend: site.url }}";
+					this.page.identifier = "{{ page.id }}";
+				};
+
+				(function() {  // DON'T EDIT BELOW THIS LINE
+					var d = document, s = d.createElement('script');
+					s.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+					s.setAttribute('data-timestamp', +new Date());
+					(d.head || d.body).appendChild(s);
+				})();
+			</script>
+			<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+		{% endif %}
+	</div>
+</div>

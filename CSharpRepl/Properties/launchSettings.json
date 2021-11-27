@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "CSharpRepl": {
-      "commandName": "Project",
-      "workingDirectory": "C:\\"
-    }
-  }
-}
