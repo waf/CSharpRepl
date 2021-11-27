@@ -75,4 +75,5 @@ internal sealed class Theme
 
     public AnsiColor? GetValueOrDefault(string name) => values.GetValueOrDefault(name);
     public AnsiColor GetValueOrDefault(string name, AnsiColor defaultValue) => values.GetValueOrDefault(name, defaultValue);
+    public bool TryGetColor(string name, out AnsiColor color) => values.TryGetValue(name, out color);
 }
