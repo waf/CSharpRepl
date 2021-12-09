@@ -7,23 +7,22 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace CSharpRepl.Tests
+namespace CSharpRepl.Tests;
+
+public sealed class RoslynServicesFixture : IAsyncLifetime
 {
-    public sealed class RoslynServicesFixture : IAsyncLifetime
+    public IConsole ConsoleStub { get; }
+    public IPrompt PromptStub { get; }
+    public RoslynServices RoslynServices { get; }
+
+    public RoslynServicesFixture()
     {
-        public IConsole ConsoleStub { get; }
-        public IPrompt PromptStub { get; }
-        public RoslynServices RoslynServices { get; }
-
-        public RoslynServicesFixture()
-        {
-            this.ConsoleStub = Substitute.For<IConsole>();
-            this.PromptStub = Substitute.For<IPrompt>();
-            this.RoslynServices = new RoslynServices(ConsoleStub, new Configuration(), new TestTraceLogger());
-        }
-
-        public Task DisposeAsync() => Task.CompletedTask;
-
-        public Task InitializeAsync() => RoslynServices.WarmUpAsync(Array.Empty<string>());
+        this.ConsoleStub = Substitute.For<IConsole>();
+        this.PromptStub = Substitute.For<IPrompt>();
+        this.RoslynServices = new RoslynServices(ConsoleStub, new Configuration(), new TestTraceLogger());
     }
+
+    public Task DisposeAsync() => Task.CompletedTask;
+
+    public Task InitializeAsync() => RoslynServices.WarmUpAsync(Array.Empty<string>());
 }

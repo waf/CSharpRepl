@@ -3,20 +3,20 @@ using CSharpRepl.Services.Roslyn;
 using System.Collections.Generic;
 using static System.Environment;
 
-namespace CSharpRepl.Tests
-{
-    public class PrettyPrinterTests
-    {
-        [Theory]
-        [MemberData(nameof(FormatObjectInputs))]
-        public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult)
-        {
-            var prettyPrinted = new PrettyPrinter().FormatObject(obj, showDetails);
-            Assert.Equal(expectedResult, prettyPrinted);
-        }
+namespace CSharpRepl.Tests;
 
-        public static IEnumerable<object[]> FormatObjectInputs = new[]
-        {
+public class PrettyPrinterTests
+{
+    [Theory]
+    [MemberData(nameof(FormatObjectInputs))]
+    public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult)
+    {
+        var prettyPrinted = new PrettyPrinter().FormatObject(obj, showDetails);
+        Assert.Equal(expectedResult, prettyPrinted);
+    }
+
+    public static IEnumerable<object[]> FormatObjectInputs = new[]
+    {
             new object[] { null, false, null },
             new object[] { null, true, null },
             new object[] { @"""hello world""", false, @"""\""hello world\"""""},
@@ -26,5 +26,4 @@ namespace CSharpRepl.Tests
             new object[] { new[] { 1, 2, 3 }, false, "int[3] { 1, 2, 3 }"},
             new object[] { new[] { 1, 2, 3 }, true, $"int[3] {"{"}{NewLine}  1,{NewLine}  2,{NewLine}  3{NewLine}{"}"}{NewLine}"},
         };
-    }
 }

@@ -6,13 +6,12 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 
-namespace CSharpRepl.Services.Roslyn.Scripting
+namespace CSharpRepl.Services.Roslyn.Scripting;
+
+/// <remarks>about as close to a discriminated union as I can get</remarks>
+public abstract record EvaluationResult
 {
-    /// <remarks>about as close to a discriminated union as I can get</remarks>
-    public abstract record EvaluationResult
-    {
-        public sealed record Success(string Input, object ReturnValue, IReadOnlyCollection<MetadataReference> References) : EvaluationResult;
-        public sealed record Error(Exception Exception) : EvaluationResult;
-        public sealed record Cancelled() : EvaluationResult;
-    }
+    public sealed record Success(string Input, object ReturnValue, IReadOnlyCollection<MetadataReference> References) : EvaluationResult;
+    public sealed record Error(Exception Exception) : EvaluationResult;
+    public sealed record Cancelled() : EvaluationResult;
 }

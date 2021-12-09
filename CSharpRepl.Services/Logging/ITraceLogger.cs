@@ -5,12 +5,11 @@
 using System;
 using System.Collections.Generic;
 
-namespace CSharpRepl.Services.Logging
+namespace CSharpRepl.Services.Logging;
+
+public interface ITraceLogger
 {
-    public interface ITraceLogger
-    {
-        void Log(string message);
-        void Log(Func<string> message);
-        void LogPaths(string message, Func<IEnumerable<string?>> paths);
-    }
+    void Log(string message);
+    void Log(Func<string> message);
+    void LogPaths(string message, Func<IEnumerable<string?>> paths);
 }

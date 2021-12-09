@@ -8,139 +8,138 @@ using PrettyPrompt.Consoles;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace CSharpRepl.Tests
+namespace CSharpRepl.Tests;
+
+[Collection(nameof(RoslynServices))]
+public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
 {
-    [Collection(nameof(RoslynServices))]
-    public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
+    private readonly ReadEvalPrintLoop repl;
+    private readonly IConsole console;
+    private readonly IPrompt prompt;
+    private readonly RoslynServices services;
+
+    public ReadEvalPrintLoopTests(RoslynServicesFixture fixture)
     {
-        private readonly ReadEvalPrintLoop repl;
-        private readonly IConsole console;
-        private readonly IPrompt prompt;
-        private readonly RoslynServices services;
+        this.console = fixture.ConsoleStub;
+        this.prompt = fixture.PromptStub;
+        this.services = fixture.RoslynServices;
+        this.repl = new ReadEvalPrintLoop(services, prompt, console);
 
-        public ReadEvalPrintLoopTests(RoslynServicesFixture fixture)
+        this.console.ClearSubstitute();
+        this.prompt.ClearSubstitute();
+    }
+
+    [Theory]
+    [InlineData("help")]
+    [InlineData("#help")]
+    [InlineData("?")]
+    public async Task RunAsync_HelpCommand_ShowsHelp(string help)
+    {
+        prompt
+            .ReadLineAsync("> ")
+            .Returns(
+                new PromptResult(true, help, false),
+                new PromptResult(true, "exit", false)
+            );
+
+        await repl.RunAsync(new Configuration());
+
+        console.Received().WriteLine(Arg.Is<string>(str => str.Contains("Welcome to the C# REPL")));
+        console.Received().WriteLine(Arg.Is<string>(str => str.Contains("Type C# at the prompt")));
+    }
+
+    [Fact]
+    public async Task RunAsync_ClearCommand_ClearsScreen()
+    {
+        prompt
+            .ReadLineAsync("> ")
+            .Returns(
+                new PromptResult(true, "clear", false),
+                new PromptResult(true, "exit", false)
+            );
+
+        await repl.RunAsync(new Configuration());
+
+        console.Received().Clear();
+    }
+
+    [Fact]
+    public async Task RunAsync_EvaluateCode_ReturnsResult()
+    {
+        prompt
+            .ReadLineAsync("> ")
+            .Returns(
+                new PromptResult(true, "5 + 3", false),
+                new PromptResult(true, "exit", false)
+            );
+
+        await repl.RunAsync(new Configuration());
+
+        console.Received().WriteLine("8");
+    }
+
+    [Fact]
+    public async Task RunAsync_LoadScript_RunsScript()
+    {
+        prompt
+            .ReadLineAsync("> ")
+            .Returns(
+                new PromptResult(true, "x", false),
+                new PromptResult(true, "exit", false)
+            );
+
+        await repl.RunAsync(new Configuration
         {
-            this.console = fixture.ConsoleStub;
-            this.prompt = fixture.PromptStub;
-            this.services = fixture.RoslynServices;
-            this.repl = new ReadEvalPrintLoop(services, prompt, console);
+            LoadScript = @"var x = ""Hello World"";"
+        });
 
-            this.console.ClearSubstitute();
-            this.prompt.ClearSubstitute();
-        }
+        console.Received().WriteLine(@"""Hello World""");
+    }
 
-        [Theory]
-        [InlineData("help")]
-        [InlineData("#help")]
-        [InlineData("?")]
-        public async Task RunAsync_HelpCommand_ShowsHelp(string help)
+    [Fact]
+    public async Task RunAsync_Reference_AddsReference()
+    {
+        prompt
+            .ReadLineAsync("> ")
+            .Returns(
+                new PromptResult(true, "DemoLibrary.DemoClass.Multiply(5, 6)", false),
+                new PromptResult(true, "exit", false)
+            );
+
+        await repl.RunAsync(new Configuration
         {
-            prompt
-                .ReadLineAsync("> ")
-                .Returns(
-                    new PromptResult(true, help, false),
-                    new PromptResult(true, "exit", false)
-                );
+            References = { "Data/DemoLibrary.dll" }
+        });
 
-            await repl.RunAsync(new Configuration());
+        console.Received().WriteLine("30");
+    }
 
-            console.Received().WriteLine(Arg.Is<string>(str => str.Contains("Welcome to the C# REPL")));
-            console.Received().WriteLine(Arg.Is<string>(str => str.Contains("Type C# at the prompt")));
-        }
+    [Fact]
+    public async Task RunAsync_Exception_ShowsMessage()
+    {
+        prompt
+            .ReadLineAsync("> ")
+            .Returns(
+                new PromptResult(true, @"throw new InvalidOperationException(""bonk!"");", false),
+                new PromptResult(true, "exit", false)
+            );
 
-        [Fact]
-        public async Task RunAsync_ClearCommand_ClearsScreen()
-        {
-            prompt
-                .ReadLineAsync("> ")
-                .Returns(
-                    new PromptResult(true, "clear", false),
-                    new PromptResult(true, "exit", false)
-                );
+        await repl.RunAsync(new Configuration());
 
-            await repl.RunAsync(new Configuration());
+        console.Received().WriteErrorLine(Arg.Is<string>(message => message.Contains("bonk")));
+    }
 
-            console.Received().Clear();
-        }
+    [Fact]
+    public async Task RunAsync_ExitCommand_ExitsRepl()
+    {
+        prompt
+            .ReadLineAsync("> ")
+            .Returns(
+                new ExitApplicationKeyPress()
+            );
 
-        [Fact]
-        public async Task RunAsync_EvaluateCode_ReturnsResult()
-        {
-            prompt
-                .ReadLineAsync("> ")
-                .Returns(
-                    new PromptResult(true, "5 + 3", false),
-                    new PromptResult(true, "exit", false)
-                );
+        await repl.RunAsync(new Configuration());
 
-            await repl.RunAsync(new Configuration());
-
-            console.Received().WriteLine("8");
-        }
-
-        [Fact]
-        public async Task RunAsync_LoadScript_RunsScript()
-        {
-            prompt
-                .ReadLineAsync("> ")
-                .Returns(
-                    new PromptResult(true, "x", false),
-                    new PromptResult(true, "exit", false)
-                );
-
-            await repl.RunAsync(new Configuration
-            {
-                LoadScript = @"var x = ""Hello World"";"
-            });
-
-            console.Received().WriteLine(@"""Hello World""");
-        }
-
-        [Fact]
-        public async Task RunAsync_Reference_AddsReference()
-        {
-            prompt
-                .ReadLineAsync("> ")
-                .Returns(
-                    new PromptResult(true, "DemoLibrary.DemoClass.Multiply(5, 6)", false),
-                    new PromptResult(true, "exit", false)
-                );
-
-            await repl.RunAsync(new Configuration
-            {
-                References = { "Data/DemoLibrary.dll" }
-            });
-
-            console.Received().WriteLine("30");
-        }
-
-        [Fact]
-        public async Task RunAsync_Exception_ShowsMessage()
-        {
-            prompt
-                .ReadLineAsync("> ")
-                .Returns(
-                    new PromptResult(true, @"throw new InvalidOperationException(""bonk!"");", false),
-                    new PromptResult(true, "exit", false)
-                );
-
-            await repl.RunAsync(new Configuration());
-
-            console.Received().WriteErrorLine(Arg.Is<string>(message => message.Contains("bonk")));
-        }
-
-        [Fact]
-        public async Task RunAsync_ExitCommand_ExitsRepl()
-        {
-            prompt
-                .ReadLineAsync("> ")
-                .Returns(
-                    new ExitApplicationKeyPress()
-                );
-
-            await repl.RunAsync(new Configuration());
-
-            // by reaching here, the application correctly exited.
-        }
+        // by reaching here, the application correctly exited.
     }
 }

@@ -4,12 +4,12 @@
 
 using Microsoft.CodeAnalysis.Classification;
 
-namespace CSharpRepl.Services.SyntaxHighlighting
+namespace CSharpRepl.Services.SyntaxHighlighting;
+
+internal sealed class DefaultTheme : Theme
 {
-    internal sealed class DefaultTheme : Theme
+    public DefaultTheme() : base(new[]
     {
-        public DefaultTheme() : base(new[]
-        {
             new Color(name: ClassificationTypeNames.ClassName, foreground: "BrightCyan"),
             new Color(name: ClassificationTypeNames.StructName, foreground: "BrightCyan"),
             new Color(name: ClassificationTypeNames.DelegateName, foreground: "BrightCyan"),
@@ -51,28 +51,28 @@ namespace CSharpRepl.Services.SyntaxHighlighting
             new Color(name: ClassificationTypeNames.XmlDocCommentName, foreground: "Cyan"),
             new Color(name: ClassificationTypeNames.XmlDocCommentProcessingInstruction, foreground: "Cyan"),
             new Color(name: ClassificationTypeNames.XmlDocCommentText, foreground: "Cyan")
-        }) { }
-    }
+        })
+    { }
+}
 
-    internal class Theme
+internal class Theme
+{
+    public Theme(Color[] colors)
     {
-        public Theme(Color[] colors)
-        {
-            this.Colors = colors;
-        }
-
-        public Color[] Colors { get; }
+        this.Colors = colors;
     }
 
-    internal sealed class Color
+    public Color[] Colors { get; }
+}
+
+internal sealed class Color
+{
+    public Color(string name, string foreground)
     {
-        public Color(string name, string foreground)
-        {
-            this.Name = name;
-            this.Foreground = foreground;
-        }
-
-        public string Name { get; }
-        public string Foreground { get; }
+        this.Name = name;
+        this.Foreground = foreground;
     }
+
+    public string Name { get; }
+    public string Foreground { get; }
 }

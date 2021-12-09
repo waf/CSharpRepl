@@ -6,17 +6,16 @@ using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace CSharpRepl.Services.Roslyn.References
-{
-    /// <summary>
-    /// Compares assembly references based on their filepath.
-    /// </summary>
-    internal sealed class AssemblyReferenceComparer : IEqualityComparer<MetadataReference>
-    {
-        public bool Equals(MetadataReference? x, MetadataReference? y) =>
-            x?.Display == y?.Display;
+namespace CSharpRepl.Services.Roslyn.References;
 
-        public int GetHashCode([DisallowNull] MetadataReference obj) =>
-            (obj.Display ?? string.Empty).GetHashCode();
-    }
+/// <summary>
+/// Compares assembly references based on their filepath.
+/// </summary>
+internal sealed class AssemblyReferenceComparer : IEqualityComparer<MetadataReference>
+{
+    public bool Equals(MetadataReference? x, MetadataReference? y) =>
+        x?.Display == y?.Display;
+
+    public int GetHashCode([DisallowNull] MetadataReference obj) =>
+        (obj.Display ?? string.Empty).GetHashCode();
 }

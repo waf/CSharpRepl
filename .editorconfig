@@ -2,3 +2,5 @@
 
 # S3358: Ternary operators should not be nested
 dotnet_diagnostic.S3358.severity = none
+
+csharp_style_namespace_declarations=file_scoped:warning

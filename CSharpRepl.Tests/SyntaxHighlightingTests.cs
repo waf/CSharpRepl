@@ -10,32 +10,32 @@ using System.Threading.Tasks;
 using Xunit;
 using System;
 
-namespace CSharpRepl.Tests
+namespace CSharpRepl.Tests;
+
+[Collection(nameof(RoslynServices))]
+public class SyntaxHighlightingTests : IAsyncLifetime
 {
-    [Collection(nameof(RoslynServices))]
-    public class SyntaxHighlightingTests : IAsyncLifetime
+    private readonly RoslynServices services;
+
+    public SyntaxHighlightingTests()
     {
-        private readonly RoslynServices services;
-
-        public SyntaxHighlightingTests()
+        var (console, _) = FakeConsole.CreateStubbedOutput();
+        this.services = new RoslynServices(console, new Configuration
         {
-            var (console, _) = FakeConsole.CreateStubbedOutput();
-            this.services = new RoslynServices(console, new Configuration
-            {
-                Theme = "Data/theme.json"
-            }, new TestTraceLogger());
-        }
+            Theme = "Data/theme.json"
+        }, new TestTraceLogger());
+    }
 
-        public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
-        public Task DisposeAsync() => Task.CompletedTask;
+    public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
+    public Task DisposeAsync() => Task.CompletedTask;
 
-        [Fact]
-        public async Task SyntaxHighlightAsync_GivenCode_DetectsTextSpans()
-        {
-            var highlighted = await services.SyntaxHighlightAsync(@"var foo = ""bar"";");
-            Assert.Equal(5, highlighted.Count);
+    [Fact]
+    public async Task SyntaxHighlightAsync_GivenCode_DetectsTextSpans()
+    {
+        var highlighted = await services.SyntaxHighlightAsync(@"var foo = ""bar"";");
+        Assert.Equal(5, highlighted.Count);
 
-            var expected = new TextSpan[] {
+        var expected = new TextSpan[] {
                 new(0, 3), // var
                 new(4, 3), // foo
                 new(8, 1), // =
@@ -43,7 +43,6 @@ namespace CSharpRepl.Tests
                 new(15, 1) // ;
             };
 
-            Assert.Equal(expected, highlighted.Select(highlight => highlight.TextSpan));
-        }
+        Assert.Equal(expected, highlighted.Select(highlight => highlight.TextSpan));
     }
 }

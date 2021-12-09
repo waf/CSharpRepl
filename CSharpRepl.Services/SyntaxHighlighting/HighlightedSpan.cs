@@ -7,19 +7,18 @@ using PrettyPrompt.Highlighting;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CSharpRepl.Services.SyntaxHighlighting
-{
-    public sealed record HighlightedSpan(TextSpan TextSpan, AnsiColor Color);
+namespace CSharpRepl.Services.SyntaxHighlighting;
 
-    public static class HighlightedSpanExtensions
-    {
-        public static IReadOnlyCollection<FormatSpan> ToFormatSpans(this IReadOnlyCollection<HighlightedSpan> spans) => spans
-            .Select(span => new FormatSpan(
-                span.TextSpan.Start,
-                span.TextSpan.Length,
-                new ConsoleFormat(Foreground: span.Color)
-            ))
-            .Where(formatSpan => formatSpan.Formatting is not null)
-            .ToArray();
-    }
+public sealed record HighlightedSpan(TextSpan TextSpan, AnsiColor Color);
+
+public static class HighlightedSpanExtensions
+{
+    public static IReadOnlyCollection<FormatSpan> ToFormatSpans(this IReadOnlyCollection<HighlightedSpan> spans) => spans
+        .Select(span => new FormatSpan(
+            span.TextSpan.Start,
+            span.TextSpan.Length,
+            new ConsoleFormat(Foreground: span.Color)
+        ))
+        .Where(formatSpan => formatSpan.Formatting is not null)
+        .ToArray();
 }

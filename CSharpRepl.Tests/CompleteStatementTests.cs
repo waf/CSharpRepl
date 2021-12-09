@@ -4,32 +4,31 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace CSharpRepl.Tests
+namespace CSharpRepl.Tests;
+
+[Collection(nameof(RoslynServices))]
+public class CompleteStatementTests : IAsyncLifetime
 {
-    [Collection(nameof(RoslynServices))]
-    public class CompleteStatementTests : IAsyncLifetime
+    private readonly RoslynServices services;
+
+    public CompleteStatementTests()
     {
-        private readonly RoslynServices services;
+        var (console, _) = FakeConsole.CreateStubbedOutput();
+        this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
+    }
 
-        public CompleteStatementTests()
-        {
-            var (console, _) = FakeConsole.CreateStubbedOutput();
-            this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
-        }
+    public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
+    public Task DisposeAsync() => Task.CompletedTask;
 
-        public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
-        public Task DisposeAsync() => Task.CompletedTask;
-
-        [Theory]
-        [InlineData("var x = 5;", true)]
-        [InlineData("var x = ", false)]
-        [InlineData("if (x == 4)", false)]
-        [InlineData("if (x == 4) return;", true)]
-        [InlineData("if you're happy and you know it, syntax error!", false)]
-        public async Task IsCompleteStatement(string code, bool shouldBeCompleteStatement)
-        {
-            bool isCompleteStatement = await services.IsTextCompleteStatementAsync(code);
-            Assert.Equal(shouldBeCompleteStatement, isCompleteStatement);
-        }
+    [Theory]
+    [InlineData("var x = 5;", true)]
+    [InlineData("var x = ", false)]
+    [InlineData("if (x == 4)", false)]
+    [InlineData("if (x == 4) return;", true)]
+    [InlineData("if you're happy and you know it, syntax error!", false)]
+    public async Task IsCompleteStatement(string code, bool shouldBeCompleteStatement)
+    {
+        bool isCompleteStatement = await services.IsTextCompleteStatementAsync(code);
+        Assert.Equal(shouldBeCompleteStatement, isCompleteStatement);
     }
 }

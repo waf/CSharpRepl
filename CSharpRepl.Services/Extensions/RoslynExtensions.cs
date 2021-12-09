@@ -5,17 +5,16 @@
 using Microsoft.CodeAnalysis;
 using System;
 
-namespace CSharpRepl.Services.Extensions
+namespace CSharpRepl.Services.Extensions;
+
+internal static class RoslynExtensions
 {
-    internal static class RoslynExtensions
+    public static Solution ApplyChanges(this Solution edit, Workspace workspace)
     {
-        public static Solution ApplyChanges(this Solution edit, Workspace workspace)
+        if (!workspace.TryApplyChanges(edit))
         {
-            if (!workspace.TryApplyChanges(edit))
-            {
-                throw new InvalidOperationException("Failed to apply edit to workspace");
-            }
-            return workspace.CurrentSolution;
+            throw new InvalidOperationException("Failed to apply edit to workspace");
         }
+        return workspace.CurrentSolution;
     }
 }

@@ -14,120 +14,119 @@ using CSharpRepl.Logging;
 using CSharpRepl.Services.Logging;
 using System.Diagnostics.CodeAnalysis;
 
-namespace CSharpRepl
+namespace CSharpRepl;
+
+/// <summary>
+/// Main entry point; parses command line args and starts the <see cref="ReadEvalPrintLoop"/>.
+/// Check out ARCHITECTURE.md in the root of the repo for some design documentation.
+/// </summary>
+static class Program
 {
+
+    internal static async Task<int> Main(string[] args)
+    {
+        var console = new SystemConsole();
+
+        if (!TryParseArguments(args, out var config))
+            return ExitCodes.ErrorParseArguments;
+
+        if (config.OutputForEarlyExit is not null)
+        {
+            console.WriteLine(config.OutputForEarlyExit);
+            return ExitCodes.Success;
+        }
+
+        var appStorage = CreateApplicationStorageDirectory();
+
+        var logger = InitializeLogging(config.Trace);
+        var roslyn = new RoslynServices(console, config, logger);
+        var (prompt, exitCode) = InitializePrompt(console, appStorage, roslyn);
+
+        if (prompt is not null)
+        {
+            await new ReadEvalPrintLoop(roslyn, prompt, console)
+                .RunAsync(config)
+                .ConfigureAwait(false);
+        }
+
+        return exitCode;
+    }
+
+
+    private static bool TryParseArguments(string[] args, [NotNullWhen(true)] out Configuration? configuration)
+    {
+        try
+        {
+            configuration = CommandLine.Parse(args);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine(ex.Message);
+            Console.ResetColor();
+            Console.WriteLine();
+            configuration = null;
+            return false;
+        }
+    }
+
     /// <summary>
-    /// Main entry point; parses command line args and starts the <see cref="ReadEvalPrintLoop"/>.
-    /// Check out ARCHITECTURE.md in the root of the repo for some design documentation.
+    /// Create application storage directory and return its path.
+    /// This is where prompt history and nuget packages are stored.
     /// </summary>
-    static class Program
+    private static string CreateApplicationStorageDirectory()
     {
-
-        internal static async Task<int> Main(string[] args)
-        {
-            var console = new SystemConsole();
-
-            if (!TryParseArguments(args, out var config))
-                return ExitCodes.ErrorParseArguments;
-
-            if (config.OutputForEarlyExit is not null)
-            {
-                console.WriteLine(config.OutputForEarlyExit);
-                return ExitCodes.Success;
-            }
-
-            var appStorage = CreateApplicationStorageDirectory();
-
-            var logger = InitializeLogging(config.Trace);
-            var roslyn = new RoslynServices(console, config, logger);
-            var (prompt, exitCode) = InitializePrompt(console, appStorage, roslyn);
-
-            if (prompt is not null)
-            {
-                await new ReadEvalPrintLoop(roslyn, prompt, console)
-                    .RunAsync(config)
-                    .ConfigureAwait(false);
-            }
-
-            return exitCode;
-        }
-
-
-        private static bool TryParseArguments(string[] args, [NotNullWhen(true)] out Configuration? configuration)
-        {
-            try
-            {
-                configuration = CommandLine.Parse(args);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Error.WriteLine(ex.Message);
-                Console.ResetColor();
-                Console.WriteLine();
-                configuration = null;
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Create application storage directory and return its path.
-        /// This is where prompt history and nuget packages are stored.
-        /// </summary>
-        private static string CreateApplicationStorageDirectory()
-        {
-            var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
-            Directory.CreateDirectory(appStorage);
-            return appStorage;
-        }
-
-        /// <summary>
-        /// Initialize logging. It's off by default, unless the user passes the --trace flag.
-        /// </summary>
-        private static ITraceLogger InitializeLogging(bool trace)
-        {
-            if (!trace)
-            {
-                return new NullLogger();
-            }
-
-            return TraceLogger.Create($"csharprepl-tracelog-{DateTime.UtcNow:yyyy-MM-dd}.txt");
-        }
-
-        private static (Prompt? prompt, int exitCode) InitializePrompt(SystemConsole console, string appStorage, RoslynServices roslyn)
-        {
-            try
-            {
-                var prompt = new Prompt(
-                    persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
-                    callbacks: PromptConfiguration.Configure(console, roslyn)
-                );
-                return (prompt, ExitCodes.Success);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 87", StringComparison.Ordinal))
-            {
-                Console.Error.WriteLine(
-                    "Failed to initialize prompt. Please make sure that the current terminal supports ANSI escape sequences." + Environment.NewLine
-                    + (OperatingSystem.IsWindows()
-                        ? @"This requires at least Windows 10 version 1511 (build number 10586) and ""Use legacy console"" to be disabled in the Command Prompt." + Environment.NewLine
-                        : string.Empty)
-                );
-                return (null, ExitCodes.ErrorAnsiEscapeSequencesNotSupported);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 6", StringComparison.Ordinal))
-            {
-                Console.Error.WriteLine("Failed to initialize prompt. Invalid output mode -- is output redirected?");
-                return (null, ExitCodes.ErrorInvalidConsoleHandle);
-            }
-        }
+        var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
+        Directory.CreateDirectory(appStorage);
+        return appStorage;
     }
 
-    internal static class ExitCodes
+    /// <summary>
+    /// Initialize logging. It's off by default, unless the user passes the --trace flag.
+    /// </summary>
+    private static ITraceLogger InitializeLogging(bool trace)
     {
-        public const int Success = 0;
-        public const int ErrorParseArguments = 1;
-        public const int ErrorAnsiEscapeSequencesNotSupported = 2;
-        public const int ErrorInvalidConsoleHandle = 3;
+        if (!trace)
+        {
+            return new NullLogger();
+        }
+
+        return TraceLogger.Create($"csharprepl-tracelog-{DateTime.UtcNow:yyyy-MM-dd}.txt");
     }
+
+    private static (Prompt? prompt, int exitCode) InitializePrompt(SystemConsole console, string appStorage, RoslynServices roslyn)
+    {
+        try
+        {
+            var prompt = new Prompt(
+                persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
+                callbacks: PromptConfiguration.Configure(console, roslyn)
+            );
+            return (prompt, ExitCodes.Success);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 87", StringComparison.Ordinal))
+        {
+            Console.Error.WriteLine(
+                "Failed to initialize prompt. Please make sure that the current terminal supports ANSI escape sequences." + Environment.NewLine
+                + (OperatingSystem.IsWindows()
+                    ? @"This requires at least Windows 10 version 1511 (build number 10586) and ""Use legacy console"" to be disabled in the Command Prompt." + Environment.NewLine
+                    : string.Empty)
+            );
+            return (null, ExitCodes.ErrorAnsiEscapeSequencesNotSupported);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 6", StringComparison.Ordinal))
+        {
+            Console.Error.WriteLine("Failed to initialize prompt. Invalid output mode -- is output redirected?");
+            return (null, ExitCodes.ErrorInvalidConsoleHandle);
+        }
+    }
+}
+
+internal static class ExitCodes
+{
+    public const int Success = 0;
+    public const int ErrorParseArguments = 1;
+    public const int ErrorAnsiEscapeSequencesNotSupported = 2;
+    public const int ErrorInvalidConsoleHandle = 3;
 }

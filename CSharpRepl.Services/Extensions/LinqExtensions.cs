@@ -5,14 +5,13 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CSharpRepl.Services.Extensions
+namespace CSharpRepl.Services.Extensions;
+
+internal static class LinqExtensions
 {
-    internal static class LinqExtensions
+    // purely for nullable reference type analysis
+    public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) where T : class
     {
-        // purely for nullable reference type analysis
-        public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) where T : class
-        {
-            return source.Where(x => x != null)!;
-        }
+        return source.Where(x => x != null)!;
     }
 }
