@@ -2,14 +2,21 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.CodeAnalysis.Classification;
+using Newtonsoft.Json;
+using PrettyPrompt.Highlighting;
 
-namespace CSharpRepl.Services.SyntaxHighlighting;
+namespace CSharpRepl.Services.Theming;
 
-internal sealed class DefaultTheme : Theme
+internal sealed class Theme
 {
-    public DefaultTheme() : base(new[]
-    {
+    private static readonly Lazy<Theme> defaultTheme = new(
+        () =>
+        new(new[]
+        {
             new Color(name: ClassificationTypeNames.ClassName, foreground: "BrightCyan"),
             new Color(name: ClassificationTypeNames.StructName, foreground: "BrightCyan"),
             new Color(name: ClassificationTypeNames.DelegateName, foreground: "BrightCyan"),
@@ -51,28 +58,21 @@ internal sealed class DefaultTheme : Theme
             new Color(name: ClassificationTypeNames.XmlDocCommentName, foreground: "Cyan"),
             new Color(name: ClassificationTypeNames.XmlDocCommentProcessingInstruction, foreground: "Cyan"),
             new Color(name: ClassificationTypeNames.XmlDocCommentText, foreground: "Cyan")
-        })
-    { }
-}
+        }));
 
-internal class Theme
-{
-    public Theme(Color[] colors)
-    {
-        this.Colors = colors;
-    }
+    public static Theme DefaultTheme => defaultTheme.Value;
 
     public Color[] Colors { get; }
-}
 
-internal sealed class Color
-{
-    public Color(string name, string foreground)
+    [JsonIgnore]
+    private readonly Dictionary<string, AnsiColor> values;
+
+    public Theme(Color[] colors)
     {
-        this.Name = name;
-        this.Foreground = foreground;
+        Colors = colors;
+        values = colors.ToDictionary(c => c.Name, c => c.ToAnsiColor());
     }
 
-    public string Name { get; }
-    public string Foreground { get; }
+    public AnsiColor? GetValueOrDefault(string name) => values.GetValueOrDefault(name);
+    public AnsiColor GetValueOrDefault(string name, AnsiColor defaultValue) => values.GetValueOrDefault(name, defaultValue);
 }
