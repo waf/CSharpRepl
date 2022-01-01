@@ -1,5 +1,8 @@
 ﻿[*.cs]
 
+indent_style=space
+end_of_line=crlf
+
 # S3358: Ternary operators should not be nested
 dotnet_diagnostic.S3358.severity = none
 
