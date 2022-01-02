@@ -1,0 +1,264 @@
+{
+  "colors": [
+    {
+      "name": "comment",
+      "foreground": "#008000"
+    },
+    {
+      "name": "excluded code",
+      "foreground": "#808080"
+    },
+    {
+      "name": "identifier",
+      "foreground": "#000000"
+    },
+    {
+      "name": "keyword",
+      "foreground": "#0000FF"
+    },
+    {
+      "name": "keyword - control",
+      "foreground": "#8F08C4"
+    },
+    {
+      "name": "number",
+      "foreground": "#000000"
+    },
+    {
+      "name": "operator",
+      "foreground": "#000000"
+    },
+    {
+      "name": "operator - overloaded",
+      "foreground": "#74531F"
+    },
+    {
+      "name": "preprocessor keyword",
+      "foreground": "#808080"
+    },
+    {
+      "name": "string",
+      "foreground": "#A31515"
+    },
+    {
+      "name": "text",
+      "foreground": "#000000"
+    },
+    {
+      "name": "preprocessor text",
+      "foreground": "#000000"
+    },
+    {
+      "name": "punctuation",
+      "foreground": "#000000"
+    },
+    {
+      "name": "string - verbatim",
+      "foreground": "#800000"
+    },
+    {
+      "name": "string - escape character",
+      "foreground": "#B776FB"
+    },
+    {
+      "name": "class name",
+      "foreground": "#2B91AF"
+    },
+    {
+      "name": "record class name",
+      "foreground": "#2B91AF"
+    },
+    {
+      "name": "delegate name",
+      "foreground": "#2B91AF"
+    },
+    {
+      "name": "enum name",
+      "foreground": "#2B91AF"
+    },
+    {
+      "name": "interface name",
+      "foreground": "#2B91AF"
+    },
+    {
+      "name": "module name",
+      "foreground": "#2B91AF"
+    },
+    {
+      "name": "struct name",
+      "foreground": "#2B91AF"
+    },
+    {
+      "name": "record struct name",
+      "foreground": "#2B91AF"
+    },
+    {
+      "name": "type parameter name",
+      "foreground": "#2B91AF"
+    },
+    {
+      "name": "field name",
+      "foreground": "#000000"
+    },
+    {
+      "name": "enum member name",
+      "foreground": "#000000"
+    },
+    {
+      "name": "constant name",
+      "foreground": "#000000"
+    },
+    {
+      "name": "local name",
+      "foreground": "#1F377F"
+    },
+    {
+      "name": "parameter name",
+      "foreground": "#1F377F"
+    },
+    {
+      "name": "method name",
+      "foreground": "#74531F"
+    },
+    {
+      "name": "extension method name",
+      "foreground": "#74531F"
+    },
+    {
+      "name": "property name",
+      "foreground": "#000000"
+    },
+    {
+      "name": "event name",
+      "foreground": "#000000"
+    },
+    {
+      "name": "namespace name",
+      "foreground": "#000000"
+    },
+    {
+      "name": "label name",
+      "foreground": "#000000"
+    },
+    {
+      "name": "xml doc comment - attribute name",
+      "foreground": "#808080"
+    },
+    {
+      "name": "xml doc comment - attribute quotes",
+      "foreground": "#808080"
+    },
+    {
+      "name": "xml doc comment - attribute value",
+      "foreground": "#808080"
+    },
+    {
+      "name": "xml doc comment - cdata section",
+      "foreground": "#808080"
+    },
+    {
+      "name": "xml doc comment - comment",
+      "foreground": "#808080"
+    },
+    {
+      "name": "xml doc comment - delimiter",
+      "foreground": "#808080"
+    },
+    {
+      "name": "xml doc comment - entity reference",
+      "foreground": "#008000"
+    },
+    {
+      "name": "xml doc comment - name",
+      "foreground": "#808080"
+    },
+    {
+      "name": "xml doc comment - processing instruction",
+      "foreground": "#808080"
+    },
+    {
+      "name": "xml doc comment - text",
+      "foreground": "#008000"
+    },
+    {
+      "name": "xml literal - attribute name",
+      "foreground": "#B96464"
+    },
+    {
+      "name": "xml literal - attribute quotes",
+      "foreground": "#555555"
+    },
+    {
+      "name": "xml literal - attribute value",
+      "foreground": "#6464B9"
+    },
+    {
+      "name": "xml literal - cdata section",
+      "foreground": "#808080"
+    },
+    {
+      "name": "xml literal - comment",
+      "foreground": "#629755"
+    },
+    {
+      "name": "xml literal - delimiter",
+      "foreground": "#6464B9"
+    },
+    {
+      "name": "xml literal - embedded expression",
+      "foreground": "#555555"
+    },
+    {
+      "name": "xml literal - entity reference",
+      "foreground": "#B96464"
+    },
+    {
+      "name": "xml literal - name",
+      "foreground": "#844646"
+    },
+    {
+      "name": "xml literal - processing instruction",
+      "foreground": "#C0C0C0"
+    },
+    {
+      "name": "xml literal - text",
+      "foreground": "#555555"
+    },
+    {
+      "name": "regex - comment",
+      "foreground": "#008000"
+    },
+    {
+      "name": "regex - character class",
+      "foreground": "#0073FF"
+    },
+    {
+      "name": "regex - anchor",
+      "foreground": "#FF00C1"
+    },
+    {
+      "name": "regex - quantifier",
+      "foreground": "#FF00C1"
+    },
+    {
+      "name": "regex - grouping",
+      "foreground": "#05C3BA"
+    },
+    {
+      "name": "regex - alternation",
+      "foreground": "#05C3BA"
+    },
+    {
+      "name": "regex - text",
+      "foreground": "#800000"
+    },
+    {
+      "name": "regex - self escaped character",
+      "foreground": "#800000"
+    },
+    {
+      "name": "regex - other escape",
+      "foreground": "#9E5B71"
+    }
+  ]
+}
