@@ -32,6 +32,7 @@ public sealed class RoslynServices
 {
     private readonly SyntaxHighlighter highlighter;
     private readonly ITraceLogger logger;
+    private readonly SemaphoreSlim semaphore = new(1);
     private ScriptRunner? scriptRunner;
     private WorkspaceManager? workspaceManager;
     private Disassembler? disassembler;
@@ -84,18 +85,28 @@ public sealed class RoslynServices
     {
         await Initialization.ConfigureAwait(false);
 
-        var result = await scriptRunner
-            .RunCompilation(input.Trim(), args, cancellationToken)
-            .ConfigureAwait(false);
-
-        if (result is EvaluationResult.Success success)
+        try
         {
-            // update our final document text, and add a new, empty project that can be
-            // used for future evaluations (whether evaluation, syntax highlighting, or completion)
-            workspaceManager!.UpdateCurrentDocument(success);
-        }
+            //each RunCompilation (modifies script state) and UpdateCurrentDocument (changes CurrentDocument) cannot be run concurrently
+            await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        return result;
+            var result = await scriptRunner
+                .RunCompilation(input.Trim(), args, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (result is EvaluationResult.Success success)
+            {
+                // update our final document text, and add a new, empty project that can be
+                // used for future evaluations (whether evaluation, syntax highlighting, or completion)
+                workspaceManager!.UpdateCurrentDocument(success);
+            }
+
+            return result;
+        }
+        finally
+        {
+            semaphore.Release();
+        }
     }
 
     public async Task<string?> PrettyPrintAsync(object? obj, bool displayDetails)
