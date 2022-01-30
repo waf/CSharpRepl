@@ -2,18 +2,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt.Highlighting;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace CSharpRepl.Services.SyntaxHighlighting;
 
@@ -24,63 +24,21 @@ namespace CSharpRepl.Services.SyntaxHighlighting;
 internal sealed class SyntaxHighlighter
 {
     private const string CacheKeyPrefix = "SyntaxHighlighter_";
-    private readonly IReadOnlyDictionary<string, AnsiColor> theme;
+    private readonly Theme theme;
     private readonly AnsiColor unhighlightedColor;
-    private readonly IReadOnlyDictionary<string, AnsiColor> ansiColorNames;
     private readonly MemoryCache cache;
 
     public SyntaxHighlighter(MemoryCache cache, string? themeName)
     {
         this.cache = cache;
-        this.ansiColorNames = new Dictionary<string, AnsiColor>
-            {
-                { nameof(AnsiColor.Black), AnsiColor.Black },
-                { nameof(AnsiColor.BrightWhite), AnsiColor.BrightWhite },
-                { nameof(AnsiColor.BrightCyan), AnsiColor.BrightCyan },
-                { nameof(AnsiColor.BrightMagenta), AnsiColor.BrightMagenta },
-                { nameof(AnsiColor.BrightYellow), AnsiColor.BrightYellow },
-                { nameof(AnsiColor.BrightGreen), AnsiColor.BrightGreen },
-                { nameof(AnsiColor.BrightRed), AnsiColor.BrightRed },
-                { nameof(AnsiColor.BrightBlack), AnsiColor.BrightBlack },
-                { nameof(AnsiColor.BrightBlue), AnsiColor.BrightBlue },
-                { nameof(AnsiColor.Cyan), AnsiColor.Cyan },
-                { nameof(AnsiColor.Magenta), AnsiColor.Magenta },
-                { nameof(AnsiColor.Blue), AnsiColor.Blue },
-                { nameof(AnsiColor.Yellow), AnsiColor.Yellow },
-                { nameof(AnsiColor.Green), AnsiColor.Green },
-                { nameof(AnsiColor.Red), AnsiColor.Red },
-                { nameof(AnsiColor.White), AnsiColor.White },
-            };
 
-        var selectedTheme = string.IsNullOrEmpty(themeName)
-            ? new DefaultTheme()
+        this.theme = string.IsNullOrEmpty(themeName)
+            ? Theme.DefaultTheme
             : JsonSerializer.Deserialize<Theme>(
                 File.ReadAllText(themeName),
                 new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
-              ) ?? new DefaultTheme();
-        this.theme = selectedTheme
-            .Colors
-            .ToDictionary(t => t.Name, t => ToAnsiColor(t.Foreground));
-        this.unhighlightedColor = theme["text"];
-    }
-
-    private AnsiColor ToAnsiColor(string foreground)
-    {
-        var span = foreground.AsSpan();
-        if (foreground.StartsWith('#') && foreground.Length == 7
-            && byte.TryParse(span.Slice(1, 2), NumberStyles.AllowHexSpecifier, null, out byte r)
-            && byte.TryParse(span.Slice(3, 2), NumberStyles.AllowHexSpecifier, null, out byte g)
-            && byte.TryParse(span.Slice(5, 2), NumberStyles.AllowHexSpecifier, null, out byte b))
-        {
-            return AnsiColor.RGB(r, g, b);
-        }
-
-        if (ansiColorNames.TryGetValue(foreground, out AnsiColor? color))
-        {
-            return color;
-        }
-
-        throw new ArgumentException(@$"Unknown recognized color ""{foreground}"". Expecting either a hexadecimal color of the format #RRGGBB or a standard ANSI color name");
+              ) ?? Theme.DefaultTheme;
+        this.unhighlightedColor = theme.GetValueOrDefault("text") ?? AnsiColor.Black;
     }
 
     internal async Task<IReadOnlyCollection<HighlightedSpan>> HighlightAsync(Document document)

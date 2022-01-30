@@ -1,7 +1,7 @@
 {
     "colors": [
-        { "name": "class name", "foreground": "#8BE9FD" },
-        { "name": "struct name", "foreground": "#8BE9FD" },
+        { "name": "class name", "foreground": "BrightMagenta" },
+        { "name": "struct name", "foreground": "Yellow" },
         { "name": "delegate name", "foreground": "#8BE9FD" },
         { "name": "interface name", "foreground": "#8BE9FD" },
         { "name": "module name", "foreground": "#8BE9FD" },
