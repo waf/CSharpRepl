@@ -42,10 +42,10 @@ internal readonly struct Color
             byte.TryParse(span.Slice(3, 2), NumberStyles.AllowHexSpecifier, null, out byte g) &&
             byte.TryParse(span.Slice(5, 2), NumberStyles.AllowHexSpecifier, null, out byte b))
         {
-            return AnsiColor.RGB(r, g, b);
+            return AnsiColor.Rgb(r, g, b);
         }
 
-        if (ansiColorNames.TryGetValue(Foreground, out AnsiColor? color))
+        if (ansiColorNames.TryGetValue(Foreground, out var color))
         {
             return color;
         }

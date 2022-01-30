@@ -179,7 +179,7 @@ public sealed class RoslynServices
                 (await CompleteAsync(@"C", 1))
                     .Where(completion => completion.Item.DisplayText.StartsWith("C"))
                     .Take(15)
-                    .Select(completion => completion.DescriptionProvider.Value)
+                    .Select(completion => completion.GetDescriptionAsync(cancellationToken: default))
             );
 
             await Task.WhenAll(evaluationTask, highlightTask, completionTask).ConfigureAwait(false);

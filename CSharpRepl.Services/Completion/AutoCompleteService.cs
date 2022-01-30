@@ -6,13 +6,16 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.QuickInfo;
 using Microsoft.Extensions.Caching.Memory;
+using PrettyPrompt.Highlighting;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
+using PrettyPromptCompletionItem = PrettyPrompt.Completion.CompletionItem;
+
 namespace CSharpRepl.Services.Completion;
 
-public record CompletionItemWithDescription(CompletionItem Item, Lazy<Task<string>> DescriptionProvider);
+public record CompletionItemWithDescription(CompletionItem Item, PrettyPromptCompletionItem.GetExtendedDescriptionHandler GetDescriptionAsync);
 
 internal sealed class AutoCompleteService
 {
@@ -36,7 +39,7 @@ internal sealed class AutoCompleteService
             .ConfigureAwait(false);
 
         var completionsWithDescriptions = completions?.Items
-            .Select(item => new CompletionItemWithDescription(item, new Lazy<Task<string>>(() => GetExtendedDescription(document, item))))
+            .Select(item => new CompletionItemWithDescription(item, cancellationToken => GetExtendedDescription(document, item)))
             .ToArray() ?? Array.Empty<CompletionItemWithDescription>();
 
         cache.Set(cacheKey, completionsWithDescriptions, DateTimeOffset.Now.AddMinutes(1));
@@ -44,7 +47,7 @@ internal sealed class AutoCompleteService
         return completionsWithDescriptions;
     }
 
-    private static async Task<string> GetExtendedDescription(Document document, CompletionItem item)
+    private static async Task<FormattedString> GetExtendedDescription(Document document, CompletionItem item)
     {
         var currentText = await document.GetTextAsync().ConfigureAwait(false);
         var completedText = currentText.Replace(item.Span, item.DisplayText);

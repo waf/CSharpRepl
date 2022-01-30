@@ -3,16 +3,16 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Threading.Tasks;
-using PrettyPrompt.Consoles;
-using CSharpRepl.Services;
-using CSharpRepl.Services.Roslyn;
-using CSharpRepl.PrettyPromptConfig;
-using System.IO;
-using PrettyPrompt;
-using CSharpRepl.Logging;
-using CSharpRepl.Services.Logging;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Threading.Tasks;
+using CSharpRepl.Logging;
+using CSharpRepl.PrettyPromptConfig;
+using CSharpRepl.Services;
+using CSharpRepl.Services.Logging;
+using CSharpRepl.Services.Roslyn;
+using PrettyPrompt;
+using PrettyPrompt.Consoles;
 
 namespace CSharpRepl;
 
@@ -100,8 +100,8 @@ static class Program
         try
         {
             var prompt = new Prompt(
-                persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
-                callbacks: PromptConfiguration.Configure(console, roslyn)
+               persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
+               callbacks: new CSharpReplPromptCallbacks(console, roslyn)
             );
             return (prompt, ExitCodes.Success);
         }

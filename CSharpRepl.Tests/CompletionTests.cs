@@ -36,10 +36,10 @@ public class CompletionTests : IAsyncLifetime
         Assert.Equal("Write", writelines[0].Item.DisplayText);
         Assert.Equal("WriteLine", writelines[1].Item.DisplayText);
 
-        var writeDescription = await writelines[0].DescriptionProvider.Value;
-        Assert.Contains("Writes the text representation of the specified", writeDescription);
-        var writeLineDescription = await writelines[1].DescriptionProvider.Value;
-        Assert.Contains("Writes the current line terminator to the standard output", writeLineDescription);
+        var writeDescription = await writelines[0].GetDescriptionAsync(cancellationToken: default);
+        Assert.Contains("Writes the text representation of the specified", writeDescription.Text);
+        var writeLineDescription = await writelines[1].GetDescriptionAsync(cancellationToken: default);
+        Assert.Contains("Writes the current line terminator to the standard output", writeLineDescription.Text);
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public class CompletionTests : IAsyncLifetime
         Assert.NotNull(whereCompletion);
         Assert.Equal("Where", whereCompletion.Item.DisplayText);
 
-        var whereDescription = await whereCompletion.DescriptionProvider.Value;
-        Assert.Contains("Filters a sequence of values based on a predicate", whereDescription);
+        var whereDescription = await whereCompletion.GetDescriptionAsync(cancellationToken: default);
+        Assert.Contains("Filters a sequence of values based on a predicate", whereDescription.Text);
     }
 
     /// <remarks>https://github.com/waf/CSharpRepl/issues/4</remarks>
