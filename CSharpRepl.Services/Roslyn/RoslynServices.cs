@@ -72,14 +72,14 @@ public sealed class RoslynServices
             this.scriptRunner = new ScriptRunner(compilationOptions, referenceService, console);
             this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger);
 
-            this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
-            this.prettyPrinter = new PrettyPrinter();
-            this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
-            this.autocompleteService = new AutoCompleteService(cache);
-            logger.Log("Background initialization complete");
-        });
-        Initialization.ContinueWith(task => console.WriteErrorLine(task.Exception?.Message ?? "Unknown error"), TaskContinuationOptions.OnlyOnFaulted);
-    }
+                this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
+                this.prettyPrinter = new PrettyPrinter();
+                this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
+                this.autocompleteService = new AutoCompleteService(highlighter, cache);
+                logger.Log("Background initialization complete");
+            });
+            Initialization.ContinueWith(task => console.WriteErrorLine(task.Exception?.Message ?? "Unknown error"), TaskContinuationOptions.OnlyOnFaulted);
+        }
 
     public async Task<EvaluationResult> EvaluateAsync(string input, string[]? args = null, CancellationToken cancellationToken = default)
     {

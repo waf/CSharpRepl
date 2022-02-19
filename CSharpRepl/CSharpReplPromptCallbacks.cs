@@ -66,7 +66,7 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
               .ThenBy(i => i.Item.SortText)
               .Select(r => new CompletionItem(
                   replacementText: r.Item.DisplayText,
-                  displayText: r.Item.DisplayTextPrefix + r.Item.DisplayText + r.Item.DisplayTextSuffix,
+                  displayText: r.DisplayText,
                   getExtendedDescription: r.GetDescriptionAsync,
                   filterText: r.Item.FilterText
               ))

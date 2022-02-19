@@ -38,7 +38,7 @@ internal sealed class SyntaxHighlighter
                 File.ReadAllText(themeName),
                 new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
               ) ?? Theme.DefaultTheme;
-        this.unhighlightedColor = theme.GetValueOrDefault("text") ?? AnsiColor.Black;
+        this.unhighlightedColor = theme.GetValueOrDefault("text") ?? AnsiColor.White;
     }
 
     internal async Task<IReadOnlyCollection<HighlightedSpan>> HighlightAsync(Document document)
@@ -69,4 +69,5 @@ internal sealed class SyntaxHighlighter
     }
 
     internal AnsiColor GetColor(string keyword) => theme.GetValueOrDefault(keyword, unhighlightedColor);
+    internal bool TryGetColor(string keyword, out AnsiColor color) => theme.TryGetColor(keyword, out color);
 }
