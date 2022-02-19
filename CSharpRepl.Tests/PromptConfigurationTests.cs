@@ -1,11 +1,12 @@
-﻿using CSharpRepl.PrettyPromptConfig;
-using CSharpRepl.Services;
-using CSharpRepl.Services.Roslyn;
-using PrettyPrompt.Consoles;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using CSharpRepl.PrettyPromptConfig;
+using CSharpRepl.Services;
+using CSharpRepl.Services.Roslyn;
+using PrettyPrompt;
+using PrettyPrompt.Consoles;
 using Xunit;
 
 namespace CSharpRepl.Tests;
@@ -31,19 +32,20 @@ public class PromptConfigurationTests : IAsyncLifetime
 
     [Theory]
     [MemberData(nameof(KeyPresses))]
-    public void PromptConfiguration_CanCreate(object keyPress)
+    public void PromptConfiguration_CanCreate(ConsoleKeyInfo keyInfo)
     {
-        var configuration = PromptConfiguration.Configure(console, services);
-        configuration.KeyPressCallbacks[keyPress].Invoke("Console.WriteLine(\"Hi!\");", 0);
+        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services);
+        Assert.True(configuration.TryGetKeyPressCallbacks(keyInfo, out var callback));
+        callback.Invoke("Console.WriteLine(\"Hi!\");", 0, default);
     }
 
     public static IEnumerable<object[]> KeyPresses()
     {
-        yield return new object[] { ConsoleKey.F1 };
-        yield return new object[] { (ConsoleModifiers.Control, ConsoleKey.F1) };
-        yield return new object[] { ConsoleKey.F9 };
-        yield return new object[] { (ConsoleModifiers.Control, ConsoleKey.F9) };
-        yield return new object[] { ConsoleKey.F12 };
-        yield return new object[] { (ConsoleModifiers.Control, ConsoleKey.D) };
+        yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F1, shift: false, alt: false, control: false) };
+        yield return new object[] { new ConsoleKeyInfo('\0',  ConsoleKey.F1, shift: false, alt: false, control: true) };
+        yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F9, shift: false, alt: false, control: false) };
+        yield return new object[] { new ConsoleKeyInfo('\0',  ConsoleKey.F9, shift: false, alt: false, control: true) };
+        yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F12, shift: false, alt: false, control: false) };
+        yield return new object[] { new ConsoleKeyInfo('\0',  ConsoleKey.D, shift: false, alt: false, control: true) };
     }
 }

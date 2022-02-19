@@ -36,10 +36,10 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
     public async Task RunAsync_HelpCommand_ShowsHelp(string help)
     {
         prompt
-            .ReadLineAsync("> ")
+            .ReadLineAsync()
             .Returns(
-                new PromptResult(true, help, false),
-                new PromptResult(true, "exit", false)
+                new PromptResult(true, help, default),
+                new PromptResult(true, "exit", default)
             );
 
         await repl.RunAsync(new Configuration());
@@ -52,10 +52,10 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
     public async Task RunAsync_ClearCommand_ClearsScreen()
     {
         prompt
-            .ReadLineAsync("> ")
+            .ReadLineAsync()
             .Returns(
-                new PromptResult(true, "clear", false),
-                new PromptResult(true, "exit", false)
+                new PromptResult(true, "clear", default),
+                new PromptResult(true, "exit", default)
             );
 
         await repl.RunAsync(new Configuration());
@@ -67,10 +67,10 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
     public async Task RunAsync_EvaluateCode_ReturnsResult()
     {
         prompt
-            .ReadLineAsync("> ")
+            .ReadLineAsync()
             .Returns(
-                new PromptResult(true, "5 + 3", false),
-                new PromptResult(true, "exit", false)
+                new PromptResult(true, "5 + 3", default),
+                new PromptResult(true, "exit", default)
             );
 
         await repl.RunAsync(new Configuration());
@@ -82,10 +82,10 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
     public async Task RunAsync_LoadScript_RunsScript()
     {
         prompt
-            .ReadLineAsync("> ")
+            .ReadLineAsync()
             .Returns(
-                new PromptResult(true, "x", false),
-                new PromptResult(true, "exit", false)
+                new PromptResult(true, "x", default),
+                new PromptResult(true, "exit", default)
             );
 
         await repl.RunAsync(new Configuration
@@ -100,10 +100,10 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
     public async Task RunAsync_Reference_AddsReference()
     {
         prompt
-            .ReadLineAsync("> ")
+            .ReadLineAsync()
             .Returns(
-                new PromptResult(true, "DemoLibrary.DemoClass.Multiply(5, 6)", false),
-                new PromptResult(true, "exit", false)
+                new PromptResult(true, "DemoLibrary.DemoClass.Multiply(5, 6)", default),
+                new PromptResult(true, "exit", default)
             );
 
         await repl.RunAsync(new Configuration
@@ -118,10 +118,10 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
     public async Task RunAsync_Exception_ShowsMessage()
     {
         prompt
-            .ReadLineAsync("> ")
+            .ReadLineAsync()
             .Returns(
-                new PromptResult(true, @"throw new InvalidOperationException(""bonk!"");", false),
-                new PromptResult(true, "exit", false)
+                new PromptResult(true, @"throw new InvalidOperationException(""bonk!"");", default),
+                new PromptResult(true, "exit", default)
             );
 
         await repl.RunAsync(new Configuration());
@@ -133,7 +133,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
     public async Task RunAsync_ExitCommand_ExitsRepl()
     {
         prompt
-            .ReadLineAsync("> ")
+            .ReadLineAsync()
             .Returns(
                 new ExitApplicationKeyPress()
             );

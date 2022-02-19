@@ -19,6 +19,5 @@ public static class HighlightedSpanExtensions
             span.TextSpan.Length,
             new ConsoleFormat(Foreground: span.Color)
         ))
-        .Where(formatSpan => formatSpan.Formatting is not null)
         .ToArray();
 }

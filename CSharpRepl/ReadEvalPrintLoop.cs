@@ -1,13 +1,13 @@
-﻿using CSharpRepl.PrettyPromptConfig;
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
+using CSharpRepl.PrettyPromptConfig;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
 using PrettyPrompt.Highlighting;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CSharpRepl;
 
@@ -28,6 +28,10 @@ internal sealed class ReadEvalPrintLoop
         this.console = console;
     }
 
+    private static readonly KeyPressPatterns submitWithDetailedOutputKeyPatterns = new(
+        new KeyPressPattern(ConsoleModifiers.Control, ConsoleKey.Enter),
+        new KeyPressPattern(ConsoleModifiers.Control | ConsoleModifiers.Alt, ConsoleKey.Enter));
+
     public async Task RunAsync(Configuration config)
     {
         console.WriteLine("Welcome to the C# REPL (Read Eval Print Loop)!");
@@ -39,7 +43,7 @@ internal sealed class ReadEvalPrintLoop
 
         while (true)
         {
-            var response = await prompt.ReadLineAsync("> ").ConfigureAwait(false);
+            var response = await prompt.ReadLineAsync().ConfigureAwait(false);
 
             if (response is ExitApplicationKeyPress)
             {
@@ -73,7 +77,8 @@ internal sealed class ReadEvalPrintLoop
                     .EvaluateAsync(response.Text, config.LoadScriptArgs, response.CancellationToken)
                     .ConfigureAwait(false);
 
-                await PrintAsync(roslyn, console, result, displayDetails: response.IsHardEnter);
+                var displayDetails = submitWithDetailedOutputKeyPatterns.Matches(response.SubmitKeyInfo);
+                await PrintAsync(roslyn, console, result, displayDetails);
             }
         }
     }
@@ -114,11 +119,11 @@ internal sealed class ReadEvalPrintLoop
                 break;
             case EvaluationResult.Error err:
                 var formattedError = await roslyn.PrettyPrintAsync(err.Exception, displayDetails);
-                console.WriteErrorLine(AnsiEscapeCodes.Red + formattedError + AnsiEscapeCodes.Reset);
+                console.WriteErrorLine(AnsiColor.Red.GetEscapeSequence() + formattedError + AnsiEscapeCodes.Reset);
                 break;
             case EvaluationResult.Cancelled:
                 console.WriteErrorLine(
-                    AnsiEscapeCodes.Yellow + "Operation cancelled." + AnsiEscapeCodes.Reset
+                    AnsiColor.Yellow.GetEscapeSequence() + "Operation cancelled." + AnsiEscapeCodes.Reset
                 );
                 break;
         }
@@ -178,7 +183,7 @@ Run --help at the command line to view these options
     }
 
     private string Color(string reference) =>
-        prompt.HasUserOptedOutFromColor
+        PromptConfiguration.HasUserOptedOutFromColor
         ? string.Empty
         : AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(roslyn!.ToColor(reference)));
 
@@ -187,12 +192,12 @@ Run --help at the command line to view these options
         + word + AnsiEscapeCodes.Reset;
 
     private string Help =>
-        prompt.HasUserOptedOutFromColor
+        PromptConfiguration.HasUserOptedOutFromColor
         ? @"""help"""
-        : AnsiEscapeCodes.Green + "help" + AnsiEscapeCodes.Reset;
+        : AnsiColor.Green.GetEscapeSequence() + "help" + AnsiEscapeCodes.Reset;
 
     private string Exit =>
-        prompt.HasUserOptedOutFromColor
+        PromptConfiguration.HasUserOptedOutFromColor
         ? @"""exit"""
-        : AnsiEscapeCodes.BrightRed + "exit" + AnsiEscapeCodes.Reset;
+        : AnsiColor.BrightRed.GetEscapeSequence() + "exit" + AnsiEscapeCodes.Reset;
 }
