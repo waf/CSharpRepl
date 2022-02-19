@@ -20,10 +20,9 @@ public class SyntaxHighlightingTests : IAsyncLifetime
     public SyntaxHighlightingTests()
     {
         var (console, _) = FakeConsole.CreateStubbedOutput();
-        this.services = new RoslynServices(console, new Configuration
-        {
-            Theme = "Data/theme.json"
-        }, new TestTraceLogger());
+        this.services = new RoslynServices(console, new Configuration(
+            theme: "Data/theme.json"
+        ), new TestTraceLogger());
     }
 
     public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());

@@ -4,9 +4,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
@@ -28,16 +26,10 @@ internal sealed class SyntaxHighlighter
     private readonly AnsiColor unhighlightedColor;
     private readonly MemoryCache cache;
 
-    public SyntaxHighlighter(MemoryCache cache, string? themeName)
+    public SyntaxHighlighter(MemoryCache cache, Theme theme)
     {
         this.cache = cache;
-
-        this.theme = string.IsNullOrEmpty(themeName)
-            ? Theme.DefaultTheme
-            : JsonSerializer.Deserialize<Theme>(
-                File.ReadAllText(themeName),
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
-              ) ?? Theme.DefaultTheme;
+        this.theme = theme;
         this.unhighlightedColor = theme.GetValueOrDefault("text") ?? AnsiColor.White;
     }
 

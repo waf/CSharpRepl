@@ -13,7 +13,7 @@ using PrettyPrompt.Highlighting;
 
 namespace CSharpRepl.Services.Theming;
 
-internal readonly struct Color
+public readonly struct Color
 {
     private static readonly Dictionary<string, AnsiColor> ansiColorNames =
         typeof(AnsiColor)

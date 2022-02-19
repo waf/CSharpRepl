@@ -22,7 +22,6 @@ namespace CSharpRepl;
 /// </summary>
 static class Program
 {
-
     internal static async Task<int> Main(string[] args)
     {
         var console = new SystemConsole();
@@ -51,7 +50,6 @@ static class Program
 
         return exitCode;
     }
-
 
     private static bool TryParseArguments(string[] args, [NotNullWhen(true)] out Configuration? configuration)
     {
