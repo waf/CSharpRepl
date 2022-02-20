@@ -28,16 +28,14 @@ internal static class CommandLine
 {
     private const string DisableFurtherOptionParsing = "--";
 
-    private static readonly Option<string[]> References = new(
+    private static readonly Option<string[]?> References = new(
         aliases: new[] { "--reference", "-r", "/r" },
-        description: "Reference assemblies, nuget packages, and csproj files.",
-        getDefaultValue: Array.Empty<string>
+        description: "Reference assemblies, nuget packages, and csproj files. Can be specified multiple times."
     );
 
-    private static readonly Option<string[]> Usings = new Option<string[]>(
+    private static readonly Option<string[]?> Usings = new Option<string[]?>(
         aliases: new[] { "--using", "-u", "/u" },
-        description: "Add using statements.",
-        getDefaultValue: Array.Empty<string>
+        description: "Add using statement. Can be specified multiple times."
     ).AddSuggestions(GetAvailableUsings);
 
     private static readonly Option<string> Framework = new Option<string>(
@@ -46,15 +44,14 @@ internal static class CommandLine
         getDefaultValue: () => Configuration.FrameworkDefault
     ).AddSuggestions(SharedFramework.SupportedFrameworks);
 
-    private static readonly Option<string> Theme = new(
+    private static readonly Option<string?> Theme = new(
         aliases: new[] { "--theme", "-t", "/t" },
-        description: "Read a theme file for syntax highlighting. Respects the NO_COLOR standard.",
-        getDefaultValue: () => string.Empty
+        description: "Read a theme file for syntax highlighting. Respects the NO_COLOR standard."
     );
 
     private static readonly Option<bool> Trace = new(
         aliases: new[] { "--trace" },
-        description: "Enable a trace log, written to the current directory."
+        description: "Produce a trace file in the current directory, for CSharpRepl bug reports."
     );
 
     private static readonly Option<bool> Help = new(
@@ -65,6 +62,26 @@ internal static class CommandLine
     private static readonly Option<bool> Version = new(
         aliases: new[] { "--version", "-v", "/v" },
         description: "Show version number and exit."
+    );
+
+    private static readonly Option<string[]?> CommitCompletionKeyBindings = new(
+        aliases: new[] { "--commitCompletionKeys" },
+        description: "Set up key bindings for commit completion item. Can be specified multiple times."
+    );
+
+    private static readonly Option<string[]?> TriggerCompletionListKeyBindings = new(
+        aliases: new[] { "--triggerCompletionListKeys" },
+        description: "Set up key bindings for trigger completion list. Can be specified multiple times."
+    );
+
+    private static readonly Option<string[]?> NewLineKeyBindings = new(
+        aliases: new[] { "--newLineKeys" },
+        description: "Set up key bindings for new line character insertion. Can be specified multiple times."
+    );
+
+    private static readonly Option<string[]?> SubmitPromptKeyBindings = new(
+        aliases: new[] { "--submitPromptKeys" },
+        description: "Set up key bindings for the submit of current prompt. Can be specified multiple times."
     );
 
     public static Configuration Parse(string[] args)
@@ -83,7 +100,11 @@ internal static class CommandLine
 
         var commandLine =
             new CommandLineBuilder(
-                new RootCommand("C# REPL") { References, Usings, Framework, Theme, Trace, Help, Version }
+                new RootCommand("C# REPL") 
+                { 
+                    References, Usings, Framework, Theme, Trace, Help, Version, 
+                    CommitCompletionKeyBindings, TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings
+                }
             )
             .UseSuggestDirective() // support autocompletion via dotnet-suggest
             .Build()
@@ -105,7 +126,11 @@ internal static class CommandLine
             loadScript: ProcessScriptArguments(args),
             loadScriptArgs: commandLine.UnparsedTokens.ToArray(),
             theme: commandLine.ValueForOption(Theme),
-            trace: commandLine.ValueForOption(Trace)
+            trace: commandLine.ValueForOption(Trace),
+            commitCompletionKeyPatterns: commandLine.ValueForOption(CommitCompletionKeyBindings),
+            triggerCompletionListKeyPatterns: commandLine.ValueForOption(TriggerCompletionListKeyBindings),
+            newLineKeyPatterns: commandLine.ValueForOption(NewLineKeyBindings),
+            submitPromptKeyPatterns: commandLine.ValueForOption(SubmitPromptKeyBindings)
         );
 
         return config;
@@ -185,15 +210,19 @@ internal static class CommandLine
         "These [OPTIONS] can be provided at the command line, or via a [@response-file.rsp]." + NewLine +
         "A [script-file.csx], if provided, will be executed before the prompt starts." + NewLine + NewLine +
         "OPTIONS:" + NewLine +
-        "  -r <dll> or --reference <dll>:             Reference assemblies, nuget packages, and csproj files." + NewLine +
-        "  -u <namespace> or --using <namespace>:     Add using statements." + NewLine +
-        "  -f <framework> or --framework <framework>: Reference a shared framework." + NewLine +
-        "                                             Available shared frameworks: " + NewLine + GetInstalledFrameworks(
-        "                                             ") + NewLine +
-        "  -t <theme.json> or --theme <theme.json>:   Read a theme file for syntax highlighting. Respects the NO_COLOR standard." + NewLine +
-        "  -v or --version:                           Show version number and exit." + NewLine +
-        "  -h or --help:                              Show this help and exit." + NewLine +
-        "  --trace:                                   Produce a trace file in the current directory, for CSharpRepl bug reports." + NewLine + NewLine +
+        $"  -r <dll> or --reference <dll>:             {References.Description}" + NewLine +
+        $"  -u <namespace> or --using <namespace>:     {Usings.Description}" + NewLine +
+        $"  -f <framework> or --framework <framework>: {Framework.Description}" + NewLine +
+        $"                                             Available shared frameworks: " + NewLine + GetInstalledFrameworks(
+        $"                                              ") + NewLine +
+        $"  -t <theme.json> or --theme <theme.json>:   {Theme.Description}" + NewLine +
+        $"  -v or --version:                           {Version.Description}" + NewLine +
+        $"  -h or --help:                              {Help.Description}" + NewLine +
+        $"  --commitCompletionKeys:                    {CommitCompletionKeyBindings.Description}" + NewLine +
+        $"  --triggerCompletionListKeys:               {TriggerCompletionListKeyBindings.Description}" + NewLine +
+        $"  --newLineKeys:                             {NewLineKeyBindings.Description}" + NewLine +
+        $"  --submitPromptKeys:                        {SubmitPromptKeyBindings.Description}" + NewLine +
+        $"  --trace:                                   {Trace.Description}" + NewLine + NewLine +
         "@response-file.rsp:" + NewLine +
         "  A file, with extension .rsp, containing the above command line [OPTIONS], one option per line." + NewLine + NewLine +
         "script-file.csx:" + NewLine +
