@@ -39,7 +39,7 @@ static class Program
 
         var logger = InitializeLogging(config.Trace);
         var roslyn = new RoslynServices(console, config, logger);
-        var (prompt, exitCode) = InitializePrompt(console, appStorage, roslyn);
+        var (prompt, exitCode) = InitializePrompt(console, appStorage, roslyn, config);
 
         if (prompt is not null)
         {
@@ -93,14 +93,14 @@ static class Program
         return TraceLogger.Create($"csharprepl-tracelog-{DateTime.UtcNow:yyyy-MM-dd}.txt");
     }
 
-    private static (Prompt? prompt, int exitCode) InitializePrompt(SystemConsole console, string appStorage, RoslynServices roslyn)
+    private static (Prompt? prompt, int exitCode) InitializePrompt(SystemConsole console, string appStorage, RoslynServices roslyn, Configuration config)
     {
         try
         {
             var prompt = new Prompt(
                persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
-               callbacks: new CSharpReplPromptCallbacks(console, roslyn)
-            );
+               callbacks: new CSharpReplPromptCallbacks(console, roslyn),
+               configuration: new PromptConfiguration(keyBindings: config.KeyBindings));
             return (prompt, ExitCodes.Success);
         }
         catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 87", StringComparison.Ordinal))
