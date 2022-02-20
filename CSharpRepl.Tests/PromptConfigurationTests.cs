@@ -34,7 +34,7 @@ public class PromptConfigurationTests : IAsyncLifetime
     [MemberData(nameof(KeyPresses))]
     public void PromptConfiguration_CanCreate(ConsoleKeyInfo keyInfo)
     {
-        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services);
+        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
         Assert.True(configuration.TryGetKeyPressCallbacks(keyInfo, out var callback));
         callback.Invoke("Console.WriteLine(\"Hi!\");", 0, default);
     }
@@ -42,10 +42,10 @@ public class PromptConfigurationTests : IAsyncLifetime
     public static IEnumerable<object[]> KeyPresses()
     {
         yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F1, shift: false, alt: false, control: false) };
-        yield return new object[] { new ConsoleKeyInfo('\0',  ConsoleKey.F1, shift: false, alt: false, control: true) };
+        yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F1, shift: false, alt: false, control: true) };
         yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F9, shift: false, alt: false, control: false) };
-        yield return new object[] { new ConsoleKeyInfo('\0',  ConsoleKey.F9, shift: false, alt: false, control: true) };
+        yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F9, shift: false, alt: false, control: true) };
         yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F12, shift: false, alt: false, control: false) };
-        yield return new object[] { new ConsoleKeyInfo('\0',  ConsoleKey.D, shift: false, alt: false, control: true) };
+        yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.D, shift: false, alt: false, control: true) };
     }
 }
