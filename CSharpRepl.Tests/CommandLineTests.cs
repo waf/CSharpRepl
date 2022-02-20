@@ -59,9 +59,11 @@ public class CommandLineTests
     [InlineData("-t"), InlineData("--theme"), InlineData("/t")]
     public void ParseArguments_ThemeArguments_SpecifiesTheme(string flag)
     {
-        var result = Parse($"{flag} beautiful.json");
+        var result = Parse($"{flag} Data/theme.json");
         Assert.NotNull(result);
-        Assert.Equal("beautiful.json", result.Theme);
+        Assert.Equal(41, result.Theme.Colors.Length);
+        Assert.True(result.Theme.TryGetColor("struct name", out var color));
+        Assert.Equal("Yellow", color.ToString());
     }
 
     [Theory]
@@ -85,9 +87,13 @@ public class CommandLineTests
     [Fact]
     public void ParseArguments_ComplexCommandLine_ProducesConfiguration()
     {
-        var result = Parse("-t foo.json -u System.Linq System.Data -u Newtonsoft.Json --reference foo.dll -f Microsoft.AspNetCore.App --reference bar.dll baz.dll Data/LoadScript.csx");
+        var result = Parse("-t Data/theme.json -u System.Linq System.Data -u Newtonsoft.Json --reference foo.dll -f Microsoft.AspNetCore.App --reference bar.dll baz.dll Data/LoadScript.csx");
         Assert.NotNull(result);
-        Assert.Equal("foo.json", result.Theme);
+
+        Assert.Equal(41, result.Theme.Colors.Length);
+        Assert.True(result.Theme.TryGetColor("struct name", out var color));
+        Assert.Equal("Yellow", color.ToString());
+
         Assert.Equal(new[] { "System.Linq", "System.Data", "Newtonsoft.Json" }, result.Usings);
         Assert.Equal(new[] { "foo.dll", "bar.dll", "baz.dll" }, result.References);
         Assert.Equal("Microsoft.AspNetCore.App", result.Framework);

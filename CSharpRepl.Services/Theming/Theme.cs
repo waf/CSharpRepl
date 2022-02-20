@@ -11,7 +11,7 @@ using PrettyPrompt.Highlighting;
 
 namespace CSharpRepl.Services.Theming;
 
-internal sealed class Theme
+public sealed class Theme
 {
     private static readonly Lazy<Theme> defaultTheme = new(
         () =>

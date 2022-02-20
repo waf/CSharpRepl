@@ -88,10 +88,9 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
                 new PromptResult(true, "exit", default)
             );
 
-        await repl.RunAsync(new Configuration
-        {
-            LoadScript = @"var x = ""Hello World"";"
-        });
+        await repl.RunAsync(new Configuration(
+            loadScript: @"var x = ""Hello World"";"
+        ));
 
         console.Received().WriteLine(@"""Hello World""");
     }
@@ -106,10 +105,9 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
                 new PromptResult(true, "exit", default)
             );
 
-        await repl.RunAsync(new Configuration
-        {
-            References = { "Data/DemoLibrary.dll" }
-        });
+        await repl.RunAsync(new Configuration(
+            references: new[] { "Data/DemoLibrary.dll" }
+        ));
 
         console.Received().WriteLine("30");
     }

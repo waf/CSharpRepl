@@ -2,8 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using CSharpRepl.Services;
-using CSharpRepl.Services.Roslyn.References;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
@@ -16,6 +14,8 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using CSharpRepl.Services;
+using CSharpRepl.Services.Roslyn.References;
 using static System.Environment;
 
 namespace CSharpRepl;
@@ -91,23 +91,22 @@ internal static class CommandLine
 
         if (ShouldExitEarly(commandLine, out var text))
         {
-            return new Configuration { OutputForEarlyExit = text };
+            return new Configuration(outputForEarlyExit: text);
         }
         if (commandLine.Errors.Count > 0)
         {
             throw new InvalidOperationException(string.Join(NewLine, commandLine.Errors));
         }
 
-        var config = new Configuration
-        {
-            References = commandLine.ValueForOption(References)?.ToHashSet() ?? new HashSet<string>(),
-            Usings = commandLine.ValueForOption(Usings)?.ToHashSet() ?? new HashSet<string>(),
-            Framework = commandLine.ValueForOption(Framework) ?? Configuration.FrameworkDefault,
-            LoadScript = ProcessScriptArguments(args),
-            LoadScriptArgs = commandLine.UnparsedTokens.ToArray(),
-            Theme = commandLine.ValueForOption(Theme),
-            Trace = commandLine.ValueForOption(Trace)
-        };
+        var config = new Configuration(
+            references: commandLine.ValueForOption(References),
+            usings: commandLine.ValueForOption(Usings),
+            framework: commandLine.ValueForOption(Framework),
+            loadScript: ProcessScriptArguments(args),
+            loadScriptArgs: commandLine.UnparsedTokens.ToArray(),
+            theme: commandLine.ValueForOption(Theme),
+            trace: commandLine.ValueForOption(Trace)
+        );
 
         return config;
     }
