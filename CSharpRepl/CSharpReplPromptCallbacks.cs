@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SymbolExploration;
@@ -24,11 +25,13 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
 {
     private readonly IConsole console;
     private readonly RoslynServices roslyn;
+    private readonly Configuration configuration;
 
-    public CSharpReplPromptCallbacks(IConsole console, RoslynServices roslyn)
+    public CSharpReplPromptCallbacks(IConsole console, RoslynServices roslyn, Configuration configuration)
     {
         this.console = console;
         this.roslyn = roslyn;
+        this.configuration = configuration;
     }
 
     protected override IEnumerable<(KeyPressPattern Pattern, KeyPressCallbackAsync Callback)> GetKeyPressCallbacks()
@@ -79,10 +82,17 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         return classifications.ToFormatSpans();
     }
 
-    protected override async Task<bool> InterpretKeyPressAsInputSubmitAsync(string text, int caret, ConsoleKeyInfo keyInfo, CancellationToken cancellationToken) =>
-        keyInfo.Modifiers == default && 
-        keyInfo.Key == ConsoleKey.Enter && 
-        await roslyn.IsTextCompleteStatementAsync(text).ConfigureAwait(false);
+    protected override async Task<KeyPress> TransformKeyPressAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
+    {
+        if (keyPress.ConsoleKeyInfo.Key == ConsoleKey.Enter &&
+            keyPress.ConsoleKeyInfo.Modifiers == default &&
+            configuration.KeyBindings.SubmitPrompt.Matches(keyPress.ConsoleKeyInfo) &&
+            !await roslyn.IsTextCompleteStatementAsync(text).ConfigureAwait(false))
+        {
+            return new KeyPress(ConsoleKey.Insert.ToKeyInfo('\0', shift: true), "\n");
+        }
+        return keyPress;
+    }
 
     private static async Task<KeyPressCallbackResult?> Disassemble(RoslynServices roslyn, string text, IConsole console, bool debugMode)
     {

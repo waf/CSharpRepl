@@ -99,7 +99,7 @@ static class Program
         {
             var prompt = new Prompt(
                persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
-               callbacks: new CSharpReplPromptCallbacks(console, roslyn),
+               callbacks: new CSharpReplPromptCallbacks(console, roslyn, config),
                configuration: new PromptConfiguration(keyBindings: config.KeyBindings));
             return (prompt, ExitCodes.Success);
         }
