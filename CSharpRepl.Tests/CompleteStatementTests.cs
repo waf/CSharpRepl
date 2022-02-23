@@ -1,8 +1,17 @@
-﻿using CSharpRepl.Services;
-using CSharpRepl.Services.Roslyn;
+﻿#nullable enable
+
 using System;
 using System.Threading.Tasks;
+using CSharpRepl.PrettyPromptConfig;
+using CSharpRepl.Services;
+using CSharpRepl.Services.Roslyn;
+using NSubstitute;
+using PrettyPrompt;
+using PrettyPrompt.Consoles;
 using Xunit;
+
+using static System.ConsoleKey;
+using static System.ConsoleModifiers;
 
 namespace CSharpRepl.Tests;
 
@@ -30,5 +39,63 @@ public class CompleteStatementTests : IAsyncLifetime
     {
         bool isCompleteStatement = await services.IsTextCompleteStatementAsync(code);
         Assert.Equal(shouldBeCompleteStatement, isCompleteStatement);
+    }
+}
+
+[Collection(nameof(RoslynServices))]
+public class CompleteStatement_REPL_Tests
+{
+    [Fact]
+    public async Task CompleteStatement_DefaultKeyBindings()
+    {
+        var (console, repl, configuration) = await InitAsync();
+        console.StubInput($"5 + 13{Enter}exit{Enter}");
+        await repl.RunAsync(configuration);
+        console.Received().WriteLine(Arg.Is<string>(str => str.Contains("18")));
+    }
+
+    [Fact]
+    public async Task IncompleteStatement_DefaultKeyBindings()
+    {
+        var (console, repl, configuration) = await InitAsync();
+        console.StubInput($"5 +{Enter}13{Enter}exit{Enter}");
+        await repl.RunAsync(configuration);
+        console.Received().WriteLine(Arg.Is<string>(str => str.Contains("18")));
+    }
+
+    [Fact]
+    public async Task CompleteStatement_CustomKeyBindings()
+    {
+        var (console, repl, configuration) = await InitAsync(GetCustomKeyBindingsConfiguration());
+        console.StubInput($"5 {Enter}+{Enter} 13{Control}{Enter}exit{Control}{Enter}");
+        await repl.RunAsync(configuration);
+        console.Received().WriteLine(Arg.Is<string>(str => str.Contains("18")));
+    }
+
+    [Fact]
+    public async Task IncompleteStatement_CustomKeyBindings()
+    {
+        var (console, repl, configuration) = await InitAsync(GetCustomKeyBindingsConfiguration());
+        console.StubInput($"5 +{Control}{Enter}exit{Control}{Enter}");
+        await repl.RunAsync(configuration);
+        console.Received().WriteErrorLine(Arg.Is<string>(str => str.Contains("Expected expression")));
+    }
+
+    private static async Task<(IConsole Console, ReadEvalPrintLoop Repl, Configuration Configuration)> InitAsync(Configuration? configuration = null)
+    {
+        var console = FakeConsole.Create();
+        configuration ??= new Configuration();
+        var services = new RoslynServices(console, configuration, new TestTraceLogger());
+        var prompt = new Prompt(console: console, callbacks: new CSharpReplPromptCallbacks(console, services, configuration), configuration: new PromptConfiguration(keyBindings: configuration.KeyBindings));
+        var repl = new ReadEvalPrintLoop(services, prompt, console);
+        await services.WarmUpAsync(Array.Empty<string>());
+        return (console, repl, configuration);
+    }
+
+    private static Configuration GetCustomKeyBindingsConfiguration()
+    {
+        return new Configuration(
+            newLineKeyPatterns: new[] { "Enter" },
+            submitPromptKeyPatterns: new[] { "Ctrl+Enter" });
     }
 }
