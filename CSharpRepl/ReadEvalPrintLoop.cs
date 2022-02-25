@@ -28,10 +28,6 @@ internal sealed class ReadEvalPrintLoop
         this.console = console;
     }
 
-    private static readonly KeyPressPatterns submitWithDetailedOutputKeyPatterns = new(
-        new KeyPressPattern(ConsoleModifiers.Control, ConsoleKey.Enter),
-        new KeyPressPattern(ConsoleModifiers.Control | ConsoleModifiers.Alt, ConsoleKey.Enter));
-
     public async Task RunAsync(Configuration config)
     {
         console.WriteLine("Welcome to the C# REPL (Read Eval Print Loop)!");
@@ -77,7 +73,7 @@ internal sealed class ReadEvalPrintLoop
                     .EvaluateAsync(response.Text, config.LoadScriptArgs, response.CancellationToken)
                     .ConfigureAwait(false);
 
-                var displayDetails = submitWithDetailedOutputKeyPatterns.Matches(response.SubmitKeyInfo);
+                var displayDetails = config.SubmitPromptDetailedKeys.Matches(response.SubmitKeyInfo);
                 await PrintAsync(roslyn, console, result, displayDetails);
             }
         }

@@ -39,7 +39,9 @@ public sealed class Configuration
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
     public string? OutputForEarlyExit { get; }
+
     public KeyBindings KeyBindings { get; }
+    public KeyPressPatterns SubmitPromptDetailedKeys { get; }
 
     public Configuration(
         string[]? references = null,
@@ -53,7 +55,8 @@ public sealed class Configuration
         string[]? commitCompletionKeyPatterns = null,
         string[]? triggerCompletionListKeyPatterns = null,
         string[]? newLineKeyPatterns = null,
-        string[]? submitPromptKeyPatterns = null)
+        string[]? submitPromptKeyPatterns = null,
+        string[]? submitPromptDetailedKeyPatterns = null)
     {
         References = references?.ToHashSet() ?? new HashSet<string>();
         Usings = usings?.ToHashSet() ?? new HashSet<string>();
@@ -83,7 +86,18 @@ public sealed class Configuration
             : new KeyPressPatterns(new(ConsoleModifiers.Control, ConsoleKey.Spacebar), new(ConsoleModifiers.Control, ConsoleKey.J));
 
         var newLine = newLineKeyPatterns?.Any() == true ? ParseKeyPressPatterns(newLineKeyPatterns) : default;
-        var submitPrompt = submitPromptKeyPatterns?.Any() == true ? ParseKeyPressPatterns(submitPromptKeyPatterns) : default;
+
+        if (submitPromptKeyPatterns?.Any() != true)
+        {
+            submitPromptKeyPatterns = new[] { "Enter" };
+        }
+        if (submitPromptDetailedKeyPatterns?.Any() != true)
+        {
+            submitPromptDetailedKeyPatterns = new[] { "Ctrl+Enter", "Ctrl+Alt+Enter" };
+        }
+
+        var submitPrompt = ParseKeyPressPatterns(submitPromptKeyPatterns.Concat(submitPromptDetailedKeyPatterns).ToArray());
+        SubmitPromptDetailedKeys = ParseKeyPressPatterns(submitPromptDetailedKeyPatterns);
 
         KeyBindings = new(commitCompletion, triggerCompletionList, newLine, submitPrompt);
     }

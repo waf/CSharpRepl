@@ -3,6 +3,10 @@
     "CSharpRepl": {
       "commandName": "Project",
       "workingDirectory": "C:\\"
+    },
+    "CSharpRepl Custom Configuration": {
+      "commandName": "Project",
+      "commandLineArgs": "--newLineKeys Enter --submitPromptKeys Ctrl+Enter --submitPromptDetailedKeys Ctrl+Shift+Enter --submitPromptDetailedKeys Ctrl+Alt+Enter -t ..\\..\\..\\..\\CSharpRepl\\themes\\VisualStudio_Dark.json"
     }
   }
 }

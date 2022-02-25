@@ -84,6 +84,11 @@ internal static class CommandLine
         description: "Set up key bindings for the submit of current prompt. Can be specified multiple times."
     );
 
+    private static readonly Option<string[]?> SubmitPromptDetailedKeyBindings = new(
+        aliases: new[] { "--submitPromptDetailedKeys" },
+        description: "Set up key bindings for the submit of current prompt with detailed output. Can be specified multiple times."
+    );
+
     public static Configuration Parse(string[] args)
     {
         var parseArgs = RemoveScriptArguments(args).ToArray();
@@ -103,7 +108,7 @@ internal static class CommandLine
                 new RootCommand("C# REPL") 
                 { 
                     References, Usings, Framework, Theme, Trace, Help, Version, 
-                    CommitCompletionKeyBindings, TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings
+                    CommitCompletionKeyBindings, TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
                 }
             )
             .UseSuggestDirective() // support autocompletion via dotnet-suggest
@@ -130,7 +135,8 @@ internal static class CommandLine
             commitCompletionKeyPatterns: commandLine.ValueForOption(CommitCompletionKeyBindings),
             triggerCompletionListKeyPatterns: commandLine.ValueForOption(TriggerCompletionListKeyBindings),
             newLineKeyPatterns: commandLine.ValueForOption(NewLineKeyBindings),
-            submitPromptKeyPatterns: commandLine.ValueForOption(SubmitPromptKeyBindings)
+            submitPromptKeyPatterns: commandLine.ValueForOption(SubmitPromptKeyBindings),
+            submitPromptDetailedKeyPatterns: commandLine.ValueForOption(SubmitPromptDetailedKeyBindings)
         );
 
         return config;
@@ -222,6 +228,7 @@ internal static class CommandLine
         $"  --triggerCompletionListKeys:               {TriggerCompletionListKeyBindings.Description}" + NewLine +
         $"  --newLineKeys:                             {NewLineKeyBindings.Description}" + NewLine +
         $"  --submitPromptKeys:                        {SubmitPromptKeyBindings.Description}" + NewLine +
+        $"  --submitPromptDetailedKeys:                {SubmitPromptDetailedKeyBindings.Description}" + NewLine +
         $"  --trace:                                   {Trace.Description}" + NewLine + NewLine +
         "@response-file.rsp:" + NewLine +
         "  A file, with extension .rsp, containing the above command line [OPTIONS], one option per line." + NewLine + NewLine +
