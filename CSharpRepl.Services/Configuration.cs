@@ -7,11 +7,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Theming;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
+using PrettyPrompt.Highlighting;
 
 namespace CSharpRepl.Services;
 
@@ -22,8 +24,14 @@ public sealed class Configuration
 {
     public const string FrameworkDefault = SharedFramework.NetCoreApp;
 
+    public static readonly string DefaultThemeRelativePath = Path.Combine("themes", "VisualStudio_Dark.json");
+
     public static readonly string ApplicationDirectory =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
+
+    public static readonly string ExecutableDirectory =
+        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ??
+        Environment.CurrentDirectory;
 
     public static readonly IReadOnlyCollection<string> SymbolServers = new[]
     {
@@ -63,13 +71,29 @@ public sealed class Configuration
         Framework = framework ?? FrameworkDefault;
         Trace = trace;
 
-        Theme =
-            string.IsNullOrEmpty(theme) ?
-            Theme.DefaultTheme :
-             JsonSerializer.Deserialize<Theme>(
-                File.ReadAllText(theme),
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
-              ) ?? Theme.DefaultTheme;
+        if (string.IsNullOrEmpty(theme)) theme = DefaultThemeRelativePath;
+        bool themeExists = File.Exists(theme);
+        if (!themeExists)
+        {
+            if (!Path.IsPathFullyQualified(theme))
+            {
+                theme = Path.Combine(ExecutableDirectory, theme);
+                themeExists = File.Exists(theme);
+            }
+        }
+
+        if (themeExists)
+        {
+            Theme = JsonSerializer.Deserialize<Theme>(
+                         File.ReadAllText(theme),
+                         new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
+                       ) ?? Theme.DefaultTheme;
+        }
+        else
+        {
+            Console.Error.WriteLine($"{AnsiColor.Red.GetEscapeSequence()}Unable to locate theme file '{theme}'. Defaut theme with terminal palette colors will be used.{AnsiEscapeCodes.Reset}");
+            Theme = Theme.DefaultTheme;
+        }
 
         LoadScript = loadScript;
         LoadScriptArgs = loadScriptArgs ?? Array.Empty<string>();
