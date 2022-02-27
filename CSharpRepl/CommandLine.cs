@@ -50,6 +50,11 @@ internal static class CommandLine
         getDefaultValue: () => Configuration.DefaultThemeRelativePath
     );
 
+    private static readonly Option<bool> UseTerminalPaletteTheme = new(
+        aliases: new[] { "--useTerminalPaletteTheme" },
+        description: "Ignores theme loaded from file and uses default theme with terminal palette colors. Respects the NO_COLOR standard."
+    );
+
     private static readonly Option<bool> Trace = new(
         aliases: new[] { "--trace" },
         description: "Produce a trace file in the current directory, for CSharpRepl bug reports."
@@ -108,7 +113,7 @@ internal static class CommandLine
             new CommandLineBuilder(
                 new RootCommand("C# REPL")
                 {
-                    References, Usings, Framework, Theme, Trace, Help, Version,
+                    References, Usings, Framework, Theme, UseTerminalPaletteTheme, Trace, Help, Version,
                     CommitCompletionKeyBindings, TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
                 }
             )
@@ -132,6 +137,7 @@ internal static class CommandLine
             loadScript: ProcessScriptArguments(args),
             loadScriptArgs: commandLine.UnparsedTokens.ToArray(),
             theme: commandLine.ValueForOption(Theme),
+            useTerminalPaletteTheme: commandLine.ValueForOption(UseTerminalPaletteTheme),
             trace: commandLine.ValueForOption(Trace),
             commitCompletionKeyPatterns: commandLine.ValueForOption(CommitCompletionKeyBindings),
             triggerCompletionListKeyPatterns: commandLine.ValueForOption(TriggerCompletionListKeyBindings),
@@ -225,6 +231,7 @@ internal static class CommandLine
         $"  -t <theme.json> or --theme <theme.json>:   {Theme.Description}" + NewLine +
         $"                                             Available default themes: " + NewLine + GetDefaultThemes(
         $"                                              ") + NewLine +
+        $"  --useTerminalPaletteTheme:                 {UseTerminalPaletteTheme.Description}" + NewLine +
         $"  -v or --version:                           {Version.Description}" + NewLine +
         $"  -h or --help:                              {Help.Description}" + NewLine +
         $"  --commitCompletionKeys:                    {CommitCompletionKeyBindings.Description}" + NewLine +

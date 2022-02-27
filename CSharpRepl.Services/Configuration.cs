@@ -44,6 +44,7 @@ public sealed class Configuration
     public string Framework { get; }
     public bool Trace { get; }
     public Theme Theme { get; }
+    public bool UseTerminalPaletteTheme { get; }
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
     public string? OutputForEarlyExit { get; }
@@ -57,6 +58,7 @@ public sealed class Configuration
         string? framework = null,
         bool trace = false,
         string? theme = null,
+        bool useTerminalPaletteTheme = false,
         string? loadScript = null,
         string[]? loadScriptArgs = null,
         string? outputForEarlyExit = null,
@@ -70,29 +72,37 @@ public sealed class Configuration
         Usings = usings?.ToHashSet() ?? new HashSet<string>();
         Framework = framework ?? FrameworkDefault;
         Trace = trace;
+        UseTerminalPaletteTheme = useTerminalPaletteTheme;
 
-        if (string.IsNullOrEmpty(theme)) theme = DefaultThemeRelativePath;
-        bool themeExists = File.Exists(theme);
-        if (!themeExists)
+        if (useTerminalPaletteTheme)
         {
-            if (!Path.IsPathFullyQualified(theme))
-            {
-                theme = Path.Combine(ExecutableDirectory, theme);
-                themeExists = File.Exists(theme);
-            }
-        }
-
-        if (themeExists)
-        {
-            Theme = JsonSerializer.Deserialize<Theme>(
-                         File.ReadAllText(theme),
-                         new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
-                       ) ?? Theme.DefaultTheme;
+            Theme = Theme.DefaultTheme;
         }
         else
         {
-            Console.Error.WriteLine($"{AnsiColor.Red.GetEscapeSequence()}Unable to locate theme file '{theme}'. Defaut theme with terminal palette colors will be used.{AnsiEscapeCodes.Reset}");
-            Theme = Theme.DefaultTheme;
+            if (string.IsNullOrEmpty(theme)) theme = DefaultThemeRelativePath;
+            bool themeExists = File.Exists(theme);
+            if (!themeExists)
+            {
+                if (!Path.IsPathFullyQualified(theme))
+                {
+                    theme = Path.Combine(ExecutableDirectory, theme);
+                    themeExists = File.Exists(theme);
+                }
+            }
+
+            if (themeExists)
+            {
+                Theme = JsonSerializer.Deserialize<Theme>(
+                             File.ReadAllText(theme),
+                             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
+                           ) ?? Theme.DefaultTheme;
+            }
+            else
+            {
+                Console.Error.WriteLine($"{AnsiColor.Red.GetEscapeSequence()}Unable to locate theme file '{theme}'. Defaut theme with terminal palette colors will be used.{AnsiEscapeCodes.Reset}");
+                Theme = Theme.DefaultTheme;
+            }
         }
 
         LoadScript = loadScript;
