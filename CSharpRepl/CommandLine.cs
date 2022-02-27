@@ -50,6 +50,11 @@ internal static class CommandLine
         getDefaultValue: () => Configuration.DefaultThemeRelativePath
     );
 
+    private static readonly Option<bool> UseTerminalPaletteTheme = new(
+        aliases: new[] { "--useTerminalPaletteTheme" },
+        description: "Ignores theme loaded from file and uses default theme with terminal palette colors. Respects the NO_COLOR standard."
+    );
+
     private static readonly Option<bool> Trace = new(
         aliases: new[] { "--trace" },
         description: "Produce a trace file in the current directory, for CSharpRepl bug reports."
@@ -108,7 +113,7 @@ internal static class CommandLine
             new CommandLineBuilder(
                 new RootCommand("C# REPL")
                 {
-                    References, Usings, Framework, Theme, Trace, Help, Version,
+                    References, Usings, Framework, Theme, UseTerminalPaletteTheme, Trace, Help, Version,
                     CommitCompletionKeyBindings, TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
                 }
             )
@@ -132,6 +137,7 @@ internal static class CommandLine
             loadScript: ProcessScriptArguments(args),
             loadScriptArgs: commandLine.UnparsedTokens.ToArray(),
             theme: commandLine.ValueForOption(Theme),
+            useTerminalPaletteTheme: commandLine.ValueForOption(UseTerminalPaletteTheme),
             trace: commandLine.ValueForOption(Trace),
             commitCompletionKeyPatterns: commandLine.ValueForOption(CommitCompletionKeyBindings),
             triggerCompletionListKeyPatterns: commandLine.ValueForOption(TriggerCompletionListKeyBindings),
@@ -217,22 +223,23 @@ internal static class CommandLine
         "These [OPTIONS] can be provided at the command line, or via a [@response-file.rsp]." + NewLine +
         "A [script-file.csx], if provided, will be executed before the prompt starts." + NewLine + NewLine +
         "OPTIONS:" + NewLine +
-        $"  -r <dll> or --reference <dll>:             {References.Description}" + NewLine +
-        $"  -u <namespace> or --using <namespace>:     {Usings.Description}" + NewLine +
-        $"  -f <framework> or --framework <framework>: {Framework.Description}" + NewLine +
-        $"                                             Available shared frameworks: " + NewLine + GetInstalledFrameworks(
-        $"                                              ") + NewLine +
-        $"  -t <theme.json> or --theme <theme.json>:   {Theme.Description}" + NewLine +
-        $"                                             Available default themes: " + NewLine + GetDefaultThemes(
-        $"                                              ") + NewLine +
-        $"  -v or --version:                           {Version.Description}" + NewLine +
-        $"  -h or --help:                              {Help.Description}" + NewLine +
-        $"  --commitCompletionKeys:                    {CommitCompletionKeyBindings.Description}" + NewLine +
-        $"  --triggerCompletionListKeys:               {TriggerCompletionListKeyBindings.Description}" + NewLine +
-        $"  --newLineKeys:                             {NewLineKeyBindings.Description}" + NewLine +
-        $"  --submitPromptKeys:                        {SubmitPromptKeyBindings.Description}" + NewLine +
-        $"  --submitPromptDetailedKeys:                {SubmitPromptDetailedKeyBindings.Description}" + NewLine +
-        $"  --trace:                                   {Trace.Description}" + NewLine + NewLine +
+        $"  -r <dll> or --reference <dll>:              {References.Description}" + NewLine +
+        $"  -u <namespace> or --using <namespace>:      {Usings.Description}" + NewLine +
+        $"  -f <framework> or --framework <framework>:  {Framework.Description}" + NewLine +
+        $"                                              Available shared frameworks: " + NewLine + GetInstalledFrameworks(
+        $"                                               ") + NewLine +
+        $"  -t <theme.json> or --theme <theme.json>:    {Theme.Description}" + NewLine +
+        $"                                              Available default themes: " + NewLine + GetDefaultThemes(
+        $"                                               ") + NewLine +
+        $"  --useTerminalPaletteTheme:                  {UseTerminalPaletteTheme.Description}" + NewLine +
+        $"  -v or --version:                            {Version.Description}" + NewLine +
+        $"  -h or --help:                               {Help.Description}" + NewLine +
+        $"  --commitCompletionKeys <key-binding>:       {CommitCompletionKeyBindings.Description}" + NewLine +
+        $"  --triggerCompletionListKeys  <key-binding>: {TriggerCompletionListKeyBindings.Description}" + NewLine +
+        $"  --newLineKeys <key-binding>:                {NewLineKeyBindings.Description}" + NewLine +
+        $"  --submitPromptKeys <key-binding>:           {SubmitPromptKeyBindings.Description}" + NewLine +
+        $"  --submitPromptDetailedKeys <key-binding>:   {SubmitPromptDetailedKeyBindings.Description}" + NewLine +
+        $"  --trace:                                    {Trace.Description}" + NewLine + NewLine +
         "@response-file.rsp:" + NewLine +
         "  A file, with extension .rsp, containing the above command line [OPTIONS], one option per line." + NewLine + NewLine +
         "script-file.csx:" + NewLine +
@@ -269,7 +276,12 @@ internal static class CommandLine
         if (!Directory.Exists(themesDir)) return $"Directory '{themesDir}' not found.";
 
         var themes = Directory.EnumerateFiles(themesDir)
-            .Select(t => leftPadding + "- " + Path.GetRelativePath(Configuration.ExecutableDirectory, t));
+            .Select(
+            t =>
+            {
+                var themePath = Path.GetRelativePath(Configuration.ExecutableDirectory, t);
+                return leftPadding + "- " + themePath + (themePath == Configuration.DefaultThemeRelativePath ? " (default)" : "");
+            });
         return string.Join(NewLine, themes);
     }
 
