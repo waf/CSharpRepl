@@ -44,9 +44,10 @@ internal static class CommandLine
         getDefaultValue: () => Configuration.FrameworkDefault
     ).AddSuggestions(SharedFramework.SupportedFrameworks);
 
-    private static readonly Option<string?> Theme = new(
+    private static readonly Option<string> Theme = new(
         aliases: new[] { "--theme", "-t", "/t" },
-        description: "Read a theme file for syntax highlighting. Respects the NO_COLOR standard."
+        description: "Read a theme file for syntax highlighting. Respects the NO_COLOR standard.",
+        getDefaultValue: () => Configuration.DefaultThemeRelativePath
     );
 
     private static readonly Option<bool> Trace = new(
@@ -105,9 +106,9 @@ internal static class CommandLine
 
         var commandLine =
             new CommandLineBuilder(
-                new RootCommand("C# REPL") 
-                { 
-                    References, Usings, Framework, Theme, Trace, Help, Version, 
+                new RootCommand("C# REPL")
+                {
+                    References, Usings, Framework, Theme, Trace, Help, Version,
                     CommitCompletionKeyBindings, TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
                 }
             )
@@ -222,6 +223,8 @@ internal static class CommandLine
         $"                                             Available shared frameworks: " + NewLine + GetInstalledFrameworks(
         $"                                              ") + NewLine +
         $"  -t <theme.json> or --theme <theme.json>:   {Theme.Description}" + NewLine +
+        $"                                             Available default themes: " + NewLine + GetDefaultThemes(
+        $"                                              ") + NewLine +
         $"  -v or --version:                           {Version.Description}" + NewLine +
         $"  -h or --help:                              {Help.Description}" + NewLine +
         $"  --commitCompletionKeys:                    {CommitCompletionKeyBindings.Description}" + NewLine +
@@ -258,6 +261,16 @@ internal static class CommandLine
             .SupportedFrameworks
             .Select(fx => leftPadding + "- " + fx + (fx == Configuration.FrameworkDefault ? " (default)" : ""));
         return string.Join(NewLine, frameworkList);
+    }
+
+    private static string GetDefaultThemes(string leftPadding)
+    {
+        var themesDir = Path.Combine(Configuration.ExecutableDirectory, "themes");
+        if (!Directory.Exists(themesDir)) return $"Directory '{themesDir}' not found.";
+
+        var themes = Directory.EnumerateFiles(themesDir)
+            .Select(t => leftPadding + "- " + Path.GetRelativePath(Configuration.ExecutableDirectory, t));
+        return string.Join(NewLine, themes);
     }
 
     /// <summary>
