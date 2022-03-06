@@ -19,7 +19,7 @@ public readonly struct Color
         typeof(AnsiColor)
         .GetFields(BindingFlags.Static | BindingFlags.Public)
         .Where(f => f.FieldType == typeof(AnsiColor))
-        .ToDictionary(f => f.Name, f => (AnsiColor)f.GetValue(null)!);
+        .ToDictionary(f => f.Name, f => (AnsiColor)f.GetValue(null)!, StringComparer.OrdinalIgnoreCase);
 
     [JsonConstructor]
     public Color(string name, string foreground)
@@ -36,20 +36,33 @@ public readonly struct Color
 
     public AnsiColor ToAnsiColor()
     {
-        var span = Foreground.AsSpan();
-        if (Foreground.StartsWith('#') && Foreground.Length == 7 &&
-            byte.TryParse(span.Slice(1, 2), NumberStyles.AllowHexSpecifier, null, out byte r) &&
-            byte.TryParse(span.Slice(3, 2), NumberStyles.AllowHexSpecifier, null, out byte g) &&
-            byte.TryParse(span.Slice(5, 2), NumberStyles.AllowHexSpecifier, null, out byte b))
-        {
-            return AnsiColor.Rgb(r, g, b);
-        }
-
-        if (ansiColorNames.TryGetValue(Foreground, out var color))
+        if (TryParseAnsiColor(Foreground, out var color))
         {
             return color;
         }
 
         throw new ArgumentException($"Unknown recognized color '{Foreground}'. Expecting either a hexadecimal color of the format #RRGGBB or a standard ANSI color name");
+    }
+
+    public static bool TryParseAnsiColor(string input, out AnsiColor result)
+    {
+        var span = input.AsSpan();
+        if (input.StartsWith('#') && span.Length == 7 &&
+            byte.TryParse(span.Slice(1, 2), NumberStyles.AllowHexSpecifier, null, out byte r) &&
+            byte.TryParse(span.Slice(3, 2), NumberStyles.AllowHexSpecifier, null, out byte g) &&
+            byte.TryParse(span.Slice(5, 2), NumberStyles.AllowHexSpecifier, null, out byte b))
+        {
+            result = AnsiColor.Rgb(r, g, b);
+            return true;
+        }
+
+        if (ansiColorNames.TryGetValue(input, out var color))
+        {
+            result= color;
+            return true;
+        }
+
+        result = default;
+        return false;
     }
 }
