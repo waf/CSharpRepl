@@ -20,7 +20,7 @@ namespace CSharpRepl;
 /// Main entry point; parses command line args and starts the <see cref="ReadEvalPrintLoop"/>.
 /// Check out ARCHITECTURE.md in the root of the repo for some design documentation.
 /// </summary>
-static class Program
+internal static class Program
 {
     internal static async Task<int> Main(string[] args)
     {
