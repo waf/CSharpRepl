@@ -26,6 +26,8 @@ public sealed class Configuration
 
     public static readonly string DefaultThemeRelativePath = Path.Combine("themes", "VisualStudio_Dark.json");
 
+    public const string PromptDefault = "> ";
+
     public static readonly string ApplicationDirectory =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
 
@@ -45,6 +47,7 @@ public sealed class Configuration
     public bool Trace { get; }
     public Theme Theme { get; }
     public bool UseTerminalPaletteTheme { get; }
+    public FormattedString Prompt { get; }
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
     public string? OutputForEarlyExit { get; }
@@ -59,6 +62,7 @@ public sealed class Configuration
         bool trace = false,
         string? theme = null,
         bool useTerminalPaletteTheme = false,
+        string promptMarkup = PromptDefault,
         string? loadScript = null,
         string[]? loadScriptArgs = null,
         string? outputForEarlyExit = null,
@@ -103,6 +107,16 @@ public sealed class Configuration
                 Console.Error.WriteLine($"{AnsiColor.Red.GetEscapeSequence()}Unable to locate theme file '{theme}'. Defaut theme with terminal palette colors will be used.{AnsiEscapeCodes.Reset}");
                 Theme = Theme.DefaultTheme;
             }
+        }
+
+        if (FormattedStringParser.TryParse(promptMarkup, out var prompt))
+        {
+            Prompt = prompt;
+        }
+        else
+        {
+            Console.Error.WriteLine($"{AnsiColor.Red.GetEscapeSequence()}Unable to parse '{prompt}' markup. Defaut prompt '{PromptDefault}' will be used.{AnsiEscapeCodes.Reset}");
+            Prompt = PromptDefault;
         }
 
         LoadScript = loadScript;

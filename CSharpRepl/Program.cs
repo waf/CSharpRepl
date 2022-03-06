@@ -100,7 +100,9 @@ static class Program
             var prompt = new Prompt(
                persistentHistoryFilepath: Path.Combine(appStorage, "prompt-history"),
                callbacks: new CSharpReplPromptCallbacks(console, roslyn, config),
-               configuration: new PromptConfiguration(keyBindings: config.KeyBindings));
+               configuration: new PromptConfiguration(
+                   keyBindings: config.KeyBindings,
+                   prompt: config.Prompt));
             return (prompt, ExitCodes.Success);
         }
         catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 87", StringComparison.Ordinal))
