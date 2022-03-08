@@ -154,7 +154,7 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
 /// <summary>
 /// Used when the user presses an "exit application" key combo (ctrl-d) to instruct the main REPL loop to end.
 /// </summary>
-sealed class ExitApplicationKeyPress : KeyPressCallbackResult
+internal sealed class ExitApplicationKeyPress : KeyPressCallbackResult
 {
     public ExitApplicationKeyPress()
         : base(string.Empty, null)
