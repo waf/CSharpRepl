@@ -5,7 +5,7 @@ using PrettyPrompt.Highlighting;
 
 namespace CSharpRepl.Services.Theming;
 
-internal static class FormattedStringParser
+public static class FormattedStringParser
 {
     private static readonly Regex StyleTagRegex = new(
             @"\[[a-z \#0-9]*\]|\[/\]",
@@ -21,6 +21,15 @@ internal static class FormattedStringParser
         @"^\[$|" +          //^[$
         @"^\]$",            //^]$
         RegexOptions.Compiled);
+
+    public static FormattedString Parse(string input)
+    {
+        if (!TryParse(input, out var result))
+        {
+            throw new ArgumentException("Unable to parse formatted string.", nameof(input));
+        }
+        return result;
+    }
 
     public static bool TryParse(string input, out FormattedString result)
     {
@@ -61,8 +70,9 @@ internal static class FormattedStringParser
             {
                 return false;
             }
-            previousText = Unescape(previousText);
+
             lastFormatEnd += previousText.Length + styleMatch.Length;
+            previousText = Unescape(previousText);
             if (lastFormat.HasValue)
             {
                 if (styleMatch.ValueSpan.Equals("[/]", StringComparison.Ordinal))
@@ -96,7 +106,7 @@ internal static class FormattedStringParser
         }
         else
         {
-            sb.Append(input[lastFormatEnd..]);
+            sb.Append(Unescape(input[lastFormatEnd..]));
         }
 
         result = sb.ToFormattedString();

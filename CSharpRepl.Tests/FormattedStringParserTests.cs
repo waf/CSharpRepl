@@ -60,8 +60,7 @@ public class FormattedStringParserTests
     [MemberData(nameof(ParseStyleData))]
     public void ParseStyle(string pattern, FormattedString expectedResult)
     {
-        Assert.True(FormattedStringParser.TryParse(pattern, out var result));
-        Assert.Equal(expectedResult, result);
+        Assert.Equal(expectedResult, FormattedStringParser.Parse(pattern));
     }
 
     public static IEnumerable<object[]> ParseStyleData
@@ -83,6 +82,9 @@ public class FormattedStringParserTests
             yield return new object[] { "[bold blue on red]a[/]", new FormattedString("a", new FormatSpan(0, 1, new ConsoleFormat(Foreground: AnsiColor.Blue, Background: AnsiColor.Red, Bold: true))) };
             yield return new object[] { "[blue on red bold]a[/]", new FormattedString("a", new FormatSpan(0, 1, new ConsoleFormat(Foreground: AnsiColor.Blue, Background: AnsiColor.Red, Bold: true))) };
             yield return new object[] { "[red]a[/][on green]b[/]", new FormattedString("ab", new FormatSpan(0, 1, AnsiColor.Red), new FormatSpan(1, 1, new ConsoleFormat(Background: AnsiColor.Green))) };
+
+            yield return new object[] { "[red][[a]][/][on green][[b]][/]", new FormattedString("[a][b]", new FormatSpan(0, 3, AnsiColor.Red), new FormatSpan(3, 3, new ConsoleFormat(Background: AnsiColor.Green))) };
+            yield return new object[] { "[bold]Usage[/]: [[OPTIONS]]", new FormattedString("Usage: [OPTIONS]", new FormatSpan(0, 5, new ConsoleFormat(Bold: true))) };
         }
     }
 }
