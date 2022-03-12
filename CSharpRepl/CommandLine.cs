@@ -61,6 +61,11 @@ internal static class CommandLine
         getDefaultValue: () => Configuration.PromptDefault
     );
 
+    private static readonly Option<bool> UseUnicode = new(
+        aliases: new[] { "--useUnicode" },
+        description: "UTF8 output encoding will be enabled and unicode character will be used (requires terminal support)."
+    );
+
     private static readonly Option<bool> Trace = new(
         aliases: new[] { "--trace" },
         description: "Produce a trace file in the current directory, for CSharpRepl bug reports."
@@ -119,7 +124,7 @@ internal static class CommandLine
             new CommandLineBuilder(
                 new RootCommand("C# REPL")
                 {
-                    References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, Trace, Help, Version,
+                    References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, Trace, Help, Version,
                     CommitCompletionKeyBindings, TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
                 }
             )
@@ -145,6 +150,7 @@ internal static class CommandLine
             theme: commandLine.ValueForOption(Theme),
             useTerminalPaletteTheme: commandLine.ValueForOption(UseTerminalPaletteTheme),
             promptMarkup: commandLine.ValueForOption(Prompt) ?? Configuration.PromptDefault,
+            useUnicode: commandLine.ValueForOption(UseUnicode),
             trace: commandLine.ValueForOption(Trace),
             commitCompletionKeyPatterns: commandLine.ValueForOption(CommitCompletionKeyBindings),
             triggerCompletionListKeyPatterns: commandLine.ValueForOption(TriggerCompletionListKeyBindings),
@@ -240,6 +246,7 @@ internal static class CommandLine
         $"                                               ") + NewLine +
         $"  --useTerminalPaletteTheme:                  {UseTerminalPaletteTheme.Description}" + NewLine +
         $"  --prompt:                                   {Prompt.Description}" + NewLine +
+        $"  --useUnicode:                               {UseUnicode.Description}" + NewLine +
         $"  -v or --version:                            {Version.Description}" + NewLine +
         $"  -h or --help:                               {Help.Description}" + NewLine +
         $"  --commitCompletionKeys <key-binding>:       {CommitCompletionKeyBindings.Description}" + NewLine +

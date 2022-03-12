@@ -48,6 +48,7 @@ public sealed class Configuration
     public Theme Theme { get; }
     public bool UseTerminalPaletteTheme { get; }
     public FormattedString Prompt { get; }
+    public bool UseUnicode { get; }
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
     public string? OutputForEarlyExit { get; }
@@ -63,6 +64,7 @@ public sealed class Configuration
         string? theme = null,
         bool useTerminalPaletteTheme = false,
         string promptMarkup = PromptDefault,
+        bool useUnicode = false,
         string? loadScript = null,
         string[]? loadScriptArgs = null,
         string? outputForEarlyExit = null,
@@ -119,6 +121,7 @@ public sealed class Configuration
             Prompt = PromptDefault;
         }
 
+        UseUnicode = useUnicode;
         LoadScript = loadScript;
         LoadScriptArgs = loadScriptArgs ?? Array.Empty<string>();
         OutputForEarlyExit = outputForEarlyExit;
