@@ -16,6 +16,9 @@ public sealed class Theme
     private static readonly Lazy<Theme> defaultTheme = new(
         () =>
         new(
+            selectedCompletionItemBackground: null,
+            completionBoxBorderColor: null,
+            completionItemDescriptionPaneBackground: null,
             syntaxHighlightingColors: new[]
             {
                 new SyntaxHighlightingColor(name: ClassificationTypeNames.ClassName, foreground: "BrightCyan"),
@@ -63,13 +66,33 @@ public sealed class Theme
 
     public static Theme DefaultTheme => defaultTheme.Value;
 
+    public string? SelectedCompletionItemBackground { get; }
+    public AnsiColor? GetSelectedCompletionItemBackgroundColor()
+        => SelectedCompletionItemBackground is null ? null : new ThemeColor(SelectedCompletionItemBackground).ToAnsiColor();
+
+    public string? CompletionBoxBorderColor { get; }
+    public ConsoleFormat? GetCompletionBoxBorderFormat()
+        => CompletionBoxBorderColor is null ? null : new ConsoleFormat(Foreground: new ThemeColor(CompletionBoxBorderColor).ToAnsiColor());
+
+    public string? CompletionItemDescriptionPaneBackground { get; }
+    public AnsiColor? GetCompletionItemDescriptionPaneBackground()
+        => CompletionItemDescriptionPaneBackground is null ? null : new ThemeColor(CompletionItemDescriptionPaneBackground).ToAnsiColor();
+
     public SyntaxHighlightingColor[] SyntaxHighlightingColors { get; }
 
     [JsonIgnore]
     private readonly Dictionary<string, AnsiColor> syntaxHighlightingColorsDictionary;
 
-    public Theme(SyntaxHighlightingColor[] syntaxHighlightingColors)
+    public Theme(
+        string? selectedCompletionItemBackground,
+        string? completionBoxBorderColor,
+        string? completionItemDescriptionPaneBackground,
+        SyntaxHighlightingColor[] syntaxHighlightingColors)
     {
+        SelectedCompletionItemBackground = selectedCompletionItemBackground;
+        CompletionBoxBorderColor = completionBoxBorderColor;
+        CompletionItemDescriptionPaneBackground = completionItemDescriptionPaneBackground;
+
         SyntaxHighlightingColors = syntaxHighlightingColors;
         syntaxHighlightingColorsDictionary = syntaxHighlightingColors.ToDictionary(c => c.Name, c => new ThemeColor(c.Foreground).ToAnsiColor());
     }
