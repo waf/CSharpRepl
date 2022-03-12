@@ -61,8 +61,8 @@ public class CommandLineTests
     {
         var result = Parse($"{flag} Data/theme.json");
         Assert.NotNull(result);
-        Assert.Equal(41, result.Theme.Colors.Length);
-        Assert.True(result.Theme.TryGetColor("struct name", out var color));
+        Assert.Equal(41, result.Theme.SyntaxHighlightingColors.Length);
+        Assert.True(result.Theme.TryGetSyntaxHighlightingColor("struct name", out var color));
         Assert.Equal("Yellow", color.ToString());
     }
 
@@ -90,8 +90,8 @@ public class CommandLineTests
         var result = Parse("-t Data/theme.json -u System.Linq System.Data -u Newtonsoft.Json --reference foo.dll -f Microsoft.AspNetCore.App --reference bar.dll baz.dll Data/LoadScript.csx");
         Assert.NotNull(result);
 
-        Assert.Equal(41, result.Theme.Colors.Length);
-        Assert.True(result.Theme.TryGetColor("struct name", out var color));
+        Assert.Equal(41, result.Theme.SyntaxHighlightingColors.Length);
+        Assert.True(result.Theme.TryGetSyntaxHighlightingColor("struct name", out var color));
         Assert.Equal("Yellow", color.ToString());
 
         Assert.Equal(new[] { "System.Linq", "System.Data", "Newtonsoft.Json" }, result.Usings);

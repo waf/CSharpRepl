@@ -15,65 +15,66 @@ public sealed class Theme
 {
     private static readonly Lazy<Theme> defaultTheme = new(
         () =>
-        new(new[]
-        {
-            new Color(name: ClassificationTypeNames.ClassName, foreground: "BrightCyan"),
-            new Color(name: ClassificationTypeNames.StructName, foreground: "BrightCyan"),
-            new Color(name: ClassificationTypeNames.DelegateName, foreground: "BrightCyan"),
-            new Color(name: ClassificationTypeNames.InterfaceName, foreground: "BrightCyan"),
-            new Color(name: ClassificationTypeNames.ModuleName, foreground: "BrightCyan"),
-            new Color(name: ClassificationTypeNames.RecordClassName, foreground: "BrightCyan"),
-            new Color(name: "record struct name", foreground: "BrightCyan"),
-            new Color(name: ClassificationTypeNames.EnumName, foreground: "Green"),
-            new Color(name: ClassificationTypeNames.Text, foreground: "White"),
-            new Color(name: ClassificationTypeNames.ConstantName, foreground: "White"),
-            new Color(name: ClassificationTypeNames.EnumMemberName, foreground: "White"),
-            new Color(name: ClassificationTypeNames.EventName, foreground: "White"),
-            new Color(name: ClassificationTypeNames.ExtensionMethodName, foreground: "White"),
-            new Color(name: ClassificationTypeNames.Identifier, foreground: "White"),
-            new Color(name: ClassificationTypeNames.LabelName, foreground: "White"),
-            new Color(name: ClassificationTypeNames.LocalName, foreground: "White"),
-            new Color(name: ClassificationTypeNames.MethodName, foreground: "White"),
-            new Color(name: ClassificationTypeNames.PropertyName, foreground: "White"),
-            new Color(name: ClassificationTypeNames.NamespaceName, foreground: "White"),
-            new Color(name: ClassificationTypeNames.ParameterName, foreground: "White"),
-            new Color(name: ClassificationTypeNames.NumericLiteral, foreground: "Blue"),
-            new Color(name: ClassificationTypeNames.ControlKeyword, foreground: "BrightMagenta"),
-            new Color(name: ClassificationTypeNames.Keyword, foreground: "BrightMagenta"),
-            new Color(name: ClassificationTypeNames.Operator, foreground: "BrightMagenta"),
-            new Color(name: ClassificationTypeNames.OperatorOverloaded, foreground: "BrightMagenta"),
-            new Color(name: ClassificationTypeNames.PreprocessorKeyword, foreground: "BrightMagenta"),
-            new Color(name: ClassificationTypeNames.StringEscapeCharacter, foreground: "BrightMagenta"),
-            new Color(name: ClassificationTypeNames.VerbatimStringLiteral, foreground: "BrightYellow"),
-            new Color(name: ClassificationTypeNames.StringLiteral, foreground: "BrightYellow"),
-            new Color(name: ClassificationTypeNames.TypeParameterName, foreground: "Yellow"),
-            new Color(name: ClassificationTypeNames.Comment, foreground: "Cyan"),
-            new Color(name: ClassificationTypeNames.XmlDocCommentAttributeQuotes, foreground: "Green"),
-            new Color(name: ClassificationTypeNames.XmlDocCommentAttributeValue, foreground: "Green"),
-            new Color(name: ClassificationTypeNames.XmlDocCommentAttributeName, foreground: "Cyan"),
-            new Color(name: ClassificationTypeNames.XmlDocCommentCDataSection, foreground: "Cyan"),
-            new Color(name: ClassificationTypeNames.XmlDocCommentComment, foreground: "Cyan"),
-            new Color(name: ClassificationTypeNames.XmlDocCommentDelimiter, foreground: "Cyan"),
-            new Color(name: ClassificationTypeNames.XmlDocCommentEntityReference, foreground: "Cyan"),
-            new Color(name: ClassificationTypeNames.XmlDocCommentName, foreground: "Cyan"),
-            new Color(name: ClassificationTypeNames.XmlDocCommentProcessingInstruction, foreground: "Cyan"),
-            new Color(name: ClassificationTypeNames.XmlDocCommentText, foreground: "Cyan")
-        }));
+        new(
+            syntaxHighlightingColors: new[]
+            {
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.ClassName, foreground: "BrightCyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.StructName, foreground: "BrightCyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.DelegateName, foreground: "BrightCyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.InterfaceName, foreground: "BrightCyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.ModuleName, foreground: "BrightCyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.RecordClassName, foreground: "BrightCyan"),
+                new SyntaxHighlightingColor(name: "record struct name", foreground: "BrightCyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.EnumName, foreground: "Green"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.Text, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.ConstantName, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.EnumMemberName, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.EventName, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.ExtensionMethodName, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.Identifier, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.LabelName, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.LocalName, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.MethodName, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.PropertyName, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.NamespaceName, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.ParameterName, foreground: "White"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.NumericLiteral, foreground: "Blue"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.ControlKeyword, foreground: "BrightMagenta"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.Keyword, foreground: "BrightMagenta"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.Operator, foreground: "BrightMagenta"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.OperatorOverloaded, foreground: "BrightMagenta"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.PreprocessorKeyword, foreground: "BrightMagenta"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.StringEscapeCharacter, foreground: "BrightMagenta"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.VerbatimStringLiteral, foreground: "BrightYellow"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.StringLiteral, foreground: "BrightYellow"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.TypeParameterName, foreground: "Yellow"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.Comment, foreground: "Cyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentAttributeQuotes, foreground: "Green"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentAttributeValue, foreground: "Green"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentAttributeName, foreground: "Cyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentCDataSection, foreground: "Cyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentComment, foreground: "Cyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentDelimiter, foreground: "Cyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentEntityReference, foreground: "Cyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentName, foreground: "Cyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentProcessingInstruction, foreground: "Cyan"),
+                new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentText, foreground: "Cyan")
+            }));
 
     public static Theme DefaultTheme => defaultTheme.Value;
 
-    public Color[] Colors { get; }
+    public SyntaxHighlightingColor[] SyntaxHighlightingColors { get; }
 
     [JsonIgnore]
-    private readonly Dictionary<string, AnsiColor> values;
+    private readonly Dictionary<string, AnsiColor> syntaxHighlightingColorsDictionary;
 
-    public Theme(Color[] colors)
+    public Theme(SyntaxHighlightingColor[] syntaxHighlightingColors)
     {
-        Colors = colors;
-        values = colors.ToDictionary(c => c.Name, c => c.ToAnsiColor());
+        SyntaxHighlightingColors = syntaxHighlightingColors;
+        syntaxHighlightingColorsDictionary = syntaxHighlightingColors.ToDictionary(c => c.Name, c => new ThemeColor(c.Foreground).ToAnsiColor());
     }
 
-    public AnsiColor? GetValueOrDefault(string name) => values.GetValueOrDefault(name);
-    public AnsiColor GetValueOrDefault(string name, AnsiColor defaultValue) => values.GetValueOrDefault(name, defaultValue);
-    public bool TryGetColor(string name, out AnsiColor color) => values.TryGetValue(name, out color);
+    public AnsiColor? GetSyntaxHighlightingColorOrDefault(string name) => syntaxHighlightingColorsDictionary.GetValueOrDefault(name);
+    public AnsiColor GetSyntaxHighlightingColorOrDefault(string name, AnsiColor defaultValue) => syntaxHighlightingColorsDictionary.GetValueOrDefault(name, defaultValue);
+    public bool TryGetSyntaxHighlightingColor(string name, out AnsiColor color) => syntaxHighlightingColorsDictionary.TryGetValue(name, out color);
 }

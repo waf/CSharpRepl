@@ -1,45 +1,168 @@
 {
-    "colors": [
-        { "name": "class name", "foreground": "#8BE9FD" },
-        { "name": "struct name", "foreground": "#8BE9FD" },
-        { "name": "delegate name", "foreground": "#8BE9FD" },
-        { "name": "interface name", "foreground": "#8BE9FD" },
-        { "name": "module name", "foreground": "#8BE9FD" },
-        { "name": "record class name", "foreground": "#8BE9FD" },
-        { "name": "record struct name", "foreground": "#8BE9FD" },
-        { "name": "enum name", "foreground": "#50FA7B" },
-        { "name": "constant name", "foreground": "#F8F8F2" },
-        { "name": "enum member name", "foreground": "#F8F8F2" },
-        { "name": "event name", "foreground": "#F8F8F2" },
-        { "name": "extension method name", "foreground": "#F8F8F2" },
-        { "name": "text", "foreground": "#F8F8F2" },
-        { "name": "identifier", "foreground": "#F8F8F2" },
-        { "name": "label name", "foreground": "#F8F8F2" },
-        { "name": "local name", "foreground": "#F8F8F2" },
-        { "name": "method name", "foreground": "#F8F8F2" },
-        { "name": "property name", "foreground": "#F8F8F2" },
-        { "name": "namespace name", "foreground": "#F8F8F2" },
-        { "name": "parameter name", "foreground": "#F8F8F2" },
-        { "name": "number", "foreground": "#BD93F9" },
-        { "name": "keyword - control", "foreground": "#FF79C6" },
-        { "name": "keyword", "foreground": "#FF79C6" },
-        { "name": "operator", "foreground": "#FF79C6" },
-        { "name": "operator - overloaded", "foreground": "#FF79C6" },
-        { "name": "preprocessor keyword", "foreground": "#FF79C6" },
-        { "name": "string - escape character", "foreground": "#FF79C6" },
-        { "name": "string - verbatim", "foreground": "#F1FA8C" },
-        { "name": "string", "foreground": "#F1FA8C" },
-        { "name": "type parameter name", "foreground": "#FFB86C" },
-        { "name": "comment", "foreground": "#6272A4" },
-        { "name": "xml doc comment - attribute quotes", "foreground": "#50FA7B" },
-        { "name": "xml doc comment - attribute value", "foreground": "#50FA7B" },
-        { "name": "xml doc comment - attribute name", "foreground": "#6272A4" },
-        { "name": "xml doc comment - cdata section", "foreground": "#6272A4" },
-        { "name": "xml doc comment - comment", "foreground": "#6272A4" },
-        { "name": "xml doc comment - delimiter", "foreground": "#6272A4" },
-        { "name": "xml doc comment - entity reference", "foreground": "#6272A4" },
-        { "name": "xml doc comment - name", "foreground": "#6272A4" },
-        { "name": "xml doc comment - processing instruction", "foreground": "#6272A4" },
-        { "name": "xml doc comment - text", "foreground": "#6272A4" }
-    ]
+  "syntaxHighlightingColors": [
+    {
+      "name": "class name",
+      "foreground": "#8BE9FD"
+    },
+    {
+      "name": "struct name",
+      "foreground": "#8BE9FD"
+    },
+    {
+      "name": "delegate name",
+      "foreground": "#8BE9FD"
+    },
+    {
+      "name": "interface name",
+      "foreground": "#8BE9FD"
+    },
+    {
+      "name": "module name",
+      "foreground": "#8BE9FD"
+    },
+    {
+      "name": "record class name",
+      "foreground": "#8BE9FD"
+    },
+    {
+      "name": "record struct name",
+      "foreground": "#8BE9FD"
+    },
+    {
+      "name": "enum name",
+      "foreground": "#50FA7B"
+    },
+    {
+      "name": "constant name",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "enum member name",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "event name",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "extension method name",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "text",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "identifier",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "label name",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "local name",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "method name",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "property name",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "namespace name",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "parameter name",
+      "foreground": "#F8F8F2"
+    },
+    {
+      "name": "number",
+      "foreground": "#BD93F9"
+    },
+    {
+      "name": "keyword - control",
+      "foreground": "#FF79C6"
+    },
+    {
+      "name": "keyword",
+      "foreground": "#FF79C6"
+    },
+    {
+      "name": "operator",
+      "foreground": "#FF79C6"
+    },
+    {
+      "name": "operator - overloaded",
+      "foreground": "#FF79C6"
+    },
+    {
+      "name": "preprocessor keyword",
+      "foreground": "#FF79C6"
+    },
+    {
+      "name": "string - escape character",
+      "foreground": "#FF79C6"
+    },
+    {
+      "name": "string - verbatim",
+      "foreground": "#F1FA8C"
+    },
+    {
+      "name": "string",
+      "foreground": "#F1FA8C"
+    },
+    {
+      "name": "type parameter name",
+      "foreground": "#FFB86C"
+    },
+    {
+      "name": "comment",
+      "foreground": "#6272A4"
+    },
+    {
+      "name": "xml doc comment - attribute quotes",
+      "foreground": "#50FA7B"
+    },
+    {
+      "name": "xml doc comment - attribute value",
+      "foreground": "#50FA7B"
+    },
+    {
+      "name": "xml doc comment - attribute name",
+      "foreground": "#6272A4"
+    },
+    {
+      "name": "xml doc comment - cdata section",
+      "foreground": "#6272A4"
+    },
+    {
+      "name": "xml doc comment - comment",
+      "foreground": "#6272A4"
+    },
+    {
+      "name": "xml doc comment - delimiter",
+      "foreground": "#6272A4"
+    },
+    {
+      "name": "xml doc comment - entity reference",
+      "foreground": "#6272A4"
+    },
+    {
+      "name": "xml doc comment - name",
+      "foreground": "#6272A4"
+    },
+    {
+      "name": "xml doc comment - processing instruction",
+      "foreground": "#6272A4"
+    },
+    {
+      "name": "xml doc comment - text",
+      "foreground": "#6272A4"
+    }
+  ]
 }

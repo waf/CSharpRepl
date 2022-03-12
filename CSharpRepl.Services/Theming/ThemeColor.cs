@@ -8,12 +8,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
-using System.Text.Json.Serialization;
 using PrettyPrompt.Highlighting;
 
 namespace CSharpRepl.Services.Theming;
 
-public readonly struct Color
+public readonly struct ThemeColor
 {
     private static readonly Dictionary<string, AnsiColor> ansiColorNames =
         typeof(AnsiColor)
@@ -21,27 +20,23 @@ public readonly struct Color
         .Where(f => f.FieldType == typeof(AnsiColor))
         .ToDictionary(f => f.Name, f => (AnsiColor)f.GetValue(null)!, StringComparer.OrdinalIgnoreCase);
 
-    [JsonConstructor]
-    public Color(string name, string foreground)
+    public ThemeColor(string color)
     {
-        Debug.Assert(!string.IsNullOrEmpty(name));
-        Debug.Assert(!string.IsNullOrEmpty(foreground));
+        Debug.Assert(!string.IsNullOrEmpty(color));
 
-        Name = name;
-        Foreground = foreground;
+        Value = color;
     }
 
-    public string Name { get; }
-    public string Foreground { get; }
+    public string Value { get; }
 
     public AnsiColor ToAnsiColor()
     {
-        if (TryParseAnsiColor(Foreground, out var color))
+        if (TryParseAnsiColor(Value, out var color))
         {
             return color;
         }
 
-        throw new ArgumentException($"Unknown recognized color '{Foreground}'. Expecting either a hexadecimal color of the format #RRGGBB or a standard ANSI color name");
+        throw new ArgumentException($"Unknown recognized color '{Value}'. Expecting either a hexadecimal color of the format #RRGGBB or a standard ANSI color name");
     }
 
     public static bool TryParseAnsiColor(string input, out AnsiColor result)
@@ -58,7 +53,7 @@ public readonly struct Color
 
         if (ansiColorNames.TryGetValue(input, out var color))
         {
-            result= color;
+            result = color;
             return true;
         }
 
