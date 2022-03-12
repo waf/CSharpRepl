@@ -144,7 +144,7 @@ internal static class FormattedStringParser
                 else if (onKeywordActive)
                 {
                     if (background.HasValue ||
-                        !Color.TryParseAnsiColor(part, out var color))
+                        !ThemeColor.TryParseAnsiColor(part, out var color))
                     {
                         return false;
                     }
@@ -154,7 +154,7 @@ internal static class FormattedStringParser
                 else
                 {
                     if (foreground.HasValue ||
-                        !Color.TryParseAnsiColor(part, out var color))
+                        !ThemeColor.TryParseAnsiColor(part, out var color))
                     {
                         return false;
                     }

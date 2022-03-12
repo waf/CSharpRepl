@@ -77,7 +77,7 @@ string GetVsColor(string name)
 }
 
 record Color(string name, string foreground);
-record Colors(Color[] colors);
+record Colors(Color[] syntaxHighlightingColors);
 
 var colors =
     typeof(ClassificationTypeNames)

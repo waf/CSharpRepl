@@ -13,6 +13,7 @@ using CSharpRepl.Services.Logging;
 using CSharpRepl.Services.Roslyn;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
+using PrettyPrompt.Highlighting;
 
 namespace CSharpRepl;
 
@@ -102,7 +103,10 @@ internal static class Program
                callbacks: new CSharpReplPromptCallbacks(console, roslyn, config),
                configuration: new PromptConfiguration(
                    keyBindings: config.KeyBindings,
-                   prompt: config.Prompt));
+                   prompt: config.Prompt,
+                   completionBoxBorderFormat: config.Theme.GetCompletionBoxBorderFormat(),
+                   completionItemDescriptionPaneBackground: config.Theme.GetCompletionItemDescriptionPaneBackground(),
+                   selectedCompletionItemBackground: config.Theme.GetSelectedCompletionItemBackgroundColor()));
             return (prompt, ExitCodes.Success);
         }
         catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 87", StringComparison.Ordinal))
