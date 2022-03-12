@@ -3,11 +3,13 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.QuickInfo;
 using Microsoft.Extensions.Caching.Memory;
@@ -25,11 +27,13 @@ internal sealed class AutoCompleteService
 
     private readonly SyntaxHighlighter highlighter;
     private readonly IMemoryCache cache;
+    private readonly Configuration configuration;
 
-    public AutoCompleteService(SyntaxHighlighter highlighter, IMemoryCache cache)
+    public AutoCompleteService(SyntaxHighlighter highlighter, IMemoryCache cache, Configuration configuration)
     {
         this.highlighter = highlighter;
         this.cache = cache;
+        this.configuration = configuration;
     }
 
     public async Task<CompletionItemWithDescription[]> Complete(Document document, string text, int caret)
@@ -60,7 +64,37 @@ internal sealed class AutoCompleteService
                 if (classification is not null &&
                     highlighter.TryGetColor(classification, out var color))
                 {
-                    return new FormattedString(text, new FormatSpan(0, text.Length, new ConsoleFormat(Foreground: color)));
+                    Span<char> prefix = stackalloc char[3];
+                    if (configuration.UseUnicode)
+                    {
+                        var symbol = classification switch
+                        {
+                            ClassificationTypeNames.Keyword => "🔑",
+                            ClassificationTypeNames.MethodName or ClassificationTypeNames.ExtensionMethodName => "🟣",
+                            ClassificationTypeNames.PropertyName => "🟡",
+                            ClassificationTypeNames.FieldName or ClassificationTypeNames.ConstantName or ClassificationTypeNames.EnumMemberName => "🔵",
+                            ClassificationTypeNames.EventName => "⚡",
+                            ClassificationTypeNames.ClassName or ClassificationTypeNames.RecordClassName => "🟨",
+                            ClassificationTypeNames.InterfaceName => "🔷",
+                            ClassificationTypeNames.StructName or ClassificationTypeNames.RecordStructName => "🟦",
+                            ClassificationTypeNames.EnumName => "🟧",
+                            ClassificationTypeNames.DelegateName => "💼",
+                            ClassificationTypeNames.NamespaceName => "⬜",
+                            ClassificationTypeNames.TypeParameterName => "⬛",
+                            _ => "⚫",
+                        };
+
+                        Debug.Assert(symbol.Length <= prefix.Length);
+                        symbol.CopyTo(prefix);
+                        prefix[symbol.Length] = ' ';
+                        prefix = prefix[..(symbol.Length + 1)];
+                    }
+                    else
+                    {
+                        prefix = Span<char>.Empty;
+                    }
+
+                    return new FormattedString($"{prefix}{text}", new FormatSpan(prefix.Length, text.Length, new ConsoleFormat(Foreground: color)));
                 }
             }
             return text;

@@ -5,6 +5,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using CSharpRepl.Logging;
 using CSharpRepl.PrettyPromptConfig;
@@ -13,7 +14,6 @@ using CSharpRepl.Services.Logging;
 using CSharpRepl.Services.Roslyn;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
-using PrettyPrompt.Highlighting;
 
 namespace CSharpRepl;
 
@@ -29,6 +29,9 @@ internal static class Program
 
         if (!TryParseArguments(args, out var config))
             return ExitCodes.ErrorParseArguments;
+
+        if (config.UseUnicode)
+            Console.OutputEncoding = Encoding.UTF8;
 
         if (config.OutputForEarlyExit is not null)
         {

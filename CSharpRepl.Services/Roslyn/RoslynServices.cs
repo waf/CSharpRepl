@@ -75,7 +75,7 @@ public sealed class RoslynServices
                 this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
                 this.prettyPrinter = new PrettyPrinter();
                 this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
-                this.autocompleteService = new AutoCompleteService(highlighter, cache);
+                this.autocompleteService = new AutoCompleteService(highlighter, cache, config);
                 logger.Log("Background initialization complete");
             });
             Initialization.ContinueWith(task => console.WriteErrorLine(task.Exception?.Message ?? "Unknown error"), TaskContinuationOptions.OnlyOnFaulted);
