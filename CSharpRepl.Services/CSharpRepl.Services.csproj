@@ -15,7 +15,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.0.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.0" />
     <PackageReference Include="NuGet.PackageManagement" Version="6.0.0" />
-    <PackageReference Include="PrettyPrompt" Version="3.0.3" />
+    <PackageReference Include="PrettyPrompt" Version="3.0.4" />
     <PackageReference Include="System.IO.Abstractions" Version="13.2.47" />
   </ItemGroup>
 

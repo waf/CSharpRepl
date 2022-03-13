@@ -51,7 +51,7 @@ public sealed class Configuration
     public bool UseUnicode { get; }
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
-    public string? OutputForEarlyExit { get; }
+    public FormattedString OutputForEarlyExit { get; }
 
     public KeyBindings KeyBindings { get; }
     public KeyPressPatterns SubmitPromptDetailedKeys { get; }
@@ -67,7 +67,7 @@ public sealed class Configuration
         bool useUnicode = false,
         string? loadScript = null,
         string[]? loadScriptArgs = null,
-        string? outputForEarlyExit = null,
+        FormattedString outputForEarlyExit = default,
         string[]? commitCompletionKeyPatterns = null,
         string[]? triggerCompletionListKeyPatterns = null,
         string[]? newLineKeyPatterns = null,

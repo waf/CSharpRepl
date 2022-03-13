@@ -8,6 +8,7 @@ using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -16,6 +17,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn.References;
+using CSharpRepl.Services.Theming;
+using PrettyPrompt.Highlighting;
 using static System.Environment;
 
 namespace CSharpRepl;
@@ -162,7 +165,7 @@ internal static class CommandLine
         return config;
     }
 
-    private static bool ShouldExitEarly(ParseResult commandLine, [NotNullWhen(true)] out string? text)
+    private static bool ShouldExitEarly(ParseResult commandLine, out FormattedString text)
     {
         if (commandLine.Directives.Any())
         {
@@ -229,49 +232,52 @@ internal static class CommandLine
     /// System.CommandLine can generate the help text for us, but I think it's less
     /// readable, and the code to configure it ends up being longer than the below string.
     /// </remarks>
-    private static string GetHelp() =>
-        GetVersion() + NewLine +
-        "Usage: csharprepl [OPTIONS] [@response-file.rsp] [script-file.csx] [-- <additional-arguments>]" + NewLine + NewLine +
-        "Starts a REPL (read eval print loop) according to the provided [OPTIONS]." + NewLine +
-        "These [OPTIONS] can be provided at the command line, or via a [@response-file.rsp]." + NewLine +
-        "A [script-file.csx], if provided, will be executed before the prompt starts." + NewLine + NewLine +
-        "OPTIONS:" + NewLine +
-        $"  -r <dll> or --reference <dll>:              {References.Description}" + NewLine +
-        $"  -u <namespace> or --using <namespace>:      {Usings.Description}" + NewLine +
-        $"  -f <framework> or --framework <framework>:  {Framework.Description}" + NewLine +
-        $"                                              Available shared frameworks: " + NewLine + GetInstalledFrameworks(
-        $"                                               ") + NewLine +
-        $"  -t <theme.json> or --theme <theme.json>:    {Theme.Description}" + NewLine +
-        $"                                              Available default themes: " + NewLine + GetDefaultThemes(
-        $"                                               ") + NewLine +
-        $"  --useTerminalPaletteTheme:                  {UseTerminalPaletteTheme.Description}" + NewLine +
-        $"  --prompt:                                   {Prompt.Description}" + NewLine +
-        $"  --useUnicode:                               {UseUnicode.Description}" + NewLine +
-        $"  -v or --version:                            {Version.Description}" + NewLine +
-        $"  -h or --help:                               {Help.Description}" + NewLine +
-        $"  --commitCompletionKeys <key-binding>:       {CommitCompletionKeyBindings.Description}" + NewLine +
-        $"  --triggerCompletionListKeys  <key-binding>: {TriggerCompletionListKeyBindings.Description}" + NewLine +
-        $"  --newLineKeys <key-binding>:                {NewLineKeyBindings.Description}" + NewLine +
-        $"  --submitPromptKeys <key-binding>:           {SubmitPromptKeyBindings.Description}" + NewLine +
-        $"  --submitPromptDetailedKeys <key-binding>:   {SubmitPromptDetailedKeyBindings.Description}" + NewLine +
-        $"  --trace:                                    {Trace.Description}" + NewLine + NewLine +
-        "@response-file.rsp:" + NewLine +
-        "  A file, with extension .rsp, containing the above command line [OPTIONS], one option per line." + NewLine + NewLine +
-        "script-file.csx:" + NewLine +
-        "  A file, with extension .csx, containing lines of C# to evaluate before starting the REPL." + NewLine +
-        "  Arguments to this script can be passed as <additional-arguments> and will be available in a global `args` variable." + NewLine;
+    private static FormattedString GetHelp()
+    {
+        var text = FormattedStringParser.Parse(
+            "[underline]Usage[/]: [brightcyan]csharprepl[/] [green][[OPTIONS]][/] [cyan][[@response-file.rsp]][/] [cyan][[script-file.csx]][/] [green][[-- <additional-arguments>]][/]" + NewLine + NewLine +
+            "Starts a REPL (read eval print loop) according to the provided [green][[OPTIONS]][/]." + NewLine +
+            "These [green][[OPTIONS]][/] can be provided at the command line, or via a [cyan][[@response-file.rsp]][/]." + NewLine +
+            "A [cyan][[script-file.csx]][/], if provided, will be executed before the prompt starts." + NewLine + NewLine +
+            "[underline]OPTIONS[/]:" + NewLine +
+            $"  [green]-r[/] [cyan]<dll>[/] or [green]--reference[/] [cyan]<dll>[/]:              {References.Description}" + NewLine +
+            $"  [green]-u[/] [cyan]<namespace>[/] or [green]--using[/] [cyan]<namespace>[/]:      {Usings.Description}" + NewLine +
+            $"  [green]-f[/] [cyan]<framework>[/] or [green]--framework[/] [cyan]<framework>[/]:  {Framework.Description}" + NewLine +
+            $"                                              Available shared frameworks: " + NewLine + GetInstalledFrameworks(
+            $"                                               ") + NewLine +
+            $"  [green]-t[/] [cyan]<theme.json>[/] or [green]--theme[/] [cyan]<theme.json>[/]:    {Theme.Description}" + NewLine +
+            $"                                              Available default themes: " + NewLine + GetDefaultThemes(
+            $"                                               ") + NewLine +
+            $"  [green]--useTerminalPaletteTheme[/]:                  {UseTerminalPaletteTheme.Description}" + NewLine +
+            $"  [green]--prompt[/]:                                   {Prompt.Description}" + NewLine +
+            $"  [green]--useUnicode[/]:                               {UseUnicode.Description}" + NewLine +
+            $"  [green]-v[/] or [green]--version[/]:                            {Version.Description}" + NewLine +
+            $"  [green]-h[/] or [green]--help[/]:                               {Help.Description}" + NewLine +
+            $"  [green]--commitCompletionKeys[/] [cyan]<key-binding>[/]:       {CommitCompletionKeyBindings.Description}" + NewLine +
+            $"  [green]--triggerCompletionListKeys[/] [cyan]<key-binding>[/]:  {TriggerCompletionListKeyBindings.Description}" + NewLine +
+            $"  [green]--newLineKeys[/] [cyan]<key-binding>[/]:                {NewLineKeyBindings.Description}" + NewLine +
+            $"  [green]--submitPromptKeys[/] [cyan]<key-binding>[/]:           {SubmitPromptKeyBindings.Description}" + NewLine +
+            $"  [green]--submitPromptDetailedKeys[/] [cyan]<key-binding>[/]:   {SubmitPromptDetailedKeyBindings.Description}" + NewLine +
+            $"  [green]--trace[/]:                                    {Trace.Description}" + NewLine + NewLine +
+            "[cyan]@response-file.rsp[/]:" + NewLine +
+            "  A file, with extension .rsp, containing the above command line [green][[OPTIONS]][/], one option per line." + NewLine + NewLine +
+            "[cyan]script-file.csx[/]:" + NewLine +
+            "  A file, with extension .csx, containing lines of C# to evaluate before starting the REPL." + NewLine +
+            "  Arguments to this script can be passed as [green]<additional-arguments>[/] and will be available in a global `args` variable." + NewLine);
+
+        return GetVersion() + NewLine + text;
+    }
 
     /// <summary>
     /// Get assembly version for usage in --version
     /// </summary>
-    private static string GetVersion()
+    private static FormattedString GetVersion()
     {
-        var product = "C# REPL";
         var version = Assembly
             .GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion ?? "unversioned";
-        return product + " " + version;
+        return FormattedStringParser.Parse($"[brightcyan bold]C# REPL {version}[/]");
     }
 
     /// <summary>
@@ -281,7 +287,7 @@ internal static class CommandLine
     {
         var frameworkList = SharedFramework
             .SupportedFrameworks
-            .Select(fx => leftPadding + "- " + fx + (fx == Configuration.FrameworkDefault ? " (default)" : ""));
+            .Select(fx => $"{leftPadding}- [cyan]{fx}[/]{(fx == Configuration.FrameworkDefault ? " [brightblack](default)[/]" : "")}");
         return string.Join(NewLine, frameworkList);
     }
 
@@ -295,7 +301,7 @@ internal static class CommandLine
             t =>
             {
                 var themePath = Path.GetRelativePath(Configuration.ExecutableDirectory, t);
-                return leftPadding + "- " + themePath + (themePath == Configuration.DefaultThemeRelativePath ? " (default)" : "");
+                return $"{leftPadding}- [cyan]{themePath}[/]{(themePath == Configuration.DefaultThemeRelativePath ? " [brightblack](default)[/]" : "")}";
             });
         return string.Join(NewLine, themes);
     }

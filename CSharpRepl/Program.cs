@@ -33,7 +33,7 @@ internal static class Program
         if (config.UseUnicode)
             Console.OutputEncoding = Encoding.UTF8;
 
-        if (config.OutputForEarlyExit is not null)
+        if (config.OutputForEarlyExit.Text is not null)
         {
             console.WriteLine(config.OutputForEarlyExit);
             return ExitCodes.Success;
