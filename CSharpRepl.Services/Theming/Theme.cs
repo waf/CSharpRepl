@@ -97,7 +97,7 @@ public sealed class Theme
         syntaxHighlightingColorsDictionary = syntaxHighlightingColors.ToDictionary(c => c.Name, c => new ThemeColor(c.Foreground).ToAnsiColor());
     }
 
-    public AnsiColor? GetSyntaxHighlightingColorOrDefault(string name) => syntaxHighlightingColorsDictionary.GetValueOrDefault(name);
+    public AnsiColor? GetSyntaxHighlightingColorOrDefault(string name) => TryGetSyntaxHighlightingColor(name, out var color) ? color : null;
     public AnsiColor GetSyntaxHighlightingColorOrDefault(string name, AnsiColor defaultValue) => syntaxHighlightingColorsDictionary.GetValueOrDefault(name, defaultValue);
     public bool TryGetSyntaxHighlightingColor(string name, out AnsiColor color) => syntaxHighlightingColorsDictionary.TryGetValue(name, out color);
 }
