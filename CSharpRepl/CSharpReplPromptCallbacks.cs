@@ -13,6 +13,7 @@ using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SymbolExploration;
 using CSharpRepl.Services.SyntaxHighlighting;
+using Microsoft.CodeAnalysis;
 using PrettyPrompt;
 using PrettyPrompt.Completion;
 using PrettyPrompt.Consoles;
@@ -60,6 +61,9 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
             new(ConsoleModifiers.Control, ConsoleKey.D),
             (text, caret, cancellationToken) => Task.FromResult<KeyPressCallbackResult?>(new ExitApplicationKeyPress()));
     }
+
+    protected override Task<TextSpan> GetSpanToReplaceByCompletionkAsync(string text, int caret, CancellationToken cancellationToken)
+        => roslyn.GetSpanToReplaceByCompletionkAsync(text, caret, cancellationToken);
 
     protected override async Task<IReadOnlyList<CompletionItem>> GetCompletionItemsAsync(string text, int caret, TextSpan spanToBeReplaced, CancellationToken cancellationToken)
     {
