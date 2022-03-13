@@ -6,21 +6,24 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
+using CSharpRepl.Services.Completion;
+using CSharpRepl.Services.Disassembly;
+using CSharpRepl.Services.Logging;
+using CSharpRepl.Services.Roslyn.References;
+using CSharpRepl.Services.Roslyn.Scripting;
+using CSharpRepl.Services.SymbolExploration;
+using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Caching.Memory;
+using PrettyPrompt;
 using PrettyPrompt.Consoles;
 using PrettyPrompt.Highlighting;
-using CSharpRepl.Services.SymbolExploration;
-using CSharpRepl.Services.Completion;
-using CSharpRepl.Services.SyntaxHighlighting;
-using CSharpRepl.Services.Roslyn.References;
-using CSharpRepl.Services.Roslyn.Scripting;
-using CSharpRepl.Services.Disassembly;
-using CSharpRepl.Services.Logging;
+using PrettyPromptTextSpan = PrettyPrompt.Documents.TextSpan;
 
 namespace CSharpRepl.Services.Roslyn;
 
@@ -33,6 +36,7 @@ public sealed class RoslynServices
     private readonly SyntaxHighlighter highlighter;
     private readonly ITraceLogger logger;
     private readonly SemaphoreSlim semaphore = new(1);
+    private readonly IPromptCallbacks defaultPromptCallbacks = new PromptCallbacks();
     private ScriptRunner? scriptRunner;
     private WorkspaceManager? workspaceManager;
     private Disassembler? disassembler;
@@ -72,14 +76,15 @@ public sealed class RoslynServices
             this.scriptRunner = new ScriptRunner(compilationOptions, referenceService, console);
             this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger);
 
-                this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
-                this.prettyPrinter = new PrettyPrinter();
-                this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
-                this.autocompleteService = new AutoCompleteService(highlighter, cache, config);
-                logger.Log("Background initialization complete");
-            });
-            Initialization.ContinueWith(task => console.WriteErrorLine(task.Exception?.Message ?? "Unknown error"), TaskContinuationOptions.OnlyOnFaulted);
-        }
+            this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
+            this.prettyPrinter = new PrettyPrinter();
+            this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
+            this.autocompleteService = new AutoCompleteService(highlighter, cache, config);
+            logger.Log("Background initialization complete");
+        });
+
+        Initialization.ContinueWith(task => console.WriteErrorLine(task.Exception?.Message ?? "Unknown error"), TaskContinuationOptions.OnlyOnFaulted);
+    }
 
     public async Task<EvaluationResult> EvaluateAsync(string input, string[]? args = null, CancellationToken cancellationToken = default)
     {
@@ -98,7 +103,7 @@ public sealed class RoslynServices
             {
                 // update our final document text, and add a new, empty project that can be
                 // used for future evaluations (whether evaluation, syntax highlighting, or completion)
-                workspaceManager!.UpdateCurrentDocument(success);
+                workspaceManager.UpdateCurrentDocument(success);
             }
 
             return result;
@@ -154,6 +159,23 @@ public sealed class RoslynServices
         var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
         var root = await document.GetSyntaxRootAsync().ConfigureAwait(false);
         return root is null || SyntaxFactory.IsCompleteSubmission(root.SyntaxTree); // if something's wrong and we can't get the syntax tree, we don't want to prevent evaluation.
+    }
+
+    public async Task<PrettyPromptTextSpan> GetSpanToReplaceByCompletionkAsync(string text, int caret, CancellationToken cancellationToken)
+    {
+        await Initialization.ConfigureAwait(false);
+
+        var sourceText = SourceText.From(text);
+        var document = workspaceManager.CurrentDocument.WithText(sourceText);
+        var completionService = CompletionService.GetService(document);
+        if (completionService is null)
+        {
+            //fallback to default PrettyPrompt implementation
+            return await defaultPromptCallbacks.GetSpanToReplaceByCompletionkAsync(text, caret, cancellationToken);
+        }
+
+        var span = completionService.GetDefaultCompletionListSpan(sourceText, caret);
+        return new PrettyPromptTextSpan(span.Start, span.Length);
     }
 
     public async Task<EvaluationResult> ConvertToIntermediateLanguage(string csharpCode, bool debugMode)
