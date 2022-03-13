@@ -72,7 +72,7 @@ public class CommandLineTests
     {
         var result = Parse(flag);
         Assert.NotNull(result);
-        Assert.Contains("C# REPL ", result.OutputForEarlyExit);
+        Assert.Contains("C# REPL ", result.OutputForEarlyExit.Text);
     }
 
     [Theory]
@@ -81,7 +81,7 @@ public class CommandLineTests
     {
         var result = Parse(flag);
         Assert.NotNull(result);
-        Assert.Contains("Usage: ", result.OutputForEarlyExit);
+        Assert.Contains("Usage: ", result.OutputForEarlyExit.Text);
     }
 
     [Fact]
@@ -135,14 +135,14 @@ public class CommandLineTests
     public void ParseArguments_DotNetSuggestFrameworkValue_IsAutocompleted()
     {
         var result = CommandLine.Parse(new[] { "[suggest:12]", "--framework " });
-        Assert.Contains("Microsoft.NETCore.App", result.OutputForEarlyExit);
+        Assert.Contains("Microsoft.NETCore.App", result.OutputForEarlyExit.Text);
     }
 
     [Fact]
     public void ParseArguments_DotNetSuggestUsingValue_IsAutocompleted()
     {
         var result = CommandLine.Parse(new[] { "[suggest:25]", "--using System.Collection" });
-        Assert.Contains("System.Collections.Immutable", result.OutputForEarlyExit);
+        Assert.Contains("System.Collections.Immutable", result.OutputForEarlyExit.Text);
     }
 
     private static Configuration Parse(string commandline) =>
