@@ -112,11 +112,10 @@ internal sealed class AutoCompleteService
         var infoService = QuickInfoService.GetService(completedDocument);
         if (infoService is null) return string.Empty;
 
-        var info = await infoService.GetQuickInfoAsync(completedDocument, item.Span.End).ConfigureAwait(false);
+        var info = await infoService.GetQuickInfoAsync(completedDocument, item.Span.Start).ConfigureAwait(false);
         if (info is null) return FormattedString.Empty;
 
         var stringBuilder = new FormattedStringBuilder();
-
         for (int sectionIndex = 0; sectionIndex < info.Sections.Length; sectionIndex++)
         {
             var section = info.Sections[sectionIndex];
