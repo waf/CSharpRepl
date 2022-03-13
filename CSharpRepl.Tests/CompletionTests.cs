@@ -57,7 +57,9 @@ public class CompletionTests : IAsyncLifetime
         Assert.Contains("Filters a sequence of values based on a predicate", whereDescription.Text);
     }
 
-    /// <remarks>https://github.com/waf/CSharpRepl/issues/4</remarks>
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/4
+    /// </summary>
     [Fact]
     public async Task Complete_SyntaxHighlight_CachesAreIsolated()
     {
@@ -70,5 +72,20 @@ public class CompletionTests : IAsyncLifetime
 
         Assert.NotEmpty(completions);
         Assert.NotEmpty(highlights);
+    }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/65
+    /// </summary>
+    [Fact]
+    public async Task Complete_GetDescriptionForShorterCompletion()
+    {
+        // LINQ tends to be a good canary for whether or not our reference / implementation assemblies are correct.
+        var completions = await this.services.CompleteAsync("datetime", 8);
+        
+        var arrayCompletion = completions.SingleOrDefault(c => c.Item.DisplayText == "Array");
+        Assert.NotNull(arrayCompletion);
+        var arrayDescription = await arrayCompletion.GetDescriptionAsync(cancellationToken: default);
+        Assert.Contains("Provides methods for creating, manipulating, searching, and sorting arrays", arrayDescription.Text);
     }
 }
