@@ -17,7 +17,7 @@ namespace CSharpRepl.Services.Disassembly;
 /// <summary>
 /// Shows the IL code for the user's C# code.
 /// </summary>
-class Disassembler
+internal class Disassembler
 {
     private readonly AssemblyReferenceService referenceService;
     private readonly (string name, CompileDelegate compile)[] compilers;
@@ -114,5 +114,5 @@ class Disassembler
         return compilation;
     }
 
-    delegate Compilation CompileDelegate(string code, OptimizationLevel optimizationLevel);
+    internal delegate Compilation CompileDelegate(string code, OptimizationLevel optimizationLevel);
 }

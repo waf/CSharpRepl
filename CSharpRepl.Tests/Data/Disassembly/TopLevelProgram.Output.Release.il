@@ -15,7 +15,8 @@
         ) cil managed
     {
         // Method begins at RVA 0x2050
-        // Code size 11 (0xb)
+        // Header size: 12
+        // Code size: 11 (0xb)
         .maxstack 2
         .entrypoint
         .locals init (
@@ -35,7 +36,8 @@
         instance void .ctor () cil managed
     {
         // Method begins at RVA 0x2067
-        // Code size 7 (0x7)
+        // Header size: 1
+        // Code size: 7 (0x7)
         .maxstack 8
 
         IL_0000: ldarg.0
