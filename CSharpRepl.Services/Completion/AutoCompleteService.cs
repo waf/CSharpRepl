@@ -42,8 +42,10 @@ internal sealed class AutoCompleteService
         if (text != string.Empty && cache.Get<CompletionItemWithDescription[]>(cacheKey) is CompletionItemWithDescription[] cached)
             return cached;
 
-        var completions = await CompletionService
-            .GetService(document)
+        var completionService = CompletionService.GetService(document);
+        if (completionService is null) return Array.Empty<CompletionItemWithDescription>();
+
+        var completions = await completionService
             .GetCompletionsAsync(document, caret)
             .ConfigureAwait(false);
 

@@ -22,7 +22,8 @@
             01 00 00 00
         )
         // Method begins at RVA 0x2050
-        // Code size 7 (0x7)
+        // Header size: 1
+        // Code size: 7 (0x7)
         .maxstack 8
 
         IL_0000: ldarg.0
@@ -39,7 +40,8 @@
             01 00 00 00
         )
         // Method begins at RVA 0x2058
-        // Code size 8 (0x8)
+        // Header size: 1
+        // Code size: 8 (0x8)
         .maxstack 8
 
         IL_0000: ldarg.0
@@ -52,7 +54,8 @@
         instance void .ctor () cil managed
     {
         // Method begins at RVA 0x2061
-        // Code size 8 (0x8)
+        // Header size: 1
+        // Code size: 8 (0x8)
         .maxstack 8
 
         IL_0000: ldarg.0
