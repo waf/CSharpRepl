@@ -2,6 +2,7 @@
   "selectedCompletionItemBackground": "#D7D7D7",
   "completionBoxBorderColor": "#777777",
   "completionItemDescriptionPaneBackground": "#EBEBEB",
+  "selectedTextBackground": "#99C9EF",
   "syntaxHighlightingColors": [
     {
       "name": "comment",

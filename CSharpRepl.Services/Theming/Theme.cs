@@ -19,6 +19,7 @@ public sealed class Theme
             selectedCompletionItemBackground: null,
             completionBoxBorderColor: null,
             completionItemDescriptionPaneBackground: null,
+            selectedTextBackground: null,
             syntaxHighlightingColors: new[]
             {
                 new SyntaxHighlightingColor(name: ClassificationTypeNames.ClassName, foreground: "BrightCyan"),
@@ -78,6 +79,10 @@ public sealed class Theme
     public AnsiColor? GetCompletionItemDescriptionPaneBackground()
         => CompletionItemDescriptionPaneBackground is null ? null : new ThemeColor(CompletionItemDescriptionPaneBackground).ToAnsiColor();
 
+    public string? SelectedTextBackground { get; }
+    public AnsiColor? GetSelectedTextBackground()
+        => SelectedTextBackground is null ? null : new ThemeColor(SelectedTextBackground).ToAnsiColor();
+
     public SyntaxHighlightingColor[] SyntaxHighlightingColors { get; }
 
     [JsonIgnore]
@@ -87,11 +92,13 @@ public sealed class Theme
         string? selectedCompletionItemBackground,
         string? completionBoxBorderColor,
         string? completionItemDescriptionPaneBackground,
+        string? selectedTextBackground,
         SyntaxHighlightingColor[] syntaxHighlightingColors)
     {
         SelectedCompletionItemBackground = selectedCompletionItemBackground;
         CompletionBoxBorderColor = completionBoxBorderColor;
         CompletionItemDescriptionPaneBackground = completionItemDescriptionPaneBackground;
+        SelectedTextBackground = selectedTextBackground;
 
         SyntaxHighlightingColors = syntaxHighlightingColors;
         syntaxHighlightingColorsDictionary = syntaxHighlightingColors.ToDictionary(c => c.Name, c => new ThemeColor(c.Foreground).ToAnsiColor());
