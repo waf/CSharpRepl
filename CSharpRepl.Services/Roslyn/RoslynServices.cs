@@ -182,7 +182,7 @@ public sealed class RoslynServices
     {
         var keyChar = keyPress.ConsoleKeyInfo.KeyChar;
         var keyModifiers = keyPress.ConsoleKeyInfo.Modifiers;
-        if (keyChar is '\0' or ' ' or '{' ||
+        if (keyChar is '\0' or ' ' or '{' or '(' or '[' or '<' ||
             (keyModifiers & ConsoleModifiers.Control) != 0 ||
             (keyModifiers & ConsoleModifiers.Alt) != 0)
         {
