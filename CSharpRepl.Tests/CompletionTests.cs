@@ -80,12 +80,23 @@ public class CompletionTests : IAsyncLifetime
     [Fact]
     public async Task Complete_GetDescriptionForShorterCompletion()
     {
-        // LINQ tends to be a good canary for whether or not our reference / implementation assemblies are correct.
         var completions = await this.services.CompleteAsync("datetime", 8);
-        
         var arrayCompletion = completions.SingleOrDefault(c => c.Item.DisplayText == "Array");
         Assert.NotNull(arrayCompletion);
         var arrayDescription = await arrayCompletion.GetDescriptionAsync(cancellationToken: default);
         Assert.Contains("Provides methods for creating, manipulating, searching, and sorting arrays", arrayDescription.Text);
+    }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/92
+    /// </summary>
+    [Fact]
+    public async Task Complete_GetDescriptionAfterDot()
+    {
+        var completions = await this.services.CompleteAsync("\"\".Where()", 3);
+        var whereCompletion = completions.SingleOrDefault(c => c.Item.DisplayText == "Where");
+        Assert.NotNull(whereCompletion);
+        var whereDescription = await whereCompletion.GetDescriptionAsync(cancellationToken: default);
+        Assert.Contains("Filters a sequence of values based on a predicate", whereDescription.Text);
     }
 }
