@@ -50,7 +50,7 @@ internal sealed class AutoCompleteService
             .ConfigureAwait(false);
 
         var completionsWithDescriptions = completions?.Items
-            .Select(item => new CompletionItemWithDescription(item, GetDisplayText(item), cancellationToken => GetExtendedDescriptionAsync(document, item, highlighter)))
+            .Select(item => new CompletionItemWithDescription(item, GetDisplayText(item), cancellationToken => GetExtendedDescriptionAsync(completionService, document, item, highlighter)))
             .ToArray() ?? Array.Empty<CompletionItemWithDescription>();
 
         cache.Set(cacheKey, completionsWithDescriptions, DateTimeOffset.Now.AddMinutes(1));
@@ -103,36 +103,24 @@ internal sealed class AutoCompleteService
         }
     }
 
-    private static async Task<FormattedString> GetExtendedDescriptionAsync(Document document, CompletionItem item, SyntaxHighlighter highlighter)
+    private static async Task<FormattedString> GetExtendedDescriptionAsync(CompletionService completionService, Document document, CompletionItem item, SyntaxHighlighter highlighter)
     {
-        var currentText = await document.GetTextAsync().ConfigureAwait(false);
-        var completedText = currentText.Replace(item.Span, item.DisplayText);
-        var completedDocument = document.WithText(completedText);
-
-        var infoService = QuickInfoService.GetService(completedDocument);
-        if (infoService is null) return string.Empty;
-
-        var info = await infoService.GetQuickInfoAsync(completedDocument, item.Span.Start).ConfigureAwait(false);
-        if (info is null) return FormattedString.Empty;
+        var description = await completionService.GetDescriptionAsync(document, item);
+        if (description is null) return string.Empty;
 
         var stringBuilder = new FormattedStringBuilder();
-        for (int sectionIndex = 0; sectionIndex < info.Sections.Length; sectionIndex++)
+        foreach (var taggedText in description.TaggedParts)
         {
-            var section = info.Sections[sectionIndex];
-            foreach (var taggedText in section.TaggedParts)
+            var classification = RoslynExtensions.TextTagToClassificationTypeName(taggedText.Tag);
+            if (classification is not null &&
+                highlighter.TryGetColor(classification, out var color))
             {
-                var classification = RoslynExtensions.TextTagToClassificationTypeName(taggedText.Tag);
-                if (classification is not null &&
-                    highlighter.TryGetColor(classification, out var color))
-                {
-                    stringBuilder.Append(taggedText.Text, new FormatSpan(0, taggedText.Text.Length, new ConsoleFormat(Foreground: color)));
-                }
-                else
-                {
-                    stringBuilder.Append(taggedText.Text);
-                }
+                stringBuilder.Append(taggedText.Text, new FormatSpan(0, taggedText.Text.Length, new ConsoleFormat(Foreground: color)));
             }
-            if (sectionIndex + 1 < info.Sections.Length) stringBuilder.Append(Environment.NewLine);
+            else
+            {
+                stringBuilder.Append(taggedText.Text);
+            }
         }
         return stringBuilder.ToFormattedString();
     }
