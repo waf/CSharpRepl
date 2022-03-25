@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Text.Json;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Theming;
+using Microsoft.CodeAnalysis.Completion;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
 using PrettyPrompt.Highlighting;
@@ -68,7 +69,6 @@ public sealed class Configuration
         string? loadScript = null,
         string[]? loadScriptArgs = null,
         FormattedString outputForEarlyExit = default,
-        string[]? commitCompletionKeyPatterns = null,
         string[]? triggerCompletionListKeyPatterns = null,
         string[]? newLineKeyPatterns = null,
         string[]? submitPromptKeyPatterns = null,
@@ -126,11 +126,6 @@ public sealed class Configuration
         LoadScriptArgs = loadScriptArgs ?? Array.Empty<string>();
         OutputForEarlyExit = outputForEarlyExit;
 
-        var commitCompletion =
-            commitCompletionKeyPatterns?.Any() == true
-            ? ParseKeyPressPatterns(commitCompletionKeyPatterns)
-            : new KeyPressPatterns(new(ConsoleKey.Enter), new(ConsoleKey.Tab), new(' '), new('.'), new('('));
-
         var triggerCompletionList =
             triggerCompletionListKeyPatterns?.Any() == true
             ? ParseKeyPressPatterns(triggerCompletionListKeyPatterns)
@@ -149,6 +144,11 @@ public sealed class Configuration
 
         var submitPrompt = ParseKeyPressPatterns(submitPromptKeyPatterns.Concat(submitPromptDetailedKeyPatterns).ToArray());
         SubmitPromptDetailedKeys = ParseKeyPressPatterns(submitPromptDetailedKeyPatterns);
+        
+        var commitCompletion = new KeyPressPatterns(
+            CompletionRules.Default.DefaultCommitCharacters.Select(c => new KeyPressPattern(c))
+            .Concat(new KeyPressPattern[] { new(ConsoleKey.Enter), new(ConsoleKey.Tab) })
+            .ToArray());
 
         KeyBindings = new(commitCompletion, triggerCompletionList, newLine, submitPrompt);
     }

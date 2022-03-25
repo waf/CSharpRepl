@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -78,7 +79,8 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
                   replacementText: r.Item.DisplayText,
                   displayText: r.DisplayText,
                   getExtendedDescription: r.GetDescriptionAsync,
-                  filterText: r.Item.FilterText
+                  filterText: r.Item.FilterText,
+                  commitCharacterRules: r.Item.Rules.CommitCharacterRules.Select(r => new CharacterSetModificationRule((CharacterSetModificationKind)r.Kind, r.Characters)).ToImmutableArray()
               ))
               .ToArray();
     }

@@ -84,11 +84,6 @@ internal static class CommandLine
         description: "Show version number and exit."
     );
 
-    private static readonly Option<string[]?> CommitCompletionKeyBindings = new(
-        aliases: new[] { "--commitCompletionKeys" },
-        description: "Set up key bindings for commit completion item. Can be specified multiple times."
-    );
-
     private static readonly Option<string[]?> TriggerCompletionListKeyBindings = new(
         aliases: new[] { "--triggerCompletionListKeys" },
         description: "Set up key bindings for trigger completion list. Can be specified multiple times."
@@ -128,7 +123,7 @@ internal static class CommandLine
                 new RootCommand("C# REPL")
                 {
                     References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, Trace, Help, Version,
-                    CommitCompletionKeyBindings, TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
+                    TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
                 }
             )
             .UseSuggestDirective() // support autocompletion via dotnet-suggest
@@ -155,7 +150,6 @@ internal static class CommandLine
             promptMarkup: commandLine.ValueForOption(Prompt) ?? Configuration.PromptDefault,
             useUnicode: commandLine.ValueForOption(UseUnicode),
             trace: commandLine.ValueForOption(Trace),
-            commitCompletionKeyPatterns: commandLine.ValueForOption(CommitCompletionKeyBindings),
             triggerCompletionListKeyPatterns: commandLine.ValueForOption(TriggerCompletionListKeyBindings),
             newLineKeyPatterns: commandLine.ValueForOption(NewLineKeyBindings),
             submitPromptKeyPatterns: commandLine.ValueForOption(SubmitPromptKeyBindings),
@@ -253,7 +247,6 @@ internal static class CommandLine
             $"  [green]--useUnicode[/]:                               {UseUnicode.Description}" + NewLine +
             $"  [green]-v[/] or [green]--version[/]:                            {Version.Description}" + NewLine +
             $"  [green]-h[/] or [green]--help[/]:                               {Help.Description}" + NewLine +
-            $"  [green]--commitCompletionKeys[/] [cyan]<key-binding>[/]:       {CommitCompletionKeyBindings.Description}" + NewLine +
             $"  [green]--triggerCompletionListKeys[/] [cyan]<key-binding>[/]:  {TriggerCompletionListKeyBindings.Description}" + NewLine +
             $"  [green]--newLineKeys[/] [cyan]<key-binding>[/]:                {NewLineKeyBindings.Description}" + NewLine +
             $"  [green]--submitPromptKeys[/] [cyan]<key-binding>[/]:           {SubmitPromptKeyBindings.Description}" + NewLine +
