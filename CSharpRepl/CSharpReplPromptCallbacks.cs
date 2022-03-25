@@ -65,6 +65,9 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
     protected override Task<TextSpan> GetSpanToReplaceByCompletionkAsync(string text, int caret, CancellationToken cancellationToken)
         => roslyn.GetSpanToReplaceByCompletionkAsync(text, caret, cancellationToken);
 
+    protected override Task<bool> ShouldOpenCompletionWindowAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
+        => roslyn.ShouldOpenCompletionWindowAsync(text, caret, keyPress, cancellationToken);
+
     protected override async Task<IReadOnlyList<CompletionItem>> GetCompletionItemsAsync(string text, int caret, TextSpan spanToBeReplaced, CancellationToken cancellationToken)
     {
         var completions = await roslyn.CompleteAsync(text, caret).ConfigureAwait(false);

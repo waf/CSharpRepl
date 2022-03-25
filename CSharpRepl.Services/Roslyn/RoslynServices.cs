@@ -178,6 +178,33 @@ public sealed class RoslynServices
         return new PrettyPromptTextSpan(span.Start, span.Length);
     }
 
+    public async Task<bool> ShouldOpenCompletionWindowAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
+    {
+        var keyChar = keyPress.ConsoleKeyInfo.KeyChar;
+        var keyModifiers = keyPress.ConsoleKeyInfo.Modifiers;
+        if (keyChar is '\0' or ' ' or '{' ||
+            (keyModifiers & ConsoleModifiers.Control) != 0 ||
+            (keyModifiers & ConsoleModifiers.Alt) != 0)
+        {
+            return false;
+        }
+
+        await Initialization.ConfigureAwait(false);
+
+        var sourceText = SourceText.From(text);
+        var currentDocument = workspaceManager.CurrentDocument;
+        var document = currentDocument.WithText(sourceText);
+        var completionService = CompletionService.GetService(document);
+        if (completionService is null)
+        {
+            //fallback to default PrettyPrompt implementation
+            return await defaultPromptCallbacks.ShouldOpenCompletionWindowAsync(text, caret, keyPress, cancellationToken);
+        }
+
+        var trigger = CompletionTrigger.CreateInsertionTrigger(keyChar);
+        return completionService.ShouldTriggerCompletion(sourceText, caret, trigger);
+    }
+
     public async Task<EvaluationResult> ConvertToIntermediateLanguage(string csharpCode, bool debugMode)
     {
         await Initialization.ConfigureAwait(false);
