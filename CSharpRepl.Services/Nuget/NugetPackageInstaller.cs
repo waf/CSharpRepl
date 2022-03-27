@@ -2,6 +2,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.Versioning;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using NuGet.Configuration;
 using NuGet.Frameworks;
@@ -15,15 +24,6 @@ using NuGet.Protocol.Core.Types;
 using NuGet.Resolver;
 using NuGet.Versioning;
 using PrettyPrompt.Consoles;
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.Versioning;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CSharpRepl.Services.Nuget;
 
@@ -77,7 +77,11 @@ internal sealed class NugetPackageInstaller
         return references;
     }
 
-    private static async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity, CancellationToken cancellationToken)
+    private static async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(
+        NuGetFramework frameworkVersion,
+        FolderNuGetProject nuGetProject,
+        PackageIdentity packageIdentity,
+        CancellationToken cancellationToken)
     {
         var packages = await GetDependencies(frameworkVersion, nuGetProject, packageIdentity, cancellationToken);
 
@@ -117,7 +121,9 @@ internal sealed class NugetPackageInstaller
     }
 
     private static async Task<Dictionary<PackageIdentity, PackageFolderReader>> GetDependencies(
-        NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity,
+        NuGetFramework frameworkVersion,
+        FolderNuGetProject nuGetProject,
+        PackageIdentity packageIdentity,
         CancellationToken cancellationToken)
     {
         var dependencies = new Dictionary<PackageIdentity, PackageFolderReader>();
@@ -125,16 +131,28 @@ internal sealed class NugetPackageInstaller
         return dependencies;
     }
 
-    private static async Task GetDependencies(NuGetFramework frameworkVersion, FolderNuGetProject nuGetProject, PackageIdentity packageIdentity, Dictionary<PackageIdentity, PackageFolderReader> aggregatedDependencies, CancellationToken cancellationToken)
+    private static async Task GetDependencies(
+        NuGetFramework frameworkVersion,
+        FolderNuGetProject nuGetProject,
+        PackageIdentity packageIdentity,
+        Dictionary<PackageIdentity, PackageFolderReader> aggregatedDependencies,
+        CancellationToken cancellationToken)
     {
-        aggregatedDependencies ??= new Dictionary<PackageIdentity, PackageFolderReader>();
-
         var installedPath = new DirectoryInfo(Path.Combine(nuGetProject.Root, packageIdentity.ToString()));
-        if (aggregatedDependencies.ContainsKey(packageIdentity) || !installedPath.Exists)
+        if (!installedPath.Exists)
             return;
 
+        lock (aggregatedDependencies)
+        {
+            if (aggregatedDependencies.ContainsKey(packageIdentity))
+                return;
+        }
+
         var reader = new PackageFolderReader(installedPath);
-        aggregatedDependencies[packageIdentity] = reader;
+        lock (aggregatedDependencies)
+        {
+            aggregatedDependencies[packageIdentity] = reader;
+        }
 
         var dependencyGroup = (await reader.GetPackageDependenciesAsync(cancellationToken)).ToArray();
 
@@ -160,9 +178,12 @@ internal sealed class NugetPackageInstaller
         );
 
     private async Task DownloadPackageAsync(
-        PackageIdentity packageIdentity, NuGetPackageManager packageManager,
-        ResolutionContext resolutionContext, IEnumerable<SourceRepository> primarySourceRepositories,
-        ISettings settings, CancellationToken cancellationToken)
+        PackageIdentity packageIdentity,
+        NuGetPackageManager packageManager,
+        ResolutionContext resolutionContext,
+        IEnumerable<SourceRepository> primarySourceRepositories,
+        ISettings settings,
+        CancellationToken cancellationToken)
     {
         var clientPolicyContext = ClientPolicyContext.GetClientPolicy(settings, logger);
         var projectContext = new ConsoleProjectContext(logger)
@@ -183,8 +204,10 @@ internal sealed class NugetPackageInstaller
     }
 
     private async Task<PackageIdentity> QueryLatestPackageVersion(
-        string packageId, FolderNuGetProject nuGetProject,
-        ResolutionContext resolutionContext, IEnumerable<SourceRepository> primarySourceRepositories,
+        string packageId,
+        FolderNuGetProject nuGetProject,
+        ResolutionContext resolutionContext,
+        IEnumerable<SourceRepository> primarySourceRepositories,
         CancellationToken cancellationToken)
     {
         var resolvePackage = await NuGetPackageManager.GetLatestVersionAsync(
@@ -195,7 +218,10 @@ internal sealed class NugetPackageInstaller
         return new PackageIdentity(packageId, resolvePackage.LatestVersion);
     }
 
-    private static NuGetPackageManager CreatePackageManager(ISettings settings, FolderNuGetProject nuGetProject, SourceRepositoryProvider sourceRepositoryProvider)
+    private static NuGetPackageManager CreatePackageManager(
+        ISettings settings,
+        FolderNuGetProject nuGetProject,
+        SourceRepositoryProvider sourceRepositoryProvider)
     {
         var packageManager = new NuGetPackageManager(sourceRepositoryProvider, settings, nuGetProject.Root)
         {
