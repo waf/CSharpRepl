@@ -29,6 +29,8 @@ namespace CSharpRepl.Services.Nuget;
 
 internal sealed class NugetPackageInstaller
 {
+    private static readonly Mutex MultipleNuspecPatchMutex = new(false, $"CSharpRepl_{nameof(MultipleNuspecPatchMutex)}");
+
     private readonly ConsoleNugetLogger logger;
 
     public NugetPackageInstaller(IConsole console)
@@ -154,6 +156,7 @@ internal sealed class NugetPackageInstaller
             aggregatedDependencies[packageIdentity] = reader;
         }
 
+        CheckAndFixMultipleNuspecFilesExistance(installedPath.FullName);
         var dependencyGroup = (await reader.GetPackageDependenciesAsync(cancellationToken)).ToArray();
 
         if (!dependencyGroup.Any())
@@ -249,5 +252,34 @@ internal sealed class NugetPackageInstaller
             ? Settings.LoadSpecificSettings(curDir, Settings.DefaultSettingsFileName)
             : Settings.LoadDefaultSettings(curDir);
         return settings;
+    }
+
+    /// <summary>
+    /// This is a patch for https://github.com/waf/CSharpRepl/issues/52.
+    /// The problem emerges on systems with case-sensitive file system.
+    /// There can be multiple nuspec files differing only in name casing in the package folder.lder.
+    /// Not sure why this happens (I suspect there is a bug in NuGet.PackageManagement).
+    /// </summary>
+    private static void CheckAndFixMultipleNuspecFilesExistance(string packageDirectoryPath)
+    {
+        MultipleNuspecPatchMutex.WaitOne();
+        try
+        {
+            var nuspecFileGroups = Directory.EnumerateFiles(packageDirectoryPath)
+                .Where(f => f.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase))
+                .GroupBy(f => f, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var nuspecsWithSameName in nuspecFileGroups)
+            {
+                foreach (var duplicateNuspec in nuspecsWithSameName.Skip(1))
+                {
+                    File.Delete(duplicateNuspec);
+                }
+            }
+        }
+        finally
+        {
+            MultipleNuspecPatchMutex.ReleaseMutex();
+        }
     }
 }
