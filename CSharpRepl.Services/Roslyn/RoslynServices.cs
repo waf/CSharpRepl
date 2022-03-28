@@ -73,7 +73,7 @@ public sealed class RoslynServices
             // the script runner is used to actually execute the scripts, and the workspace manager
             // is updated alongside. The workspace is a datamodel used in "editor services" like
             // syntax highlighting, autocompletion, and roslyn symbol queries.
-            this.scriptRunner = new ScriptRunner(compilationOptions, referenceService, console);
+            this.scriptRunner = new ScriptRunner(compilationOptions, referenceService, console, config);
             this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger);
 
             this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);

@@ -11,7 +11,7 @@ public class ProgramTests
 {
     private static readonly Regex AnsiEscapeCodeRegex = new(@"\u001b\[.+?m");
 
-    private static string RemoveFormatting(string input) => AnsiEscapeCodeRegex.Replace(input, "");
+    public static string RemoveFormatting(string input) => AnsiEscapeCodeRegex.Replace(input, "");
 
     [Fact]
     public async Task MainMethod_Help_ShowsHelp()

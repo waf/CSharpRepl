@@ -28,8 +28,9 @@ public class DisassemblerTests : IAsyncLifetime
         );
         var console = Substitute.For<IConsole>();
         console.BufferWidth.Returns(200);
-        var referenceService = new AssemblyReferenceService(new Configuration(), new TestTraceLogger());
-        var scriptRunner = new ScriptRunner(options, referenceService, console);
+        var config = new Configuration();
+        var referenceService = new AssemblyReferenceService(config, new TestTraceLogger());
+        var scriptRunner = new ScriptRunner(options, referenceService, console, config);
 
         this.disassembler = new Disassembler(options, referenceService, scriptRunner);
         this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());

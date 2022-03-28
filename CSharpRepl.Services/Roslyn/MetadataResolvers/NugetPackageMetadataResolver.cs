@@ -21,9 +21,9 @@ internal sealed class NugetPackageMetadataResolver : IIndividualMetadataReferenc
     private readonly NugetPackageInstaller nugetInstaller;
     private readonly ImmutableArray<PortableExecutableReference> dummyPlaceholder;
 
-    public NugetPackageMetadataResolver(IConsole console)
+    public NugetPackageMetadataResolver(IConsole console, Configuration configuration)
     {
-        this.nugetInstaller = new NugetPackageInstaller(console);
+        this.nugetInstaller = new NugetPackageInstaller(console, configuration);
         this.dummyPlaceholder = new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) }.ToImmutableArray();
     }
 

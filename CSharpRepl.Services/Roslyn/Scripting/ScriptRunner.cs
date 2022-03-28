@@ -30,12 +30,16 @@ internal sealed class ScriptRunner
     private ScriptOptions scriptOptions;
     private ScriptState<object>? state;
 
-    public ScriptRunner(CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceAssemblyService, IConsole console)
+    public ScriptRunner(
+        CSharpCompilationOptions compilationOptions,
+        AssemblyReferenceService referenceAssemblyService,
+        IConsole console,
+        Configuration configuration)
     {
         this.console = console;
         this.referenceAssemblyService = referenceAssemblyService;
         this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
-        this.nugetResolver = new NugetPackageMetadataResolver(console);
+        this.nugetResolver = new NugetPackageMetadataResolver(console, configuration);
 
         this.metadataResolver = new CompositeMetadataReferenceResolver(
             nugetResolver,
