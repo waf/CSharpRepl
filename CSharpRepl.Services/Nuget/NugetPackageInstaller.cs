@@ -33,50 +33,62 @@ internal sealed class NugetPackageInstaller
 
     private readonly ConsoleNugetLogger logger;
 
-    public NugetPackageInstaller(IConsole console)
+    public NugetPackageInstaller(IConsole console, Configuration configuration)
     {
-        this.logger = new ConsoleNugetLogger(console);
+        this.logger = new ConsoleNugetLogger(console, configuration);
     }
 
     public async Task<ImmutableArray<PortableExecutableReference>> InstallAsync(
-        string packageId, string? version = null, CancellationToken cancellationToken = default)
+        string packageId,
+        string? version = null,
+        CancellationToken cancellationToken = default)
     {
-        ISettings settings = ReadSettings();
-        var frameworkVersion = GetCurrentFramework();
-        var nuGetProject = CreateFolderProject(Path.Combine(Configuration.ApplicationDirectory, "packages"));
-        var sourceRepositoryProvider = new SourceRepositoryProvider(new PackageSourceProvider(settings), Repository.Provider.GetCoreV3());
-        var packageManager = CreatePackageManager(settings, nuGetProject, sourceRepositoryProvider);
+        logger.Reset();
 
-        using var sourceCacheContext = new SourceCacheContext();
-
-        var resolutionContext = new ResolutionContext(
-            DependencyBehavior.Lowest,
-            includePrelease: true, includeUnlisted: true,
-            VersionConstraints.None, new GatherCache(), sourceCacheContext
-        );
-
-        IEnumerable<SourceRepository> primarySourceRepositories = sourceRepositoryProvider.GetRepositories();
-        PackageIdentity packageIdentity = string.IsNullOrEmpty(version)
-            ? await QueryLatestPackageVersion(packageId, nuGetProject, resolutionContext, primarySourceRepositories, cancellationToken)
-            : new PackageIdentity(packageId, new NuGetVersion(version));
-
-        if (!packageIdentity.HasVersion)
+        try
         {
-            throw new NuGetResolverException($@"Could not find package ""{packageIdentity}""");
-        }
+            ISettings settings = ReadSettings();
+            var frameworkVersion = GetCurrentFramework();
+            var nuGetProject = CreateFolderProject(Path.Combine(Configuration.ApplicationDirectory, "packages"));
+            var sourceRepositoryProvider = new SourceRepositoryProvider(new PackageSourceProvider(settings), Repository.Provider.GetCoreV3());
+            var packageManager = CreatePackageManager(settings, nuGetProject, sourceRepositoryProvider);
 
-        var skipInstall = nuGetProject.PackageExists(packageIdentity);
-        if (!skipInstall)
-        {
-            await DownloadPackageAsync(packageIdentity, packageManager, resolutionContext, primarySourceRepositories, settings, cancellationToken);
-        }
+            using var sourceCacheContext = new SourceCacheContext();
 
-        var references = await GetAssemblyReferenceWithDependencies(frameworkVersion, nuGetProject, packageIdentity, cancellationToken);
-        if (references.Any())
-        {
-            logger.LogInformationSummary("Adding references for " + packageIdentity);
+            var resolutionContext = new ResolutionContext(
+                DependencyBehavior.Lowest,
+                includePrelease: true, includeUnlisted: true,
+                VersionConstraints.None, new GatherCache(), sourceCacheContext
+            );
+
+            var primarySourceRepositories = sourceRepositoryProvider.GetRepositories();
+            var packageIdentity = string.IsNullOrEmpty(version)
+                ? await QueryLatestPackageVersion(packageId, nuGetProject, resolutionContext, primarySourceRepositories, cancellationToken)
+                : new PackageIdentity(packageId, new NuGetVersion(version));
+
+            if (!packageIdentity.HasVersion)
+            {
+                logger.LogFinish($"Could not find package '{packageIdentity}'", success: false);
+                return ImmutableArray<PortableExecutableReference>.Empty;
+            }
+
+            var skipInstall = nuGetProject.PackageExists(packageIdentity);
+            if (!skipInstall)
+            {
+                await DownloadPackageAsync(packageIdentity, packageManager, resolutionContext, primarySourceRepositories, settings, cancellationToken);
+            }
+
+            logger.LogInformationSummary($"Adding references for '{packageIdentity}'");
+            var references = await GetAssemblyReferenceWithDependencies(frameworkVersion, nuGetProject, packageIdentity, cancellationToken);
+
+            logger.LogFinish($"Package '{packageIdentity}' was successfully installed.", success: true);
+            return references;
         }
-        return references;
+        catch (Exception ex)
+        {
+            logger.LogFinish($"Could not find package '{packageId}'. Error: {ex}", success: false);
+            return ImmutableArray<PortableExecutableReference>.Empty;
+        }
     }
 
     private static async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(
