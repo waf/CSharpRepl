@@ -100,38 +100,41 @@ internal sealed class NugetPackageInstaller
         var packages = await GetDependencies(frameworkVersion, nuGetProject, packageIdentity, cancellationToken);
 
         // get the filenames of everything under the "lib" directory, for both the provided nuget package and all its dependent packages.
-        var packageContents = await Task.WhenAll(packages
-            .Select(async package =>
-            {
-                var libs = await package.Value.GetLibItemsAsync(cancellationToken);
-                package.Value.Dispose();
-                return (package: package.Key.ToString(), libs);
-            })
+        var packageContents = await Task.WhenAll(
+            packages.Select(
+                async package =>
+                {
+                    var libs = (await package.Value.GetLibItemsAsync(cancellationToken));
+                    package.Value.Dispose();
+                    return (PackageId: package.Key.ToString(), Libs: libs);
+                })
         );
 
-        // filter down to only the dependencies that are compatible with the current framework.
-        // e.g. netstandard2.1 packages are compatible with net5 applications.
-        var frameworkCompatibleContents = packageContents
-            .Where(contents => contents.libs.Any())
-            .SelectMany(contents => contents.libs
-                .Last(lib => DefaultCompatibilityProvider.Instance.IsCompatible(
-                    frameworkVersion,
-                    lib.TargetFramework
-                ))
-                .Items
-                .Where(filepath => Path.GetExtension(filepath) == ".dll")
-                .Select(filepath => (contents.package, filepath))
-            );
-
-        var references = frameworkCompatibleContents
-            .Select(content => MetadataReference
-                .CreateFromFile(
-                    Path.Combine(nuGetProject.Root, content.package, content.filepath)
-                )
-            )
+        var references = packageContents
+            .SelectMany(contents => EnumerateReferences(contents.PackageId, contents.Libs))
             .ToImmutableArray();
 
         return references;
+
+        IEnumerable<PortableExecutableReference> EnumerateReferences(string packageId, IEnumerable<FrameworkSpecificGroup> libs)
+        {
+            //we want to use the highest TargetFramework compatible with current frameworkVersion
+            foreach (var lib in libs.OrderByDescending(l => l.TargetFramework.Version))
+            {
+                // filter down to only the dependencies that are compatible with the current framework.
+                // e.g. netstandard2.1 packages are compatible with net5 applications.
+                if (DefaultCompatibilityProvider.Instance.IsCompatible(frameworkVersion, lib.TargetFramework))
+                {
+                    foreach (var filePath in lib.Items.Where(filepath => Path.GetExtension(filepath) == ".dll"))
+                    {
+                        yield return MetadataReference.CreateFromFile(Path.Combine(nuGetProject.Root, packageId, filePath));
+                    }
+
+                    //after enumerating references of the highest compatible version, we can stop
+                    break;
+                }
+            }
+        }
     }
 
     private static async Task<Dictionary<PackageIdentity, PackageFolderReader>> GetDependencies(
