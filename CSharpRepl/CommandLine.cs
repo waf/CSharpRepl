@@ -67,6 +67,11 @@ internal static class CommandLine
         description: "UTF8 output encoding will be enabled and unicode character will be used (requires terminal support)."
     );
 
+    private static readonly Option<bool> UsePrereleaseNugets = new(
+        aliases: new[] { "--usePrereleaseNugets" },
+        description: "Determines whether prerelease NuGet versions should be taken into account when searching for the latest package version."
+    );
+
     private static readonly Option<bool> Trace = new(
         aliases: new[] { "--trace" },
         description: "Produce a trace file in the current directory, for CSharpRepl bug reports."
@@ -126,7 +131,7 @@ internal static class CommandLine
             new CommandLineBuilder(
                 new RootCommand("C# REPL")
                 {
-                    References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, Trace, Version, Help, TabSize,
+                    References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, UsePrereleaseNugets, Trace, Version, Help, TabSize,
                     TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
                 }
             )
@@ -153,6 +158,7 @@ internal static class CommandLine
             useTerminalPaletteTheme: commandLine.ValueForOption(UseTerminalPaletteTheme),
             promptMarkup: commandLine.ValueForOption(Prompt) ?? Configuration.PromptDefault,
             useUnicode: commandLine.ValueForOption(UseUnicode),
+            usePrereleaseNugets: commandLine.ValueForOption(UsePrereleaseNugets),
             tabSize: commandLine.ValueForOption(TabSize),
             trace: commandLine.ValueForOption(Trace),
             triggerCompletionListKeyPatterns: commandLine.ValueForOption(TriggerCompletionListKeyBindings),
@@ -250,6 +256,7 @@ internal static class CommandLine
             $"  [green]--useTerminalPaletteTheme[/]:                  {UseTerminalPaletteTheme.Description}" + NewLine +
             $"  [green]--prompt[/]:                                   {Prompt.Description}" + NewLine +
             $"  [green]--useUnicode[/]:                               {UseUnicode.Description}" + NewLine +
+            $"  [green]--usePrereleaseNugets[/]:                      {UsePrereleaseNugets.Description}" + NewLine +
             $"  [green]--tabSize[/] [cyan]<width>[/]:                          {TabSize.Description}" + NewLine +
             $"  [green]--triggerCompletionListKeys[/] [cyan]<key-binding>[/]:  {TriggerCompletionListKeyBindings.Description}" + NewLine +
             $"  [green]--newLineKeys[/] [cyan]<key-binding>[/]:                {NewLineKeyBindings.Description}" + NewLine +

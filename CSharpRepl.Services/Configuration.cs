@@ -50,6 +50,7 @@ public sealed class Configuration
     public bool UseTerminalPaletteTheme { get; }
     public FormattedString Prompt { get; }
     public bool UseUnicode { get; }
+    public bool UsePrereleaseNugets { get; }
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
     public FormattedString OutputForEarlyExit { get; }
@@ -67,6 +68,7 @@ public sealed class Configuration
         bool useTerminalPaletteTheme = false,
         string promptMarkup = PromptDefault,
         bool useUnicode = false,
+        bool usePrereleaseNugets = false,
         int tabSize = 4,
         string? loadScript = null,
         string[]? loadScriptArgs = null,
@@ -124,6 +126,7 @@ public sealed class Configuration
         }
 
         UseUnicode = useUnicode;
+        UsePrereleaseNugets = usePrereleaseNugets;
         TabSize = tabSize;
         LoadScript = loadScript;
         LoadScriptArgs = loadScriptArgs ?? Array.Empty<string>();
