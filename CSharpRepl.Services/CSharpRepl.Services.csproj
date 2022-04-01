@@ -34,4 +34,10 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="runtime.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

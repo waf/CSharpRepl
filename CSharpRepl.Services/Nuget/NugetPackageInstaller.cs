@@ -8,11 +8,14 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
+using NuGet.Client;
 using NuGet.Configuration;
+using NuGet.ContentModel;
 using NuGet.Frameworks;
 using NuGet.PackageManagement;
 using NuGet.Packaging;
@@ -22,6 +25,7 @@ using NuGet.Packaging.Signing;
 using NuGet.ProjectManagement;
 using NuGet.Protocol.Core.Types;
 using NuGet.Resolver;
+using NuGet.RuntimeModel;
 using NuGet.Versioning;
 using PrettyPrompt.Consoles;
 
@@ -29,6 +33,8 @@ namespace CSharpRepl.Services.Nuget;
 
 internal sealed class NugetPackageInstaller
 {
+    private const string RuntimeFileName = "runtime.json";
+
     private static readonly Mutex MultipleNuspecPatchMutex = new(false, $"CSharpRepl_{nameof(MultipleNuspecPatchMutex)}");
 
     private readonly ConsoleNugetLogger logger;
@@ -48,7 +54,7 @@ internal sealed class NugetPackageInstaller
         try
         {
             ISettings settings = ReadSettings();
-            var frameworkVersion = GetCurrentFramework();
+            var targetFramework = GetCurrentFramework();
             var nuGetProject = CreateFolderProject(Path.Combine(Configuration.ApplicationDirectory, "packages"));
             var sourceRepositoryProvider = new SourceRepositoryProvider(new PackageSourceProvider(settings), Repository.Provider.GetCoreV3());
             var packageManager = CreatePackageManager(settings, nuGetProject, sourceRepositoryProvider);
@@ -79,7 +85,7 @@ internal sealed class NugetPackageInstaller
             }
 
             logger.LogInformationSummary($"Adding references for '{packageIdentity}'");
-            var references = await GetAssemblyReferenceWithDependencies(frameworkVersion, nuGetProject, packageIdentity, cancellationToken);
+            var references = await GetAssemblyReferenceWithDependencies(targetFramework, nuGetProject, packageIdentity, cancellationToken);
 
             logger.LogFinish($"Package '{packageIdentity}' was successfully installed.", success: true);
             return references;
@@ -91,109 +97,105 @@ internal sealed class NugetPackageInstaller
         }
     }
 
-    private static async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(
-        NuGetFramework frameworkVersion,
+    private async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(
+        NuGetFramework targetFramework,
         FolderNuGetProject nuGetProject,
         PackageIdentity packageIdentity,
         CancellationToken cancellationToken)
     {
-        var packages = await GetDependencies(frameworkVersion, nuGetProject, packageIdentity, cancellationToken);
-
-        // get the filenames of everything under the "lib" directory, for both the provided nuget package and all its dependent packages.
-        var packageContents = await Task.WhenAll(
-            packages.Select(
-                async package =>
-                {
-                    var libs = (await package.Value.GetLibItemsAsync(cancellationToken));
-                    package.Value.Dispose();
-                    return (PackageId: package.Key.ToString(), Libs: libs);
-                })
-        );
-
-        var references = packageContents
-            .SelectMany(contents => EnumerateReferences(contents.PackageId, contents.Libs))
-            .ToImmutableArray();
-
-        return references;
-
-        IEnumerable<PortableExecutableReference> EnumerateReferences(string packageId, IEnumerable<FrameworkSpecificGroup> libs)
-        {
-            //we want to use the highest TargetFramework compatible with current frameworkVersion
-            foreach (var lib in libs.OrderByDescending(l => l.TargetFramework.Version))
-            {
-                // filter down to only the dependencies that are compatible with the current framework.
-                // e.g. netstandard2.1 packages are compatible with net5 applications.
-                if (DefaultCompatibilityProvider.Instance.IsCompatible(frameworkVersion, lib.TargetFramework))
-                {
-                    foreach (var filePath in lib.Items.Where(filepath => Path.GetExtension(filepath) == ".dll"))
-                    {
-                        yield return MetadataReference.CreateFromFile(Path.Combine(nuGetProject.Root, packageId, filePath));
-                    }
-
-                    //after enumerating references of the highest compatible version, we can stop
-                    break;
-                }
-            }
-        }
+        var runtimeGraph = GetRuntimeGraph();
+        var managedCodeConventions = new ManagedCodeConventions(runtimeGraph);
+        var referencesPerPackage = await GetDependencies(targetFramework, nuGetProject, packageIdentity, managedCodeConventions, cancellationToken);
+        return referencesPerPackage.Values.SelectMany(r => r).ToImmutableArray();
     }
 
-    private static async Task<Dictionary<PackageIdentity, PackageFolderReader>> GetDependencies(
-        NuGetFramework frameworkVersion,
+    private static async Task<Dictionary<PackageIdentity, List<PortableExecutableReference>>> GetDependencies(
+        NuGetFramework targetFramework,
         FolderNuGetProject nuGetProject,
         PackageIdentity packageIdentity,
+        ManagedCodeConventions managedCodeConventions,
         CancellationToken cancellationToken)
     {
-        var dependencies = new Dictionary<PackageIdentity, PackageFolderReader>();
-        await GetDependencies(frameworkVersion, nuGetProject, packageIdentity, dependencies, cancellationToken);
-        return dependencies;
+        var aggregatedReferences = new Dictionary<PackageIdentity, List<PortableExecutableReference>>();
+        await GetDependencies(targetFramework, nuGetProject, packageIdentity, managedCodeConventions, aggregatedReferences, cancellationToken);
+        return aggregatedReferences;
     }
 
     private static async Task GetDependencies(
-        NuGetFramework frameworkVersion,
+        NuGetFramework targetFramework,
         FolderNuGetProject nuGetProject,
         PackageIdentity packageIdentity,
-        Dictionary<PackageIdentity, PackageFolderReader> aggregatedDependencies,
+        ManagedCodeConventions managedCodeConventions,
+        Dictionary<PackageIdentity, List<PortableExecutableReference>> aggregatedReferences,
         CancellationToken cancellationToken)
     {
         var installedPath = new DirectoryInfo(Path.Combine(nuGetProject.Root, packageIdentity.ToString()));
         if (!installedPath.Exists)
             return;
 
-        lock (aggregatedDependencies)
+        lock (aggregatedReferences)
         {
-            if (aggregatedDependencies.ContainsKey(packageIdentity))
+            if (aggregatedReferences.ContainsKey(packageIdentity))
                 return;
         }
 
         var reader = new PackageFolderReader(installedPath);
-        lock (aggregatedDependencies)
+        var collection = new ContentItemCollection();
+        collection.Load(await reader.GetFilesAsync(cancellationToken));
+        string[] FindDlls(NuGetFramework framework) =>
+            collection.FindBestItemGroup(
+                managedCodeConventions.Criteria.ForFrameworkAndRuntime(framework, RuntimeInformation.RuntimeIdentifier),
+                managedCodeConventions.Patterns.RuntimeAssemblies)
+            ?.Items
+            .Select(i => i.Path)
+            .Where(p => p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            .ToArray()
+            ?? Array.Empty<string>();
+
+        var supportedFrameworks =
+            (await reader.GetSupportedFrameworksAsync(cancellationToken))
+            .Where(f => FindDlls(f).Any()) //Not all supported frameworks contains dlls. E.g. Microsoft.CSharp.4.7.0\lib\netcoreapp2.0 contains only empty file '_._'.
+            .ToList();
+
+        var frameworkReducer = new FrameworkReducer();
+        var framework = frameworkReducer.GetNearest(targetFramework, supportedFrameworks);
+        var dlls = FindDlls(framework)
+                .Select(path => MetadataReference.CreateFromFile(Path.GetFullPath(Path.Combine(nuGetProject.Root, packageIdentity.ToString(), path)))) //GetFullPath will normalize separators
+                .ToList();
+        lock (aggregatedReferences)
         {
-            aggregatedDependencies[packageIdentity] = reader;
+            aggregatedReferences[packageIdentity] = dlls;
         }
 
         CheckAndFixMultipleNuspecFilesExistance(installedPath.FullName);
-        var dependencyGroup = (await reader.GetPackageDependenciesAsync(cancellationToken)).ToArray();
+        var dependencyGroup =
+            (await reader.GetPackageDependenciesAsync(cancellationToken))
+            .FirstOrDefault(g => g.TargetFramework == framework);
 
-        if (!dependencyGroup.Any())
+        if (dependencyGroup is null)
             return;
 
         var firstLevelDependencies = dependencyGroup
-            .Last(group => DefaultCompatibilityProvider.Instance.IsCompatible(frameworkVersion, group.TargetFramework))
             .Packages
             .Select(p => new PackageIdentity(p.Id, p.VersionRange.MinVersion));
 
         await Task.WhenAll(
-            firstLevelDependencies.Select(p => GetDependencies(frameworkVersion, nuGetProject, p, aggregatedDependencies, cancellationToken))
+            firstLevelDependencies.Select(p => GetDependencies(targetFramework, nuGetProject, p, managedCodeConventions, aggregatedReferences, cancellationToken))
         );
     }
 
-    private static NuGetFramework GetCurrentFramework() =>
-        NuGetFramework.Parse(
-            Assembly
-                .GetEntryAssembly()?
-                .GetCustomAttribute<TargetFrameworkAttribute>()?
-                .FrameworkName
-        );
+    private static NuGetFramework GetCurrentFramework()
+    {
+        var assembly = Assembly.GetEntryAssembly();
+        if (assembly is null ||
+            assembly.Location.EndsWith("testhost.dll", StringComparison.OrdinalIgnoreCase)) //for unit tests (testhost.dll targets netcoreapp2.1 instead of net6.0)
+        {
+            assembly = Assembly.GetExecutingAssembly();
+        }
+
+        var targetFrameworkAttribute = assembly.GetCustomAttribute<TargetFrameworkAttribute>();
+        return NuGetFramework.Parse(targetFrameworkAttribute?.FrameworkName);
+    }
 
     private async Task DownloadPackageAsync(
         PackageIdentity packageIdentity,
@@ -267,6 +269,22 @@ internal sealed class NugetPackageInstaller
             ? Settings.LoadSpecificSettings(curDir, Settings.DefaultSettingsFileName)
             : Settings.LoadDefaultSettings(curDir);
         return settings;
+    }
+
+    private RuntimeGraph GetRuntimeGraph()
+    {
+        var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        if (dir != null)
+        {
+            var path = Path.Combine(dir, RuntimeFileName);
+            if (File.Exists(path))
+            {
+                using var stream = File.OpenRead(path);
+                return JsonRuntimeFormat.ReadRuntimeGraph(stream);
+            }
+        }
+        logger.LogError($"Cannot find '{RuntimeFileName}' in '{dir}'");
+        return new RuntimeGraph();
     }
 
     /// <summary>
