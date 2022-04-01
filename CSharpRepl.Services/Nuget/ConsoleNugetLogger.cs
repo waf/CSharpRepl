@@ -92,15 +92,24 @@ internal sealed class ConsoleNugetLogger : ILogger
 
     public void LogFinish(string text, bool success)
     {
+        //delete rendered lines
         for (int i = 0; i < linesRendered; i++)
         {
             console.Write(AnsiEscapeCodes.MoveCursorUp(1));
             console.Write(AnsiEscapeCodes.ClearLine);
         }
-
         linesRendered = 0;
-        lines.Clear();
+
+        //keep only errors
+        for (int i = lines.Count - 1; i >= 0; i--)
+        {
+            if (!lines[i].IsError) lines.RemoveAt(i);
+        }
+        
+        //add final summary
         lines.Add(CreateLine(text, isError: !success));
+
+        //render summary + potential errors
         RenderLines();
     }
 
@@ -115,30 +124,36 @@ internal sealed class ConsoleNugetLogger : ILogger
 
     private void RenderLines()
     {
-        console.HideCursor();
-        for (int i = 0; i < linesRendered; i++)
+        try
         {
-            console.Write(AnsiEscapeCodes.MoveCursorUp(1));
-            console.Write(AnsiEscapeCodes.ClearLine);
-        }
-
-        linesRendered = 0;
-        foreach (var line in lines)
-        {
-            if (line.IsError)
+            console.HideCursor();
+            for (int i = 0; i < linesRendered; i++)
             {
-                console.Write(AnsiColor.Red.GetEscapeSequence());
-                console.WriteLine(line.Text.Text);
-                console.Write(AnsiEscapeCodes.Reset);
-            }
-            else
-            {
-                console.WriteLine(line.Text);
+                console.Write(AnsiEscapeCodes.MoveCursorUp(1));
+                console.Write(AnsiEscapeCodes.ClearLine);
             }
 
-            linesRendered += Math.DivRem(line.Text.Length, console.BufferWidth, out var remainder) + (remainder == 0 ? 0 : 1);
+            linesRendered = 0;
+            foreach (var line in lines)
+            {
+                if (line.IsError)
+                {
+                    console.Write(AnsiColor.Red.GetEscapeSequence());
+                    console.WriteLine(line.Text.Text);
+                    console.Write(AnsiEscapeCodes.Reset);
+                }
+                else
+                {
+                    console.WriteLine(line.Text);
+                }
+
+                linesRendered += Math.DivRem(line.Text.Length, console.BufferWidth, out var remainder) + (remainder == 0 ? 0 : 1);
+            }
         }
-        console.ShowCursor();
+        finally
+        {
+            console.ShowCursor();
+        }
     }
 
     private readonly struct Line

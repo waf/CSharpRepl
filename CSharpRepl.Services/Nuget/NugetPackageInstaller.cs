@@ -88,9 +88,17 @@ internal sealed class NugetPackageInstaller
             }
 
             logger.LogInformationSummary($"Adding references for '{packageIdentity}'");
-            var references = await GetAssemblyReferenceWithDependencies(targetFramework, nuGetProject, packageIdentity, cancellationToken);
 
-            logger.LogFinish($"Package '{packageIdentity}' was successfully installed.", success: true);
+            var references = await GetAssemblyReferenceWithDependencies(targetFramework, nuGetProject, packageIdentity, cancellationToken);
+            if (references.Length > 0)
+            {
+                logger.LogFinish($"Package '{packageIdentity}' was successfully installed.", success: true);
+            }
+            else
+            {
+                logger.LogFinish($"No applicable references were found inside '{packageIdentity}' package.", success: false);
+            }
+
             return references;
         }
         catch (Exception ex)
@@ -112,7 +120,7 @@ internal sealed class NugetPackageInstaller
         return referencesPerPackage.Values.SelectMany(r => r).ToImmutableArray();
     }
 
-    private static async Task<Dictionary<PackageIdentity, List<PortableExecutableReference>>> GetDependencies(
+    private async Task<Dictionary<PackageIdentity, List<PortableExecutableReference>>> GetDependencies(
         NuGetFramework targetFramework,
         FolderNuGetProject nuGetProject,
         PackageIdentity packageIdentity,
@@ -124,7 +132,7 @@ internal sealed class NugetPackageInstaller
         return aggregatedReferences;
     }
 
-    private static async Task GetDependencies(
+    private async Task GetDependencies(
         NuGetFramework targetFramework,
         FolderNuGetProject nuGetProject,
         PackageIdentity packageIdentity,
@@ -134,7 +142,10 @@ internal sealed class NugetPackageInstaller
     {
         var installedPath = new DirectoryInfo(Path.Combine(nuGetProject.Root, packageIdentity.ToString()));
         if (!installedPath.Exists)
+        {
+            logger.LogError($"'{installedPath}' not found");
             return;
+        }
 
         lock (aggregatedReferences)
         {
@@ -162,9 +173,19 @@ internal sealed class NugetPackageInstaller
 
         var frameworkReducer = new FrameworkReducer();
         var framework = frameworkReducer.GetNearest(targetFramework, supportedFrameworks);
+        if (framework == null)
+        {
+            logger.LogError($"Could not find compatible framework for '{packageIdentity}'. Current framework is '{targetFramework}'. Frameworks supported by package are: {string.Join(" / ", supportedFrameworks.Select(f => f.DotNetFrameworkName))}.");
+            return;
+        }
+
         var dlls = FindDlls(framework)
                 .Select(path => MetadataReference.CreateFromFile(Path.GetFullPath(Path.Combine(nuGetProject.Root, packageIdentity.ToString(), path)))) //GetFullPath will normalize separators
                 .ToList();
+        if (!dlls.Any())
+        {
+            logger.LogError($"No applicable references were found inside '{packageIdentity}' package.");
+        }
         lock (aggregatedReferences)
         {
             aggregatedReferences[packageIdentity] = dlls;
