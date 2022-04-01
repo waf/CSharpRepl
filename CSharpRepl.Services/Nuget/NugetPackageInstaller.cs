@@ -38,10 +38,12 @@ internal sealed class NugetPackageInstaller
     private static readonly Mutex MultipleNuspecPatchMutex = new(false, $"CSharpRepl_{nameof(MultipleNuspecPatchMutex)}");
 
     private readonly ConsoleNugetLogger logger;
+    private readonly bool usePrereleaseNugets;
 
     public NugetPackageInstaller(IConsole console, Configuration configuration)
     {
         this.logger = new ConsoleNugetLogger(console, configuration);
+        this.usePrereleaseNugets = configuration.UsePrereleaseNugets;
     }
 
     public async Task<ImmutableArray<PortableExecutableReference>> InstallAsync(
@@ -60,12 +62,13 @@ internal sealed class NugetPackageInstaller
             var packageManager = CreatePackageManager(settings, nuGetProject, sourceRepositoryProvider);
 
             using var sourceCacheContext = new SourceCacheContext();
-
             var resolutionContext = new ResolutionContext(
                 DependencyBehavior.Lowest,
-                includePrelease: true, includeUnlisted: true,
-                VersionConstraints.None, new GatherCache(), sourceCacheContext
-            );
+                includePrelease: usePrereleaseNugets,
+                includeUnlisted: usePrereleaseNugets,
+                VersionConstraints.None,
+                new GatherCache(),
+                sourceCacheContext);
 
             var primarySourceRepositories = sourceRepositoryProvider.GetRepositories();
             var packageIdentity = string.IsNullOrEmpty(version)
