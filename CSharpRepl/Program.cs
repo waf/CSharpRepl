@@ -110,7 +110,8 @@ internal static class Program
                    completionBoxBorderFormat: config.Theme.GetCompletionBoxBorderFormat(),
                    completionItemDescriptionPaneBackground: config.Theme.GetCompletionItemDescriptionPaneBackground(),
                    selectedCompletionItemBackground: config.Theme.GetSelectedCompletionItemBackgroundColor(),
-                   selectedTextBackground: config.Theme.GetSelectedTextBackground()));
+                   selectedTextBackground: config.Theme.GetSelectedTextBackground(),
+                   tabSize: config.TabSize));
             return (prompt, ExitCodes.Success);
         }
         catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 87", StringComparison.Ordinal))
