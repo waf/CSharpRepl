@@ -8,8 +8,6 @@ using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -74,14 +72,20 @@ internal static class CommandLine
         description: "Produce a trace file in the current directory, for CSharpRepl bug reports."
     );
 
-    private static readonly Option<bool> Help = new(
-        aliases: new[] { "--help", "-h", "-?", "/h", "/?" },
-        description: "Show this help and exit."
-    );
-
     private static readonly Option<bool> Version = new(
         aliases: new[] { "--version", "-v", "/v" },
         description: "Show version number and exit."
+    );
+
+    private static readonly Option<bool> Help = new(
+    aliases: new[] { "--help", "-h", "-?", "/h", "/?" },
+    description: "Show this help and exit."
+    );
+
+    private static readonly Option<int> TabSize = new(
+        aliases: new[] { "--tabSize" },
+        getDefaultValue: () => 4,
+        description: "Width of tab character."
     );
 
     private static readonly Option<string[]?> TriggerCompletionListKeyBindings = new(
@@ -122,7 +126,7 @@ internal static class CommandLine
             new CommandLineBuilder(
                 new RootCommand("C# REPL")
                 {
-                    References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, Trace, Help, Version,
+                    References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, Trace, Version, Help, TabSize,
                     TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
                 }
             )
@@ -149,6 +153,7 @@ internal static class CommandLine
             useTerminalPaletteTheme: commandLine.ValueForOption(UseTerminalPaletteTheme),
             promptMarkup: commandLine.ValueForOption(Prompt) ?? Configuration.PromptDefault,
             useUnicode: commandLine.ValueForOption(UseUnicode),
+            tabSize: commandLine.ValueForOption(TabSize),
             trace: commandLine.ValueForOption(Trace),
             triggerCompletionListKeyPatterns: commandLine.ValueForOption(TriggerCompletionListKeyBindings),
             newLineKeyPatterns: commandLine.ValueForOption(NewLineKeyBindings),
@@ -245,13 +250,14 @@ internal static class CommandLine
             $"  [green]--useTerminalPaletteTheme[/]:                  {UseTerminalPaletteTheme.Description}" + NewLine +
             $"  [green]--prompt[/]:                                   {Prompt.Description}" + NewLine +
             $"  [green]--useUnicode[/]:                               {UseUnicode.Description}" + NewLine +
-            $"  [green]-v[/] or [green]--version[/]:                            {Version.Description}" + NewLine +
-            $"  [green]-h[/] or [green]--help[/]:                               {Help.Description}" + NewLine +
+            $"  [green]--tabSize[/] [cyan]<width>[/]:                          {TabSize.Description}" + NewLine +
             $"  [green]--triggerCompletionListKeys[/] [cyan]<key-binding>[/]:  {TriggerCompletionListKeyBindings.Description}" + NewLine +
             $"  [green]--newLineKeys[/] [cyan]<key-binding>[/]:                {NewLineKeyBindings.Description}" + NewLine +
             $"  [green]--submitPromptKeys[/] [cyan]<key-binding>[/]:           {SubmitPromptKeyBindings.Description}" + NewLine +
             $"  [green]--submitPromptDetailedKeys[/] [cyan]<key-binding>[/]:   {SubmitPromptDetailedKeyBindings.Description}" + NewLine +
-            $"  [green]--trace[/]:                                    {Trace.Description}" + NewLine + NewLine +
+            $"  [green]--trace[/]:                                    {Trace.Description}" + NewLine +
+            $"  [green]-v[/] or [green]--version[/]:                            {Version.Description}" + NewLine +
+            $"  [green]-h[/] or [green]--help[/]:                               {Help.Description}" + NewLine + NewLine +
             "[cyan]@response-file.rsp[/]:" + NewLine +
             "  A file, with extension .rsp, containing the above command line [green][[OPTIONS]][/], one option per line." + NewLine + NewLine +
             "[cyan]script-file.csx[/]:" + NewLine +

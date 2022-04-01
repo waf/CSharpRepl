@@ -53,6 +53,7 @@ public sealed class Configuration
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
     public FormattedString OutputForEarlyExit { get; }
+    public int TabSize { get; }
 
     public KeyBindings KeyBindings { get; }
     public KeyPressPatterns SubmitPromptDetailedKeys { get; }
@@ -66,6 +67,7 @@ public sealed class Configuration
         bool useTerminalPaletteTheme = false,
         string promptMarkup = PromptDefault,
         bool useUnicode = false,
+        int tabSize = 4,
         string? loadScript = null,
         string[]? loadScriptArgs = null,
         FormattedString outputForEarlyExit = default,
@@ -122,6 +124,7 @@ public sealed class Configuration
         }
 
         UseUnicode = useUnicode;
+        TabSize = tabSize;
         LoadScript = loadScript;
         LoadScriptArgs = loadScriptArgs ?? Array.Empty<string>();
         OutputForEarlyExit = outputForEarlyExit;
@@ -144,7 +147,7 @@ public sealed class Configuration
 
         var submitPrompt = ParseKeyPressPatterns(submitPromptKeyPatterns.Concat(submitPromptDetailedKeyPatterns).ToArray());
         SubmitPromptDetailedKeys = ParseKeyPressPatterns(submitPromptDetailedKeyPatterns);
-        
+
         var commitCompletion = new KeyPressPatterns(
             CompletionRules.Default.DefaultCommitCharacters.Select(c => new KeyPressPattern(c))
             .Concat(new KeyPressPattern[] { new(ConsoleKey.Enter), new(ConsoleKey.Tab) })
