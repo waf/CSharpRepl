@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Text;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn.References;
@@ -83,8 +84,8 @@ internal static class CommandLine
     );
 
     private static readonly Option<bool> Help = new(
-    aliases: new[] { "--help", "-h", "-?", "/h", "/?" },
-    description: "Show this help and exit."
+        aliases: new[] { "--help", "-h", "-?", "/h", "/?" },
+        description: "Show this help and exit."
     );
 
     private static readonly Option<int> TabSize = new(
@@ -113,9 +114,9 @@ internal static class CommandLine
         description: "Set up key bindings for the submit of current prompt with detailed output. Can be specified multiple times."
     );
 
-    public static Configuration Parse(string[] args)
+    public static Configuration Parse(string[] args, string configFilePath)
     {
-        var parseArgs = RemoveScriptArguments(args).ToArray();
+        var parseArgs = PreProcessArguments(args, configFilePath).ToArray();
 
         Framework.AddValidator(r =>
         {
@@ -139,7 +140,7 @@ internal static class CommandLine
             .Build()
             .Parse(parseArgs);
 
-        if (ShouldExitEarly(commandLine, out var text))
+        if (ShouldExitEarly(commandLine, configFilePath, out var text))
         {
             return new Configuration(outputForEarlyExit: text);
         }
@@ -170,7 +171,7 @@ internal static class CommandLine
         return config;
     }
 
-    private static bool ShouldExitEarly(ParseResult commandLine, out FormattedString text)
+    private static bool ShouldExitEarly(ParseResult commandLine, string configFilePath, out FormattedString text)
     {
         if (commandLine.Directives.Any())
         {
@@ -183,7 +184,7 @@ internal static class CommandLine
         }
         if (commandLine.ValueForOption<bool>("--help"))
         {
-            text = GetHelp();
+            text = GetHelp(configFilePath);
             return true;
         }
         if (commandLine.ValueForOption<bool>("--version"))
@@ -197,12 +198,35 @@ internal static class CommandLine
     }
 
     /// <summary>
-    /// We allow csx files to be specified, sometimes in ambiguous scenarios that
-    /// System.CommandLine can't figure out. So we remove it from processing here,
-    /// and process it manually in <see cref="ProcessScriptArguments"/>.
+    /// Adds/removes arguments to the user's provided arguments to handle rsp and csx files.
     /// </summary>
-    private static IEnumerable<string> RemoveScriptArguments(string[] args)
+    private static IEnumerable<string> PreProcessArguments(string[] args, string configFilePath)
     {
+        // if we're running a dotnet-suggest directive, don't touch the args.
+        if (args.FirstOrDefault()?.FirstOrDefault() == '[')
+        {
+            foreach (var arg in args)
+            {
+                yield return arg;
+            }
+            yield break;
+        }
+
+        // If the user has a config.rsp file in their app storage directory, we'll load it automatically.
+        // This file path is e.g. ~\AppData\Roaming\.csharprepl\config.rsp or ~/.config/.csharprepl/config.rsp
+        // https://github.com/dotnet/command-line-api/blob/main/docs/Features-overview.md#response-files
+        if (File.Exists(configFilePath))
+        {
+            yield return "@" + configFilePath;
+        }
+        else
+        {
+            CreateDefaultConfigurationFile(configFilePath);
+        }
+
+        // We allow csx files to be specified, sometimes in ambiguous scenarios that
+        // System.CommandLine can't figure out. So we remove it from processing here,
+        // and process it manually in ProcessScriptArguments
         bool foundIgnore = false;
         foreach (var arg in args)
         {
@@ -237,7 +261,7 @@ internal static class CommandLine
     /// System.CommandLine can generate the help text for us, but I think it's less
     /// readable, and the code to configure it ends up being longer than the below string.
     /// </remarks>
-    private static FormattedString GetHelp()
+    private static FormattedString GetHelp(string configFilePath)
     {
         var text = FormattedStringParser.Parse(
             "[underline]Usage[/]: [brightcyan]csharprepl[/] [green][[OPTIONS]][/] [cyan][[@response-file.rsp]][/] [cyan][[script-file.csx]][/] [green][[-- <additional-arguments>]][/]" + NewLine + NewLine +
@@ -266,7 +290,8 @@ internal static class CommandLine
             $"  [green]-v[/] or [green]--version[/]:                            {Version.Description}" + NewLine +
             $"  [green]-h[/] or [green]--help[/]:                               {Help.Description}" + NewLine + NewLine +
             "[cyan]@response-file.rsp[/]:" + NewLine +
-            "  A file, with extension .rsp, containing the above command line [green][[OPTIONS]][/], one option per line." + NewLine + NewLine +
+            "  A file, with extension .rsp, containing the above command line [green][[OPTIONS]][/], one option per line." + NewLine +
+            $"  Command line options will also be loaded from {configFilePath}" + NewLine + NewLine +
             "[cyan]script-file.csx[/]:" + NewLine +
             "  A file, with extension .csx, containing lines of C# to evaluate before starting the REPL." + NewLine +
             "  Arguments to this script can be passed as [green]<additional-arguments>[/] and will be available in a global `args` variable." + NewLine);
@@ -342,4 +367,23 @@ internal static class CommandLine
             catch (BadImageFormatException) { return Array.Empty<Type>(); } // handle native DLLs that have no managed metadata.
         }
     }
+
+    private static void CreateDefaultConfigurationFile(string configFilePath)
+    {
+        try
+        {
+            File.WriteAllText(
+                configFilePath,
+                "# Add csharprepl command line options to this file to configure csharprepl." + NewLine +
+                "# For example, uncomment the following line to configure tab size to 2:" + NewLine +
+                "# --tabSize 2"
+            );
+        }
+        catch (Exception ex) when (ex is IOException or SecurityException or UnauthorizedAccessException or DirectoryNotFoundException)
+        {
+            // If creating the default config file fails, don't consider that fatal, just warn and move on.
+            Console.WriteLine("Warning, could not create default configuration file at path: " + configFilePath);
+        }
+    }
+
 }
