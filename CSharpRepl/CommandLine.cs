@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Builder;
+using System.CommandLine.Completions;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.IO;
@@ -33,18 +34,26 @@ internal static class CommandLine
     private static readonly Option<string[]?> References = new(
         aliases: new[] { "--reference", "-r", "/r" },
         description: "Reference assemblies, nuget packages, and csproj files. Can be specified multiple times."
-    );
+    )
+    {
+        AllowMultipleArgumentsPerToken = true
+    };
 
     private static readonly Option<string[]?> Usings = new Option<string[]?>(
         aliases: new[] { "--using", "-u", "/u" },
         description: "Add using statement. Can be specified multiple times."
-    ).AddSuggestions(GetAvailableUsings);
+    )
+    {
+        AllowMultipleArgumentsPerToken = true
+    }
+    .AddCompletions(GetAvailableUsings);
 
     private static readonly Option<string> Framework = new Option<string>(
         aliases: new[] { "--framework", "-f", "/f" },
         description: "Reference a shared framework.",
         getDefaultValue: () => Configuration.FrameworkDefault
-    ).AddSuggestions(SharedFramework.SupportedFrameworks);
+    )
+    .AddCompletions(SharedFramework.SupportedFrameworks);
 
     private static readonly Option<string> Theme = new(
         aliases: new[] { "--theme", "-t", "/t" },
@@ -120,12 +129,13 @@ internal static class CommandLine
 
         Framework.AddValidator(r =>
         {
-            if (!r.Children.Any()) return null;
+            if (!r.Children.Any()) return;
 
             string frameworkValue = r.GetValueOrDefault<string>() ?? string.Empty;
-            return SharedFramework.SupportedFrameworks.Any(f => frameworkValue.StartsWith(f, StringComparison.OrdinalIgnoreCase))
-                ? null // success
-                : "Unrecognized --framework value";
+            if(!SharedFramework.SupportedFrameworks.Any(f => frameworkValue.StartsWith(f, StringComparison.OrdinalIgnoreCase)))
+            {
+                r.ErrorMessage = "Unrecognized --framework value";
+            }
         });
 
         var commandLine =
@@ -136,6 +146,7 @@ internal static class CommandLine
                     TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
                 }
             )
+            .EnableLegacyDoubleDashBehavior() // for passing tokens after "--" as load script arguments
             .UseSuggestDirective() // support autocompletion via dotnet-suggest
             .Build()
             .Parse(parseArgs);
@@ -150,22 +161,22 @@ internal static class CommandLine
         }
 
         var config = new Configuration(
-            references: commandLine.ValueForOption(References),
-            usings: commandLine.ValueForOption(Usings),
-            framework: commandLine.ValueForOption(Framework),
+            references: commandLine.GetValueForOption(References),
+            usings: commandLine.GetValueForOption(Usings),
+            framework: commandLine.GetValueForOption(Framework),
             loadScript: ProcessScriptArguments(args),
             loadScriptArgs: commandLine.UnparsedTokens.ToArray(),
-            theme: commandLine.ValueForOption(Theme),
-            useTerminalPaletteTheme: commandLine.ValueForOption(UseTerminalPaletteTheme),
-            promptMarkup: commandLine.ValueForOption(Prompt) ?? Configuration.PromptDefault,
-            useUnicode: commandLine.ValueForOption(UseUnicode),
-            usePrereleaseNugets: commandLine.ValueForOption(UsePrereleaseNugets),
-            tabSize: commandLine.ValueForOption(TabSize),
-            trace: commandLine.ValueForOption(Trace),
-            triggerCompletionListKeyPatterns: commandLine.ValueForOption(TriggerCompletionListKeyBindings),
-            newLineKeyPatterns: commandLine.ValueForOption(NewLineKeyBindings),
-            submitPromptKeyPatterns: commandLine.ValueForOption(SubmitPromptKeyBindings),
-            submitPromptDetailedKeyPatterns: commandLine.ValueForOption(SubmitPromptDetailedKeyBindings)
+            theme: commandLine.GetValueForOption(Theme),
+            useTerminalPaletteTheme: commandLine.GetValueForOption(UseTerminalPaletteTheme),
+            promptMarkup: commandLine.GetValueForOption(Prompt) ?? Configuration.PromptDefault,
+            useUnicode: commandLine.GetValueForOption(UseUnicode),
+            usePrereleaseNugets: commandLine.GetValueForOption(UsePrereleaseNugets),
+            tabSize: commandLine.GetValueForOption(TabSize),
+            trace: commandLine.GetValueForOption(Trace),
+            triggerCompletionListKeyPatterns: commandLine.GetValueForOption(TriggerCompletionListKeyBindings),
+            newLineKeyPatterns: commandLine.GetValueForOption(NewLineKeyBindings),
+            submitPromptKeyPatterns: commandLine.GetValueForOption(SubmitPromptKeyBindings),
+            submitPromptDetailedKeyPatterns: commandLine.GetValueForOption(SubmitPromptDetailedKeyBindings)
         );
 
         return config;
@@ -182,12 +193,12 @@ internal static class CommandLine
             text = console.Out.ToString() ?? string.Empty;
             return true;
         }
-        if (commandLine.ValueForOption<bool>("--help"))
+        if (commandLine.GetValueForOption(Help))
         {
             text = GetHelp(configFilePath);
             return true;
         }
-        if (commandLine.ValueForOption<bool>("--version"))
+        if (commandLine.GetValueForOption(Version))
         {
             text = GetVersion();
             return true;
@@ -340,12 +351,14 @@ internal static class CommandLine
     /// <summary>
     /// Autocompletions for --using.
     /// </summary>
-    private static IEnumerable<string> GetAvailableUsings(ParseResult? parseResult, string? textToMatch)
+    private static IEnumerable<string> GetAvailableUsings(CompletionContext context)
     {
-        if (string.IsNullOrEmpty(textToMatch) || "Syste".StartsWith(textToMatch, StringComparison.OrdinalIgnoreCase))
+        string wordToComplete = context.WordToComplete;
+
+        if (string.IsNullOrEmpty(wordToComplete) || "Syste".StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
             return new[] { "System" };
 
-        if (!textToMatch.StartsWith("System", StringComparison.OrdinalIgnoreCase))
+        if (!wordToComplete.StartsWith("System", StringComparison.OrdinalIgnoreCase))
             return Array.Empty<string>();
 
         var runtimeAssemblyPaths = Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll");
@@ -356,7 +369,7 @@ internal static class CommandLine
             from type in GetTypes(assembly)
             where type.IsPublic
                   && type.Namespace is not null
-                  && type.Namespace.StartsWith(textToMatch, StringComparison.OrdinalIgnoreCase)
+                  && type.Namespace.StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase)
             select type.Namespace;
 
         return namespaces.Distinct().Take(16).ToArray();

@@ -49,7 +49,7 @@ public class ProgramTests
 
         var error = capturedError.ToString();
         Assert.Equal(
-            "Unrecognized command or argument 'bonk'" + Environment.NewLine,
+            "Unrecognized command or argument 'bonk'." + Environment.NewLine,
             error
         );
     }
