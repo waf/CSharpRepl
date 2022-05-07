@@ -21,7 +21,7 @@ namespace CSharpRepl.Tests;
 
 internal static class FakeConsole
 {
-    private static readonly Regex FormatStringSplit = new(@"({\d+}|.)", RegexOptions.Compiled);
+    private static readonly Regex FormatStringSplit = new(@"({\d+}|{{|}}|.)", RegexOptions.Compiled);
 
     public static (IConsole console, StringBuilder stdout, StringBuilder stderr) CreateStubbedOutputAndError(int width = 100, int height = 100)
     {
@@ -142,10 +142,17 @@ internal static class FakeConsole
                 seed: new List<ConsoleKeyInfo>(),
                 func: (list, key) =>
                 {
-                    if (key.Value.StartsWith('{') && key.Value.EndsWith('}'))
+                    bool isPlaceholder = key.Value.StartsWith('{') && key.Value.EndsWith('}');
+                    bool isEscapedBrace = key.Value == "{{" || key.Value == "}}";
+
+                    if (isPlaceholder)
                     {
                         var formatArgument = input.GetArgument(int.Parse(key.Value.Trim('{', '}')));
                         modifiersPressed = AppendFormatStringArgument(list, key, modifiersPressed, formatArgument);
+                    }
+                    else if (isEscapedBrace)
+                    {
+                        modifiersPressed = AppendLiteralKey(list, key.Value.First(), modifiersPressed);
                     }
                     else
                     {
