@@ -81,6 +81,19 @@ public class CompleteStatement_REPL_Tests
         console.Received().WriteErrorLine(Arg.Is<string>(str => str.Contains("Expected expression")));
     }
 
+    [Fact]
+    public async Task QuoteInsideCodeBlock_DoesNotOpenCompletionWindow()
+    {
+        // Typing the characters: { Console.WriteLine("Hello"); }
+        // results in the string: { Console.WriteLine("Hello"as); }
+        // because the completion window would open on the closing quote and commit on the closing parenthesis.
+        // It happens quite often e.g. inside an if statement with parentheses.
+        var (console, repl, configuration) = await InitAsync(GetCustomKeyBindingsConfiguration());
+        console.StubInput($@"{{ Console.WriteLine(""Hello""); }}{Control}{Enter}exit{Control}{Enter}");
+        await repl.RunAsync(configuration);
+        console.DidNotReceive().WriteErrorLine(Arg.Any<string>());
+    }
+
     private static async Task<(IConsole Console, ReadEvalPrintLoop Repl, Configuration Configuration)> InitAsync(Configuration? configuration = null)
     {
         var console = FakeConsole.Create();
