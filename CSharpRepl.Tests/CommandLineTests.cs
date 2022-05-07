@@ -14,7 +14,7 @@ public class CommandLineTests
     [Fact]
     public void ParseArguments_NoArguments_ProducesDefaultConfiguration()
     {
-        var result = Parse(null);
+        var result = Parse(commandline: null);
         Assert.NotNull(result);
         Assert.Equal(SharedFramework.NetCoreApp, result.Framework);
     }
@@ -114,14 +114,27 @@ public class CommandLineTests
     [Fact]
     public void ParseArguments_TrailingArgumentsAfterDoubleDash_SetAsLoadScriptArgs()
     {
-        var csxResult = CommandLine.Parse(new[] { "Data/LoadScript.csx", "--", "Data/LoadScript.csx" });
+        var csxResult = Parse(new[] { "Data/LoadScript.csx", "--", "Data/LoadScript.csx" });
         // load script filename passed before "--" is a load script, after "--" we just pass it to the load script as an arg.
         Assert.Equal(new[] { "Data/LoadScript.csx" }, csxResult.LoadScriptArgs);
         Assert.Equal(@"Console.WriteLine(""Hello World!"");" + Environment.NewLine, csxResult.LoadScript);
 
-        var quotedResult = CommandLine.Parse(new[] { "-r", "Foo.dll", "--", @"""a b c""", @"""d e f""" });
+        var quotedResult = Parse(new[] { "-r", "Foo.dll", "--", @"""a b c""", @"""d e f""" });
         Assert.Equal(new[] { @"""a b c""", @"""d e f""" }, quotedResult.LoadScriptArgs);
         Assert.Equal(new[] { @"Foo.dll" }, quotedResult.References);
+    }
+
+    [Fact]
+    public void ParseArguments_ResponseFileFromCommandLineAndConfigFile_ReadsBothFiles()
+    {
+        var result = CommandLine.Parse(
+            new[] { "--useTerminalPaletteTheme", "@Data/ResponseFile.rsp" },
+            "Data/Config.rsp" // includes using System.Text
+        );
+
+        // union of options from both response files
+        Assert.Equal(new[] { "System.Text", "System", "System.Linq", "Foo.Main.Text" }, result.Usings);
+        Assert.True(result.UseTerminalPaletteTheme);
     }
 
     [Fact]
@@ -134,17 +147,20 @@ public class CommandLineTests
     [Fact]
     public void ParseArguments_DotNetSuggestFrameworkValue_IsAutocompleted()
     {
-        var result = CommandLine.Parse(new[] { "[suggest:12]", "--framework " });
+        var result = Parse(new[] { "[suggest:12]", "--framework " });
         Assert.Contains("Microsoft.NETCore.App", result.OutputForEarlyExit.Text);
     }
 
     [Fact]
     public void ParseArguments_DotNetSuggestUsingValue_IsAutocompleted()
     {
-        var result = CommandLine.Parse(new[] { "[suggest:25]", "--using System.Collection" });
+        var result = Parse(new[] { "[suggest:25]", "--using System.Collection" });
         Assert.Contains("System.Collections.Immutable", result.OutputForEarlyExit.Text);
     }
 
-    private static Configuration Parse(string commandline) =>
-        CommandLine.Parse(commandline?.Split(' ') ?? Array.Empty<string>());
+    private static Configuration Parse(string? commandline) =>
+        Parse(commandline?.Split(' ') ?? Array.Empty<string>());
+
+    private static Configuration Parse(string[] commands) =>
+        CommandLine.Parse(commands, ".csharprepl");
 }

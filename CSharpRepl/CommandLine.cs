@@ -6,12 +6,14 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Builder;
+using System.CommandLine.Completions;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Text;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn.References;
@@ -32,18 +34,26 @@ internal static class CommandLine
     private static readonly Option<string[]?> References = new(
         aliases: new[] { "--reference", "-r", "/r" },
         description: "Reference assemblies, nuget packages, and csproj files. Can be specified multiple times."
-    );
+    )
+    {
+        AllowMultipleArgumentsPerToken = true
+    };
 
     private static readonly Option<string[]?> Usings = new Option<string[]?>(
         aliases: new[] { "--using", "-u", "/u" },
         description: "Add using statement. Can be specified multiple times."
-    ).AddSuggestions(GetAvailableUsings);
+    )
+    {
+        AllowMultipleArgumentsPerToken = true
+    }
+    .AddCompletions(GetAvailableUsings);
 
     private static readonly Option<string> Framework = new Option<string>(
         aliases: new[] { "--framework", "-f", "/f" },
         description: "Reference a shared framework.",
         getDefaultValue: () => Configuration.FrameworkDefault
-    ).AddSuggestions(SharedFramework.SupportedFrameworks);
+    )
+    .AddCompletions(SharedFramework.SupportedFrameworks);
 
     private static readonly Option<string> Theme = new(
         aliases: new[] { "--theme", "-t", "/t" },
@@ -83,8 +93,8 @@ internal static class CommandLine
     );
 
     private static readonly Option<bool> Help = new(
-    aliases: new[] { "--help", "-h", "-?", "/h", "/?" },
-    description: "Show this help and exit."
+        aliases: new[] { "--help", "-h", "-?", "/h", "/?" },
+        description: "Show this help and exit."
     );
 
     private static readonly Option<int> TabSize = new(
@@ -113,18 +123,19 @@ internal static class CommandLine
         description: "Set up key bindings for the submit of current prompt with detailed output. Can be specified multiple times."
     );
 
-    public static Configuration Parse(string[] args)
+    public static Configuration Parse(string[] args, string configFilePath)
     {
-        var parseArgs = RemoveScriptArguments(args).ToArray();
+        var parseArgs = PreProcessArguments(args, configFilePath).ToArray();
 
         Framework.AddValidator(r =>
         {
-            if (!r.Children.Any()) return null;
+            if (!r.Children.Any()) return;
 
             string frameworkValue = r.GetValueOrDefault<string>() ?? string.Empty;
-            return SharedFramework.SupportedFrameworks.Any(f => frameworkValue.StartsWith(f, StringComparison.OrdinalIgnoreCase))
-                ? null // success
-                : "Unrecognized --framework value";
+            if(!SharedFramework.SupportedFrameworks.Any(f => frameworkValue.StartsWith(f, StringComparison.OrdinalIgnoreCase)))
+            {
+                r.ErrorMessage = "Unrecognized --framework value";
+            }
         });
 
         var commandLine =
@@ -135,11 +146,12 @@ internal static class CommandLine
                     TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
                 }
             )
+            .EnableLegacyDoubleDashBehavior() // for passing tokens after "--" as load script arguments
             .UseSuggestDirective() // support autocompletion via dotnet-suggest
             .Build()
             .Parse(parseArgs);
 
-        if (ShouldExitEarly(commandLine, out var text))
+        if (ShouldExitEarly(commandLine, configFilePath, out var text))
         {
             return new Configuration(outputForEarlyExit: text);
         }
@@ -149,28 +161,28 @@ internal static class CommandLine
         }
 
         var config = new Configuration(
-            references: commandLine.ValueForOption(References),
-            usings: commandLine.ValueForOption(Usings),
-            framework: commandLine.ValueForOption(Framework),
+            references: commandLine.GetValueForOption(References),
+            usings: commandLine.GetValueForOption(Usings),
+            framework: commandLine.GetValueForOption(Framework),
             loadScript: ProcessScriptArguments(args),
             loadScriptArgs: commandLine.UnparsedTokens.ToArray(),
-            theme: commandLine.ValueForOption(Theme),
-            useTerminalPaletteTheme: commandLine.ValueForOption(UseTerminalPaletteTheme),
-            promptMarkup: commandLine.ValueForOption(Prompt) ?? Configuration.PromptDefault,
-            useUnicode: commandLine.ValueForOption(UseUnicode),
-            usePrereleaseNugets: commandLine.ValueForOption(UsePrereleaseNugets),
-            tabSize: commandLine.ValueForOption(TabSize),
-            trace: commandLine.ValueForOption(Trace),
-            triggerCompletionListKeyPatterns: commandLine.ValueForOption(TriggerCompletionListKeyBindings),
-            newLineKeyPatterns: commandLine.ValueForOption(NewLineKeyBindings),
-            submitPromptKeyPatterns: commandLine.ValueForOption(SubmitPromptKeyBindings),
-            submitPromptDetailedKeyPatterns: commandLine.ValueForOption(SubmitPromptDetailedKeyBindings)
+            theme: commandLine.GetValueForOption(Theme),
+            useTerminalPaletteTheme: commandLine.GetValueForOption(UseTerminalPaletteTheme),
+            promptMarkup: commandLine.GetValueForOption(Prompt) ?? Configuration.PromptDefault,
+            useUnicode: commandLine.GetValueForOption(UseUnicode),
+            usePrereleaseNugets: commandLine.GetValueForOption(UsePrereleaseNugets),
+            tabSize: commandLine.GetValueForOption(TabSize),
+            trace: commandLine.GetValueForOption(Trace),
+            triggerCompletionListKeyPatterns: commandLine.GetValueForOption(TriggerCompletionListKeyBindings),
+            newLineKeyPatterns: commandLine.GetValueForOption(NewLineKeyBindings),
+            submitPromptKeyPatterns: commandLine.GetValueForOption(SubmitPromptKeyBindings),
+            submitPromptDetailedKeyPatterns: commandLine.GetValueForOption(SubmitPromptDetailedKeyBindings)
         );
 
         return config;
     }
 
-    private static bool ShouldExitEarly(ParseResult commandLine, out FormattedString text)
+    private static bool ShouldExitEarly(ParseResult commandLine, string configFilePath, out FormattedString text)
     {
         if (commandLine.Directives.Any())
         {
@@ -181,12 +193,12 @@ internal static class CommandLine
             text = console.Out.ToString() ?? string.Empty;
             return true;
         }
-        if (commandLine.ValueForOption<bool>("--help"))
+        if (commandLine.GetValueForOption(Help))
         {
-            text = GetHelp();
+            text = GetHelp(configFilePath);
             return true;
         }
-        if (commandLine.ValueForOption<bool>("--version"))
+        if (commandLine.GetValueForOption(Version))
         {
             text = GetVersion();
             return true;
@@ -197,12 +209,35 @@ internal static class CommandLine
     }
 
     /// <summary>
-    /// We allow csx files to be specified, sometimes in ambiguous scenarios that
-    /// System.CommandLine can't figure out. So we remove it from processing here,
-    /// and process it manually in <see cref="ProcessScriptArguments"/>.
+    /// Adds/removes arguments to the user's provided arguments to handle rsp and csx files.
     /// </summary>
-    private static IEnumerable<string> RemoveScriptArguments(string[] args)
+    private static IEnumerable<string> PreProcessArguments(string[] args, string configFilePath)
     {
+        // if we're running a dotnet-suggest directive, don't touch the args.
+        if (args.FirstOrDefault()?.FirstOrDefault() == '[')
+        {
+            foreach (var arg in args)
+            {
+                yield return arg;
+            }
+            yield break;
+        }
+
+        // If the user has a config.rsp file in their app storage directory, we'll load it automatically.
+        // This file path is e.g. ~\AppData\Roaming\.csharprepl\config.rsp or ~/.config/.csharprepl/config.rsp
+        // https://github.com/dotnet/command-line-api/blob/main/docs/Features-overview.md#response-files
+        if (File.Exists(configFilePath))
+        {
+            yield return "@" + configFilePath;
+        }
+        else
+        {
+            CreateDefaultConfigurationFile(configFilePath);
+        }
+
+        // We allow csx files to be specified, sometimes in ambiguous scenarios that
+        // System.CommandLine can't figure out. So we remove it from processing here,
+        // and process it manually in ProcessScriptArguments
         bool foundIgnore = false;
         foreach (var arg in args)
         {
@@ -237,7 +272,7 @@ internal static class CommandLine
     /// System.CommandLine can generate the help text for us, but I think it's less
     /// readable, and the code to configure it ends up being longer than the below string.
     /// </remarks>
-    private static FormattedString GetHelp()
+    private static FormattedString GetHelp(string configFilePath)
     {
         var text = FormattedStringParser.Parse(
             "[underline]Usage[/]: [brightcyan]csharprepl[/] [green][[OPTIONS]][/] [cyan][[@response-file.rsp]][/] [cyan][[script-file.csx]][/] [green][[-- <additional-arguments>]][/]" + NewLine + NewLine +
@@ -266,7 +301,8 @@ internal static class CommandLine
             $"  [green]-v[/] or [green]--version[/]:                            {Version.Description}" + NewLine +
             $"  [green]-h[/] or [green]--help[/]:                               {Help.Description}" + NewLine + NewLine +
             "[cyan]@response-file.rsp[/]:" + NewLine +
-            "  A file, with extension .rsp, containing the above command line [green][[OPTIONS]][/], one option per line." + NewLine + NewLine +
+            "  A file, with extension .rsp, containing the above command line [green][[OPTIONS]][/], one option per line." + NewLine +
+            $"  Command line options will also be loaded from {configFilePath}" + NewLine + NewLine +
             "[cyan]script-file.csx[/]:" + NewLine +
             "  A file, with extension .csx, containing lines of C# to evaluate before starting the REPL." + NewLine +
             "  Arguments to this script can be passed as [green]<additional-arguments>[/] and will be available in a global `args` variable." + NewLine);
@@ -315,12 +351,14 @@ internal static class CommandLine
     /// <summary>
     /// Autocompletions for --using.
     /// </summary>
-    private static IEnumerable<string> GetAvailableUsings(ParseResult? parseResult, string? textToMatch)
+    private static IEnumerable<string> GetAvailableUsings(CompletionContext context)
     {
-        if (string.IsNullOrEmpty(textToMatch) || "Syste".StartsWith(textToMatch, StringComparison.OrdinalIgnoreCase))
+        string wordToComplete = context.WordToComplete;
+
+        if (string.IsNullOrEmpty(wordToComplete) || "Syste".StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
             return new[] { "System" };
 
-        if (!textToMatch.StartsWith("System", StringComparison.OrdinalIgnoreCase))
+        if (!wordToComplete.StartsWith("System", StringComparison.OrdinalIgnoreCase))
             return Array.Empty<string>();
 
         var runtimeAssemblyPaths = Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll");
@@ -331,7 +369,7 @@ internal static class CommandLine
             from type in GetTypes(assembly)
             where type.IsPublic
                   && type.Namespace is not null
-                  && type.Namespace.StartsWith(textToMatch, StringComparison.OrdinalIgnoreCase)
+                  && type.Namespace.StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase)
             select type.Namespace;
 
         return namespaces.Distinct().Take(16).ToArray();
@@ -342,4 +380,23 @@ internal static class CommandLine
             catch (BadImageFormatException) { return Array.Empty<Type>(); } // handle native DLLs that have no managed metadata.
         }
     }
+
+    private static void CreateDefaultConfigurationFile(string configFilePath)
+    {
+        try
+        {
+            File.WriteAllText(
+                configFilePath,
+                "# Add csharprepl command line options to this file to configure csharprepl." + NewLine +
+                "# For example, uncomment the following line to configure tab size to 2:" + NewLine +
+                "# --tabSize 2"
+            );
+        }
+        catch (Exception ex) when (ex is IOException or SecurityException or UnauthorizedAccessException or DirectoryNotFoundException)
+        {
+            // If creating the default config file fails, don't consider that fatal, just warn and move on.
+            Console.WriteLine("Warning, could not create default configuration file at path: " + configFilePath);
+        }
+    }
+
 }

@@ -26,8 +26,10 @@ internal static class Program
     internal static async Task<int> Main(string[] args)
     {
         var console = new SystemConsole();
+        var appStorage = CreateApplicationStorageDirectory();
+        var configFile = Path.Combine(appStorage, "config.rsp");
 
-        if (!TryParseArguments(args, out var config))
+        if (!TryParseArguments(args, configFile, out var config))
             return ExitCodes.ErrorParseArguments;
 
         if (config.UseUnicode)
@@ -38,8 +40,6 @@ internal static class Program
             console.WriteLine(config.OutputForEarlyExit);
             return ExitCodes.Success;
         }
-
-        var appStorage = CreateApplicationStorageDirectory();
 
         var logger = InitializeLogging(config.Trace);
         var roslyn = new RoslynServices(console, config, logger);
@@ -55,11 +55,11 @@ internal static class Program
         return exitCode;
     }
 
-    private static bool TryParseArguments(string[] args, [NotNullWhen(true)] out Configuration? configuration)
+    private static bool TryParseArguments(string[] args, string configFilePath, [NotNullWhen(true)] out Configuration? configuration)
     {
         try
         {
-            configuration = CommandLine.Parse(args);
+            configuration = CommandLine.Parse(args, configFilePath);
             return true;
         }
         catch (Exception ex)

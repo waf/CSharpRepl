@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <PackageReference Include="PrettyPrompt" Version="3.0.5" />
-    <PackageReference Include="System.CommandLine" Version="2.0.0-beta1.21308.1" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta3.22222.1" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="6.0.0" />
   </ItemGroup>
 
