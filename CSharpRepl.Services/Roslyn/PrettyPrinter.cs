@@ -33,10 +33,22 @@ internal sealed class PrettyPrinter
     {
         null => null, // intercept null, don't print the string "null"
         string str when displayDetails => str, // when displayDetails is true, don't show the escaped string (i.e. interpret the escape characters, via displaying to console)
-        _ => formatter.FormatObject(obj, displayDetails ? detailedOptions : summaryOptions)
+        _ => FormatObjectSafe(obj, displayDetails ? detailedOptions : summaryOptions)
     };
 
     public string FormatException(Exception obj, bool displayDetails) => displayDetails
         ? formatter.FormatException(obj)
         : obj.Message;
+
+    private string? FormatObjectSafe(object obj, PrintOptions options)
+    {
+        try
+        {
+            return formatter.FormatObject(obj, options);
+        }
+        catch (Exception) // sometimes the roslyn formatter APIs fail to format. Most notably with ref structs.
+        {
+            return obj.ToString();
+        }
+    }
 }
