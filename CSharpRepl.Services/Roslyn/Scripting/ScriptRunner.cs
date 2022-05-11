@@ -14,6 +14,7 @@ using PrettyPrompt.Consoles;
 using CSharpRepl.Services.Roslyn.MetadataResolvers;
 using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
+using CSharpRepl.Services.Dotnet;
 
 namespace CSharpRepl.Services.Roslyn.Scripting;
 
@@ -40,12 +41,14 @@ internal sealed class ScriptRunner
         this.console = console;
         this.referenceAssemblyService = referenceAssemblyService;
         this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
+        var dotnetBuilder = new DotnetBuilder(console);
+
         this.nugetResolver = new NugetPackageMetadataResolver(console, configuration);
-        this.solutionFileMetadataResolver = new SolutionFileMetadataResolver(console);
+        this.solutionFileMetadataResolver = new SolutionFileMetadataResolver(dotnetBuilder, console);
         this.metadataResolver = new CompositeMetadataReferenceResolver(
             nugetResolver,
             solutionFileMetadataResolver,
-            new ProjectFileMetadataResolver(console),
+            new ProjectFileMetadataResolver(dotnetBuilder, console),
             new AssemblyReferenceMetadataResolver(console, referenceAssemblyService)
         );
         this.scriptOptions = ScriptOptions.Default

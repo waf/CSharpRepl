@@ -2,36 +2,34 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using CSharpRepl.Services.Dotnet;
 using Microsoft.CodeAnalysis;
 using PrettyPrompt.Consoles;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 
 /// <summary>
-/// Allows referencing a csproj or sln, e.g. #r "path/to/foo.csproj" or #r "path/to/foo.sln"
-/// Simply runs "dotnet build" on the csproj/sln and then resolves the final assembly.
+/// Allows referencing a csproj, e.g. #r "path/to/foo.csproj"
+/// Simply runs "dotnet build" on the csproj and then resolves the final assembly.
 /// </summary>
 internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReferenceResolver
 {
+    private readonly IDotnetBuilder builder;
     private readonly IConsole console;
 
-    public ProjectFileMetadataResolver(IConsole console)
+    public ProjectFileMetadataResolver(IDotnetBuilder builder, IConsole console)
     {
+        this.builder = builder;
         this.console = console;
     }
 
     public ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
     {
         if (IsProjectReference(reference))
-        {
             return LoadProjectReference(reference, baseFilePath, properties, compositeResolver);
-        }
 
         return ImmutableArray<PortableExecutableReference>.Empty;
     }
@@ -44,8 +42,8 @@ internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReference
 
     private ImmutableArray<PortableExecutableReference> LoadProjectReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
     {
-        console.WriteLine("Building " + reference);
-        var (exitCode, output) = RunDotNetBuild(reference);
+
+        var (exitCode, output) = builder.Build(reference);
 
         if (exitCode != 0)
         {
@@ -53,7 +51,8 @@ internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReference
             return ImmutableArray<PortableExecutableReference>.Empty;
         }
 
-        string? assembly = ParseBuildOutput(output);
+        var assemblyGraph = builder.ParseBuildGraph(output);
+        var assembly = assemblyGraph.LastOrDefault().Value;
 
         if (assembly is null)
         {
@@ -66,58 +65,4 @@ internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReference
 
         return compositeResolver.ResolveReference(assembly, baseFilePath, properties);
     }
-
-    private (int exitCode, IReadOnlyList<string> linesOfOutput) RunDotNetBuild(string reference)
-    {
-        var output = new List<string>();
-
-        var process = new Process
-        {
-            StartInfo =
-                {
-                    FileName = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet",
-                    ArgumentList = { "build", reference },
-                    RedirectStandardOutput = true
-                }
-        };
-        process.OutputDataReceived += (_, data) =>
-        {
-            if (data.Data is null) return;
-
-            output.Add(data.Data);
-            console.WriteLine(data.Data);
-        };
-        process.Start();
-        process.BeginOutputReadLine();
-        process.WaitForExit();
-
-        return (process.ExitCode, output);
-    }
-
-    /// <summary>
-    /// Parse the output of dotnet-build to determine the assembly that was build.
-    /// </summary>
-    /// <remarks>
-    /// Sample output that's being parsed below. We extract "C:\Projects\CSharpRepl\bin\Debug\net5.0\CSharpRepl.dll"
-    ///
-    /// Microsoft (R) Build Engine version 17.0.0-preview-21302-02+018bed83d for .NET
-    /// Copyright (C) Microsoft Corporation. All rights reserved.
-    /// 
-    ///   Determining projects to restore...
-    ///   All projects are up-to-date for restore.
-    ///   You are using a preview version of .NET. See: https://aka.ms/dotnet-core-preview
-    ///   CSharpRepl.Services -> C:\Projects\CSharpRepl.Services\bin\Debug\net5.0\CSharpRepl.Services.dll
-    ///   CSharpRepl -> C:\Projects\CSharpRepl\bin\Debug\net5.0\CSharpRepl.dll
-    /// 
-    /// Build succeeded.
-    ///     0 Warning(s)
-    ///     0 Error(s)
-    /// 
-    /// Time Elapsed 00:00:02.15
-    /// </remarks>
-    private static string? ParseBuildOutput(IReadOnlyList<string> output) =>
-        output
-            .LastOrDefault(line => line.Contains(" -> "))
-            ?.Split(" -> ", 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .LastOrDefault();
 }

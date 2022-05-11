@@ -80,8 +80,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Data\DemoSolution\.vs\DemoSolution\DesignTimeBuild\.dtbcache.v2" />
-    <None Include="Data\DemoSolution\.vs\DemoSolution\v17\.futdcache.v1" />
     <Content Include="Data\DemoSolution\DemoSolution.DemoProject1\DemoSolution.DemoProject1.csproj">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
