@@ -25,8 +25,7 @@ internal sealed class ScriptRunner
 {
     private readonly IConsole console;
     private readonly InteractiveAssemblyLoader assemblyLoader;
-    private readonly NugetPackageMetadataResolver nugetResolver;
-    private readonly SolutionFileMetadataResolver solutionFileMetadataResolver;
+    private readonly CompositeAlternativeReferenceResolver alternativeReferenceResolver;
     private readonly MetadataReferenceResolver metadataResolver;
     private readonly AssemblyReferenceService referenceAssemblyService;
     private ScriptOptions scriptOptions;
@@ -41,10 +40,16 @@ internal sealed class ScriptRunner
         this.console = console;
         this.referenceAssemblyService = referenceAssemblyService;
         this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
-        var dotnetBuilder = new DotnetBuilder(console);
 
-        this.nugetResolver = new NugetPackageMetadataResolver(console, configuration);
-        this.solutionFileMetadataResolver = new SolutionFileMetadataResolver(dotnetBuilder, console);
+        var dotnetBuilder = new DotnetBuilder(console);
+        var solutionFileMetadataResolver = new SolutionFileMetadataResolver(dotnetBuilder, console);
+        var nugetResolver = new NugetPackageMetadataResolver(console, configuration);
+
+        this.alternativeReferenceResolver = new CompositeAlternativeReferenceResolver(
+            nugetResolver,
+            solutionFileMetadataResolver
+        );
+
         this.metadataResolver = new CompositeMetadataReferenceResolver(
             nugetResolver,
             solutionFileMetadataResolver,
@@ -65,24 +70,9 @@ internal sealed class ScriptRunner
     {
         try
         {
-            var nugetCommands = text
-                .Split(new[] { '\r', '\n' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                .Where(nugetResolver.IsNugetReference);
-            foreach (var nugetCommand in nugetCommands)
-            {
-                var assemblyReferences = await nugetResolver.InstallNugetPackageAsync(nugetCommand, cancellationToken).ConfigureAwait(false);
-                this.scriptOptions = this.scriptOptions.AddReferences(assemblyReferences);
-            }
-
-            var solutionCommands = text
-                .Split(new[] { '\r', '\n' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                .Where(SolutionFileMetadataResolver.IsSolutionReference);
-
-            foreach (var solutionCommand in solutionCommands)
-            {
-                var references = solutionFileMetadataResolver.LoadSolutionReference(solutionCommand);
-                this.scriptOptions = this.scriptOptions.AddReferences(references);
-            }
+            var alternativeResolutions = await alternativeReferenceResolver.GetAllAlternativeRefences(text, cancellationToken);
+            if (alternativeResolutions.Length > 0)
+                this.scriptOptions = this.scriptOptions.AddReferences(alternativeResolutions);
 
             var usings = referenceAssemblyService.GetUsings(text);
             referenceAssemblyService.TrackUsings(usings);

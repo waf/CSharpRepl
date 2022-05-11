@@ -5,14 +5,14 @@ using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 
 
-internal sealed class SolutionFileMetadataResolver : IIndividualMetadataReferenceResolver
+internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolver
 {
-    private readonly ImmutableArray<PortableExecutableReference> dummyPlaceholder;
-
     private readonly IDotnetBuilder builder;
     private readonly IConsole console;
 
@@ -20,24 +20,20 @@ internal sealed class SolutionFileMetadataResolver : IIndividualMetadataReferenc
     {
         this.builder = builder;
         this.console = console;
-        this.dummyPlaceholder = new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) }.ToImmutableArray();
     }
 
-    public ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
+    public override bool CanResolve(string reference)
     {
-        if (IsSolutionReference(reference))
-            return dummyPlaceholder;
-
-        return ImmutableArray<PortableExecutableReference>.Empty;
+        return reference.Replace("\"", string.Empty).EndsWith(".sln");
     }
 
-    public ImmutableArray<PortableExecutableReference> LoadSolutionReference(string reference)
+    public override async Task<ImmutableArray<PortableExecutableReference>> ResolveAsync(string reference, CancellationToken cancellationToken)
     {
         var solutionPath = Path.GetFullPath(reference
             .Split('\"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Last());
 
-        var (exitCode, output) = builder.Build(solutionPath);
+        var (exitCode, output) = await builder.BuildAsync(solutionPath, cancellationToken);
 
         var projectPaths = builder
             .ParseBuildGraph(output)
@@ -52,11 +48,5 @@ internal sealed class SolutionFileMetadataResolver : IIndividualMetadataReferenc
         return projectPaths
                 .Select(projectPath => MetadataReference.CreateFromFile(projectPath))
                 .ToImmutableArray();
-    }
-
-    public static bool IsSolutionReference(string reference)
-    {
-        var extension = Path.GetExtension(reference.Split('\"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Last())?.ToLower();
-        return extension == ".sln";
     }
 }
