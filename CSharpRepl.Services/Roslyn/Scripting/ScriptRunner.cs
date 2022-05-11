@@ -25,6 +25,7 @@ internal sealed class ScriptRunner
     private readonly IConsole console;
     private readonly InteractiveAssemblyLoader assemblyLoader;
     private readonly NugetPackageMetadataResolver nugetResolver;
+    private readonly SolutionFileMetadataResolver solutionFileMetadataResolver;
     private readonly MetadataReferenceResolver metadataResolver;
     private readonly AssemblyReferenceService referenceAssemblyService;
     private ScriptOptions scriptOptions;
@@ -40,9 +41,10 @@ internal sealed class ScriptRunner
         this.referenceAssemblyService = referenceAssemblyService;
         this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
         this.nugetResolver = new NugetPackageMetadataResolver(console, configuration);
-
+        this.solutionFileMetadataResolver = new SolutionFileMetadataResolver(console);
         this.metadataResolver = new CompositeMetadataReferenceResolver(
             nugetResolver,
+            solutionFileMetadataResolver,
             new ProjectFileMetadataResolver(console),
             new AssemblyReferenceMetadataResolver(console, referenceAssemblyService)
         );
@@ -67,6 +69,16 @@ internal sealed class ScriptRunner
             {
                 var assemblyReferences = await nugetResolver.InstallNugetPackageAsync(nugetCommand, cancellationToken).ConfigureAwait(false);
                 this.scriptOptions = this.scriptOptions.AddReferences(assemblyReferences);
+            }
+
+            var solutionCommands = text
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Where(SolutionFileMetadataResolver.IsSolutionReference);
+
+            foreach (var solutionCommand in solutionCommands)
+            {
+                var references = solutionFileMetadataResolver.LoadSolutionReference(solutionCommand);
+                this.scriptOptions = this.scriptOptions.AddReferences(references);
             }
 
             var usings = referenceAssemblyService.GetUsings(text);

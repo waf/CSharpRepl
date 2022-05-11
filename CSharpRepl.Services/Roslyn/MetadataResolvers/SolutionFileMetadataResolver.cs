@@ -1,8 +1,6 @@
-﻿// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
+﻿using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Scripting;
 using PrettyPrompt.Consoles;
 using System;
 using System.Collections.Generic;
@@ -10,42 +8,47 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.Loader;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 
-/// <summary>
-/// Allows referencing a csproj or sln, e.g. #r "path/to/foo.csproj" or #r "path/to/foo.sln"
-/// Simply runs "dotnet build" on the csproj/sln and then resolves the final assembly.
-/// </summary>
-internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReferenceResolver
-{
-    private readonly IConsole console;
 
-    public ProjectFileMetadataResolver(IConsole console)
+internal sealed class SolutionFileMetadataResolver : IIndividualMetadataReferenceResolver
+{
+    private readonly AssemblyLoadContext loadContext;
+    private readonly IConsole console;
+    private readonly ImmutableArray<PortableExecutableReference> dummyPlaceholder;
+
+    public SolutionFileMetadataResolver(IConsole console)
     {
         this.console = console;
+        this.loadContext = new AssemblyLoadContext(nameof(CSharpRepl) + "LoadContext");
+        this.dummyPlaceholder = new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) }.ToImmutableArray();
     }
+
 
     public ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
     {
-        if (IsProjectReference(reference))
+        // This is a bit of a kludge. roslyn does not yet support adding multiple references from a single ResolveReference call, which
+        // can happen with nuget packages (because they can have multiple DLLs and dependencies). https://github.com/dotnet/roslyn/issues/6900
+        // We still want to use the "mostly standard" syntax of `#r "nuget:PackageName"` though, so make this a no-op and install the package
+        // in the InstallNugetPackage method instead. Additional benefit is that we can use "real async" rather than needing to block here.
+        if (IsSolutionReference(reference))
         {
-            return LoadProjectReference(reference, baseFilePath, properties, compositeResolver);
+            return dummyPlaceholder;
         }
 
         return ImmutableArray<PortableExecutableReference>.Empty;
     }
 
-    private static bool IsProjectReference(string reference)
-    {
-        var extension = Path.GetExtension(reference)?.ToLower();
-        return extension == ".csproj";
-    }
-
-    private ImmutableArray<PortableExecutableReference> LoadProjectReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
+    public ImmutableArray<PortableExecutableReference> LoadSolutionReference(string reference)
     {
         console.WriteLine("Building " + reference);
-        var (exitCode, output) = RunDotNetBuild(reference);
+        var solutionPath = reference.Split('\"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Last();
+        var (exitCode, output) = RunDotNetBuild(solutionPath);
 
         if (exitCode != 0)
         {
@@ -53,18 +56,19 @@ internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReference
             return ImmutableArray<PortableExecutableReference>.Empty;
         }
 
-        string? assembly = ParseBuildOutput(output);
+        var assemblies = GetAssemblies(output).ToArray();
 
-        if (assembly is null)
+        if (!assemblies.Any())
         {
             console.WriteErrorLine("Project reference not added: could not determine built assembly");
             return ImmutableArray<PortableExecutableReference>.Empty;
         }
 
-        console.WriteLine(string.Empty);
-        console.WriteLine("Adding reference to " + assembly);
+        var allReferences = assemblies
+                .Select(assembly => MetadataReference.CreateFromFile(Path.GetFullPath(assembly))) //GetFullPath will normalize separators
+                .ToImmutableArray();
 
-        return compositeResolver.ResolveReference(assembly, baseFilePath, properties);
+        return allReferences;
     }
 
     private (int exitCode, IReadOnlyList<string> linesOfOutput) RunDotNetBuild(string reference)
@@ -95,8 +99,11 @@ internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReference
     }
 
     /// <summary>
-    /// Parse the output of dotnet-build to determine the assembly that was build.
+    /// Parses the output of dotnet-build to determine every project that was build.
     /// </summary>
+    /// <returns>
+    /// Every project reference in the output.
+    /// </returns>
     /// <remarks>
     /// Sample output that's being parsed below. We extract "C:\Projects\CSharpRepl\bin\Debug\net5.0\CSharpRepl.dll"
     ///
@@ -115,9 +122,14 @@ internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReference
     /// 
     /// Time Elapsed 00:00:02.15
     /// </remarks>
-    private static string? ParseBuildOutput(IReadOnlyList<string> output) =>
-        output
-            .LastOrDefault(line => line.Contains(" -> "))
-            ?.Split(" -> ", 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .LastOrDefault();
+    private static IEnumerable<string> GetAssemblies(IReadOnlyList<string> output) =>
+        output.Where(line => line.Contains(" -> "))
+            .Select(line => line.Split(" -> ", 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Select(splitted => splitted.Last());
+
+    public static bool IsSolutionReference(string reference)
+    {
+        var extension = Path.GetExtension(reference.Split('\"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Last())?.ToLower();
+        return extension == ".sln";
+    }
 }
