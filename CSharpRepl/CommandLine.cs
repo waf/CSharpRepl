@@ -106,22 +106,34 @@ internal static class CommandLine
     private static readonly Option<string[]?> TriggerCompletionListKeyBindings = new(
         aliases: new[] { "--triggerCompletionListKeys" },
         description: "Set up key bindings for trigger completion list. Can be specified multiple times."
-    );
+    )
+    {
+        AllowMultipleArgumentsPerToken = true,
+    };
 
     private static readonly Option<string[]?> NewLineKeyBindings = new(
         aliases: new[] { "--newLineKeys" },
         description: "Set up key bindings for new line character insertion. Can be specified multiple times."
-    );
+    )
+    {
+        AllowMultipleArgumentsPerToken = true,
+    };
 
     private static readonly Option<string[]?> SubmitPromptKeyBindings = new(
         aliases: new[] { "--submitPromptKeys" },
         description: "Set up key bindings for the submit of current prompt. Can be specified multiple times."
-    );
+    )
+    {
+        AllowMultipleArgumentsPerToken = true,
+    };
 
     private static readonly Option<string[]?> SubmitPromptDetailedKeyBindings = new(
         aliases: new[] { "--submitPromptDetailedKeys" },
         description: "Set up key bindings for the submit of current prompt with detailed output. Can be specified multiple times."
-    );
+    )
+    {
+        AllowMultipleArgumentsPerToken = true,
+    };
 
     public static Configuration Parse(string[] args, string configFilePath)
     {

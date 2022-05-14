@@ -11,19 +11,19 @@ namespace CSharpRepl.Tests;
 public class ConfigurationTests
 {
     [Theory]
-    [InlineData("Enter", ConsoleKey.Enter, default(ConsoleModifiers))]
-    [InlineData("Control+Enter", ConsoleKey.Enter, ConsoleModifiers.Control)]
-    [InlineData("Control+Alt+Enter", ConsoleKey.Enter, ConsoleModifiers.Control | ConsoleModifiers.Alt)]
-    [InlineData("ctrl+enter", ConsoleKey.Enter, ConsoleModifiers.Control)]
-    [InlineData("A", ConsoleKey.A, default(ConsoleModifiers))]
-    [InlineData("a", ConsoleKey.A, default(ConsoleModifiers))]
-    [InlineData("Alt+Shift+A", ConsoleKey.A, ConsoleModifiers.Alt | ConsoleModifiers.Shift)]
-    public void ParseKeyPressPattern_Key(string pattern, ConsoleKey key, ConsoleModifiers modifiers)
+    [InlineData("Enter", ConsoleKey.Enter, '\n', default(ConsoleModifiers))]
+    [InlineData("Control+Enter", ConsoleKey.Enter, '\n', ConsoleModifiers.Control)]
+    [InlineData("Control+Alt+Enter", ConsoleKey.Enter, '\n', ConsoleModifiers.Control | ConsoleModifiers.Alt)]
+    [InlineData("ctrl+enter", ConsoleKey.Enter, '\n', ConsoleModifiers.Control)]
+    [InlineData("A", ConsoleKey.A, 'A', default(ConsoleModifiers))]
+    [InlineData("a", ConsoleKey.A, 'A', default(ConsoleModifiers))]
+    [InlineData("Alt+Shift+A", ConsoleKey.A, 'A', ConsoleModifiers.Alt | ConsoleModifiers.Shift)]
+    public void ParseKeyPressPattern_Key(string pattern, ConsoleKey expectedKey, char expectedChar, ConsoleModifiers expectedModifiers)
     {
         var parsed = Configuration.ParseKeyPressPattern(pattern);
-        Assert.Equal(key, parsed.Key);
-        Assert.Equal(default, parsed.Character);
-        Assert.Equal(modifiers, parsed.Modifiers);
+        Assert.Equal(expectedKey, parsed.Key);
+        Assert.Equal(expectedChar, parsed.Character);
+        Assert.Equal(expectedModifiers, parsed.Modifiers);
     }
 
     [Theory]
