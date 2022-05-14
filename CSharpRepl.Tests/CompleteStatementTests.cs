@@ -95,6 +95,15 @@ public class CompleteStatement_REPL_Tests
     }
 
     [Fact]
+    public async Task UsingStatement_CanBeCompleted()
+    {
+        var (console, repl, configuration) = await InitAsync();
+        console.StubInput($@"using Syst{Tab};{Enter}exit{Enter}");
+        await repl.RunAsync(configuration);
+        console.DidNotReceive().WriteErrorLine(Arg.Any<string>());
+    }
+
+    [Fact]
     public async Task ObjectInitialization_CompletionDoesNotInterfere()
     {
         var (console, repl, configuration) = await InitAsync();
