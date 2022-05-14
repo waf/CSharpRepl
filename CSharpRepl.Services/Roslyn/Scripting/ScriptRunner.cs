@@ -70,7 +70,7 @@ internal sealed class ScriptRunner
     {
         try
         {
-            var alternativeResolutions = await alternativeReferenceResolver.GetAllAlternativeRefences(text, cancellationToken);
+            var alternativeResolutions = await alternativeReferenceResolver.GetAllAlternativeReferences(text, cancellationToken);
             if (alternativeResolutions.Length > 0)
                 this.scriptOptions = this.scriptOptions.AddReferences(alternativeResolutions);
 

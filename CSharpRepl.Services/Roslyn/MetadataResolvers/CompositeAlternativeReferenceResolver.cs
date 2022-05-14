@@ -15,7 +15,7 @@ internal sealed class CompositeAlternativeReferenceResolver
         this.alternativeResolvers = alternativeResolvers;
     }
 
-    public async Task<ImmutableArray<PortableExecutableReference>> GetAllAlternativeRefences(string code, CancellationToken cancellationToken)
+    public async Task<ImmutableArray<PortableExecutableReference>> GetAllAlternativeReferences(string code, CancellationToken cancellationToken)
     {
         var splitCommands = code.Split(new[] { '\r', '\n' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
         var commandMap = alternativeResolvers.ToDictionary(x => x, x => splitCommands.Where(c => x.CanResolve(c)));
