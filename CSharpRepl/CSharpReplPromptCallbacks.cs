@@ -20,9 +20,14 @@ using PrettyPrompt.Completion;
 using PrettyPrompt.Consoles;
 using PrettyPrompt.Documents;
 using PrettyPrompt.Highlighting;
+using RoslynCharacterSetModificationRule = Microsoft.CodeAnalysis.Completion.CharacterSetModificationRule;
 
 namespace CSharpRepl.PrettyPromptConfig;
 
+/// <summary>
+/// An implementation of <see cref="PrettyPrompt.PromptCallbacks"/> that configures C#-specific
+/// behavior for our prompt using Roslyn.
+/// </summary>
 internal class CSharpReplPromptCallbacks : PromptCallbacks
 {
     private readonly IConsole console;
