@@ -14,12 +14,12 @@ public class DotNetInstallationLocatorTest
     {
         var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/5.0.0/data/FrameworkList.xml", MockFileData.NullObject },
-                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/5.0.0/ref/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/6.0.0-rc.1.21451.13/data/FrameworkList.xml", MockFileData.NullObject },
-                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/6.0.0-rc.1.21451.13/ref/net6.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/5.0.10/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/6.0.0-rc.1.21451.13/Microsoft.CSharp.dll", MockFileData.NullObject }
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/5.0.0/data/FrameworkList.xml", string.Empty },
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/5.0.0/ref/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/6.0.0-rc.1.21451.13/data/FrameworkList.xml", string.Empty },
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/6.0.0-rc.1.21451.13/ref/net6.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/5.0.10/Microsoft.CSharp.dll", string.Empty },
+                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/6.0.0-rc.1.21451.13/Microsoft.CSharp.dll", string.Empty }
             });
 
         var locator = new DotNetInstallationLocator(
@@ -47,25 +47,25 @@ public class DotNetInstallationLocatorTest
         var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
             {
                 // no net5.0 reference assemblies
-                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/6.0.0-rc.1.21451.13/data/FrameworkList.xml", MockFileData.NullObject },
-                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/6.0.0-rc.1.21451.13/ref/net6.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/5.0.10/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/6.0.0-rc.1.21451.13/Microsoft.CSharp.dll", MockFileData.NullObject },
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/6.0.0-rc.1.21451.13/data/FrameworkList.xml", string.Empty },
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/6.0.0-rc.1.21451.13/ref/net6.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/5.0.10/Microsoft.CSharp.dll", string.Empty },
+                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/6.0.0-rc.1.21451.13/Microsoft.CSharp.dll", string.Empty },
 
                 // reference assemblies in .nuget installation
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/3.1.0/data/FrameworkList.xml", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/3.1.0/ref/netcoreapp3.1/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/5.0.0/data/FrameworkList.xml", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/5.0.0/ref/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/3.1.0/data/FrameworkList.xml", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/3.1.0/ref/netcoreapp3.1/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/5.0.0/data/FrameworkList.xml", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/5.0.0/ref/net5.0/Microsoft.CSharp.dll", string.Empty },
 
                 // implement assemblies in .nuget installation
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x64/5.0.8/runtimes/win-x64/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x64/3.1.15/runtimes/win-x64/lib/necoreapp3.1/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x86/5.0.8/runtimes/win-x86/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-arm/5.0.8/runtimes/win-arm/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-arm64/5.0.8/runtimes/win-arm64/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.osx-x64/5.0.8/runtimes/osx-x64/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.linux-x64/5.0.8/runtimes/linux-x64/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x64/5.0.8/runtimes/win-x64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x64/3.1.15/runtimes/win-x64/lib/necoreapp3.1/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x86/5.0.8/runtimes/win-x86/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-arm/5.0.8/runtimes/win-arm/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-arm64/5.0.8/runtimes/win-arm64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.osx-x64/5.0.8/runtimes/osx-x64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.linux-x64/5.0.8/runtimes/linux-x64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
             });
 
         var locator = new DotNetInstallationLocator(
@@ -97,19 +97,19 @@ public class DotNetInstallationLocatorTest
                 //
 
                 // reference assemblies in .nuget installation
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/3.1.0/data/FrameworkList.xml", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/3.1.0/ref/netcoreapp3.1/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/5.0.0/data/FrameworkList.xml", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/5.0.0/ref/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/3.1.0/data/FrameworkList.xml", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/3.1.0/ref/netcoreapp3.1/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/5.0.0/data/FrameworkList.xml", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/5.0.0/ref/net5.0/Microsoft.CSharp.dll", string.Empty },
 
                 // implement assemblies in .nuget installation
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x64/5.0.8/runtimes/win-x64/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x64/3.1.15/runtimes/win-x64/lib/necoreapp3.1/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x86/5.0.8/runtimes/win-x86/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-arm/5.0.8/runtimes/win-arm/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-arm64/5.0.8/runtimes/win-arm64/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.osx-x64/5.0.8/runtimes/osx-x64/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
-                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.linux-x64/5.0.8/runtimes/linux-x64/lib/net5.0/Microsoft.CSharp.dll", MockFileData.NullObject },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x64/5.0.8/runtimes/win-x64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x64/3.1.15/runtimes/win-x64/lib/necoreapp3.1/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-x86/5.0.8/runtimes/win-x86/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-arm/5.0.8/runtimes/win-arm/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-arm64/5.0.8/runtimes/win-arm64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.osx-x64/5.0.8/runtimes/osx-x64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.linux-x64/5.0.8/runtimes/linux-x64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
             });
 
         var locator = new DotNetInstallationLocator(
