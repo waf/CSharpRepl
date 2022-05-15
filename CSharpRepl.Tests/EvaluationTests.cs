@@ -142,4 +142,16 @@ public class EvaluationTests : IAsyncLifetime
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(importResult);
     }
+
+    [Fact]
+    public async Task Evaluate_SolutionReference_ReferencesAllProjects()
+    {
+        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoSolution/DemoSolution.sln""");
+        var importProject1Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject1;");
+        var importProject2Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject2;");
+
+        Assert.IsType<EvaluationResult.Success>(referenceResult);
+        Assert.IsType<EvaluationResult.Success>(importProject1Result);
+        Assert.IsType<EvaluationResult.Success>(importProject2Result);
+    }
 }
