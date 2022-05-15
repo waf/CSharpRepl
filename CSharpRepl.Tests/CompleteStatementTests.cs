@@ -94,6 +94,24 @@ public class CompleteStatement_REPL_Tests
         console.DidNotReceive().WriteErrorLine(Arg.Any<string>());
     }
 
+    [Fact]
+    public async Task UsingStatement_CanBeCompleted()
+    {
+        var (console, repl, configuration) = await InitAsync();
+        console.StubInput($@"using Syst{Tab};{Enter}exit{Enter}");
+        await repl.RunAsync(configuration);
+        console.DidNotReceive().WriteErrorLine(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task ObjectInitialization_CompletionDoesNotInterfere()
+    {
+        var (console, repl, configuration) = await InitAsync();
+        console.StubInput($@"new {{ c = 5 }}.c{Enter}{Enter}exit{Enter}");
+        await repl.RunAsync(configuration);
+        console.Received().WriteLine("5");
+    }
+
     private static async Task<(IConsole Console, ReadEvalPrintLoop Repl, Configuration Configuration)> InitAsync(Configuration? configuration = null)
     {
         var console = FakeConsole.Create();

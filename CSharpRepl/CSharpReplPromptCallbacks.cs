@@ -20,9 +20,14 @@ using PrettyPrompt.Completion;
 using PrettyPrompt.Consoles;
 using PrettyPrompt.Documents;
 using PrettyPrompt.Highlighting;
+using RoslynCharacterSetModificationRule = Microsoft.CodeAnalysis.Completion.CharacterSetModificationRule;
 
 namespace CSharpRepl.PrettyPromptConfig;
 
+/// <summary>
+/// An implementation of <see cref="PrettyPrompt.PromptCallbacks"/> that configures C#-specific
+/// behavior for our prompt using Roslyn.
+/// </summary>
 internal class CSharpReplPromptCallbacks : PromptCallbacks
 {
     private readonly IConsole console;
@@ -72,17 +77,39 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
     protected override async Task<IReadOnlyList<CompletionItem>> GetCompletionItemsAsync(string text, int caret, TextSpan spanToBeReplaced, CancellationToken cancellationToken)
     {
         var completions = await roslyn.CompleteAsync(text, caret).ConfigureAwait(false);
+        var commitKeybinding = CreateCommitRuleForUserKeybinding(configuration.KeyBindings.CommitCompletion);
         return completions
-              .OrderByDescending(i => i.Item.Rules.MatchPriority)
-              .ThenBy(i => i.Item.SortText)
-              .Select(r => new CompletionItem(
-                  replacementText: r.Item.DisplayText,
-                  displayText: r.DisplayText,
-                  getExtendedDescription: r.GetDescriptionAsync,
-                  filterText: r.Item.FilterText,
-                  commitCharacterRules: r.Item.Rules.CommitCharacterRules.Select(r => new CharacterSetModificationRule((CharacterSetModificationKind)r.Kind, r.Characters)).ToImmutableArray()
-              ))
-              .ToArray();
+            .OrderByDescending(i => i.Item.Rules.MatchPriority)
+            .ThenBy(i => i.Item.SortText)
+            .Select(r => new CompletionItem(
+                replacementText: r.Item.DisplayText,
+                displayText: r.DisplayText,
+                getExtendedDescription: r.GetDescriptionAsync,
+                filterText: r.Item.FilterText,
+                commitCharacterRules: MergeCommitRules(r.Item.Rules.CommitCharacterRules, commitKeybinding)
+            ))
+            .ToArray();
+    }
+
+    private static CharacterSetModificationRule CreateCommitRuleForUserKeybinding(in KeyPressPatterns commitCompletion)
+    {
+        var alwaysCommitCharacters = commitCompletion.DefinedPatterns?.Select(key => key.Character).ToArray() ?? Array.Empty<char>();
+        return new CharacterSetModificationRule(CharacterSetModificationKind.Add, ImmutableArray.Create(alwaysCommitCharacters));
+    }
+
+    // no matter what the roslyn API returns, we should always respect the user's keybindings to commit the completion.
+    private static ImmutableArray<CharacterSetModificationRule> MergeCommitRules(
+        ImmutableArray<RoslynCharacterSetModificationRule> roslynCompletionRules,
+        in CharacterSetModificationRule userDefinedRule)
+    {
+        var completionRules = roslynCompletionRules
+            .Select(r => new CharacterSetModificationRule((CharacterSetModificationKind)r.Kind, r.Characters))
+            .ToImmutableArray();
+
+        if (userDefinedRule.Characters.Length == 0)
+            return completionRules;
+
+        return completionRules.Insert(0, userDefinedRule);
     }
 
     protected override async Task<IReadOnlyCollection<FormatSpan>> HighlightCallbackAsync(string text, CancellationToken cancellationToken)
