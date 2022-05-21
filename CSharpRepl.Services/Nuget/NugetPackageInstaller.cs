@@ -166,25 +166,28 @@ internal sealed class NugetPackageInstaller
             .ToArray()
             ?? Array.Empty<string>();
 
-        var supportedFrameworks =
-            (await reader.GetSupportedFrameworksAsync(cancellationToken))
+        var supportedFrameworks = (await reader.GetSupportedFrameworksAsync(cancellationToken))
             .Where(f => FindDlls(f).Any()) //Not all supported frameworks contains dlls. E.g. Microsoft.CSharp.4.7.0\lib\netcoreapp2.0 contains only empty file '_._'.
             .ToList();
 
         var frameworkReducer = new FrameworkReducer();
-        var framework = frameworkReducer.GetNearest(targetFramework, supportedFrameworks);
-        if (framework == null)
+        var selectedFramework = frameworkReducer.GetNearest(targetFramework, supportedFrameworks);
+        if (selectedFramework == null)
         {
-            logger.LogError($"Could not find compatible framework for '{packageIdentity}'. Current framework is '{targetFramework}'. Frameworks supported by package are: {string.Join(" / ", supportedFrameworks.Select(f => f.DotNetFrameworkName))}.");
-            return;
+            if (supportedFrameworks.Any())
+            {
+                logger.LogError($"Could not find compatible framework for '{packageIdentity}'. Current framework is '{targetFramework}'. Frameworks supported by package are: {string.Join(" / ", supportedFrameworks.Select(f => f.DotNetFrameworkName))}.");
+                return;
+            }
+            selectedFramework = NuGetFramework.AnyFramework;
         }
 
-        var dlls = FindDlls(framework)
+        var dlls = FindDlls(selectedFramework)
                 .Select(path => MetadataReference.CreateFromFile(Path.GetFullPath(Path.Combine(nuGetProject.Root, packageIdentity.ToString(), path)))) //GetFullPath will normalize separators
                 .ToList();
         if (!dlls.Any())
         {
-            logger.LogError($"No applicable references were found inside '{packageIdentity}' package.");
+            logger.LogWarning($"No applicable references were found inside '{packageIdentity}' package.");
         }
         lock (aggregatedReferences)
         {
@@ -194,7 +197,7 @@ internal sealed class NugetPackageInstaller
         CheckAndFixMultipleNuspecFilesExistance(installedPath.FullName);
         var dependencyGroup =
             (await reader.GetPackageDependenciesAsync(cancellationToken))
-            .FirstOrDefault(g => g.TargetFramework == framework);
+            .FirstOrDefault(g => g.TargetFramework == selectedFramework);
 
         if (dependencyGroup is null)
             return;
