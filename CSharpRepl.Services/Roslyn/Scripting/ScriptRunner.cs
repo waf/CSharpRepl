@@ -72,7 +72,9 @@ internal sealed class ScriptRunner
         {
             var alternativeResolutions = await alternativeReferenceResolver.GetAllAlternativeReferences(text, cancellationToken);
             if (alternativeResolutions.Length > 0)
+            {
                 this.scriptOptions = this.scriptOptions.AddReferences(alternativeResolutions);
+            }
 
             var usings = referenceAssemblyService.GetUsings(text);
             referenceAssemblyService.TrackUsings(usings);

@@ -54,4 +54,16 @@ public class NugetPackageInstallerTests : IAsyncLifetime
         Assert.NotNull(reference);
         Assert.True(reference.FilePath.Contains("lib", StringComparison.OrdinalIgnoreCase));
     }
+
+    [Fact]
+    public async Task InstallPackageThatOnlyContainsDependencies()
+    {
+        // humanizer does not target any frameworks itself, but depends on nuget packages that do.
+        var references = await installer.InstallAsync("Humanizer", "2.14.1");
+
+        Assert.True(references.Length >= 1);
+        var reference = references.FirstOrDefault(r => r.FilePath.EndsWith("Humanizer.dll", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(reference);
+        Assert.True(reference.FilePath.Contains("lib", StringComparison.OrdinalIgnoreCase));
+    }
 }

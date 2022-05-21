@@ -5,6 +5,10 @@ using NSubstitute;
 using NSubstitute.ClearExtensions;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
+using PrettyPrompt.Highlighting;
+using System;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -15,18 +19,19 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
 {
     private readonly ReadEvalPrintLoop repl;
     private readonly IConsole console;
+    private readonly StringBuilder capturedOutput;
+    private readonly StringBuilder capturedError;
     private readonly IPrompt prompt;
     private readonly RoslynServices services;
 
     public ReadEvalPrintLoopTests(RoslynServicesFixture fixture)
     {
         this.console = fixture.ConsoleStub;
+        this.capturedOutput = fixture.CapturedConsoleOutput;
+        this.capturedError = fixture.CapturedConsoleError;
         this.prompt = fixture.PromptStub;
         this.services = fixture.RoslynServices;
         this.repl = new ReadEvalPrintLoop(services, prompt, console);
-
-        this.console.ClearSubstitute();
-        this.prompt.ClearSubstitute();
     }
 
     [Theory]
@@ -110,6 +115,34 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
         ));
 
         console.Received().WriteLine("30");
+    }
+
+    [Fact]
+    public async Task RunAsync_NugetCommand_InstallsPackage()
+    {
+        prompt
+            .ReadLineAsync()
+            .Returns(
+                new PromptResult(true, "#r \"nuget: Newtonsoft.Json, 13.0.1\"", default),
+                new PromptResult(true, "exit", default)
+            );
+
+        await repl.RunAsync(new Configuration());
+
+        // use some regex wildcards to account for / ignore ansi escape sequences
+        var addingReferencesMessage = Regex.Matches(
+            capturedOutput.ToString(),
+            "Adding references for .*'Newtonsoft.Json.13.0.1'"
+        );
+        var successMessage = Regex.Matches(
+            capturedOutput.ToString(),
+            "Package .*'Newtonsoft.Json.13.0.1'.* was successfully installed."
+        );
+
+        // assert single to make sure we only do / log package installation once.
+        Assert.Single(addingReferencesMessage);
+        Assert.Single(successMessage);
+        Assert.Empty(capturedError.ToString());
     }
 
     [Fact]
