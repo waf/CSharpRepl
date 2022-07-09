@@ -181,18 +181,18 @@ Run --help at the command line to view these options
     private string Color(string reference) =>
         PromptConfiguration.HasUserOptedOutFromColor
         ? string.Empty
-        : AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(roslyn!.ToColor(reference)));
+        : AnsiEscapeCodes.ToAnsiEscapeSequenceSlow(new ConsoleFormat(roslyn!.ToColor(reference)));
 
     private static string Underline(string word) =>
-        AnsiEscapeCodes.ToAnsiEscapeSequence(new ConsoleFormat(Underline: true))
+        AnsiEscapeCodes.ToAnsiEscapeSequenceSlow(new ConsoleFormat(Underline: true))
         + word + AnsiEscapeCodes.Reset;
 
-    private string Help =>
+    private static string Help =>
         PromptConfiguration.HasUserOptedOutFromColor
         ? @"""help"""
         : AnsiColor.Green.GetEscapeSequence() + "help" + AnsiEscapeCodes.Reset;
 
-    private string Exit =>
+    private static string Exit =>
         PromptConfiguration.HasUserOptedOutFromColor
         ? @"""exit"""
         : AnsiColor.BrightRed.GetEscapeSequence() + "exit" + AnsiEscapeCodes.Reset;

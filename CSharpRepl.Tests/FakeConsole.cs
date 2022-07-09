@@ -46,7 +46,7 @@ internal static class FakeConsole
 
     public static IConsole Create(int width = 100, int height = 100)
     {
-        var console = Substitute.For<IConsole>();
+        var console = Substitute.For<FakeConsoleAbstract>();
         console.BufferWidth.Returns(width);
         console.WindowHeight.Returns(height);
         return console;
@@ -247,4 +247,33 @@ internal static class FakeConsole
             ActionAfter = actionAfter;
         }
     }
+}
+
+public abstract class FakeConsoleAbstract : IConsole
+{
+    public abstract int CursorTop { get; }
+    public abstract int BufferWidth { get; }
+    public abstract int WindowHeight { get; }
+    public abstract int WindowTop { get; }
+    public abstract bool KeyAvailable { get; }
+    public abstract bool CaptureControlC { get; set; }
+
+    public abstract event ConsoleCancelEventHandler CancelKeyPress;
+
+    public abstract void Clear();
+    public abstract void HideCursor();
+    public abstract void InitVirtualTerminalProcessing();
+    public abstract ConsoleKeyInfo ReadKey(bool intercept);
+    public abstract void ShowCursor();
+
+    public abstract void Write(string? value);
+    public abstract void WriteError(string? value);
+    public abstract void WriteErrorLine(string? value);
+    public abstract void WriteLine(string? value);
+
+    //following implementations is needed because NSubstitute does not support ROS
+    public void Write(ReadOnlySpan<char> value) => Write(value.ToString());
+    public void WriteError(ReadOnlySpan<char> value) => WriteError(value.ToString());
+    public void WriteErrorLine(ReadOnlySpan<char> value) => WriteErrorLine(value.ToString());
+    public void WriteLine(ReadOnlySpan<char> value) => WriteLine(value.ToString());
 }

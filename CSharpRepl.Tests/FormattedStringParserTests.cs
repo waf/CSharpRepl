@@ -23,7 +23,7 @@ public class FormattedStringParserTests
     public void ParseNonFormatted(string pattern, string expectedResult)
     {
         Assert.True(FormattedStringParser.TryParse(pattern, out var result));
-        Assert.Equal(0, result.FormatSpans.Count);
+        Assert.Equal(0, result.FormatSpans.Length);
         Assert.Equal(expectedResult, result.Text);
     }
 
@@ -52,7 +52,7 @@ public class FormattedStringParserTests
     public void ParseBroken(string pattern)
     {
         Assert.False(FormattedStringParser.TryParse(pattern, out var result));
-        Assert.Equal(0, result.FormatSpans.Count);
+        Assert.Equal(0, result.FormatSpans.Length);
         Assert.True(result.IsEmpty);
     }
 
