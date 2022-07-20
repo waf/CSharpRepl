@@ -127,9 +127,9 @@ internal sealed class ScriptRunner
         return state is null
             ? CSharpScript
                 .Create(text, scriptOptions, globalsType: typeof(ScriptGlobals), assemblyLoader: assemblyLoader)
-                .RunAsync(globals: CreateGlobalsObject(args), cancellationToken: cancellationToken)
+                .RunAsync(globals: CreateGlobalsObject(args), cancellationToken)
             : state
-                .ContinueWithAsync(text, scriptOptions, cancellationToken: cancellationToken);
+                .ContinueWithAsync(text, scriptOptions, cancellationToken);
     }
 
     private ScriptGlobals CreateGlobalsObject(string[]? args)

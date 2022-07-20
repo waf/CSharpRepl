@@ -158,7 +158,12 @@ public sealed class Configuration
             .Concat(new KeyPressPattern[] { new(ConsoleKey.Enter), new(ConsoleKey.Tab) })
             .ToArray());
 
-        KeyBindings = new(commitCompletion, triggerCompletionList, newLine, submitPrompt);
+        KeyBindings = new(
+            commitCompletion,
+            triggerCompletionList,
+            newLine,
+            submitPrompt,
+            triggerOverloadList: new(new KeyPressPattern('('), new KeyPressPattern('['), new KeyPressPattern(',')));
     }
 
     private static KeyPressPatterns ParseKeyPressPatterns(string[] keyPatterns)

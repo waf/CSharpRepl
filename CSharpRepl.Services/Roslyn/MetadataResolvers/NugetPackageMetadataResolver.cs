@@ -43,7 +43,7 @@ internal sealed class NugetPackageMetadataResolver : AlternativeReferenceResolve
         return packageParts.Length switch
         {
             2 => nugetInstaller.InstallAsync(packageId: packageParts[1], cancellationToken: cancellationToken),
-            3 => nugetInstaller.InstallAsync(packageId: packageParts[1], version: packageParts[2].TrimStart('v'), cancellationToken: cancellationToken),
+            3 => nugetInstaller.InstallAsync(packageId: packageParts[1], version: packageParts[2].TrimStart('v'), cancellationToken),
             _ => throw new InvalidOperationException(@"Malformed nuget reference. Expected #r ""nuget: PackageName"" or #r ""nuget: PackageName, version""")
         };
     }

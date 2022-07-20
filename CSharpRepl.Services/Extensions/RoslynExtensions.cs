@@ -56,4 +56,41 @@ internal static class RoslynExtensions
             _ => null,
         };
     }
+
+    //TextTagToClassificationTypeName analogue
+    public static string? SymbolDisplayPartKindToClassificationTypeName(SymbolDisplayPartKind kind)
+    {
+        return kind switch
+        {
+            SymbolDisplayPartKind.Keyword => ClassificationTypeNames.Keyword,
+            SymbolDisplayPartKind.ClassName => ClassificationTypeNames.ClassName,
+            SymbolDisplayPartKind.DelegateName => ClassificationTypeNames.DelegateName,
+            SymbolDisplayPartKind.EnumName => ClassificationTypeNames.EnumName,
+            SymbolDisplayPartKind.InterfaceName => ClassificationTypeNames.InterfaceName,
+            SymbolDisplayPartKind.ModuleName => ClassificationTypeNames.ModuleName,
+            SymbolDisplayPartKind.StructName => ClassificationTypeNames.StructName,
+            SymbolDisplayPartKind.TypeParameterName => ClassificationTypeNames.TypeParameterName,
+            SymbolDisplayPartKind.FieldName => ClassificationTypeNames.FieldName,
+            SymbolDisplayPartKind.EventName => ClassificationTypeNames.EventName,
+            SymbolDisplayPartKind.LabelName => ClassificationTypeNames.LabelName,
+            SymbolDisplayPartKind.LocalName => ClassificationTypeNames.LocalName,
+            SymbolDisplayPartKind.MethodName => ClassificationTypeNames.MethodName,
+            SymbolDisplayPartKind.NamespaceName => ClassificationTypeNames.NamespaceName,
+            SymbolDisplayPartKind.ParameterName => ClassificationTypeNames.ParameterName,
+            SymbolDisplayPartKind.PropertyName => ClassificationTypeNames.PropertyName,
+            SymbolDisplayPartKind.ExtensionMethodName => ClassificationTypeNames.ExtensionMethodName,
+            SymbolDisplayPartKind.EnumMemberName => ClassificationTypeNames.EnumMemberName,
+            SymbolDisplayPartKind.ConstantName => ClassificationTypeNames.ConstantName,
+            SymbolDisplayPartKind.AliasName or SymbolDisplayPartKind.AssemblyName or SymbolDisplayPartKind.ErrorTypeName or SymbolDisplayPartKind.RangeVariableName => ClassificationTypeNames.Identifier,
+            SymbolDisplayPartKind.NumericLiteral => ClassificationTypeNames.NumericLiteral,
+            SymbolDisplayPartKind.StringLiteral => ClassificationTypeNames.StringLiteral,
+            SymbolDisplayPartKind.Space or SymbolDisplayPartKind.LineBreak => ClassificationTypeNames.WhiteSpace,
+            SymbolDisplayPartKind.Operator => ClassificationTypeNames.Operator,
+            SymbolDisplayPartKind.Punctuation => ClassificationTypeNames.Punctuation,
+            SymbolDisplayPartKind.AnonymousTypeIndicator or SymbolDisplayPartKind.Text => ClassificationTypeNames.Text,
+            SymbolDisplayPartKind.RecordClassName => ClassificationTypeNames.RecordClassName,
+            SymbolDisplayPartKind.RecordStructName => ClassificationTypeNames.RecordStructName,
+            _ => null,
+        };
+    }
 }
