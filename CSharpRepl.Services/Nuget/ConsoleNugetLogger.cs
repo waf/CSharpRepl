@@ -95,7 +95,7 @@ internal sealed class ConsoleNugetLogger : ILogger
         //delete rendered lines
         for (int i = 0; i < linesRendered; i++)
         {
-            console.Write(AnsiEscapeCodes.MoveCursorUp(1));
+            console.Write(AnsiEscapeCodes.GetMoveCursorUp(1));
             console.Write(AnsiEscapeCodes.ClearLine);
         }
         linesRendered = 0;
@@ -129,7 +129,7 @@ internal sealed class ConsoleNugetLogger : ILogger
             console.HideCursor();
             for (int i = 0; i < linesRendered; i++)
             {
-                console.Write(AnsiEscapeCodes.MoveCursorUp(1));
+                console.Write(AnsiEscapeCodes.GetMoveCursorUp(1));
                 console.Write(AnsiEscapeCodes.ClearLine);
             }
 

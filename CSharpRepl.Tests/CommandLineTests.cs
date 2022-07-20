@@ -158,7 +158,7 @@ public class CommandLineTests
         Assert.Contains("System.Collections.Immutable", result.OutputForEarlyExit.Text);
     }
 
-    private static Configuration Parse(string? commandline) =>
+    private static Configuration Parse(string commandline) =>
         Parse(commandline?.Split(' ') ?? Array.Empty<string>());
 
     private static Configuration Parse(string[] commands) =>

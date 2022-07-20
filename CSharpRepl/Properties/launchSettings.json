@@ -6,7 +6,7 @@
     },
     "CSharpRepl Custom Configuration": {
       "commandName": "Project",
-      "commandLineArgs": "--newLineKeys Enter --submitPromptKeys Ctrl+Enter --submitPromptDetailedKeys Ctrl+Shift+Enter --submitPromptDetailedKeys Ctrl+Alt+Enter --prompt \"[#B9FF51]>[/] \""
+      "commandLineArgs": "--newLineKeys Enter Shift+Enter --submitPromptKeys Ctrl+Enter --submitPromptDetailedKeys Ctrl+Shift+Enter Ctrl+Alt+Enter --prompt \"[#B9FF51]>[/] \""
     }
   }
 }
