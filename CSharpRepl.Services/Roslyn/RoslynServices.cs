@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
@@ -18,11 +19,13 @@ using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
 using PrettyPrompt.Highlighting;
+using PrettyPromptOverloadItem = PrettyPrompt.Completion.OverloadItem;
 using PrettyPromptTextSpan = PrettyPrompt.Documents.TextSpan;
 
 namespace CSharpRepl.Services.Roslyn;
@@ -37,6 +40,7 @@ public sealed class RoslynServices
     private readonly ITraceLogger logger;
     private readonly SemaphoreSlim semaphore = new(1);
     private readonly IPromptCallbacks defaultPromptCallbacks = new PromptCallbacks();
+    private readonly ThreadLocal<OverloadItemGenerator> overloadItemGenerator;
     private ScriptRunner? scriptRunner;
     private WorkspaceManager? workspaceManager;
     private Disassembler? disassembler;
@@ -58,6 +62,8 @@ public sealed class RoslynServices
         var cache = new MemoryCache(new MemoryCacheOptions());
         this.logger = logger;
         this.highlighter = new SyntaxHighlighter(cache, config.Theme);
+        this.overloadItemGenerator = new(() => new(highlighter));
+
         // initialization of roslyn and all dependent services is slow! do it asynchronously so we don't increase startup time.
         this.Initialization = Task.Run(() =>
         {
@@ -192,8 +198,7 @@ public sealed class RoslynServices
         await Initialization.ConfigureAwait(false);
 
         var sourceText = SourceText.From(text);
-        var currentDocument = workspaceManager.CurrentDocument;
-        var document = currentDocument.WithText(sourceText);
+        var document = workspaceManager.CurrentDocument.WithText(sourceText);
         var completionService = CompletionService.GetService(document);
         if (completionService is null)
         {
@@ -203,6 +208,156 @@ public sealed class RoslynServices
 
         var trigger = CompletionTrigger.CreateInsertionTrigger(keyChar);
         return completionService.ShouldTriggerCompletion(sourceText, caret, trigger);
+    }
+
+    public async Task<(IReadOnlyList<PrettyPromptOverloadItem> Overloads, int ArgumentIndex)> GetOverloadsAsync(string text, int caret, CancellationToken cancellationToken)
+    {
+        if (caret > 0)
+        {
+            await Initialization.ConfigureAwait(false);
+
+            var sourceText = SourceText.From(text);
+            var document = workspaceManager.CurrentDocument.WithText(sourceText);
+
+            var tree = await document.GetSyntaxTreeAsync(cancellationToken);
+            if (tree is null) return Empty();
+
+            var root = await tree.GetRootAsync(cancellationToken);
+
+            var node = root.FindNode(new TextSpan(caret, 0));
+            if (node.IsKind(SyntaxKind.CompilationUnit))
+            {
+                for (int i = caret - 1; i >= 0; i--)
+                {
+                    if (!char.IsWhiteSpace(text[i]))
+                    {
+                        node = root.FindNode(new TextSpan(i, 0));
+                        break;
+                    }
+                }
+            }
+            if (node is null) return Empty();
+
+            while (!node.IsKind(SyntaxKind.ArgumentList) && !node.IsKind(SyntaxKind.BracketedArgumentList))
+            {
+                node = node.Parent;
+                if (node is null) return Empty();
+            }
+
+            return await GetOverloadsForArgList(document, (BaseArgumentListSyntax)node);
+        }
+
+        return Empty();
+
+        static (IReadOnlyList<PrettyPromptOverloadItem> Overloads, int ArgumentIndex) Empty() => (Array.Empty<PrettyPromptOverloadItem>(), 0);
+
+        async Task<(IReadOnlyList<PrettyPromptOverloadItem> Overloads, int ArgumentIndex)> GetOverloadsForArgList(Document document, BaseArgumentListSyntax argList)
+        {
+            var argListSpan = argList.GetLocation().SourceSpan;
+            if (caret <= argListSpan.Start)
+            {
+                //we are before opening parenthesis of arg list
+
+                if (TryGetArgListParent(argList.Parent, out var parentArgList))
+                {
+                    //we could be nested in multiple arg lists
+                    return await GetOverloadsForArgList(document, parentArgList);
+                }
+
+                return Empty();
+            }
+
+            var closeParenToken = (argList as ArgumentListSyntax)?.CloseParenToken ?? (argList as BracketedArgumentListSyntax)?.CloseBracketToken;
+            if (closeParenToken?.Span.Length > 0 && caret >= argListSpan.End)
+            {
+                //we are after closing parenthesis of arg list
+
+                if (TryGetArgListParent(argList.Parent, out var parentArgList))
+                {
+                    //we could be nested in multiple arg lists
+                    return await GetOverloadsForArgList(document, parentArgList);
+                }
+
+                return Empty();
+            }
+
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
+            if (semanticModel is null) return Empty();
+
+            var symbols = GetMemberGroup(semanticModel, argList.Parent, cancellationToken);
+            if (symbols.Length > 0)
+            {
+                var items = new List<PrettyPromptOverloadItem>(symbols.Length);
+                for (int i = 0; i < symbols.Length; i++)
+                {
+                    if (symbols[i] is IMethodSymbol method &&
+                        overloadItemGenerator.Value!.Create(method, cancellationToken) is { } methodItem)
+                    {
+                        items.Add(methodItem);
+                    }
+                    else if (symbols[i] is IPropertySymbol property &&
+                        overloadItemGenerator.Value!.Create(property, cancellationToken) is { } propertyItem)
+                    {
+                        items.Add(propertyItem);
+                    }
+                }
+
+                int argIndex = 0;
+                foreach (var separator in argList.Arguments.GetSeparators())
+                {
+                    if (caret <= separator.SpanStart)
+                    {
+                        break;
+                    }
+                    ++argIndex;
+                }
+
+                return (items, argIndex);
+            }
+            else
+            {
+                return Empty();
+            }
+        }
+
+        static bool TryGetArgListParent(SyntaxNode? node, [NotNullWhen(true)] out ArgumentListSyntax? result)
+        {
+            while (node != null)
+            {
+                if (node is ArgumentListSyntax argList)
+                {
+                    result = argList;
+                    return true;
+                }
+                node = node.Parent;
+            }
+            result = null;
+            return false;
+        }
+
+        static ImmutableArray<ISymbol> GetMemberGroup(SemanticModel semanticModel, SyntaxNode? node, CancellationToken cancellationToken)
+        {
+            if (node is InvocationExpressionSyntax invocationExpression)
+            {
+                return semanticModel.GetMemberGroup(invocationExpression.Expression, cancellationToken);
+            }
+            else if (node is ObjectCreationExpressionSyntax objectCreationExpression)
+            {
+                return semanticModel.GetMemberGroup(objectCreationExpression, cancellationToken);
+            }
+            else if (node is ElementAccessExpressionSyntax elementAccessExpression)
+            {
+                return semanticModel.GetIndexerGroup(elementAccessExpression.Expression, cancellationToken).Cast<ISymbol>().ToImmutableArray();
+            }
+            else if (node is ConstructorInitializerSyntax constructorInitializer)
+            {
+                //TODO - this does not work because (i think this from debugging GetMemberGroup) it looks for oveloads of the 'caller ctor'
+                //       we probably need to look for type and depending on if 'constructorInitializer' is 'base' or 'this' we need
+                //       to manualy get overloads for base/this from semantic model
+                //return semanticModel.GetMemberGroup(constructorInitializer, cancellationToken).Cast<ISymbol>().ToImmutableArray();
+            }
+            return ImmutableArray<ISymbol>.Empty;
+        }
     }
 
     public async Task<EvaluationResult> ConvertToIntermediateLanguage(string csharpCode, bool debugMode)

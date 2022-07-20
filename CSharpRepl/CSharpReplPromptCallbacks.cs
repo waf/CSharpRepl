@@ -130,6 +130,9 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         return keyPress;
     }
 
+    protected override Task<(IReadOnlyList<OverloadItem>, int ArgumentIndex)> GetOverloadsAsync(string text, int caret, CancellationToken cancellationToken)
+        => roslyn.GetOverloadsAsync(text, caret, cancellationToken);
+
     private static async Task<KeyPressCallbackResult?> Disassemble(RoslynServices roslyn, string text, IConsole console, bool debugMode)
     {
         var result = await roslyn.ConvertToIntermediateLanguage(text, debugMode);

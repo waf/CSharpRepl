@@ -68,14 +68,14 @@ internal class Disassembler
 
         using var stream = new MemoryStream();
 
-        foreach (var compiler in compilers)
+        foreach (var (name, compile) in compilers)
         {
             stream.SetLength(0);
-            var compiled = compiler.compile(code, optimizationLevel);
+            var compiled = compile(code, optimizationLevel);
             var compilationResult = compiled.Emit(stream);
             if (compilationResult.Success)
             {
-                commentFooter.Add($"// Compiling code as {compiler.name}: succeeded.");
+                commentFooter.Add($"// Compiling code as {name}: succeeded.");
                 stream.Position = 0;
                 var file = new PEFile(Guid.NewGuid().ToString(), stream, PEStreamOptions.LeaveOpen);
                 disassembler.WriteModuleContents(file); // writes to the "ilCodeOutput" variable
@@ -90,7 +90,7 @@ internal class Disassembler
             }
             else
             {
-                commentFooter.Add($"// Compiling code as {compiler.name}: failed.");
+                commentFooter.Add($"// Compiling code as {name}: failed.");
                 commentFooter.AddRange(compilationResult
                     .Diagnostics
                     .Where(d => d.Severity == DiagnosticSeverity.Error)
