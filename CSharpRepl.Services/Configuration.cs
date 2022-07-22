@@ -152,9 +152,7 @@ public sealed class Configuration
         SubmitPromptDetailedKeys = ParseKeyPressPatterns(submitPromptDetailedKeyPatterns);
 
         var commitCompletion = new KeyPressPatterns(
-            CompletionRules.Default.DefaultCommitCharacters
-            .Except(new[] { ' ', '=' }) // pressing space or equals to select the completion can often cause accidental completions
-            .Select(c => new KeyPressPattern(c))
+            CompletionRules.Default.DefaultCommitCharacters.Select(c => new KeyPressPattern(c))
             .Concat(new KeyPressPattern[] { new(ConsoleKey.Enter), new(ConsoleKey.Tab) })
             .ToArray());
 
