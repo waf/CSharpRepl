@@ -167,7 +167,7 @@ public sealed class RoslynServices
         return root is null || SyntaxFactory.IsCompleteSubmission(root.SyntaxTree); // if something's wrong and we can't get the syntax tree, we don't want to prevent evaluation.
     }
 
-    public async Task<PrettyPromptTextSpan> GetSpanToReplaceByCompletionkAsync(string text, int caret, CancellationToken cancellationToken)
+    public async Task<PrettyPromptTextSpan> GetSpanToReplaceByCompletionAsync(string text, int caret, CancellationToken cancellationToken)
     {
         await Initialization.ConfigureAwait(false);
 
@@ -177,7 +177,7 @@ public sealed class RoslynServices
         if (completionService is null)
         {
             //fallback to default PrettyPrompt implementation
-            return await defaultPromptCallbacks.GetSpanToReplaceByCompletionkAsync(text, caret, cancellationToken);
+            return await defaultPromptCallbacks.GetSpanToReplaceByCompletionAsync(text, caret, cancellationToken);
         }
 
         var span = completionService.GetDefaultCompletionListSpan(sourceText, caret);
@@ -210,6 +210,38 @@ public sealed class RoslynServices
         return completionService.ShouldTriggerCompletion(sourceText, caret, trigger);
     }
 
+    public async Task<bool> ConfirmCompletionCommit(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
+    {
+        var keyChar = keyPress.ConsoleKeyInfo.KeyChar;
+
+        if (keyChar == ' ')
+        {
+            await Initialization.ConfigureAwait(false);
+
+            var sourceText = SourceText.From(text);
+            var document = workspaceManager.CurrentDocument.WithText(sourceText);
+            var tree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+            if (tree is null) return true;
+            var root = await tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
+
+            var node = FindNonWhitespaceNode(text, root, caret);
+
+            if (node is ArgumentSyntax)
+            {
+                //https://github.com/waf/CSharpRepl/issues/145
+                return false;
+            }
+
+            if (node is AnonymousObjectMemberDeclaratorSyntax)
+            {
+                //https://github.com/waf/CSharpRepl/issues/157
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public async Task<(IReadOnlyList<PrettyPromptOverloadItem> Overloads, int ArgumentIndex)> GetOverloadsAsync(string text, int caret, CancellationToken cancellationToken)
     {
         if (caret > 0)
@@ -224,18 +256,7 @@ public sealed class RoslynServices
 
             var root = await tree.GetRootAsync(cancellationToken);
 
-            var node = root.FindNode(new TextSpan(caret, 0));
-            if (node.IsKind(SyntaxKind.CompilationUnit))
-            {
-                for (int i = caret - 1; i >= 0; i--)
-                {
-                    if (!char.IsWhiteSpace(text[i]))
-                    {
-                        node = root.FindNode(new TextSpan(i, 0));
-                        break;
-                    }
-                }
-            }
+            var node = FindNonWhitespaceNode(text, root, caret);
             if (node is null) return Empty();
 
             while (!node.IsKind(SyntaxKind.ArgumentList) && !node.IsKind(SyntaxKind.BracketedArgumentList))
@@ -358,6 +379,22 @@ public sealed class RoslynServices
             }
             return ImmutableArray<ISymbol>.Empty;
         }
+    }
+
+    private SyntaxNode? FindNonWhitespaceNode(string text, SyntaxNode root, int caret)
+    {
+        var node = root.FindNode(new TextSpan(caret, 0));
+        if (node.IsKind(SyntaxKind.CompilationUnit))
+        {
+            for (int i = caret - 1; i >= 0; i--)
+            {
+                if (!char.IsWhiteSpace(text[i]))
+                {
+                    return root.FindNode(new TextSpan(i, 0));
+                }
+            }
+        }
+        return node;
     }
 
     public async Task<EvaluationResult> ConvertToIntermediateLanguage(string csharpCode, bool debugMode)

@@ -68,8 +68,8 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
             (text, caret, cancellationToken) => Task.FromResult<KeyPressCallbackResult?>(new ExitApplicationKeyPress()));
     }
 
-    protected override Task<TextSpan> GetSpanToReplaceByCompletionkAsync(string text, int caret, CancellationToken cancellationToken)
-        => roslyn.GetSpanToReplaceByCompletionkAsync(text, caret, cancellationToken);
+    protected override Task<TextSpan> GetSpanToReplaceByCompletionAsync(string text, int caret, CancellationToken cancellationToken)
+        => roslyn.GetSpanToReplaceByCompletionAsync(text, caret, cancellationToken);
 
     protected override Task<bool> ShouldOpenCompletionWindowAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
         => roslyn.ShouldOpenCompletionWindowAsync(text, caret, keyPress, cancellationToken);
@@ -129,6 +129,9 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         }
         return keyPress;
     }
+
+    protected override Task<bool> ConfirmCompletionCommit(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
+        => roslyn.ConfirmCompletionCommit(text, caret, keyPress, cancellationToken);
 
     protected override Task<(IReadOnlyList<OverloadItem>, int ArgumentIndex)> GetOverloadsAsync(string text, int caret, CancellationToken cancellationToken)
         => roslyn.GetOverloadsAsync(text, caret, cancellationToken);
