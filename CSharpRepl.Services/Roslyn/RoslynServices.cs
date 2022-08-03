@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
@@ -20,6 +21,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt;
@@ -240,6 +242,69 @@ public sealed class RoslynServices
         }
 
         return true;
+    }
+
+    public async Task<(string Text, int Caret)> FormatInput(string text, int caret, bool formatParentNodeOnly, CancellationToken cancellationToken)
+    {
+        if (caret > 0)
+        {
+            await Initialization.ConfigureAwait(false);
+
+            var sourceText = SourceText.From(text);
+            var document = workspaceManager.CurrentDocument.WithText(sourceText);
+
+            var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+            if (root is null) return (text, caret);
+
+            var token = root.FindToken(caret - 1);
+            if (token.IsKind(SyntaxKind.None)) return (text, caret);
+
+            int caretTokenOffset = caret - token.SpanStart;
+            var annotation = new SyntaxAnnotation();
+            document = document.WithSyntaxRoot(root.ReplaceToken(token, token.WithAdditionalAnnotations(annotation)));
+
+            Task<Document> formattedDocumentTask;
+            if (formatParentNodeOnly)
+            {
+                if (token.Parent is not { } parent)
+                {
+                    return (text, caret);
+                }
+                if (parent is BlockSyntax)
+                {
+                    parent = parent.Parent;
+                    if (parent is null) return (text, caret);
+                }
+                var span = TextSpan.FromBounds(parent.FullSpan.Start, Math.Min(parent.FullSpan.End, token.SpanStart));
+                formattedDocumentTask = Formatter.FormatAsync(document, span, cancellationToken: cancellationToken);
+            }
+            else
+            {
+                formattedDocumentTask = Formatter.FormatAsync(document, cancellationToken: cancellationToken);
+            }
+            var formattedDocument = await formattedDocumentTask.ConfigureAwait(false);
+            var formattedText = await formattedDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
+            if (formattedText is null) return (text, caret);
+
+            root = await formattedDocument.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+            if (root is null) return (text, caret);
+
+            token = root.DescendantTokens().FirstOrDefault(t => t.HasAnnotation(annotation));
+            if (token.IsKind(SyntaxKind.None)) return (text, caret);
+
+            var newCaret = token.SpanStart + caretTokenOffset;
+            if (newCaret >= 0 && newCaret <= formattedText.Length)
+            {
+                return (formattedText.ToString(), newCaret);
+            }
+            else
+            {
+                Debug.Assert(false);
+                return (text, caret);
+            }
+        }
+
+        return (text, caret);
     }
 
     public async Task<(IReadOnlyList<PrettyPromptOverloadItem> Overloads, int ArgumentIndex)> GetOverloadsAsync(string text, int caret, CancellationToken cancellationToken)

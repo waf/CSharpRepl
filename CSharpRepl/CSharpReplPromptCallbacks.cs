@@ -133,6 +133,26 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
     protected override Task<bool> ConfirmCompletionCommit(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
         => roslyn.ConfirmCompletionCommit(text, caret, keyPress, cancellationToken);
 
+    protected override async Task<(string Text, int Caret)> FormatInput(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
+    {
+        var keyChar = keyPress.ConsoleKeyInfo.KeyChar;
+
+        if (caret > 0)
+        {
+            switch (keyChar)
+            {
+                case ';' or '}':
+                    return await roslyn.FormatInput(text, caret, formatParentNodeOnly: false, cancellationToken).ConfigureAwait(false);
+                case '{':
+                    return await roslyn.FormatInput(text, caret, formatParentNodeOnly: true, cancellationToken).ConfigureAwait(false);
+                default:
+                    break;
+            }
+        }
+
+        return (text, caret);
+    }
+
     protected override Task<(IReadOnlyList<OverloadItem>, int ArgumentIndex)> GetOverloadsAsync(string text, int caret, CancellationToken cancellationToken)
         => roslyn.GetOverloadsAsync(text, caret, cancellationToken);
 
