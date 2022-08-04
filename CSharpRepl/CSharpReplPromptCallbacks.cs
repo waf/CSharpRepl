@@ -125,8 +125,27 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
             configuration.KeyBindings.SubmitPrompt.Matches(keyPress.ConsoleKeyInfo) &&
             !await roslyn.IsTextCompleteStatementAsync(text).ConfigureAwait(false))
         {
+            //Soft Enter.
             return new KeyPress(ConsoleKey.Insert.ToKeyInfo('\0', shift: true), "\n");
         }
+
+        if (configuration.KeyBindings.NewLine.Matches(keyPress.ConsoleKeyInfo))
+        {
+            //Smart indentation
+            int openBraces = 0;
+            var end = Math.Min(text.Length, caret);
+            for (int i = 0; i < end; i++)
+            {
+                var c = text[i];
+                if (c == '{') ++openBraces;
+                if (c == '}') --openBraces;
+            }
+            return
+                openBraces == 0 ?
+                keyPress :
+                new KeyPress(ConsoleKey.Insert.ToKeyInfo('\0', shift: true), "\n" + new string('\t', openBraces));
+        }
+
         return keyPress;
     }
 
