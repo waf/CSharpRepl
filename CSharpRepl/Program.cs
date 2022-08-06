@@ -47,9 +47,16 @@ internal static class Program
 
         if (prompt is not null)
         {
-            await new ReadEvalPrintLoop(roslyn, prompt, console)
-                .RunAsync(config)
-                .ConfigureAwait(false);
+            try
+            {
+                await new ReadEvalPrintLoop(roslyn, prompt, console)
+                    .RunAsync(config)
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                await prompt.DisposeAsync().ConfigureAwait(false);
+            }
         }
 
         return exitCode;
