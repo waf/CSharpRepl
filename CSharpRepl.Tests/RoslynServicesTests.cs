@@ -16,7 +16,7 @@ using static System.ConsoleModifiers;
 namespace CSharpRepl.Tests;
 
 [Collection(nameof(RoslynServices))]
-public class RoslynServicesTests : IAsyncLifetime
+public partial class RoslynServicesTests : IAsyncLifetime
 {
     private readonly RoslynServices services;
 
