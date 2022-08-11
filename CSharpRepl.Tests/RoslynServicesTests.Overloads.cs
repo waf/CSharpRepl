@@ -274,4 +274,43 @@ public partial class RoslynServicesTests
         Assert.Equal(0, result.ArgumentIndex);
         Assert.Contains("M", result.Overloads[0].Signature.Text);
     }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/164
+    /// </summary>
+    [Fact]
+    public async Task Complete_ParamWithoutXmlDoc()
+    {
+        var code = "M();\nvoid M(int i){}";
+        var result = await services.GetOverloadsAsync(code, caret: 2, cancellationToken: default);
+        Assert.True(result.Overloads.Count == 1);
+        Assert.Equal(0, result.ArgumentIndex);
+        var overload = result.Overloads[0];
+        Assert.Contains("M", overload.Signature.Text);
+        Assert.Equal(1, overload.Parameters.Count);
+        Assert.Equal("i", overload.Parameters[0].Name);
+    }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/164
+    /// </summary>
+    [Fact]
+    public async Task Complete_ParamsWithAndWithoutXmlDoc()
+    {
+        var code = "M();\n/// <summary>desc</summary> <param name=\"b\">b desc</param>\nvoid M(int a, string b){}";
+        var result = await services.GetOverloadsAsync(code, caret: 2, cancellationToken: default);
+        Assert.True(result.Overloads.Count == 1);
+        Assert.Equal(0, result.ArgumentIndex);
+        var overload = result.Overloads[0];
+        Assert.Contains("M", overload.Signature.Text);
+        Assert.Contains("desc", overload.Summary.Text);
+        Assert.Equal(2, overload.Parameters.Count);
+
+        Assert.Equal("a", overload.Parameters[0].Name);
+        Assert.Equal("", overload.Parameters[0].Description.Text);
+
+        Assert.Equal("b", overload.Parameters[1].Name);
+        Assert.Equal("b desc", overload.Parameters[1].Description.Text);
+    }
+
 }

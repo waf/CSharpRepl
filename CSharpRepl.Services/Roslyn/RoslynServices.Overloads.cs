@@ -101,8 +101,11 @@ public sealed partial class RoslynServices
                 {
                     switch (symbol)
                     {
-                        case IMethodSymbol or IPropertySymbol:
-                            items.Add(overloadItemGenerator.Value!.Create((ISymbol)symbol, cancellationToken));
+                        case IMethodSymbol method:
+                            items.Add(overloadItemGenerator.Value!.Create(method, method.Parameters, cancellationToken));
+                            break;
+                        case IPropertySymbol property:
+                            items.Add(overloadItemGenerator.Value!.Create(property, property.Parameters, cancellationToken));
                             break;
                         case ITypeSymbol[] or ITypeParameterSymbol[]:
                             items.Add(overloadItemGenerator.Value!.Create((ITypeSymbol[])symbol, cancellationToken));
