@@ -185,21 +185,22 @@ public sealed partial class RoslynServices
                 {
                     switch (m)
                     {
-                        //case IMethodSymbol method when method.MethodKind == MethodKind.Constructor:
-                        //    //constructors are not generic - their containing types are
-                        //    typeArgs.Add(method.ContainingType.TypeParameters.ToArray());
-                        //    break;
-                        //case IMethodSymbol method:
-                        //    typeArgs.Add(method.TypeParameters.ToArray());
-                        //    break;
+                        case IMethodSymbol method:
+                            typeArgs.Add(method.TypeParameters.ToArray());
+                            break;
                         case INamedTypeSymbol type:
                             typeArgs.Add(type.TypeParameters.ToArray());
                             break;
                         default:
+                            Debug.Fail("unexpected case");
                             break;
                     }
                 }
                 return typeArgs.OrderBy(s => s.Length).ToArray();
+            }
+            else
+            {
+                Debug.Fail("unexpected case");
             }
             return ImmutableArray<object>.Empty;
         }
@@ -212,12 +213,19 @@ public sealed partial class RoslynServices
                 node = node.Parent;
             }
 
-            //if (node is InvocationExpressionSyntax invocationExpression)
-            //{
-            //    return semanticModel.GetMemberGroup(invocationExpression.Expression, cancellationToken);
-            //}
-            //else 
-            if (node is ObjectCreationExpressionSyntax objectCreationExpression)
+            if (node is InvocationExpressionSyntax invocationExpression)
+            {
+                return LookupMethodSymbols(invocationExpression.Expression);
+            }
+            if (node is ExpressionStatementSyntax expression)
+            {
+                return LookupMethodSymbols(expression);
+            }
+            if (node is MemberAccessExpressionSyntax memberAccessExpression)
+            {
+                return LookupMethodSymbols(memberAccessExpression.Name, containerTypeSyntax: memberAccessExpression.Expression);
+            }
+            else if (node is ObjectCreationExpressionSyntax objectCreationExpression)
             {
                 GenericNameSyntax? type = null;
                 INamespaceSymbol? typeNamespace = null;
@@ -242,19 +250,25 @@ public sealed partial class RoslynServices
                     .Where(t => t.IsGenericType && t.Name == type.Identifier.ValueText && IsSubnamespace(t.ContainingNamespace, typeNamespace))
                     .ToArray();
             }
-            //else if (node is ElementAccessExpressionSyntax elementAccessExpression)
-            //{
-            //    return semanticModel.GetIndexerGroup(elementAccessExpression.Expression, cancellationToken).Cast<ISymbol>().ToImmutableArray();
-            //}
-            //else if (node is ConstructorInitializerSyntax constructorInitializer)
-            //{
-            //    //TODO - this does not work because (i think this from debugging GetMemberGroup) it looks for oveloads of the 'caller ctor'
-            //    //       we probably need to look for type and depending on if 'constructorInitializer' is 'base' or 'this' we need
-            //    //       to manualy get overloads for base/this from semantic model
-            //    //return semanticModel.GetMemberGroup(constructorInitializer, cancellationToken).Cast<ISymbol>().ToImmutableArray();
-            //}
-            //}
+            else
+            {
+                Debug.Fail("unexpected case");
+            }
             return ImmutableArray<object>.Empty;
+
+            IMethodSymbol[] LookupMethodSymbols(SyntaxNode node, SyntaxNode? containerTypeSyntax = null)
+            {
+                ITypeSymbol? containerType = null;
+                if (containerTypeSyntax != null)
+                {
+                    containerType = semanticModel.GetTypeInfo(containerTypeSyntax, cancellationToken).Type;
+                }
+
+                return semanticModel.LookupSymbols(node.SpanStart, containerType)
+                    .OfType<IMethodSymbol>()
+                    .Where(m => m.IsGenericMethod)
+                    .ToArray();
+            }
         }
 
         static bool IsSubnamespace(INamespaceSymbol? @namespace, INamespaceSymbol? subnamespace)

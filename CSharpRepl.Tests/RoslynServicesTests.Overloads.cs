@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PrettyPrompt.Completion;
@@ -167,9 +168,11 @@ public partial class RoslynServicesTests
     public async Task Complete_Overloads_NewInstance(string text, string argsAll, string suffix)
     {
         for (int argsStart = 0; argsStart < argsAll.Length - 1; argsStart++)
-            for (int argsLen = 1; argsLen < argsAll.Length - argsStart - 1; argsLen++)
+            for (int argsLen = 1; argsLen <= argsAll.Length - argsStart; argsLen++)
             {
                 var args = argsAll.Substring(argsStart, argsLen);
+                if (suffix.Length > 0 && args.Length != argsAll.Length) continue;
+
                 var code = $"{text}{args}{suffix}";
                 var overloadsHelpStart = text.Length;
 
@@ -199,9 +202,11 @@ public partial class RoslynServicesTests
     public async Task Complete_Overloads_Indexer(string text, string argsAll, string suffix)
     {
         for (int argsStart = 0; argsStart < argsAll.Length - 1; argsStart++)
-            for (int argsLen = 1; argsLen < argsAll.Length - argsStart - 1; argsLen++)
+            for (int argsLen = 1; argsLen <= argsAll.Length - argsStart; argsLen++)
             {
                 var args = argsAll.Substring(argsStart, argsLen);
+                if (suffix.Length > 0 && args.Length != argsAll.Length) continue;
+
                 var code = $"{text}{args}{suffix}";
                 var overloadsHelpStart = text.Length;
 
@@ -234,10 +239,12 @@ public partial class RoslynServicesTests
     [InlineData("new C<", "string, int>", "\nclass C<TKey>{}\nclass C<TKey, K>{}", 2)]
     public async Task Complete_Overloads_GenericArgs_Constructor(string text, string typeArgsAll, string suffix, int overloadCount)
     {
-        for (int typeArgsStart = 0; typeArgsStart < typeArgsAll.Length - 1; typeArgsStart++)
-            for (int typeArgsLen = 1; typeArgsLen < typeArgsAll.Length - typeArgsStart - 1; typeArgsLen++)
+        for (int typeArgsStart = 0; typeArgsStart <  typeArgsAll.Length - 1; typeArgsStart++)
+            for (int typeArgsLen = 1; typeArgsLen <= typeArgsAll.Length - typeArgsStart; typeArgsLen++)
             {
                 var typeArgs = typeArgsAll.Substring(typeArgsStart, typeArgsLen);
+                if (suffix.Length > 0 && typeArgs.Length != typeArgsAll.Length) continue;
+
                 var code = $"{text}{typeArgs}{suffix}";
                 var overloadsHelpStart = text.Length;
 
@@ -252,11 +259,49 @@ public partial class RoslynServicesTests
                 for (int caret = overloadsHelpStart; caret < code.Length; caret++)
                 {
                     result = await services.GetOverloadsAsync(code, caret: overloadsHelpStart, cancellationToken: default);
-                    Assert.True(result.Overloads.Count == overloadCount);
+                    Assert.Equal(overloadCount, result.Overloads.Count);
                     Assert.Equal(0, result.ArgumentIndex);
                     foreach (var overload in result.Overloads)
                     {
                         Assert.Contains("<TKey", overload.Signature.Text);
+                    }
+                }
+            }
+    }
+
+    [Theory]
+    [InlineData("M<", "string>", "\nvoid M<T1>(){}\nvoid M<T1, T2>(){}", 2)]
+    [InlineData("M<", "string, int>", "\nvoid M<T1>(){}\nvoid M<T1, T2>(){}", 2)]
+    [InlineData("M<", "string, int>", "();\nvoid M<T1>(){}\nvoid M<T1, T2>(){}", 2)]
+    [InlineData("new C().M<", "string, int>", "();\nclass C { public void M<T1>() { }\npublic void M<T1, T2>() { } }", 2)]
+    [InlineData("C.M<", "string, int>", "();\nclass C { public static void M<T1>() { }\npublic static void M<T1, T2>() { } }", 2)]
+    public async Task Complete_Overloads_GenericArgs_Method(string text, string typeArgsAll, string suffix, int overloadCount)
+    {
+        for (int typeArgsStart = 0; typeArgsStart < typeArgsAll.Length - 1; typeArgsStart++)
+            for (int typeArgsLen = 1; typeArgsLen <= typeArgsAll.Length - typeArgsStart; typeArgsLen++)
+            {
+                var typeArgs = typeArgsAll.Substring(typeArgsStart, typeArgsLen);
+                if (suffix.Length > 0 && typeArgs.Length != typeArgsAll.Length) continue;
+
+                var code = $"{text}{typeArgs}{suffix}";
+                var overloadsHelpStart = text.Length;
+
+                (IReadOnlyList<OverloadItem> Overloads, int ArgumentIndex) result;
+                for (int caret = 0; caret < overloadsHelpStart; caret++)
+                {
+                    result = await services.GetOverloadsAsync(text + typeArgs, caret, cancellationToken: default);
+                    Assert.Empty(result.Overloads);
+                    Assert.Equal(0, result.ArgumentIndex);
+                }
+
+                for (int caret = overloadsHelpStart; caret < code.Length; caret++)
+                {
+                    result = await services.GetOverloadsAsync(code, caret: overloadsHelpStart, cancellationToken: default);
+                    Assert.Equal(overloadCount, result.Overloads.Count);
+                    Assert.Equal(0, result.ArgumentIndex);
+                    foreach (var overload in result.Overloads)
+                    {
+                        Assert.Contains("<T1", overload.Signature.Text);
                     }
                 }
             }
