@@ -10,6 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ICSharpCode.Decompiler.CSharp.Syntax;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -40,6 +41,9 @@ public sealed partial class RoslynServices
 
             var node = FindNonWhitespaceNode(text, root, caret);
             if (node is null) return Empty();
+
+            var result = await GetGenericOverloadsWhenThereIsNoTypeArgListYetAsync(document, root);
+            if (result.Overloads.Count > 0) return result;
 
             while (
                 !node.IsKind(SyntaxKind.ArgumentList) &&
@@ -138,6 +142,70 @@ public sealed partial class RoslynServices
             }
         }
 
+        async Task<(IReadOnlyList<PrettyPromptOverloadItem> Overloads, int ArgumentIndex)> GetGenericOverloadsWhenThereIsNoTypeArgListYetAsync(Document document, SyntaxNode root)
+        {
+            int lessThanTokenIndex = -1;
+            int parity = 0;
+            for (int i = caret - 1; i >= 0; i--)
+            {
+                var c = text[i];
+                if (c == '<')
+                {
+                    if (parity == 0)
+                    {
+                        lessThanTokenIndex = i;
+                        break;
+                    }
+                    parity++;
+                }
+                else if (c == '>')
+                {
+                    parity--;
+                    break;
+                }
+            }
+            if (lessThanTokenIndex == -1) return Empty();
+
+            if (root.FindToken(lessThanTokenIndex).Parent is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LessThanExpression } binaryExpression)
+            {
+                if (binaryExpression.Left.DescendantNodesAndSelf().Last() is IdentifierNameSyntax identifierName)
+                {
+                    if (caret <= binaryExpression.OperatorToken.SpanStart) return Empty();
+
+                    var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
+                    if (semanticModel is null) return Empty();
+
+                    var symbols = LookupGenericMethodsAndTypes(semanticModel, identifierName.SpanStart, identifierName.Identifier.ValueText, cancellationToken: cancellationToken);
+                    var items = new List<PrettyPromptOverloadItem>(symbols.Length);
+                    foreach (var symbol in symbols)
+                    {
+                        switch (symbol)
+                        {
+                            case IMethodSymbol method:
+                                items.Add(overloadItemGenerator.Value!.Create(method.TypeParameters.ToArray(), cancellationToken));
+                                break;
+                            case INamedTypeSymbol type:
+                                items.Add(overloadItemGenerator.Value!.Create(type.TypeParameters.ToArray(), cancellationToken));
+                                break;
+                            default:
+                                Debug.Fail("unable to get oveload info");
+                                break;
+                        }
+                    }
+
+                    int argumentIndex = 0;
+                    for (int i = binaryExpression.OperatorToken.Span.End; i < caret; i++)
+                    {
+                        if (text[i] == ',') argumentIndex++;
+                    }
+
+                    return (items, argumentIndex);
+                }
+            }
+
+            return Empty();
+        }
+
         static bool TryGetArgListParent(SyntaxNode? node, [NotNullWhen(true)] out ArgumentListSyntax? result)
         {
             while (node != null)
@@ -213,19 +281,23 @@ public sealed partial class RoslynServices
                 node = node.Parent;
             }
 
-            if (node is InvocationExpressionSyntax invocationExpression)
-            {
-                return LookupMethodSymbols(invocationExpression.Expression);
-            }
-            if (node is ExpressionStatementSyntax expression)
-            {
-                return LookupMethodSymbols(expression);
-            }
             if (node is MemberAccessExpressionSyntax memberAccessExpression)
             {
-                return LookupMethodSymbols(memberAccessExpression.Name, containerTypeSyntax: memberAccessExpression.Expression);
+                if (memberAccessExpression.Name == genericNameSyntax)
+                {
+                    //e.g.: MyType.Method<string, int>()
+                    return LookupGenericMethodsAndTypes(
+                        semanticModel,
+                        memberAccessExpression.Name.SpanStart,
+                        name: genericNameSyntax.Identifier.ValueText,
+                        containerTypeSyntax: memberAccessExpression.Expression,
+                        cancellationToken);
+                }
+
+                //e.g.: MyType<string, int>.Equals()
+                node = null;
             }
-            else if (node is ObjectCreationExpressionSyntax objectCreationExpression)
+            if (node is ObjectCreationExpressionSyntax objectCreationExpression)
             {
                 GenericNameSyntax? type = null;
                 INamespaceSymbol? typeNamespace = null;
@@ -245,30 +317,22 @@ public sealed partial class RoslynServices
                     return ImmutableArray<object>.Empty;
                 }
 
-                return semanticModel.LookupNamespacesAndTypes(node.SpanStart)
+                return semanticModel.LookupNamespacesAndTypes(node.SpanStart, name: type.Identifier.ValueText)
                     .OfType<INamedTypeSymbol>()
-                    .Where(t => t.IsGenericType && t.Name == type.Identifier.ValueText && IsSubnamespace(t.ContainingNamespace, typeNamespace))
+                    .Where(t => t.IsGenericType && IsSubnamespace(t.ContainingNamespace, typeNamespace))
                     .ToArray();
             }
-            else
+            if (node is null or InvocationExpressionSyntax or ExpressionStatementSyntax or TypeArgumentListSyntax)
             {
-                Debug.Fail("unexpected case");
+                return LookupGenericMethodsAndTypes(
+                    semanticModel,
+                    genericNameSyntax.SpanStart,
+                    name: genericNameSyntax.Identifier.ValueText,
+                    cancellationToken: cancellationToken);
             }
+
+            Debug.Fail("unexpected case");
             return ImmutableArray<object>.Empty;
-
-            IMethodSymbol[] LookupMethodSymbols(SyntaxNode node, SyntaxNode? containerTypeSyntax = null)
-            {
-                ITypeSymbol? containerType = null;
-                if (containerTypeSyntax != null)
-                {
-                    containerType = semanticModel.GetTypeInfo(containerTypeSyntax, cancellationToken).Type;
-                }
-
-                return semanticModel.LookupSymbols(node.SpanStart, containerType)
-                    .OfType<IMethodSymbol>()
-                    .Where(m => m.IsGenericMethod)
-                    .ToArray();
-            }
         }
 
         static bool IsSubnamespace(INamespaceSymbol? @namespace, INamespaceSymbol? subnamespace)
@@ -283,6 +347,21 @@ public sealed partial class RoslynServices
                 subnamespace = subnamespace.ContainingNamespace;
             }
         }
+    }
+
+    private static ISymbol[] LookupGenericMethodsAndTypes(SemanticModel semanticModel, int location, string name, SyntaxNode? containerTypeSyntax = null, CancellationToken cancellationToken = default)
+    {
+        ITypeSymbol? containerType = null;
+        if (containerTypeSyntax != null)
+        {
+            containerType = semanticModel.GetTypeInfo(containerTypeSyntax, cancellationToken).Type;
+        }
+
+        return semanticModel.LookupSymbols(location, containerType, name)
+            .Where(s =>
+                (s is IMethodSymbol m && m.IsGenericMethod) ||
+                (s is INamedTypeSymbol t && t.IsGenericType))
+            .ToArray();
     }
 
     private sealed class TypeArgsSequenceComparer : IEqualityComparer<ITypeSymbol[]>, IComparer<ITypeSymbol[]>

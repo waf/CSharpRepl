@@ -43,7 +43,7 @@ internal class OverloadItemGenerator
         var signature = ToSignature(containingSymbol);
         var xml = containingSymbol.GetDocumentationCommentXml(cancellationToken: cancellationToken);
         var comment = DocumentationComment.FromXmlFragment(xml);
-        var typeParams = comment.ParameterNames.Select(n => new OverloadItem.Parameter(n, comment.GetTypeParameterText(n))).ToArray();
+        var typeParams = typeSymbols.Select(t => new OverloadItem.Parameter(t.Name, comment.GetTypeParameterText(t.Name))).ToArray();
         return new OverloadItem(signature, comment.SummaryText, comment.ReturnsText, typeParams);
     }
 
