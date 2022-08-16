@@ -11,6 +11,7 @@ using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
 using PrettyPrompt.Completion;
+using PrettyPrompt.Documents;
 using PrettyPrompt.Highlighting;
 
 namespace CSharpRepl.Services.Roslyn;
@@ -25,41 +26,63 @@ internal class OverloadItemGenerator
         this.highlighter = highlighter;
     }
 
-    public OverloadItem Create(ISymbol symbol, ImmutableArray<IParameterSymbol> symbolParameters, CancellationToken cancellationToken)
+    public OverloadItem Create(ISymbol symbol, ImmutableArray<IParameterSymbol> symbolParameters, int argumentIndex, CancellationToken cancellationToken)
     {
-        var signature = ToSignature(symbol);
+        var signature = ToSignature(symbol, argumentIndex < symbolParameters.Length ? symbolParameters[argumentIndex] : null);
         var xml = symbol.GetDocumentationCommentXml(cancellationToken: cancellationToken);
         var comment = DocumentationComment.FromXmlFragment(xml);
         var parameters = symbolParameters.Select(p => new OverloadItem.Parameter(p.Name, comment.GetParameterText(p.Name))).ToArray();
         return new OverloadItem(signature, comment.SummaryText, comment.ReturnsText, parameters);
     }
 
-    public OverloadItem Create(ITypeSymbol[] typeSymbols, CancellationToken cancellationToken)
+    public OverloadItem Create(ITypeSymbol[] typeSymbols, int argumentIndex, CancellationToken cancellationToken)
     {
         Debug.Assert(typeSymbols.Length > 0);
         var containingSymbol = typeSymbols[0].ContainingSymbol;
         Debug.Assert(typeSymbols.All(t => SymbolEqualityComparer.Default.Equals(t.ContainingSymbol, containingSymbol)));
 
-        var signature = ToSignature(containingSymbol);
+        var signature = ToSignature(containingSymbol, argumentIndex < typeSymbols.Length ? typeSymbols[argumentIndex] : null);
         var xml = containingSymbol.GetDocumentationCommentXml(cancellationToken: cancellationToken);
         var comment = DocumentationComment.FromXmlFragment(xml);
         var typeParams = typeSymbols.Select(t => new OverloadItem.Parameter(t.Name, comment.GetTypeParameterText(t.Name))).ToArray();
         return new OverloadItem(signature, comment.SummaryText, comment.ReturnsText, typeParams);
     }
 
-    private FormattedString ToSignature(ISymbol containingSymbol)
+    private FormattedString ToSignature(ISymbol symbol, ISymbol? currentArgument)
     {
-        foreach (var part in containingSymbol.ToDisplayParts(SymbolDisplayFormat.MinimallyQualifiedFormat))
+        TextSpan currentArgumentSpan = default;
+        if (currentArgument != null)
         {
+            var signatureText = symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+            var currentArgumentText = currentArgument.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+            var index = signatureText.IndexOf(currentArgumentText);
+            currentArgumentSpan =
+                index == -1 ?
+                default :
+                new TextSpan(index, currentArgumentText.Length);
+        }
+
+        foreach (var part in symbol.ToDisplayParts(SymbolDisplayFormat.MinimallyQualifiedFormat))
+        {
+            var partText = part.ToString();
             var classification = RoslynExtensions.SymbolDisplayPartKindToClassificationTypeName(part.Kind);
             if (classification is not null &&
                 highlighter.TryGetColor(classification, out var color))
             {
-                signatureBuilder.Append(part.ToString(), new ConsoleFormat(color));
+                bool bold = false;
+                if (currentArgumentSpan.Length > 0 &&
+                    signatureBuilder.Length >= currentArgumentSpan.Start &&
+                    signatureBuilder.Length + partText.Length <= currentArgumentSpan.End)
+                {
+                    bold = true;
+                }
+
+                var format = new ConsoleFormat(color, Bold: bold);
+                signatureBuilder.Append(partText, format);
             }
             else
             {
-                signatureBuilder.Append(part.ToString());
+                signatureBuilder.Append(partText);
             }
         }
         var result = signatureBuilder.ToFormattedString();

@@ -101,24 +101,6 @@ public sealed partial class RoslynServices
             if (symbols.Count > 0)
             {
                 var items = new List<PrettyPromptOverloadItem>(symbols.Count);
-                foreach (var symbol in symbols)
-                {
-                    switch (symbol)
-                    {
-                        case IMethodSymbol method:
-                            items.Add(overloadItemGenerator.Value!.Create(method, method.Parameters, cancellationToken));
-                            break;
-                        case IPropertySymbol property:
-                            items.Add(overloadItemGenerator.Value!.Create(property, property.Parameters, cancellationToken));
-                            break;
-                        case ITypeSymbol[] or ITypeParameterSymbol[]:
-                            items.Add(overloadItemGenerator.Value!.Create((ITypeSymbol[])symbol, cancellationToken));
-                            break;
-                        default:
-                            Debug.Fail("unable to get oveload info");
-                            break;
-                    }
-                }
 
                 int argIndex = 0;
                 var argSeparators =
@@ -132,6 +114,25 @@ public sealed partial class RoslynServices
                         break;
                     }
                     ++argIndex;
+                }
+
+                foreach (var symbol in symbols)
+                {
+                    switch (symbol)
+                    {
+                        case IMethodSymbol method:
+                            items.Add(overloadItemGenerator.Value!.Create(method, method.Parameters, argIndex, cancellationToken));
+                            break;
+                        case IPropertySymbol property:
+                            items.Add(overloadItemGenerator.Value!.Create(property, property.Parameters, argIndex, cancellationToken));
+                            break;
+                        case ITypeSymbol[] or ITypeParameterSymbol[]:
+                            items.Add(overloadItemGenerator.Value!.Create((ITypeSymbol[])symbol, argIndex, cancellationToken));
+                            break;
+                        default:
+                            Debug.Fail("unable to get oveload info");
+                            break;
+                    }
                 }
 
                 return (items, argIndex);
@@ -175,6 +176,12 @@ public sealed partial class RoslynServices
                     var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
                     if (semanticModel is null) return Empty();
 
+                    int argumentIndex = 0;
+                    for (int i = binaryExpression.OperatorToken.Span.End; i < caret; i++)
+                    {
+                        if (text[i] == ',') argumentIndex++;
+                    }
+
                     var symbols = LookupGenericMethodsAndTypes(semanticModel, identifierName.SpanStart, identifierName.Identifier.ValueText, cancellationToken: cancellationToken);
                     var items = new List<PrettyPromptOverloadItem>(symbols.Length);
                     foreach (var symbol in symbols)
@@ -182,21 +189,15 @@ public sealed partial class RoslynServices
                         switch (symbol)
                         {
                             case IMethodSymbol method:
-                                items.Add(overloadItemGenerator.Value!.Create(method.TypeParameters.ToArray(), cancellationToken));
+                                items.Add(overloadItemGenerator.Value!.Create(method.TypeParameters.ToArray(), argumentIndex, cancellationToken));
                                 break;
                             case INamedTypeSymbol type:
-                                items.Add(overloadItemGenerator.Value!.Create(type.TypeParameters.ToArray(), cancellationToken));
+                                items.Add(overloadItemGenerator.Value!.Create(type.TypeParameters.ToArray(), argumentIndex, cancellationToken));
                                 break;
                             default:
                                 Debug.Fail("unable to get oveload info");
                                 break;
                         }
-                    }
-
-                    int argumentIndex = 0;
-                    for (int i = binaryExpression.OperatorToken.Span.End; i < caret; i++)
-                    {
-                        if (text[i] == ',') argumentIndex++;
                     }
 
                     return (items, argumentIndex);
