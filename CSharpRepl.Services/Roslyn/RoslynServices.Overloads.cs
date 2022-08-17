@@ -237,10 +237,27 @@ public sealed partial class RoslynServices
             }
             else if (node is ConstructorInitializerSyntax constructorInitializer)
             {
-                //TODO - this does not work because (i think this from debugging GetMemberGroup) it looks for oveloads of the 'caller ctor'
-                //       we probably need to look for type and depending on if 'constructorInitializer' is 'base' or 'this' we need
-                //       to manualy get overloads for base/this from semantic model
-                //return semanticModel.GetMemberGroup(constructorInitializer, cancellationToken).Cast<ISymbol>().ToImmutableArray();
+                if (constructorInitializer.ThisOrBaseKeyword.Kind() is SyntaxKind.BaseKeyword or SyntaxKind.ThisKeyword &&
+                    constructorInitializer.Parent != null &&
+                    semanticModel.GetDeclaredSymbol(constructorInitializer.Parent, cancellationToken) is IMethodSymbol method)
+                {
+                    if (constructorInitializer.ThisOrBaseKeyword.IsKind(SyntaxKind.BaseKeyword))
+                    {
+                        var baseType = method.ContainingType.BaseType;
+                        return
+                            baseType is null ?
+                            new List<IMethodSymbol>(0) :
+                            baseType.InstanceConstructors.Where(c => semanticModel.IsAccessible(node.SpanStart, c)).ToList();
+                    }
+                    else
+                    {
+                        return method.ContainingType.InstanceConstructors.Where(c => semanticModel.IsAccessible(node.SpanStart, c)).ToList();
+                    }
+                }
+                else
+                {
+                    Debug.Fail("unexpected case");
+                }
             }
             else if (node is GenericNameSyntax genericNameSyntax)
             {

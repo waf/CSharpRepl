@@ -193,6 +193,10 @@ public partial class RoslynServicesTests
     [InlineData("Dictionary<", "string, char>", "", 1, "Dictionary<")]
     [InlineData("Dictionary<", "int, char>", "", 1, "Dictionary<")]
     [InlineData("void M(Dictionary<", "int, char>", "", 1, "Dictionary<")]
+
+    //Base ctor invocations.
+    [InlineData("class C : Uri { C(short arg){} C() : base(", "\"msg\")", "", 8, "Uri(")]
+    [InlineData("class C : Uri { C(string arg){} C(short arg) : this(", "\"msg\")", "", 2, "C.C(")]
     public async Task TestOverloads(string text, string argsAll, string suffix, int overloadCount, string signaturePart)
     {
         Assert.True(signaturePart.EndsWith('(') || signaturePart.EndsWith('[') || signaturePart.EndsWith('<'));
@@ -217,7 +221,9 @@ public partial class RoslynServicesTests
                 Assert.Equal(0, result.ArgumentIndex);
             }
 
-            for (int caret = overloadsHelpStart; caret < code.Length - suffix.Length; caret++)
+            var max = code.Length - suffix.Length;
+            if (args.Length > 0 && args.Last() is ')' or ']' or '>') --max;
+            for (int caret = overloadsHelpStart; caret <= max; caret++)
             {
                 result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
                 Assert.Equal(overloadCount, result.Overloads.Count);
