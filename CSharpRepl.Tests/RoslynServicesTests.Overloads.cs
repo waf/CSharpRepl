@@ -192,6 +192,7 @@ public partial class RoslynServicesTests
     [InlineData("MyType<", "string, int>", ".Equals();\nclass MyType<T1>{}\nclass MyType<T1, T2>{}", 2, "MyType<")]
     [InlineData("Dictionary<", "string, char>", "", 1, "Dictionary<")]
     [InlineData("Dictionary<", "int, char>", "", 1, "Dictionary<")]
+    [InlineData("void M(Dictionary<", "int, char>", "", 1, "Dictionary<")]
     public async Task TestOverloads(string text, string argsAll, string suffix, int overloadCount, string signaturePart)
     {
         Assert.True(signaturePart.EndsWith('(') || signaturePart.EndsWith('[') || signaturePart.EndsWith('<'));

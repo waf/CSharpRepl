@@ -10,7 +10,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ICSharpCode.Decompiler.CSharp.Syntax;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -294,9 +293,10 @@ public sealed partial class RoslynServices
                         containerTypeSyntax: memberAccessExpression.Expression,
                         cancellationToken);
                 }
-
-                //e.g.: MyType<string, int>.Equals()
-                node = null;
+                //else
+                //{
+                //    e.g.: MyType<string, int>.Equals()
+                //}
             }
             if (node is ObjectCreationExpressionSyntax objectCreationExpression)
             {
@@ -323,17 +323,12 @@ public sealed partial class RoslynServices
                     .Where(t => t.IsGenericType && IsSubnamespace(t.ContainingNamespace, typeNamespace))
                     .ToArray();
             }
-            if (node is null or InvocationExpressionSyntax or ExpressionStatementSyntax or TypeArgumentListSyntax)
-            {
-                return LookupGenericMethodsAndTypes(
-                    semanticModel,
-                    genericNameSyntax.SpanStart,
-                    name: genericNameSyntax.Identifier.ValueText,
-                    cancellationToken: cancellationToken);
-            }
 
-            Debug.Fail("unexpected case");
-            return ImmutableArray<object>.Empty;
+            return LookupGenericMethodsAndTypes(
+                semanticModel,
+                genericNameSyntax.SpanStart,
+                name: genericNameSyntax.Identifier.ValueText,
+                cancellationToken: cancellationToken);
         }
 
         static bool IsSubnamespace(INamespaceSymbol? @namespace, INamespaceSymbol? subnamespace)
