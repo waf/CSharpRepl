@@ -313,4 +313,22 @@ public partial class RoslynServicesTests
         Assert.Equal("b desc", overload.Parameters[1].Description.Text);
     }
 
+    [Fact]
+    public async Task Complete_CrefParsing()
+    {
+        var code = "M();\n/// <summary>desc <see cref=\"Dictionary{TKey, TValue}\" /> <see cref=\"invalid\" /> </summary> <param name=\"b\">b desc <see cref=\"M\" /></param>\nvoid M(int a, string b){}";
+        var result = await services.GetOverloadsAsync(code, caret: 2, cancellationToken: default);
+        Assert.True(result.Overloads.Count == 1);
+        Assert.Equal(0, result.ArgumentIndex);
+        var overload = result.Overloads[0];
+        Assert.Contains("M", overload.Signature.Text);
+        Assert.Contains("desc Dictionary<TKey, TValue> invalid", overload.Summary.Text);
+        Assert.Equal(2, overload.Parameters.Count);
+
+        Assert.Equal("a", overload.Parameters[0].Name);
+        Assert.Equal("", overload.Parameters[0].Description.Text);
+
+        Assert.Equal("b", overload.Parameters[1].Name);
+        Assert.Equal("b desc M(int a, string b)", overload.Parameters[1].Description.Text);
+    }
 }

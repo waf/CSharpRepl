@@ -9,7 +9,6 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Threading;
 using System.Xml;
 
 namespace CSharpRepl.Services.Roslyn;
@@ -23,8 +22,6 @@ internal sealed class XmlFragmentParser
     private XmlReader _xmlReader;
     private readonly Reader _textReader = new();
 
-    private static readonly ThreadLocal<XmlFragmentParser> instance = new(() => new());
-
     /// <summary>
     /// Parse the given XML fragment. The given callback is executed until either the end of the fragment
     /// is reached or an exception occurs.
@@ -37,10 +34,9 @@ internal sealed class XmlFragmentParser
     /// It is important that the <paramref name="callback"/> action advances the <see cref="XmlReader"/>,
     /// otherwise parsing will never complete.
     /// </remarks>
-    public static void ParseFragment<TArg>(string xmlFragment, Action<XmlReader, TArg> callback, TArg arg)
+    public void ParseFragment<TArg>(string xmlFragment, Action<XmlReader, TArg> callback, TArg arg)
     {
-        var instance = XmlFragmentParser.instance.Value!;
-        instance.ParseInternal(xmlFragment, callback, arg);
+        ParseInternal(xmlFragment, callback, arg);
     }
 
     private static readonly XmlReaderSettings s_xmlSettings = new()

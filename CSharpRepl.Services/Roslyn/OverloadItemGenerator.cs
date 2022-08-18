@@ -10,6 +10,8 @@ using System.Threading;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.QuickInfo;
 using PrettyPrompt.Completion;
 using PrettyPrompt.Documents;
 using PrettyPrompt.Highlighting;
@@ -26,16 +28,16 @@ internal class OverloadItemGenerator
         this.highlighter = highlighter;
     }
 
-    public OverloadItem Create(ISymbol symbol, ImmutableArray<IParameterSymbol> symbolParameters, int argumentIndex, CancellationToken cancellationToken)
+    public OverloadItem Create(ISymbol symbol, ImmutableArray<IParameterSymbol> symbolParameters, int argumentIndex, SemanticModel semanticModel, CancellationToken cancellationToken)
     {
         var signature = ToSignature(symbol, argumentIndex < symbolParameters.Length ? symbolParameters[argumentIndex] : null);
         var xml = symbol.GetDocumentationCommentXml(cancellationToken: cancellationToken);
-        var comment = DocumentationComment.FromXmlFragment(xml);
+        var comment = DocumentationComment.FromXmlFragment(xml, semanticModel, highlighter);
         var parameters = symbolParameters.Select(p => new OverloadItem.Parameter(p.Name, comment.GetParameterText(p.Name))).ToArray();
         return new OverloadItem(signature, comment.SummaryText, comment.ReturnsText, parameters);
     }
 
-    public OverloadItem Create(ITypeSymbol[] typeSymbols, int argumentIndex, CancellationToken cancellationToken)
+    public OverloadItem Create(ITypeSymbol[] typeSymbols, int argumentIndex, SemanticModel semanticModel, CancellationToken cancellationToken)
     {
         Debug.Assert(typeSymbols.Length > 0);
         var containingSymbol = typeSymbols[0].ContainingSymbol;
@@ -43,7 +45,7 @@ internal class OverloadItemGenerator
 
         var signature = ToSignature(containingSymbol, argumentIndex < typeSymbols.Length ? typeSymbols[argumentIndex] : null);
         var xml = containingSymbol.GetDocumentationCommentXml(cancellationToken: cancellationToken);
-        var comment = DocumentationComment.FromXmlFragment(xml);
+        var comment = DocumentationComment.FromXmlFragment(xml, semanticModel, highlighter);
         var typeParams = typeSymbols.Select(t => new OverloadItem.Parameter(t.Name, comment.GetTypeParameterText(t.Name))).ToArray();
         return new OverloadItem(signature, comment.SummaryText, comment.ReturnsText, typeParams);
     }

@@ -120,13 +120,13 @@ public sealed partial class RoslynServices
                     switch (symbol)
                     {
                         case IMethodSymbol method:
-                            items.Add(overloadItemGenerator.Value!.Create(method, method.Parameters, argIndex, cancellationToken));
+                            items.Add(overloadItemGenerator.Value!.Create(method, method.Parameters, argIndex, semanticModel, cancellationToken));
                             break;
                         case IPropertySymbol property:
-                            items.Add(overloadItemGenerator.Value!.Create(property, property.Parameters, argIndex, cancellationToken));
+                            items.Add(overloadItemGenerator.Value!.Create(property, property.Parameters, argIndex, semanticModel, cancellationToken));
                             break;
                         case ITypeSymbol[] or ITypeParameterSymbol[]:
-                            items.Add(overloadItemGenerator.Value!.Create((ITypeSymbol[])symbol, argIndex, cancellationToken));
+                            items.Add(overloadItemGenerator.Value!.Create((ITypeSymbol[])symbol, argIndex, semanticModel, cancellationToken));
                             break;
                         default:
                             Debug.Fail("unable to get oveload info");
@@ -188,10 +188,10 @@ public sealed partial class RoslynServices
                         switch (symbol)
                         {
                             case IMethodSymbol method:
-                                items.Add(overloadItemGenerator.Value!.Create(method.TypeParameters.ToArray(), argumentIndex, cancellationToken));
+                                items.Add(overloadItemGenerator.Value!.Create(method.TypeParameters.ToArray(), argumentIndex, semanticModel, cancellationToken));
                                 break;
                             case INamedTypeSymbol type:
-                                items.Add(overloadItemGenerator.Value!.Create(type.TypeParameters.ToArray(), argumentIndex, cancellationToken));
+                                items.Add(overloadItemGenerator.Value!.Create(type.TypeParameters.ToArray(), argumentIndex, semanticModel, cancellationToken));
                                 break;
                             default:
                                 Debug.Fail("unable to get oveload info");
