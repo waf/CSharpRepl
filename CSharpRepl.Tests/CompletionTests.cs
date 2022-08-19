@@ -3,25 +3,22 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
-using PrettyPrompt.Completion;
 using Xunit;
 
 namespace CSharpRepl.Tests;
 
 [Collection(nameof(RoslynServices))]
-public class CompletionTests : IAsyncLifetime
+public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixture>
 {
     private readonly RoslynServices services;
 
-    public CompletionTests()
+    public CompletionTests(RoslynServicesFixture fixture)
     {
         var (console, _) = FakeConsole.CreateStubbedOutput();
-        this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
+        this.services = fixture.RoslynServices;
     }
 
     public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
@@ -100,206 +97,5 @@ public class CompletionTests : IAsyncLifetime
         Assert.NotNull(whereCompletion);
         var whereDescription = await whereCompletion.GetDescriptionAsync(cancellationToken: default);
         Assert.Contains("Filters a sequence of values based on a predicate", whereDescription.Text);
-    }
-
-    [Fact]
-    public async Task Complete_Overloads()
-    {
-        for (int whiteSpacesCount = 0; whiteSpacesCount < 3; whiteSpacesCount++)
-        {
-            var _ = new string(' ', whiteSpacesCount);
-            var code = $"{_}Math{_}.{_}Max{_}({_}";
-            var overloadsHelpStart = code.Length - _.Length;
-
-            (IReadOnlyList<OverloadItem> Overloads, int ArgumentIndex) result;
-            for (int caret = 0; caret < overloadsHelpStart; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.Empty(result.Overloads);
-                Assert.Equal(0, result.ArgumentIndex);
-            }
-
-            result = await services.GetOverloadsAsync(code, caret: overloadsHelpStart, cancellationToken: default);
-            Assert.True(result.Overloads.Count > 0);
-            Assert.Equal(0, result.ArgumentIndex);
-            foreach (var overload in result.Overloads)
-            {
-                Assert.Contains("Max", overload.Signature.Text);
-            }
-
-            //////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-            code = $"{_}Math{_}.{_}Max{_}({_}){_};{_}";
-            overloadsHelpStart = code.Length - $"{_}){_};{_}".Length;
-            var overloadsHelpEndExclusive = code.Length - $"{_};{_}".Length;
-
-            for (int caret = 0; caret < overloadsHelpStart; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.Empty(result.Overloads);
-                Assert.Equal(0, result.ArgumentIndex);
-            }
-
-            for (int caret = overloadsHelpStart; caret < overloadsHelpEndExclusive; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.True(result.Overloads.Count > 0);
-                Assert.Equal(0, result.ArgumentIndex);
-                Assert.Equal(0, result.ArgumentIndex);
-                foreach (var overload in result.Overloads)
-                {
-                    Assert.Contains("Max", overload.Signature.Text);
-                }
-            }
-
-            for (int caret = overloadsHelpEndExclusive; caret <= code.Length; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.Empty(result.Overloads);
-                Assert.Equal(0, result.ArgumentIndex);
-            }
-
-            //////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-            code = $"{_}Math{_}.{_}Max{_}({_}123,{_}456{_}){_};{_}";
-            overloadsHelpStart = code.Length - $"{_}123,{_}456{_}){_};{_}".Length;
-            overloadsHelpEndExclusive = code.Length - $"{_};{_}".Length;
-
-            for (int caret = 0; caret < overloadsHelpStart; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.Empty(result.Overloads);
-                Assert.Equal(0, result.ArgumentIndex);
-            }
-
-            for (int caret = overloadsHelpStart; caret < overloadsHelpEndExclusive; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.True(result.Overloads.Count > 0);
-                Assert.Equal(caret <= $"{_}Math{_}.{_}Max{_}({_}123".Length ? 0 : 1, result.ArgumentIndex);
-                foreach (var overload in result.Overloads)
-                {
-                    Assert.Contains("Max", overload.Signature.Text);
-                }
-            }
-
-            for (int caret = overloadsHelpEndExclusive; caret <= code.Length; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.Empty(result.Overloads);
-                Assert.Equal(0, result.ArgumentIndex);
-            }
-
-            //////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-            code = $"{_}Math{_}.{_}Max{_}({_}Math{_}.{_}Abs{_}({_}-123{_}),{_}456{_}){_};{_}";
-            overloadsHelpStart = code.Length - $"{_}Math{_}.{_}Abs{_}({_}-123{_}),{_}456{_}){_};{_}".Length;
-            overloadsHelpEndExclusive = code.Length - $"{_}-123{_}),{_}456{_}){_};{_}".Length;
-
-            for (int caret = 0; caret < overloadsHelpStart; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.Empty(result.Overloads);
-                Assert.Equal(0, result.ArgumentIndex);
-            }
-
-            for (int caret = overloadsHelpStart; caret < overloadsHelpEndExclusive; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.True(result.Overloads.Count > 0);
-                Assert.Equal(caret <= $"{_}Math{_}.{_}Max{_}({_}Math{_}.{_}Abs{_}({_}-123{_})".Length ? 0 : 1, result.ArgumentIndex);
-                foreach (var overload in result.Overloads)
-                {
-                    Assert.Contains("Max", overload.Signature.Text);
-                }
-            }
-
-            //abs arg list start
-            overloadsHelpStart = overloadsHelpEndExclusive;
-            overloadsHelpEndExclusive = code.Length - $",{_}456{_}){_};{_}".Length;
-            for (int caret = overloadsHelpStart; caret < overloadsHelpEndExclusive; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.True(result.Overloads.Count > 0);
-                Assert.Equal(0, result.ArgumentIndex);
-                foreach (var overload in result.Overloads)
-                {
-                    Assert.Contains("Abs", overload.Signature.Text);
-                }
-            }
-            //abs arg list end
-
-            overloadsHelpStart = overloadsHelpEndExclusive;
-            overloadsHelpEndExclusive = code.Length - $"{_};{_}".Length;
-            for (int caret = overloadsHelpStart; caret < overloadsHelpEndExclusive; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.True(result.Overloads.Count > 0);
-                Assert.Equal(caret <= $"{_}Math{_}.{_}Max{_}({_}Math{_}.{_}Abs{_}({_}-123{_})".Length ? 0 : 1, result.ArgumentIndex);
-                foreach (var overload in result.Overloads)
-                {
-                    Assert.Contains("Max", overload.Signature.Text);
-                }
-            }
-
-            for (int caret = overloadsHelpEndExclusive; caret <= code.Length; caret++)
-            {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-                Assert.Empty(result.Overloads);
-                Assert.Equal(0, result.ArgumentIndex);
-            }
-        }
-    }
-
-    [Fact]
-    public async Task Complete_Overloads_NewInstance()
-    {
-        var code = $"new string('x'";
-        var overloadsHelpStart = $"new string(".Length;
-
-        (IReadOnlyList<OverloadItem> Overloads, int ArgumentIndex) result;
-        for (int caret = 0; caret < overloadsHelpStart; caret++)
-        {
-            result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-            Assert.Empty(result.Overloads);
-            Assert.Equal(0, result.ArgumentIndex);
-        }
-
-        for (int caret = overloadsHelpStart; caret < code.Length; caret++)
-        {
-            result = await services.GetOverloadsAsync(code, caret: overloadsHelpStart, cancellationToken: default);
-            Assert.True(result.Overloads.Count > 0);
-            Assert.Equal(0, result.ArgumentIndex);
-            foreach (var overload in result.Overloads)
-            {
-                Assert.Contains("string", overload.Signature.Text);
-            }
-        }
-    }
-
-    [Fact]
-    public async Task Complete_Overloads_Indexer()
-    {
-        var code = $"\"abc\"[0";
-        var overloadsHelpStart = $"\"abc\"[".Length;
-
-        (IReadOnlyList<OverloadItem> Overloads, int ArgumentIndex) result;
-        for (int caret = 0; caret < overloadsHelpStart; caret++)
-        {
-            result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
-            Assert.Empty(result.Overloads);
-            Assert.Equal(0, result.ArgumentIndex);
-        }
-
-        for (int caret = overloadsHelpStart; caret < code.Length; caret++)
-        {
-            result = await services.GetOverloadsAsync(code, caret: overloadsHelpStart, cancellationToken: default);
-            Assert.True(result.Overloads.Count > 0);
-            Assert.Equal(0, result.ArgumentIndex);
-            foreach (var overload in result.Overloads)
-            {
-                Assert.Contains("string", overload.Signature.Text);
-            }
-        }
     }
 }

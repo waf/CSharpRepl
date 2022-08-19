@@ -16,14 +16,14 @@ using static System.ConsoleModifiers;
 namespace CSharpRepl.Tests;
 
 [Collection(nameof(RoslynServices))]
-public class RoslynServicesTests : IAsyncLifetime
+public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynServicesFixture>
 {
     private readonly RoslynServices services;
 
-    public RoslynServicesTests()
+    public RoslynServicesTests(RoslynServicesFixture fixture)
     {
         var (console, _) = FakeConsole.CreateStubbedOutput();
-        this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
+        this.services = fixture.RoslynServices;
     }
 
     public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());

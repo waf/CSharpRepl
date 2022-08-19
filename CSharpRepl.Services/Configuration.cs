@@ -161,7 +161,7 @@ public sealed class Configuration
             triggerCompletionList,
             newLine,
             submitPrompt,
-            triggerOverloadList: new(new KeyPressPattern('('), new KeyPressPattern('['), new KeyPressPattern(',')));
+            triggerOverloadList: new(new KeyPressPattern('('), new KeyPressPattern('['), new KeyPressPattern(','), new KeyPressPattern('<')));
     }
 
     private static KeyPressPatterns ParseKeyPressPatterns(string[] keyPatterns)
