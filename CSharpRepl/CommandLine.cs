@@ -272,7 +272,9 @@ internal static class CommandLine
             if (arg == DisableFurtherOptionParsing) break;
             if (!arg.EndsWith(".csx")) continue;
             if (!File.Exists(arg)) throw new FileNotFoundException($@"Script file ""{arg}"" was not found");
-            stringBuilder.AppendLine(File.ReadAllText(arg));
+
+            //we are not loading content of the script manually because of https://github.com/waf/CSharpRepl/issues/140
+            stringBuilder.AppendLine($"#load \"{arg}\"");
         }
         return stringBuilder.Length == 0 ? null : stringBuilder.ToString();
     }

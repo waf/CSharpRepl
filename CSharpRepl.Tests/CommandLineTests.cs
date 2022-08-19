@@ -97,7 +97,7 @@ public class CommandLineTests
         Assert.Equal(new[] { "System.Linq", "System.Data", "Newtonsoft.Json" }, result.Usings);
         Assert.Equal(new[] { "foo.dll", "bar.dll", "baz.dll" }, result.References);
         Assert.Equal("Microsoft.AspNetCore.App", result.Framework);
-        Assert.Equal(@"Console.WriteLine(""Hello World!"");" + Environment.NewLine, result.LoadScript);
+        Assert.Equal(@"#load ""Data/LoadScript.csx""" + Environment.NewLine, result.LoadScript);
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class CommandLineTests
         var csxResult = Parse(new[] { "Data/LoadScript.csx", "--", "Data/LoadScript.csx" });
         // load script filename passed before "--" is a load script, after "--" we just pass it to the load script as an arg.
         Assert.Equal(new[] { "Data/LoadScript.csx" }, csxResult.LoadScriptArgs);
-        Assert.Equal(@"Console.WriteLine(""Hello World!"");" + Environment.NewLine, csxResult.LoadScript);
+        Assert.Equal(@"#load ""Data/LoadScript.csx""" + Environment.NewLine, csxResult.LoadScript);
 
         var quotedResult = Parse(new[] { "-r", "Foo.dll", "--", @"""a b c""", @"""d e f""" });
         Assert.Equal(new[] { @"""a b c""", @"""d e f""" }, quotedResult.LoadScriptArgs);
