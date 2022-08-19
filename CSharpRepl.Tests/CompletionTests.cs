@@ -3,25 +3,22 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
-using PrettyPrompt.Completion;
 using Xunit;
 
 namespace CSharpRepl.Tests;
 
 [Collection(nameof(RoslynServices))]
-public class CompletionTests : IAsyncLifetime
+public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixture>
 {
     private readonly RoslynServices services;
 
-    public CompletionTests()
+    public CompletionTests(RoslynServicesFixture fixture)
     {
         var (console, _) = FakeConsole.CreateStubbedOutput();
-        this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
+        this.services = fixture.RoslynServices;
     }
 
     public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
