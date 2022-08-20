@@ -17,10 +17,10 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 /// </summary>
 internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReferenceResolver
 {
-    private readonly IDotnetBuilder builder;
+    private readonly DotnetBuilder builder;
     private readonly IConsole console;
 
-    public ProjectFileMetadataResolver(IDotnetBuilder builder, IConsole console)
+    public ProjectFileMetadataResolver(DotnetBuilder builder, IConsole console)
     {
         this.builder = builder;
         this.console = console;
@@ -39,7 +39,6 @@ internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReference
 
     private ImmutableArray<PortableExecutableReference> LoadProjectReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
     {
-
         var (exitCode, output) = builder.Build(reference);
 
         if (exitCode != 0)

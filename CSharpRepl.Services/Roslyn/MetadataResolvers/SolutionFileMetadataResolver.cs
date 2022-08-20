@@ -14,13 +14,12 @@ using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 
-
 internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolver
 {
-    private readonly IDotnetBuilder builder;
+    private readonly DotnetBuilder builder;
     private readonly IConsole console;
 
-    public SolutionFileMetadataResolver(IDotnetBuilder builder, IConsole console)
+    public SolutionFileMetadataResolver(DotnetBuilder builder, IConsole console)
     {
         this.builder = builder;
         this.console = console;

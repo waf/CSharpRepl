@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using PrettyPrompt.Consoles;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -10,17 +9,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Dotnet;
 
-internal interface IDotnetBuilder
-{
-    ImmutableDictionary<string, string> ParseBuildGraph(ImmutableArray<string> buildOutput);
-    (int exitCode, ImmutableArray<string> outputLines) Build(string path);
-    Task<(int exitCode, ImmutableArray<string> outputLines)> BuildAsync(string path, CancellationToken cancellationToken);
-}
-
-internal class DotnetBuilder : IDotnetBuilder
+internal class DotnetBuilder
 {
     private readonly IConsole console;
 
@@ -31,58 +24,44 @@ internal class DotnetBuilder : IDotnetBuilder
 
     public (int exitCode, ImmutableArray<string> outputLines) Build(string path)
     {
-        var output = new List<string>();
-
-        var process = new Process
-        {
-            StartInfo =
-            {
-                FileName = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet",
-                ArgumentList = { "build", path },
-                RedirectStandardOutput = true
-            }
-        };
-        process.OutputDataReceived += (_, data) =>
-        {
-            if (data.Data is null) return;
-
-            output.Add(data.Data);
-            console.WriteLine(data.Data);
-        };
-        console.WriteLine("Building " + path);
-        process.Start();
-        process.BeginOutputReadLine();
+        using var process = StartBuild(path, out var output);
         process.WaitForExit();
-
         return (process.ExitCode, output.ToImmutableArray());
     }
 
     public async Task<(int exitCode, ImmutableArray<string> outputLines)> BuildAsync(string path, CancellationToken cancellationToken)
     {
-        var output = new List<string>();
+        using var process = StartBuild(path, out var output);
+        await process.WaitForExitAsync(cancellationToken);
+        return (process.ExitCode, output.ToImmutableArray());
+    }
 
+    private Process StartBuild(string path, out List<string> output)
+    {
+        output = new List<string>();
         var process = new Process
         {
             StartInfo =
-            {
-                FileName = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet",
-                ArgumentList = { "build", path },
-                RedirectStandardOutput = true
-            }
+          {
+              FileName = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet",
+              ArgumentList = { "build", path },
+              RedirectStandardOutput = true
+          }
         };
+
+        var outputForClosure = output;
         process.OutputDataReceived += (_, data) =>
         {
             if (data.Data is null) return;
 
-            output.Add(data.Data);
+            outputForClosure.Add(data.Data);
             console.WriteLine(data.Data);
         };
+
         console.WriteLine("Building " + path);
         process.Start();
         process.BeginOutputReadLine();
-        await process.WaitForExitAsync(cancellationToken);
-
-        return (process.ExitCode, output.ToImmutableArray());
+        return process;
     }
 
     /// <summary>
