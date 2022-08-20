@@ -2,13 +2,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using CSharpRepl.Services.Nuget;
-using Microsoft.CodeAnalysis;
-using PrettyPrompt.Consoles;
 using System;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
+using CSharpRepl.Services.Nuget;
+using Microsoft.CodeAnalysis;
+using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 
@@ -18,6 +18,7 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 internal sealed class NugetPackageMetadataResolver : AlternativeReferenceResolver
 {
     private const string NugetPrefix = "nuget:";
+    private const string NugetPrefixWithHashR = "#r \"" + NugetPrefix;
     private readonly NugetPackageInstaller nugetInstaller;
 
     public NugetPackageMetadataResolver(IConsole console, Configuration configuration)
@@ -25,11 +26,9 @@ internal sealed class NugetPackageMetadataResolver : AlternativeReferenceResolve
         this.nugetInstaller = new NugetPackageInstaller(console, configuration);
     }
 
-    public override bool CanResolve(string reference)
-    {
-        return reference.ToLowerInvariant() is string lowercased
-                && (lowercased.StartsWith(NugetPrefix) || lowercased.StartsWith($"#r \"{NugetPrefix}")); // roslyn trims the "#r" prefix when passing to the resolver, but it has the prefix when called from our ScriptRunner
-    }
+    public override bool CanResolve(string reference) =>
+        reference.StartsWith(NugetPrefix, StringComparison.OrdinalIgnoreCase) ||
+        reference.StartsWith(NugetPrefixWithHashR, StringComparison.OrdinalIgnoreCase); // roslyn trims the "#r" prefix when passing to the resolver, but it has the prefix when called from our ScriptRunner
 
     public override Task<ImmutableArray<PortableExecutableReference>> ResolveAsync(string reference, CancellationToken cancellationToken)
     {

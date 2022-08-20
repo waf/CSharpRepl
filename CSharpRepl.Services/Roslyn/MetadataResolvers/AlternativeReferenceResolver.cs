@@ -14,6 +14,8 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 /// </summary>
 public abstract class AlternativeReferenceResolver : IIndividualMetadataReferenceResolver
 {
+    public static PortableExecutableReference DummyReference { get; } = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+
     public ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
     {
         if (CanResolve(reference))
@@ -23,13 +25,11 @@ public abstract class AlternativeReferenceResolver : IIndividualMetadataReferenc
     }
 
     public abstract bool CanResolve(string reference);
-    public virtual Task<ImmutableArray<PortableExecutableReference>> ResolveAsync(string reference, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(Resolve(reference));
-    }
-    public virtual ImmutableArray<PortableExecutableReference> Resolve(string reference)
-    {
-        return ImmutableArray<PortableExecutableReference>.Empty;
-    }
-    public static PortableExecutableReference DummyReference { get; } = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+
+    public virtual Task<ImmutableArray<PortableExecutableReference>> ResolveAsync(string reference, CancellationToken cancellationToken) 
+        => Task.FromResult(Resolve(reference));
+
+    public virtual ImmutableArray<PortableExecutableReference> Resolve(string reference) 
+        => ImmutableArray<PortableExecutableReference>.Empty;
+
 }
