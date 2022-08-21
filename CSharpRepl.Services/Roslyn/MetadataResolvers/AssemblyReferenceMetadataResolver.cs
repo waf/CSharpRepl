@@ -2,17 +2,22 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using CSharpRepl.Services.Roslyn.References;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Scripting;
-using PrettyPrompt.Consoles;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text.Json;
+using CSharpRepl.Services.Nuget;
+using CSharpRepl.Services.Roslyn.References;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Scripting;
+using Microsoft.Extensions.DependencyModel;
+using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 
@@ -25,7 +30,9 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
 {
     private readonly AssemblyReferenceService referenceAssemblyService;
     private readonly AssemblyLoadContext loadContext;
+    private readonly DependencyContextJsonReader dependencyContextJsonReader = new();
     private readonly IConsole console;
+    private readonly Dictionary<string, DependenciesInfo> dependencyContextsPerAssemblyName = new();
 
     public AssemblyReferenceMetadataResolver(IConsole console, AssemblyReferenceService referenceAssemblyService)
     {
@@ -47,27 +54,51 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
         }
 
         var references = ScriptMetadataResolver.Default.WithSearchPaths(referenceAssemblyService.ImplementationAssemblyPaths).ResolveReference(reference, baseFilePath, properties);
-        LoadSharedFramework(references);
+
+        foreach (var loadedReference in references)
+        {
+            if (TryGetDepsJsonPath(loadedReference.FilePath, out var runtimeConfigJsonPath))
+            {
+                var path = loadedReference.FilePath!;
+                using var fs = File.OpenRead(runtimeConfigJsonPath);
+                var cfg = dependencyContextJsonReader.Read(fs);
+                dependencyContextsPerAssemblyName.Add(AssemblyLoadContext.GetAssemblyName(path).FullName, new(cfg, path));
+            }
+            LoadSharedFramework(loadedReference);
+        }
+
         return references;
     }
 
-    private void LoadSharedFramework(ImmutableArray<PortableExecutableReference> references)
+    private void LoadSharedFramework(PortableExecutableReference reference)
     {
-        if (references.Length != 1) return;
-
-        var configPath = Path.ChangeExtension(references[0].FilePath, "runtimeconfig.json");
-        if (configPath is null || !File.Exists(configPath))
+        if (TryGetRuntimeConfigJsonPath(reference.FilePath, out var configPath))
         {
-            return;
+            var content = File.ReadAllText(configPath);
+            if (JsonSerializer.Deserialize<RuntimeConfigJson>(content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) is RuntimeConfigJson config)
+            {
+                var name = config.RuntimeOptions.Framework.Name;
+                var version = SharedFramework.ToDotNetVersion(config.RuntimeOptions.Framework.Version);
+                referenceAssemblyService.LoadSharedFrameworkConfiguration(name, version);
+            }
         }
+    }
 
-        var content = File.ReadAllText(configPath);
-        if (JsonSerializer.Deserialize<RuntimeConfigJson>(content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) is RuntimeConfigJson config)
+    private static bool TryGetRuntimeConfigJsonPath(string? assemblyPath, [NotNullWhen(true)] out string? runtimeConfigJsonPath)
+        => TryGetAssemblyCfgPath(assemblyPath, "runtimeconfig.json", out runtimeConfigJsonPath);
+
+    private static bool TryGetDepsJsonPath(string? assemblyPath, [NotNullWhen(true)] out string? depsConfigJsonPath)
+        => TryGetAssemblyCfgPath(assemblyPath, "deps.json", out depsConfigJsonPath);
+
+    private static bool TryGetAssemblyCfgPath(string? assemblyPath, string extension, [NotNullWhen(true)] out string? runtimeConfigJsonPath)
+    {
+        runtimeConfigJsonPath = Path.ChangeExtension(assemblyPath, extension);
+        if (runtimeConfigJsonPath is null || !File.Exists(runtimeConfigJsonPath))
         {
-            var name = config.RuntimeOptions.Framework.Name;
-            var version = SharedFramework.ToDotNetVersion(config.RuntimeOptions.Framework.Version);
-            referenceAssemblyService.LoadSharedFrameworkConfiguration(name, version);
+            runtimeConfigJsonPath = null;
+            return false;
         }
+        return true;
     }
 
     /// <summary>
@@ -76,12 +107,39 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
     private Assembly? ResolveByAssemblyName(object? sender, ResolveEventArgs args)
     {
         var assemblyName = new AssemblyName(args.Name);
+        Assembly? located = null;
 
-        var located = referenceAssemblyService.ImplementationAssemblyPaths
-            .SelectMany(path => Directory.GetFiles(path, "*.dll"))
-            .Where(file => Path.GetFileNameWithoutExtension(file) == assemblyName.Name)
-            .Select(loadContext.LoadFromAssemblyPath)
-            .FirstOrDefault();
+        if (args.RequestingAssembly?.FullName != null &&
+            dependencyContextsPerAssemblyName.TryGetValue(args.RequestingAssembly.FullName, out var depsInfo))
+        {
+            var runtimeGraph = NugetHelper.GetRuntimeGraph(error: null);
+            foreach (var runtimeLib in depsInfo.DependencyContext.RuntimeLibraries)
+            {
+                if (runtimeLib.Name == assemblyName.Name)
+                {
+                    foreach (var assemblyGroup in runtimeLib.RuntimeAssemblyGroups)
+                    {
+                        if (runtimeGraph.AreCompatible(RuntimeInformation.RuntimeIdentifier, assemblyGroup.Runtime))
+                        {
+                            foreach (var runtimeFile in assemblyGroup.RuntimeFiles)
+                            {
+                                if (Path.GetFileNameWithoutExtension(runtimeFile.Path) == assemblyName.Name)
+                                {
+                                    var path = Path.Combine(Path.GetDirectoryName(depsInfo.AssemblyPath)!, runtimeFile.Path);
+                                    located = loadContext.LoadFromAssemblyPath(path);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        located ??= referenceAssemblyService.ImplementationAssemblyPaths
+                .SelectMany(path => Directory.GetFiles(path, "*.dll"))
+                .Where(file => Path.GetFileNameWithoutExtension(file) == assemblyName.Name)
+                .Select(loadContext.LoadFromAssemblyPath)
+                .FirstOrDefault();
 
         if (located?.FullName is not null && new AssemblyName(located.FullName).Version != assemblyName.Version)
         {
@@ -94,6 +152,22 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
         }
 
         return located;
+    }
+
+    private readonly struct DependenciesInfo
+    {
+        public readonly DependencyContext DependencyContext;
+
+        /// <summary>
+        /// This holds original assembly location. When '#load "x.dll"' is executed the script engine copies dll to temp dir and loads it from there.
+        /// </summary>
+        public readonly string AssemblyPath;
+
+        public DependenciesInfo(DependencyContext dependencyContext, string assemblyPath)
+        {
+            DependencyContext = dependencyContext;
+            AssemblyPath = assemblyPath;
+        }
     }
 }
 

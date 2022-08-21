@@ -2,14 +2,16 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using CSharpRepl.Services;
-using CSharpRepl.Services.Roslyn;
-using CSharpRepl.Services.Roslyn.Scripting;
 using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CSharpRepl.Services;
+using CSharpRepl.Services.Dotnet;
+using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.Scripting;
+using PrettyPrompt.Consoles;
 using Xunit;
 
 namespace CSharpRepl.Tests;
@@ -19,12 +21,12 @@ public class EvaluationTests : IAsyncLifetime
 {
     private readonly RoslynServices services;
     private readonly StringBuilder stdout;
+    private readonly IConsole console;
 
     public EvaluationTests()
     {
-        var (console, stdout) = FakeConsole.CreateStubbedOutput();
+        (console, stdout) = FakeConsole.CreateStubbedOutput();
         this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
-        this.stdout = stdout;
     }
 
     public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
@@ -153,5 +155,28 @@ public class EvaluationTests : IAsyncLifetime
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(importProject1Result);
         Assert.IsType<EvaluationResult.Success>(importProject2Result);
+    }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/128
+    /// </summary>
+    [Fact]
+    public async Task Evaluate_ResolveCorrectRuntimeVersionOfReferencedAssembly()
+    {
+        var builder = new DotnetBuilder(console);
+        var (buildExitCode, _) = builder.Build("./Data/DemoSolution/DemoSolution.DemoProject3");
+        Assert.Equal(0, buildExitCode);
+
+        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoSolution/DemoSolution.DemoProject3/bin/Debug/net6.0/DemoSolution.DemoProject3.dll""");
+        var importResult = await services.EvaluateAsync(@"DemoSolution.DemoProject3.DemoClass3.GetSystemManagementPath()");
+
+        Assert.IsType<EvaluationResult.Success>(referenceResult);
+        Assert.IsType<EvaluationResult.Success>(importResult);
+
+        var referencedSystemManagementPath = (string)((EvaluationResult.Success)importResult).ReturnValue;
+        referencedSystemManagementPath = referencedSystemManagementPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+        var winRuntimeSelected = referencedSystemManagementPath.Contains(Path.Combine("runtimes", "win", "lib"), StringComparison.OrdinalIgnoreCase);
+        var isWin = Environment.OSVersion.Platform == PlatformID.Win32NT;
+        Assert.Equal(isWin, winRuntimeSelected);
     }
 }

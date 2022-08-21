@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -6,33 +6,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Data\DemoSolution\DemoSolution.DemoProject1\bin\**" />
-    <Compile Remove="Data\DemoSolution\DemoSolution.DemoProject1\obj\**" />
-    <Compile Remove="Data\DemoSolution\DemoSolution.DemoProject2\bin\**" />
-    <Compile Remove="Data\DemoSolution\DemoSolution.DemoProject2\obj\**" />
-    <EmbeddedResource Remove="Data\DemoSolution\DemoSolution.DemoProject1\bin\**" />
-    <EmbeddedResource Remove="Data\DemoSolution\DemoSolution.DemoProject1\obj\**" />
-    <EmbeddedResource Remove="Data\DemoSolution\DemoSolution.DemoProject2\bin\**" />
-    <EmbeddedResource Remove="Data\DemoSolution\DemoSolution.DemoProject2\obj\**" />
-    <None Remove="Data\DemoSolution\DemoSolution.DemoProject1\bin\**" />
-    <None Remove="Data\DemoSolution\DemoSolution.DemoProject1\obj\**" />
-    <None Remove="Data\DemoSolution\DemoSolution.DemoProject2\bin\**" />
-    <None Remove="Data\DemoSolution\DemoSolution.DemoProject2\obj\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="Data\DemoSolution\DemoSolution.DemoProject1\DemoClass1.cs" />
-    <Compile Remove="Data\DemoSolution\DemoSolution.DemoProject2\DemoClass2.cs" />
+    <Compile Remove="Data\DemoSolution\DemoSolution.DemoProject1\**" />
+    <Compile Remove="Data\DemoSolution\DemoSolution.DemoProject2\**" />
+    <Compile Remove="Data\DemoSolution\DemoSolution.DemoProject3\**" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Data\DemoSolution\DemoSolution.DemoProject1\DemoClass1.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Data\DemoSolution\DemoSolution.DemoProject2\DemoClass2.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\DemoSolution\DemoSolution.DemoProject3\DemoClass3.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -84,6 +70,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\DemoSolution\DemoSolution.DemoProject2\DemoSolution.DemoProject2.csproj">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\DemoSolution\DemoSolution.DemoProject3\DemoSolution.DemoProject3.csproj">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\DemoSolution\DemoSolution.sln">
