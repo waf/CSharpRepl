@@ -7,9 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -33,8 +31,6 @@ namespace CSharpRepl.Services.Nuget;
 
 internal sealed class NugetPackageInstaller
 {
-    private const string RuntimeFileName = "runtime.json";
-
     private static readonly Mutex MultipleNuspecPatchMutex = new(false, $"CSharpRepl_{nameof(MultipleNuspecPatchMutex)}");
 
     private readonly ConsoleNugetLogger logger;
@@ -56,7 +52,7 @@ internal sealed class NugetPackageInstaller
         try
         {
             ISettings settings = ReadSettings();
-            var targetFramework = GetCurrentFramework();
+            var targetFramework = NugetHelper.GetCurrentFramework();
             var nuGetProject = CreateFolderProject(Path.Combine(Configuration.ApplicationDirectory, "packages"));
             var sourceRepositoryProvider = new SourceRepositoryProvider(new PackageSourceProvider(settings), Repository.Provider.GetCoreV3());
             var packageManager = CreatePackageManager(settings, nuGetProject, sourceRepositoryProvider);
@@ -211,19 +207,6 @@ internal sealed class NugetPackageInstaller
         );
     }
 
-    private static NuGetFramework GetCurrentFramework()
-    {
-        var assembly = Assembly.GetEntryAssembly();
-        if (assembly is null ||
-            assembly.Location.EndsWith("testhost.dll", StringComparison.OrdinalIgnoreCase)) //for unit tests (testhost.dll targets netcoreapp2.1 instead of net6.0)
-        {
-            assembly = Assembly.GetExecutingAssembly();
-        }
-
-        var targetFrameworkAttribute = assembly.GetCustomAttribute<TargetFrameworkAttribute>();
-        return NuGetFramework.Parse(targetFrameworkAttribute?.FrameworkName);
-    }
-
     private async Task DownloadPackageAsync(
         PackageIdentity packageIdentity,
         NuGetPackageManager packageManager,
@@ -298,21 +281,8 @@ internal sealed class NugetPackageInstaller
         return settings;
     }
 
-    private RuntimeGraph GetRuntimeGraph()
-    {
-        var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        if (dir != null)
-        {
-            var path = Path.Combine(dir, RuntimeFileName);
-            if (File.Exists(path))
-            {
-                using var stream = File.OpenRead(path);
-                return JsonRuntimeFormat.ReadRuntimeGraph(stream);
-            }
-        }
-        logger.LogError($"Cannot find '{RuntimeFileName}' in '{dir}'");
-        return new RuntimeGraph();
-    }
+    public RuntimeGraph GetRuntimeGraph() 
+        => NugetHelper.GetRuntimeGraph(e=>logger.LogError(e));
 
     /// <summary>
     /// This is a patch for https://github.com/waf/CSharpRepl/issues/52.

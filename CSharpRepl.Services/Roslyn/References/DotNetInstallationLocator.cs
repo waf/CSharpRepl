@@ -152,7 +152,7 @@ internal sealed class DotNetInstallationLocator
             userProfilePath,
             ".nuget",
             "packages",
-            (framework + ".runtime." + platform + "-" + RuntimeInformation.ProcessArchitecture).ToLowerInvariant()
+            $"{framework}.runtime.{platform}-{RuntimeInformation.ProcessArchitecture}".ToLowerInvariant()
         );
 
         logger.LogPaths("NuGet Implementation Assemblies", () => ListDirectoriesIfExists(nugetImplementationAssemblyRoot));

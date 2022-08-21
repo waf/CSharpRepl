@@ -2,12 +2,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using System;
+using System.Collections.Immutable;
+using System.Linq;
 using CSharpRepl.Services.Dotnet;
 using Microsoft.CodeAnalysis;
 using PrettyPrompt.Consoles;
-using System.Collections.Immutable;
-using System.IO;
-using System.Linq;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 
@@ -17,10 +17,10 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 /// </summary>
 internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReferenceResolver
 {
-    private readonly IDotnetBuilder builder;
+    private readonly DotnetBuilder builder;
     private readonly IConsole console;
 
-    public ProjectFileMetadataResolver(IDotnetBuilder builder, IConsole console)
+    public ProjectFileMetadataResolver(DotnetBuilder builder, IConsole console)
     {
         this.builder = builder;
         this.console = console;
@@ -35,14 +35,10 @@ internal sealed class ProjectFileMetadataResolver : IIndividualMetadataReference
     }
 
     private static bool IsProjectReference(string reference)
-    {
-        var extension = Path.GetExtension(reference)?.ToLower();
-        return extension == ".csproj";
-    }
+        => reference.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase);
 
     private ImmutableArray<PortableExecutableReference> LoadProjectReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
     {
-
         var (exitCode, output) = builder.Build(reference);
 
         if (exitCode != 0)
