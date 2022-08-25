@@ -259,6 +259,10 @@ public sealed partial class RoslynServices
                     Debug.Fail("unexpected case");
                 }
             }
+            else if (node is ImplicitObjectCreationExpressionSyntax implicitObjectCreationExpression)
+            {
+                return semanticModel.GetMemberGroup(implicitObjectCreationExpression, cancellationToken);
+            }
             else if (node is GenericNameSyntax genericNameSyntax)
             {
                 //This is more complex.
