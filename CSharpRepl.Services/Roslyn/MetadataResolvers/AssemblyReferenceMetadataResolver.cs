@@ -77,9 +77,24 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
             var content = File.ReadAllText(configPath);
             if (JsonSerializer.Deserialize<RuntimeConfigJson>(content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) is RuntimeConfigJson config)
             {
-                var name = config.RuntimeOptions.Framework.Name;
-                var version = SharedFramework.ToDotNetVersion(config.RuntimeOptions.Framework.Version);
-                referenceAssemblyService.LoadSharedFrameworkConfiguration(name, version);
+                var framework = config.RuntimeOptions.Framework;
+                if (framework != null) LoadFramework(framework);
+
+                var frameworks = config.RuntimeOptions.Frameworks;
+                if (frameworks != null)
+                {
+                    foreach (var fw in frameworks)
+                    {
+                        LoadFramework(fw);
+                    }
+                }
+
+                void LoadFramework(RuntimeConfigJson.FrameworkKey framework)
+                {
+                    var name = framework.Name;
+                    var version = SharedFramework.ToDotNetVersion(framework.Version);
+                    referenceAssemblyService.LoadSharedFrameworkConfiguration(name, version);
+                }
             }
         }
     }
@@ -185,14 +200,14 @@ internal sealed class RuntimeConfigJson
 
     public sealed class RuntimeOptionsKey
     {
-        public RuntimeOptionsKey(string tfm, FrameworkKey framework)
+        public RuntimeOptionsKey(FrameworkKey framework, FrameworkKey[] frameworks)
         {
-            this.Tfm = tfm;
             this.Framework = framework;
+            this.Frameworks = frameworks;
         }
 
-        public string Tfm { get; }
-        public FrameworkKey Framework { get; }
+        public FrameworkKey? Framework { get; }
+        public FrameworkKey[]? Frameworks { get; }
     }
 
     public sealed class FrameworkKey
