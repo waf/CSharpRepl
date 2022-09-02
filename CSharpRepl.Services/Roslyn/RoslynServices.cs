@@ -214,7 +214,7 @@ public sealed partial class RoslynServices
     {
         var keyChar = keyPress.ConsoleKeyInfo.KeyChar;
 
-        if (keyChar == ' ')
+        if (keyChar is ' ' or '=')
         {
             await Initialization.ConfigureAwait(false);
 
