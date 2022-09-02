@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using CSharpRepl.PrettyPromptConfig;
 using CSharpRepl.Services;
@@ -57,7 +58,7 @@ public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynS
     [InlineData("class C{\n\n}", 8, "class C\n{\n\n}", 9, false)]
     [InlineData("class C{\n\n}", 11, "class C\n{\n\n}", 12, false)]
     [InlineData("class C{\n\n    }", 15, "class C\n{\n\n}", 12, false)]
-    
+
     [InlineData("Console.Write( 1+1 ); if(true  ){", 33, "Console.Write(1 + 1); if (true) {", 33, false)]
     [InlineData("Console.Write( 1+1 ); if(true  ){", 33, "Console.Write( 1+1 ); if (true) {", 33, true)]
     public async Task AutoFormat(string text, int caret, string expectedText, int expectedCaret, bool formatParentNodeOnly)
@@ -138,28 +139,29 @@ public class RoslynServices_REPL_Tests
         console.DidNotReceive().WriteErrorLine(Arg.Any<string>());
     }
 
-    /// <summary>
-    /// https://github.com/waf/CSharpRepl/issues/145
-    /// </summary>
-    [Fact]
-    public async Task LambdaArgs_CompletionDoesNotInterfere()
+    [Theory]
+    [MemberData(nameof(EnumerateCompletionDoesNotInterfereData))]
+    public async Task CompletionDoesNotInterfere(FormattableString input, string output)
     {
         var (console, repl, configuration) = await InitAsync();
-        console.StubInput($@""""".Where(c => c == 'x').Count(){Enter}{Enter}exit{Enter}");
+        console.StubInput(input);
         await repl.RunAsync(configuration);
-        console.Received().WriteLine("0");
+        console.Received().WriteLine(output);
     }
 
-    /// <summary>
-    /// https://github.com/waf/CSharpRepl/issues/157
-    /// </summary>
-    [Fact]
-    public async Task ObjectInitialization_CompletionDoesNotInterfere()
+    public static IEnumerable<object[]> EnumerateCompletionDoesNotInterfereData()
     {
-        var (console, repl, configuration) = await InitAsync();
-        console.StubInput($@"new {{ c = 5 }}.c{Enter}{Enter}exit{Enter}");
-        await repl.RunAsync(configuration);
-        console.Received().WriteLine("5");
+        foreach (var (input, output) in EnumerateCompletionDoesNotInterfereData())
+        {
+            yield return new object[] { input, output };
+        }
+        static IEnumerable<(FormattableString Input, string Output)> EnumerateCompletionDoesNotInterfereData()
+        {
+            yield return ($@""""".Where(c => c == 'x').Count(){Enter}{Enter}exit{Enter}", "0"); //https://github.com/waf/CSharpRepl/issues/145
+            yield return ($@""""".Where(c=>c=='x').Count(){Enter}{Enter}exit{Enter}", "0"); //https://github.com/waf/CSharpRepl/issues/145
+            yield return ($@"new {{ c = 5 }}.c{Enter}{Enter}exit{Enter}", "5"); //https://github.com/waf/CSharpRepl/issues/157
+            yield return ($@"new{{c=5}}.c{Enter}{Enter}exit{Enter}", "5"); //https://github.com/waf/CSharpRepl/issues/157
+        }
     }
 
     private static async Task<(IConsole Console, ReadEvalPrintLoop Repl, Configuration Configuration)> InitAsync(Configuration? configuration = null)
