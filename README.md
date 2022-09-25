@@ -222,13 +222,13 @@ This will allow you to launch C# REPL by running `csr` from anywhere that accept
 
 This project is far from being the first REPL for C#. Here are some other projects; if this project doesn't suit you, another one might!
 
-**Visual Studio's C# Interactive pane** is full-featured (it has syntax highlighting and intellisense) and is part of Visual Studio. This deep integration with Visual Studio is both a benefit from a workflow perspective, and a drawback as it's not cross-platform. As far as I know, the C# Interactive pane does not support NuGet packages or navigating to documentation/source code. Subjectively, it does not follow typical command line keybindings, so can feel a bit foreign.
+**Visual Studio's C# Interactive pane** is full-featured (it has syntax highlighting and intellisense) and is part of Visual Studio. This deep integration with Visual Studio is both a benefit from a workflow perspective, and a drawback as it's not cross-platform. The C# Interactive pane supports navigating to source code (default F12), which will open that source in the containing Visual Studio window, yet no NuGet packages. It starts in .NET Framework mode but also supports .NET Core via `#reset core`. Subjectively, it does not follow typical command line keybindings, so can feel a bit foreign.
 
-**csi.exe** ships with C# and is a command line REPL. It's great because it's a cross platform REPL that comes out of the box, but it doesn't support syntax highlighting or autocompletion.
+**csi.exe** ships with C# and is a command line REPL. It's great because it's a cross platform REPL that comes out of the box, but it doesn't support syntax highlighting, autocompletion, or .NET Core.
 
-**dotnet script** allows you to run C# scripts from the command line. It has a REPL built-in, but the predominant focus seems to be as a script runner. It's a great tool, though, and has a strong community following.
+**[dotnet script](https://github.com/dotnet-script/dotnet-script)** allows you to run C# scripts from the command line. It has a REPL built-in, but the predominant focus seems to be as a script runner. It's a great tool, though, and has a strong community following.
 
-**dotnet interactive** is a tool from Microsoft that creates a Jupyter notebook for C#, runnable through Visual Studio Code. It also provides a general framework useful for running REPLs.
+**[dotnet interactive](https://github.com/dotnet/interactive)** is a tool from Microsoft that creates a Jupyter notebook for C#, runnable through Visual Studio Code. It also provides a general framework useful for running REPLs.
 
 ## Contributing
 
