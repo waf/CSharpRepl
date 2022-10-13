@@ -120,18 +120,26 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
 
     protected override async Task<KeyPress> TransformKeyPressAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
     {
+        // user submitted the prompt but it's incomplete. Insert a newline automatically with the correct level of indentation.
         if (keyPress.ConsoleKeyInfo.Key == ConsoleKey.Enter &&
             keyPress.ConsoleKeyInfo.Modifiers == default &&
             configuration.KeyBindings.SubmitPrompt.Matches(keyPress.ConsoleKeyInfo) &&
             !await roslyn.IsTextCompleteStatementAsync(text).ConfigureAwait(false))
         {
-            //Soft Enter.
-            return new KeyPress(ConsoleKey.Insert.ToKeyInfo('\0', shift: true), "\n");
+            return NewLineWithIndentation(GetSmartIndentationLevel(text, caret));
         }
 
+        // user pressed e.g. shift-enter to insert a newline.
         if (configuration.KeyBindings.NewLine.Matches(keyPress.ConsoleKeyInfo))
         {
-            //Smart indentation
+            var indentationLevel = GetSmartIndentationLevel(text, caret);
+            return indentationLevel == 0 ? keyPress : NewLineWithIndentation(indentationLevel);
+        }
+
+        return keyPress;
+
+        static int GetSmartIndentationLevel(string text, int caret)
+        {
             int openBraces = 0;
             var end = Math.Min(text.Length, caret);
             for (int i = 0; i < end; i++)
@@ -140,13 +148,11 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
                 if (c == '{') ++openBraces;
                 if (c == '}') --openBraces;
             }
-            return
-                openBraces == 0 ?
-                keyPress :
-                new KeyPress(ConsoleKey.Insert.ToKeyInfo('\0', shift: true), "\n" + new string('\t', openBraces));
+            return openBraces;
         }
 
-        return keyPress;
+        static KeyPress NewLineWithIndentation(int indentation) =>
+            new KeyPress(ConsoleKey.Insert.ToKeyInfo('\0', shift: true), "\n" + new string('\t', indentation));
     }
 
     protected override Task<bool> ConfirmCompletionCommit(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)

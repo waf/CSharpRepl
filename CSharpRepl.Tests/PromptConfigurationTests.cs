@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.PrettyPromptConfig;
 using CSharpRepl.Services;
@@ -37,6 +38,18 @@ public class PromptConfigurationTests : IAsyncLifetime
         IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
         Assert.True(configuration.TryGetKeyPressCallbacks(keyInfo, out var callback));
         callback.Invoke("Console.WriteLine(\"Hi!\");", 0, default);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task PromptConfiguration_Identation(bool shiftPressed)
+    {
+        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
+        var enterKey = new KeyPress(new ConsoleKeyInfo('\0', ConsoleKey.Enter, shift: shiftPressed, alt: false, control: false));
+
+        var transformed = await configuration.TransformKeyPressAsync("if (true) {", 11, enterKey, CancellationToken.None);
+        Assert.Equal("\n\t", transformed.PastedText);
     }
 
     public static IEnumerable<object[]> KeyPresses()
