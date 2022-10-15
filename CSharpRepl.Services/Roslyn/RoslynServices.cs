@@ -340,6 +340,7 @@ public sealed partial class RoslynServices
 
             var evaluationTask = EvaluateAsync(@"_ = ""REPL Warmup""", args);
             var highlightTask = SyntaxHighlightAsync(@"_ = ""REPL Warmup""");
+            var formattingTask = FormatInput(@"_=""REPL Warmup"";", caret: 16, formatParentNodeOnly: false, default);
             var completionTask = Task.WhenAny(
                 (await CompleteAsync(@"C", 1))
                     .Where(completion => completion.Item.DisplayText.StartsWith("C"))
@@ -347,7 +348,7 @@ public sealed partial class RoslynServices
                     .Select(completion => completion.GetDescriptionAsync(cancellationToken: default))
             );
 
-            await Task.WhenAll(evaluationTask, highlightTask, completionTask).ConfigureAwait(false);
+            await Task.WhenAll(evaluationTask, highlightTask, formattingTask, completionTask).ConfigureAwait(false);
             logger.Log("Warm-up Complete");
         });
 }
