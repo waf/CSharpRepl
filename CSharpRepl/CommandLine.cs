@@ -13,7 +13,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security;
 using System.Text;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn.References;
@@ -74,7 +73,7 @@ internal static class CommandLine
 
     private static readonly Option<bool> UseUnicode = new(
         aliases: new[] { "--useUnicode" },
-        description: "UTF8 output encoding will be enabled and unicode character will be used (requires terminal support)."
+        description: "UTF8 output encoding will be enabled and unicode character decorations will be used (requires terminal support)."
     );
 
     private static readonly Option<bool> UsePrereleaseNugets = new(
@@ -135,6 +134,11 @@ internal static class CommandLine
         AllowMultipleArgumentsPerToken = true,
     };
 
+    private static readonly Option<bool> Configure = new(
+        aliases: new[] { "--configure" },
+        description: "Launches an editor to edit the CSharpRepl configuration file. Reads the EDITOR environment variable."
+    );
+
     public static Configuration Parse(string[] args, string configFilePath)
     {
         var parseArgs = PreProcessArguments(args, configFilePath).ToArray();
@@ -150,19 +154,27 @@ internal static class CommandLine
             }
         });
 
-        var commandLine =
-            new CommandLineBuilder(
-                new RootCommand("C# REPL")
-                {
-                    References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, UsePrereleaseNugets, Trace, Version, Help, TabSize,
-                    TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings
-                }
-            )
+        var availableCommands = new RootCommand("C# REPL")
+        {
+            References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, UsePrereleaseNugets, Trace, Version, Help, TabSize,
+            TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings, Configure
+        };
+        var commandLine = new CommandLineBuilder(availableCommands)
             .EnableLegacyDoubleDashBehavior() // for passing tokens after "--" as load script arguments
             .UseSuggestDirective() // support autocompletion via dotnet-suggest
             .Build()
             .Parse(parseArgs);
 
+        if(!File.Exists(configFilePath))
+        {
+            ConfigurationFile.CreateDefaultConfigurationFile(configFilePath, availableCommands, ignoreCommands: new[] { Help, Version, Configure });
+        }
+
+        if (commandLine.GetValueForOption(Configure))
+        {
+            ConfigurationFile.LaunchEditor(configFilePath);
+            return new Configuration(outputForEarlyExit: "Launching editor for " + configFilePath);
+        }
         if (ShouldExitEarly(commandLine, configFilePath, out var text))
         {
             return new Configuration(outputForEarlyExit: text);
@@ -242,10 +254,6 @@ internal static class CommandLine
         {
             yield return "@" + configFilePath;
         }
-        else
-        {
-            CreateDefaultConfigurationFile(configFilePath);
-        }
 
         // We allow csx files to be specified, sometimes in ambiguous scenarios that
         // System.CommandLine can't figure out. So we remove it from processing here,
@@ -316,7 +324,8 @@ internal static class CommandLine
             $"  [green]-h[/] or [green]--help[/]:                               {Help.Description}" + NewLine + NewLine +
             "[cyan]@response-file.rsp[/]:" + NewLine +
             "  A file, with extension .rsp, containing the above command line [green][[OPTIONS]][/], one option per line." + NewLine +
-            $"  Command line options will also be loaded from {configFilePath}" + NewLine + NewLine +
+            $"  Command line options will also be loaded from {configFilePath}" + NewLine +
+            $"  Run 'csharprepl --configure' to launch this file in your editor." + NewLine + NewLine +
             "[cyan]script-file.csx[/]:" + NewLine +
             "  A file, with extension .csx, containing lines of C# to evaluate before starting the REPL." + NewLine +
             "  Arguments to this script can be passed as [green]<additional-arguments>[/] and will be available in a global `args` variable." + NewLine);
@@ -394,23 +403,4 @@ internal static class CommandLine
             catch (BadImageFormatException) { return Array.Empty<Type>(); } // handle native DLLs that have no managed metadata.
         }
     }
-
-    private static void CreateDefaultConfigurationFile(string configFilePath)
-    {
-        try
-        {
-            File.WriteAllText(
-                configFilePath,
-                "# Add csharprepl command line options to this file to configure csharprepl." + NewLine +
-                "# For example, uncomment the following line to configure tab size to 2:" + NewLine +
-                "# --tabSize 2"
-            );
-        }
-        catch (Exception ex) when (ex is IOException or SecurityException or UnauthorizedAccessException or DirectoryNotFoundException)
-        {
-            // If creating the default config file fails, don't consider that fatal, just warn and move on.
-            Console.WriteLine("Warning, could not create default configuration file at path: " + configFilePath);
-        }
-    }
-
 }
