@@ -67,7 +67,7 @@ internal static class ConfigurationFile
                     Arguments = configFilePath,
                     UseShellExecute = true,
                     CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden
+                    WindowStyle = editorName == "code" ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal
                 })
                 ?.WaitForExit();
         }
