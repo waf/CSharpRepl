@@ -60,14 +60,16 @@ internal static class ConfigurationFile
                 editorName = vsCodeLocationProcess?.ExitCode == 0 ? "code" : null;
             }
             editorName ??= OperatingSystem.IsWindows() ? "notepad.exe" : "vim";
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = editorName,
-                Arguments = configFilePath,
-                UseShellExecute = OperatingSystem.IsWindows(),
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden
-            });
+            Process
+                .Start(new ProcessStartInfo
+                {
+                    FileName = editorName,
+                    Arguments = configFilePath,
+                    UseShellExecute = true,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                })
+                ?.WaitForExit();
         }
         catch (Exception ex)
         {
