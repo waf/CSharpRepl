@@ -3,7 +3,7 @@
 A cross-platform command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> for the rapid experimentation and exploration of C#. It supports intellisense, installing NuGet packages, and referencing local .NET projects and assemblies.
 
 <div align="center">
-  <a href="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.webp">
+  <a href="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.mp4">
     <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.png" alt="C# REPL screenshot" style="max-width:80%;">
   </a>
   <p align="center"><i>(click to view animation)</i></p>
@@ -12,7 +12,7 @@ A cross-platform command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%
 C# REPL provides the following features:
 
 - Syntax highlighting via ANSI escape sequences
-- Intellisense with fly-out documentation
+- Intellisense with documentation and overload navigation
 - Nuget package installation
 - Reference local assemblies, solutions, and projects
 - Navigate to source via Source Link
@@ -31,11 +31,11 @@ If you're running on Mac OS Catalina (10.15) or later, make sure you follow any 
 
 After installation is complete, run `csharprepl` to begin. C# REPL can be updated via `dotnet tool update -g csharprepl`.
 
-## Usage:
+## Themes and Colors
 
-Run `csharprepl` from the command line to begin an interactive session. The default colorscheme uses the color palette defined by your terminal, but these colors can be changed using a [`theme.json`](https://github.com/waf/CSharpRepl/blob/main/CSharpRepl/themes/dracula.json) file provided as a command line argument.
+The default colorscheme is the Visual Studio dark theme, and custom themes can be created using a [`theme.json`](https://github.com/waf/CSharpRepl/blob/main/CSharpRepl/themes/dracula.json) file. Additionally, your terminal's colors can be used by supplying the `--useTerminalPaletteTheme` command line option. To completely disable colors, set the NO_COLOR environment variable.
 
-### Evaluating Code
+## Usage
 
 Type some C# into the prompt and press <kbd>Enter</kbd> to run it. The result, if any, will be printed:
 
@@ -99,7 +99,25 @@ Finally, pressing <kbd>Ctrl+Enter</kbd> will show a "detailed view" of the resul
 [6/7/2021 5:03:05 PM]
 ```
 
-### Keyboard Shortcuts
+## Adding References
+
+Use the `#r` command to add assembly or nuget references.
+
+- For assembly references, run `#r "AssemblyName"` or `#r "path/to/assembly.dll"`
+- For project references, run `#r "path/to/project.csproj"`. Solution files (.sln) can also be referenced.
+- For nuget references, run `#r "nuget: PackageName"` to install the latest version of a package, or `#r "nuget: PackageName, 13.0.5"` to install a specific version (13.0.5 in this case).
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/nuget.png" alt="Installing nuget packages" style="max-width:80%;">
+</p>
+
+To run ASP.NET applications inside the REPL, start the `csharprepl ` application with the `--framework` parameter, specifying the `Microsoft.AspNetCore.App` shared framework. Then, use the above `#r` command to reference the application DLL. See the *Command Line Configuration* section below for more details.
+
+```console
+csharprepl --framework  Microsoft.AspNetCore.App
+```
+
+## Keyboard Shortcuts
 
 - **Basic Usage**
   - <kbd>Ctrl+C</kbd> - Cancel current line
@@ -125,24 +143,6 @@ Finally, pressing <kbd>Ctrl+Enter</kbd> will show a "detailed view" of the resul
   - <kbd>Ctrl+Arrows</kbd> - Navigate words within text
   - <kbd>Ctrl+Backspace</kbd> - Delete previous word
   - <kbd>Ctrl+Delete</kbd> - Delete next word
-
-### Adding References
-
-Use the `#r` command to add assembly or nuget references.
-
-- For assembly references, run `#r "AssemblyName"` or `#r "path/to/assembly.dll"`
-- For project references, run `#r "path/to/project.csproj"`. Solution files (.sln) can also be referenced.
-- For nuget references, run `#r "nuget: PackageName"` to install the latest version of a package, or `#r "nuget: PackageName, 13.0.5"` to install a specific version (13.0.5 in this case).
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/nuget.png" alt="Installing nuget packages" style="max-width:80%;">
-</p>
-
-To run ASP.NET applications inside the REPL, start the `csharprepl ` application with the `--framework` parameter, specifying the `Microsoft.AspNetCore.App` shared framework. Then, use the above `#r` command to reference the application DLL. See the *Command Line Configuration* section below for more details.
-
-```console
-csharprepl --framework  Microsoft.AspNetCore.App
-```
 
 ## Command Line Configuration
 
