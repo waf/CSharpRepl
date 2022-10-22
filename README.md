@@ -13,6 +13,7 @@ C# REPL provides the following features:
 
 - Syntax highlighting via ANSI escape sequences
 - Intellisense with documentation and overload navigation
+- Automatic formatting of typed input
 - Nuget package installation
 - Reference local assemblies, solutions, and projects
 - Navigate to source via Source Link
@@ -33,7 +34,7 @@ After installation is complete, run `csharprepl` to begin. C# REPL can be update
 
 ## Themes and Colors
 
-The default colorscheme is the Visual Studio dark theme, and custom themes can be created using a [`theme.json`](https://github.com/waf/CSharpRepl/blob/main/CSharpRepl/themes/dracula.json) file. Additionally, your terminal's colors can be used by supplying the `--useTerminalPaletteTheme` command line option. To completely disable colors, set the NO_COLOR environment variable.
+The default theme uses the same colors as Visual Studio dark mode, and custom themes can be created using a [`theme.json`](https://github.com/waf/CSharpRepl/blob/main/CSharpRepl/themes/dracula.json) file. Additionally, your terminal's colors can be used by supplying the `--useTerminalPaletteTheme` command line option. To completely disable colors, set the NO_COLOR environment variable.
 
 ## Usage
 
@@ -111,13 +112,15 @@ Use the `#r` command to add assembly or nuget references.
   <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/nuget.png" alt="Installing nuget packages" style="max-width:80%;">
 </p>
 
-To run ASP.NET applications inside the REPL, start the `csharprepl ` application with the `--framework` parameter, specifying the `Microsoft.AspNetCore.App` shared framework. Then, use the above `#r` command to reference the application DLL. See the *Command Line Configuration* section below for more details.
+To run ASP.NET applications inside the REPL, start the `csharprepl ` application with the `--framework` parameter, specifying the `Microsoft.AspNetCore.App` shared framework. Then, use the above `#r` command to reference the application DLL. See [Configuring CSharpRepl](https://github.com/waf/CSharpRepl/wiki/Configuring-CSharpRepl) for more details.
 
 ```console
 csharprepl --framework  Microsoft.AspNetCore.App
 ```
 
 ## Keyboard Shortcuts
+
+CSharpRepl aims for a similar editing experience as Visual Studio (e.g. for text navigation, selection and keyboard shortcuts).
 
 - **Basic Usage**
   - <kbd>Ctrl+C</kbd> - Cancel current line
@@ -133,42 +136,15 @@ csharprepl --framework  Microsoft.AspNetCore.App
   - <kbd>Ctrl+F9</kbd> - Shows the IL for the current statement with Release mode optimizations.
   - <kbd>F12</kbd> - Opens the source code in the browser for the class/method under the caret, if the assembly supports [Source Link](https://github.com/dotnet/sourcelink).
 - **Autocompletion**
-  - <kbd>Ctrl+Space</kbd> - Open autocomplete menu. If there's a single option, pressing <kbd>Ctrl+Space</kbd> again will select the option
-  - <kbd>Enter</kbd>, <kbd>Right Arrow</kbd>, <kbd>Tab</kbd> - Select active autocompletion option
-  - <kbd>Escape</kbd> - closes autocomplete menu
-- **Text Navigation**
-  - <kbd>Home</kbd> and <kbd>End</kbd> - Navigate to beginning of a single line and end of a single line, respectively
-  - <kbd>Ctrl+Home</kbd> and <kbd>Ctrl+End</kbd> - Navigate to beginning of line and end across multiple lines in a multiline prompt, respectively
-  - <kbd>Arrows</kbd> - Navigate characters within text
-  - <kbd>Ctrl+Arrows</kbd> - Navigate words within text
-  - <kbd>Ctrl+Backspace</kbd> - Delete previous word
-  - <kbd>Ctrl+Delete</kbd> - Delete next word
+  - <kbd>Ctrl+Space</kbd> - Open the autocomplete menu.
+  - <kbd>Enter</kbd>, <kbd>Tab</kbd> - Select the active autocompletion option
+  - <kbd>Escape</kbd> - Closes the autocomplete menu
 
 ## Command Line Configuration
 
-The C# REPL supports multiple configuration flags to control startup, behavior, and appearance:
+The C# REPL supports both command line options as well as a configuration file. See the [Configuring CSharpRepl](https://github.com/waf/CSharpRepl/wiki/Configuring-CSharpRepl) wiki page for more information.
 
-```
-csharprepl [OPTIONS] [response-file.rsp] [script-file.csx] [-- <additional-arguments>]
-```
-
-Supported options are:
-
-- OPTIONS:
-    - `-r <dll>` or `--reference <dll>`: Reference an assembly, project file, or nuget package. Can be specified multiple times. Uses the same syntax as `#r` statements inside the REPL. For example, `csharprepl -r "nuget:Newtonsoft.Json" "path/to/myproj.csproj"`
-      - When an assembly or project is referenced, assemblies in the containing directory will be added to the assembly search path. This means that you don't need to manually add references to all of your assembly's dependencies (e.g. other references and nuget packages). Referencing the main entry assembly is enough.
-    - `-u <namespace>` or `--using <namespace>`: Add a using statement. Can be specified multiple times.
-    - `-f <framework>` or `--framework <framework>`: Reference a [shared framework](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/metapackage-app). The available shared frameworks depends on the local .NET installation, and can be useful when running an ASP.NET application from the REPL. Example frameworks are:
-        - Microsoft.NETCore.App (default)
-        - Microsoft.AspNetCore.All
-        - Microsoft.AspNetCore.App
-        - Microsoft.WindowsDesktop.App
-    - `-t <theme.json>` or `--theme <theme.json>`: Read a theme file for syntax highlighting. This theme file associates C# syntax classifications with colors. The color values can be full RGB, or ANSI color names (defined in your terminal's theme). The [NO_COLOR](https://no-color.org/) standard is supported.
-    - `--trace`: Produce a trace file in the current directory that logs CSharpRepl internals. Useful for CSharpRepl bug reports.
-    - `-v` or `--version`: Show version number and exit.
-    - `-h` or `--help`: Show help and exit.
-- `response-file.rsp`: A filepath of an .rsp file, containing any of the above command line options.
-- `script-file.csx`: A filepath of a .csx file, containing lines of C# to evaluate before starting the REPL. Arguments to this script can be passed as `<additional-arguments>`, after a double hyphen (`--`), and will be available in a global `args` variable.
+Run `csharprepl --help` to see the available command line configuration options, and run `csharprepl --configure` to get started with the configuration file.
 
 If you have [`dotnet-suggest`](https://github.com/dotnet/command-line-api/blob/main/docs/dotnet-suggest.md) enabled, all options can be tab-completed, including values provided to `--framework` and .NET namespaces provided to `--using`.
 
