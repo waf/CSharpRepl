@@ -189,9 +189,8 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         {
             case EvaluationResult.Success success:
                 var ilCode = success.ReturnValue.ToString()!;
-                var highlighting = await roslyn.SyntaxHighlightAsync(ilCode).ConfigureAwait(false);
-                var syntaxHighlightedOutput = Prompt.RenderAnsiOutput(ilCode, highlighting.ToFormatSpans(), console.BufferWidth);
-                return new KeyPressCallbackResult(text, syntaxHighlightedOutput);
+                var output = Prompt.RenderAnsiOutput(ilCode, Array.Empty<FormatSpan>(), console.BufferWidth);
+                return new KeyPressCallbackResult(text, output);
             case EvaluationResult.Error err:
                 return new KeyPressCallbackResult(text, AnsiColor.Red.GetEscapeSequence() + err.Exception.Message + AnsiEscapeCodes.Reset);
             default:
