@@ -1,3 +1,20 @@
+## Release 0.4.0
+
+- Visual Studio dark theme as default
+- Many improvements around autocompletion menu usability
+- New menu for navigating overloads menu
+- Add configuration file and --configure command line switch
+- Smart indentation for multiline statements
+- Auto formatting of input
+- When showing IL code, use more targeted disassembly output for simple statements
+- Bugfixes for assembly, framework, and CSX loading
+- Configurable keybindings
+- Support loading of prerelease nuget packages and nuspec file fixes
+- UTF-8 mode with autocompletion menu glyphs for differentiating between methods, types, properties, events, and delegates
+- Reference all projects when a solution is referenced
+- Formatted / colored help output
+- Nuget dependency updates
+
 ## Release 0.3.5
 
 - .NET 6 and C# 10 support
