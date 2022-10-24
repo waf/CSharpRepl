@@ -100,6 +100,8 @@ Finally, pressing <kbd>Ctrl+Enter</kbd> will show a "detailed view" of the resul
 [6/7/2021 5:03:05 PM]
 ```
 
+When you're done with your session, you can type `exit` or press <kbd>Ctrl+D</kbd> to exit.
+
 ## Adding References
 
 Use the `#r` command to add assembly or nuget references.
@@ -124,6 +126,7 @@ CSharpRepl aims for a similar editing experience as Visual Studio (e.g. for text
 
 - **Basic Usage**
   - <kbd>Ctrl+C</kbd> - Cancel current line
+  - <kbd>Ctrl+D</kbd> or type `exit` - Exit the REPL
   - <kbd>Ctrl+L</kbd> - Clear screen
   - <kbd>Enter</kbd> - Evaluate the current line if it's a syntactically complete statement; otherwise add a newline
   - <kbd>Control+Enter</kbd> - Evaluate the current line, and return a more detailed representation of the result
