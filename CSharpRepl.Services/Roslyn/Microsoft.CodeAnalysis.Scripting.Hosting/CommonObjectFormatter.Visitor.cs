@@ -11,7 +11,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Microsoft.Cci;
+using PrettyPrompt.Highlighting;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
@@ -61,17 +61,16 @@ internal abstract partial class CommonObjectFormatter
             return new Builder(_builderOptions.WithMaximumOutputLength(Math.Min(_builderOptions.MaximumLineLength, limit)), suppressEllipsis: true);
         }
 
-        public string FormatObject(object obj)
+        public FormattedString FormatObject(object obj)
         {
             try
             {
                 var builder = new Builder(_builderOptions, suppressEllipsis: false);
-                string _;
                 return FormatObjectRecursive(builder, obj, isRoot: true, debuggerDisplayName: out _).ToString();
             }
             catch (InsufficientExecutionStackException)
             {
-                return "<Stack overflow while evaluating object>";
+                return new FormattedString("<Stack overflow while evaluating object>", new ConsoleFormat(AnsiColor.Red));
             }
         }
 

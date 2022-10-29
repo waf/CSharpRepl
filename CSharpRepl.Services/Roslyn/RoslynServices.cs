@@ -118,7 +118,7 @@ public sealed partial class RoslynServices
         }
     }
 
-    public async Task<string?> PrettyPrintAsync(object? obj, bool displayDetails)
+    public async Task<FormattedString> PrettyPrintAsync(object? obj, bool displayDetails)
     {
         await Initialization.ConfigureAwait(false);
         return PrettyPrinter.Instance.FormatObject(obj, displayDetails);

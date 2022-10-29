@@ -5,6 +5,7 @@
 using System;
 using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
+using PrettyPrompt.Highlighting;
 
 namespace CSharpRepl.Services.Roslyn;
 
@@ -12,7 +13,7 @@ internal sealed class PrettyPrinter
 {
     public static readonly PrettyPrinter Instance = new();
 
-    private static readonly CSharpObjectFormatterImpl s_impl = new();
+    private static readonly CSharpObjectFormatterImpl formatter = new();
 
     private readonly PrintOptions summaryOptions;
     private readonly PrintOptions detailedOptions;
@@ -31,7 +32,7 @@ internal sealed class PrettyPrinter
         };
     }
 
-    public string? FormatObject(object? obj, bool displayDetails)
+    public FormattedString FormatObject(object? obj, bool displayDetails)
     {
         return obj switch
         {
@@ -42,19 +43,19 @@ internal sealed class PrettyPrinter
             string str when displayDetails => str,
 
             Exception exception =>
-                displayDetails ?
-                s_impl.FormatException(exception) :
-                exception.Message,
+                    displayDetails ?
+                    formatter.FormatException(exception) :
+                    new FormattedString(exception.Message, new ConsoleFormat(AnsiColor.Red)),
 
             _ => FormatObjectSafe(obj, displayDetails ? detailedOptions : summaryOptions)
         };
     }
 
-    private string? FormatObjectSafe(object obj, PrintOptions options)
+    private FormattedString FormatObjectSafe(object obj, PrintOptions options)
     {
         try
         {
-            return s_impl.FormatObject(obj, options);
+            return formatter.FormatObject(obj, options);
         }
         catch (Exception) // sometimes the roslyn formatter APIs fail to format. Most notably with ref structs.
         {

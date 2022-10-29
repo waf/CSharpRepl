@@ -119,7 +119,7 @@ internal sealed class ReadEvalPrintLoop
                 break;
             case EvaluationResult.Error err:
                 var formattedError = await roslyn.PrettyPrintAsync(err.Exception, displayDetails);
-                console.WriteErrorLine(AnsiColor.Red.GetEscapeSequence() + formattedError + AnsiEscapeCodes.Reset);
+                console.WriteErrorLine(formattedError);
                 break;
             case EvaluationResult.Cancelled:
                 console.WriteErrorLine(

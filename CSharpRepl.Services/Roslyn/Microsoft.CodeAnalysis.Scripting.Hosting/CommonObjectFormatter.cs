@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using Microsoft.CodeAnalysis.PooledObjects;
+using PrettyPrompt.Highlighting;
 using static Microsoft.CodeAnalysis.Scripting.Hosting.ObjectFormatterHelpers;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
@@ -16,9 +17,9 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 /// <summary>
 /// Object pretty printer.
 /// </summary>
-internal abstract partial class CommonObjectFormatter : ObjectFormatter
+internal abstract partial class CommonObjectFormatter
 {
-    public override string FormatObject(object obj, PrintOptions options)
+    public FormattedString FormatObject(object obj, PrintOptions options)
     {
         if (options == null)
         {
@@ -38,7 +39,7 @@ internal abstract partial class CommonObjectFormatter : ObjectFormatter
     protected abstract CommonPrimitiveFormatter PrimitiveFormatter { get; }
 
     protected virtual BuilderOptions GetInternalBuilderOptions(PrintOptions printOptions) =>
-        new BuilderOptions(
+        new(
             indentation: "  ",
             newLine: Environment.NewLine,
             ellipsis: printOptions.Ellipsis,
@@ -46,7 +47,7 @@ internal abstract partial class CommonObjectFormatter : ObjectFormatter
             maximumOutputLength: printOptions.MaximumOutputLength);
 
     protected virtual CommonPrimitiveFormatterOptions GetPrimitiveOptions(PrintOptions printOptions) =>
-        new CommonPrimitiveFormatterOptions(
+        new(
             numberRadix: printOptions.NumberRadix,
             includeCodePoints: false,
             quoteStringsAndCharacters: true,
@@ -54,11 +55,11 @@ internal abstract partial class CommonObjectFormatter : ObjectFormatter
             cultureInfo: CultureInfo.CurrentUICulture);
 
     protected virtual CommonTypeNameFormatterOptions GetTypeNameOptions(PrintOptions printOptions) =>
-        new CommonTypeNameFormatterOptions(
+        new(
             arrayBoundRadix: printOptions.NumberRadix,
             showNamespaces: false);
 
-    public override string FormatException(Exception e)
+    public FormattedString FormatException(Exception e)
     {
         if (e == null)
         {
@@ -101,7 +102,7 @@ internal abstract partial class CommonObjectFormatter : ObjectFormatter
             builder.AppendLine();
         }
 
-        return pooled.ToStringAndFree();
+        return new FormattedString(pooled.ToStringAndFree(), new ConsoleFormat(AnsiColor.Red));
     }
 
     /// <summary>
