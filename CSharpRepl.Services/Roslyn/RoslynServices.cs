@@ -44,7 +44,6 @@ public sealed partial class RoslynServices
     private ScriptRunner? scriptRunner;
     private WorkspaceManager? workspaceManager;
     private Disassembler? disassembler;
-    private PrettyPrinter? prettyPrinter;
     private SymbolExplorer? symbolExplorer;
     private AutoCompleteService? autocompleteService;
     private AssemblyReferenceService? referenceService;
@@ -53,7 +52,7 @@ public sealed partial class RoslynServices
     // when this Initialization task successfully completes, all the above members will not be null.
     [MemberNotNull(
         nameof(scriptRunner), nameof(workspaceManager), nameof(disassembler),
-        nameof(prettyPrinter), nameof(symbolExplorer), nameof(autocompleteService),
+        nameof(symbolExplorer), nameof(autocompleteService),
         nameof(referenceService), nameof(compilationOptions))]
     private Task Initialization { get; }
 
@@ -83,7 +82,6 @@ public sealed partial class RoslynServices
             this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger);
 
             this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
-            this.prettyPrinter = new PrettyPrinter();
             this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
             this.autocompleteService = new AutoCompleteService(highlighter, cache, config);
             logger.Log("Background initialization complete");
@@ -123,9 +121,7 @@ public sealed partial class RoslynServices
     public async Task<string?> PrettyPrintAsync(object? obj, bool displayDetails)
     {
         await Initialization.ConfigureAwait(false);
-        return obj is Exception ex
-            ? prettyPrinter.FormatException(ex, displayDetails)
-            : prettyPrinter.FormatObject(obj, displayDetails);
+        return PrettyPrinter.Instance.FormatObject(obj, displayDetails);
     }
 
     public async Task<IReadOnlyCollection<CompletionItemWithDescription>> CompleteAsync(string text, int caret)

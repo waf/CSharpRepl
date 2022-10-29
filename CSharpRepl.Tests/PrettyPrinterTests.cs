@@ -12,7 +12,7 @@ public class PrettyPrinterTests
     [MemberData(nameof(FormatObjectInputs))]
     public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult)
     {
-        var prettyPrinted = new PrettyPrinter().FormatObject(obj, showDetails);
+        var prettyPrinted = PrettyPrinter.Instance.FormatObject(obj, showDetails);
         Assert.Equal(expectedResult, prettyPrinted);
     }
 
