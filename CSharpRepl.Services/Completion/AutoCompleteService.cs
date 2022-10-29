@@ -65,40 +65,44 @@ internal sealed class AutoCompleteService
                 if (classification is not null &&
                     highlighter.TryGetColor(classification, out var color))
                 {
-                    Span<char> prefix = stackalloc char[3];
-                    if (configuration.UseUnicode)
-                    {
-                        var symbol = classification switch
-                        {
-                            ClassificationTypeNames.Keyword => "🔑",
-                            ClassificationTypeNames.MethodName or ClassificationTypeNames.ExtensionMethodName => "🟣",
-                            ClassificationTypeNames.PropertyName => "🟡",
-                            ClassificationTypeNames.FieldName or ClassificationTypeNames.ConstantName or ClassificationTypeNames.EnumMemberName => "🔵",
-                            ClassificationTypeNames.EventName => "⚡",
-                            ClassificationTypeNames.ClassName or ClassificationTypeNames.RecordClassName => "🟨",
-                            ClassificationTypeNames.InterfaceName => "🔷",
-                            ClassificationTypeNames.StructName or ClassificationTypeNames.RecordStructName => "🟦",
-                            ClassificationTypeNames.EnumName => "🟧",
-                            ClassificationTypeNames.DelegateName => "💼",
-                            ClassificationTypeNames.NamespaceName => "⬜",
-                            ClassificationTypeNames.TypeParameterName => "⬛",
-                            _ => "⚫",
-                        };
-
-                        Debug.Assert(symbol.Length <= prefix.Length);
-                        symbol.CopyTo(prefix);
-                        prefix[symbol.Length] = ' ';
-                        prefix = prefix[..(symbol.Length + 1)];
-                    }
-                    else
-                    {
-                        prefix = Span<char>.Empty;
-                    }
-
+                    var prefix = GetCompletionItemSymbolPrefix(classification, configuration.UseUnicode);
                     return new FormattedString($"{prefix}{text}", new FormatSpan(prefix.Length, text.Length, new ConsoleFormat(Foreground: color)));
                 }
             }
             return text;
+        }
+    }
+
+    public static string GetCompletionItemSymbolPrefix(string? classification, bool useUnicode)
+    {
+        Span<char> prefix = stackalloc char[3];
+        if (useUnicode)
+        {
+            var symbol = classification switch
+            {
+                ClassificationTypeNames.Keyword => "🔑",
+                ClassificationTypeNames.MethodName or ClassificationTypeNames.ExtensionMethodName => "🟣",
+                ClassificationTypeNames.PropertyName => "🟡",
+                ClassificationTypeNames.FieldName or ClassificationTypeNames.ConstantName or ClassificationTypeNames.EnumMemberName => "🔵",
+                ClassificationTypeNames.EventName => "⚡",
+                ClassificationTypeNames.ClassName or ClassificationTypeNames.RecordClassName => "🟨",
+                ClassificationTypeNames.InterfaceName => "🔷",
+                ClassificationTypeNames.StructName or ClassificationTypeNames.RecordStructName => "🟦",
+                ClassificationTypeNames.EnumName => "🟧",
+                ClassificationTypeNames.DelegateName => "💼",
+                ClassificationTypeNames.NamespaceName => "⬜",
+                ClassificationTypeNames.TypeParameterName => "⬛",
+                _ => "⚫",
+            }; ;
+            Debug.Assert(symbol.Length <= prefix.Length);
+            symbol.CopyTo(prefix);
+            prefix[symbol.Length] = ' ';
+            prefix = prefix[..(symbol.Length + 1)];
+            return prefix.ToString();
+        }
+        else
+        {
+            return "";
         }
     }
 

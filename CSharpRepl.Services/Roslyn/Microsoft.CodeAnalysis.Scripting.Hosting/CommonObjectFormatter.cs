@@ -8,6 +8,8 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using CSharpRepl.Services;
+using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis.PooledObjects;
 using PrettyPrompt.Highlighting;
 using static Microsoft.CodeAnalysis.Scripting.Hosting.ObjectFormatterHelpers;
@@ -19,6 +21,15 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 /// </summary>
 internal abstract partial class CommonObjectFormatter
 {
+    private readonly SyntaxHighlighter syntaxHighlighter;
+    private readonly Configuration config;
+
+    protected CommonObjectFormatter(SyntaxHighlighter syntaxHighlighter, Configuration config)
+    {
+        this.syntaxHighlighter = syntaxHighlighter;
+        this.config = config;
+    }
+
     public FormattedString FormatObject(object obj, PrintOptions options)
     {
         if (options == null)
@@ -29,7 +40,7 @@ internal abstract partial class CommonObjectFormatter
             throw new ArgumentNullException(nameof(options));
         }
 
-        var visitor = new Visitor(this, GetInternalBuilderOptions(options), GetPrimitiveOptions(options), GetTypeNameOptions(options), options.MemberDisplayFormat);
+        var visitor = new Visitor(this, GetInternalBuilderOptions(options), GetPrimitiveOptions(options), GetTypeNameOptions(options), options.MemberDisplayFormat, syntaxHighlighter, config);
         return visitor.FormatObject(obj);
     }
 

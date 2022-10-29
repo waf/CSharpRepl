@@ -1,8 +1,12 @@
-﻿using Xunit;
-using CSharpRepl.Services.Roslyn;
+﻿using System;
 using System.Collections.Generic;
-using static System.Environment;
 using System.Text;
+using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.SyntaxHighlighting;
+using CSharpRepl.Services.Theming;
+using Microsoft.Extensions.Caching.Memory;
+using Xunit;
+using static System.Environment;
 
 namespace CSharpRepl.Tests;
 
@@ -12,7 +16,7 @@ public class PrettyPrinterTests
     [MemberData(nameof(FormatObjectInputs))]
     public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult)
     {
-        var prettyPrinted = PrettyPrinter.Instance.FormatObject(obj, showDetails);
+        var prettyPrinted = new PrettyPrinter(new SyntaxHighlighter(new MemoryCache(new MemoryCacheOptions()), new Theme(null, null, null, null, Array.Empty<SyntaxHighlightingColor>()))).FormatObject(obj, showDetails);
         Assert.Equal(expectedResult, prettyPrinted);
     }
 

@@ -5,6 +5,8 @@
 #nullable disable
 
 using System.Reflection;
+using CSharpRepl.Services;
+using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using MemberFilter = Microsoft.CodeAnalysis.Scripting.Hosting.MemberFilter;
 
@@ -16,7 +18,8 @@ internal class CSharpObjectFormatterImpl : CommonObjectFormatter
     protected override CommonPrimitiveFormatter PrimitiveFormatter { get; }
     protected override MemberFilter Filter { get; }
 
-    internal CSharpObjectFormatterImpl()
+    internal CSharpObjectFormatterImpl(SyntaxHighlighter syntaxHighlighter, Configuration config)
+        : base(syntaxHighlighter, config)
     {
         PrimitiveFormatter = new CSharpPrimitiveFormatter();
         TypeNameFormatter = new CSharpTypeNameFormatter(PrimitiveFormatter);

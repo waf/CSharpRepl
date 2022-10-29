@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using PrettyPrompt.Highlighting;
@@ -11,15 +12,13 @@ namespace CSharpRepl.Services.Roslyn;
 
 internal sealed class PrettyPrinter
 {
-    public static readonly PrettyPrinter Instance = new();
-
-    private static readonly CSharpObjectFormatterImpl formatter = new();
-
+    private readonly CSharpObjectFormatterImpl formatter;
     private readonly PrintOptions summaryOptions;
     private readonly PrintOptions detailedOptions;
 
-    private PrettyPrinter()
+    public PrettyPrinter(SyntaxHighlighter syntaxHighlighter, Configuration config)
     {
+        formatter = new CSharpObjectFormatterImpl(syntaxHighlighter, config);
         summaryOptions = new PrintOptions
         {
             MemberDisplayFormat = MemberDisplayFormat.SingleLine,

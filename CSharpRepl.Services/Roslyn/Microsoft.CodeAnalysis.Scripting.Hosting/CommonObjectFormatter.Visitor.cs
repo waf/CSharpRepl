@@ -11,6 +11,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using CSharpRepl.Services;
+using CSharpRepl.Services.Completion;
+using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using PrettyPrompt.Highlighting;
 using Roslyn.Utilities;
@@ -30,6 +33,8 @@ internal abstract partial class CommonObjectFormatter
         private CommonPrimitiveFormatterOptions _primitiveOptions;
         private readonly CommonTypeNameFormatterOptions _typeNameOptions;
         private MemberDisplayFormat _memberDisplayFormat;
+        private readonly SyntaxHighlighter _syntaxHighlighter;
+        private readonly Configuration _config;
         private HashSet<object> _lazyVisitedObjects;
 
         private HashSet<object> VisitedObjects
@@ -47,13 +52,17 @@ internal abstract partial class CommonObjectFormatter
             BuilderOptions builderOptions,
             CommonPrimitiveFormatterOptions primitiveOptions,
             CommonTypeNameFormatterOptions typeNameOptions,
-            MemberDisplayFormat memberDisplayFormat)
+            MemberDisplayFormat memberDisplayFormat,
+            SyntaxHighlighter syntaxHighlighter,
+            Configuration config)
         {
             _formatter = formatter;
             _builderOptions = builderOptions;
             _primitiveOptions = primitiveOptions;
             _typeNameOptions = typeNameOptions;
             _memberDisplayFormat = memberDisplayFormat;
+            _syntaxHighlighter = syntaxHighlighter;
+            _config = config;
         }
 
         private Builder MakeMemberBuilder(int limit)
@@ -472,7 +481,10 @@ internal abstract partial class CommonObjectFormatter
                     FormattedString name;
                     if (string.IsNullOrEmpty(debuggerDisplayName))
                     {
-                        name = member.Name;
+                        var classification = RoslynExtensions.MemberTypeToClassificationTypeName(member.MemberType);
+                        var prefix = AutoCompleteService.GetCompletionItemSymbolPrefix(classification, _config.UseUnicode);
+                        var color = _syntaxHighlighter.GetColor(classification);
+                        name = new FormattedString($"{prefix}{member.Name}", new FormatSpan(prefix.Length, member.Name.Length, new ConsoleFormat(Foreground: color)));
                     }
                     else
                     {
