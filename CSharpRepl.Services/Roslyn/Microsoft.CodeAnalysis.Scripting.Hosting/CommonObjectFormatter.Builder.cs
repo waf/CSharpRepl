@@ -5,7 +5,7 @@
 #nullable disable
 
 using System;
-using System.Text;
+using PrettyPrompt.Highlighting;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -16,17 +16,14 @@ internal abstract partial class CommonObjectFormatter
 {
     private sealed class Builder
     {
-        private readonly StringBuilder _sb;
-
+        private readonly FormattedStringBuilder _sb = new();
         private readonly bool _suppressEllipsis;
-
         private readonly BuilderOptions _options;
 
         private int _currentLimit;
 
         public Builder(BuilderOptions options, bool suppressEllipsis)
         {
-            _sb = new StringBuilder();
             _suppressEllipsis = suppressEllipsis;
             _options = options;
             _currentLimit = Math.Min(_options.MaximumLineLength, _options.MaximumOutputLength);
@@ -80,7 +77,10 @@ internal abstract partial class CommonObjectFormatter
 
             int length = Math.Min(count, CurrentRemaining);
 
-            _sb.Append(c, length);
+            for (int i = 0; i < length; i++)
+            {
+                _sb.Append(c);
+            }
 
             if (!_suppressEllipsis && length < count)
             {
@@ -88,16 +88,16 @@ internal abstract partial class CommonObjectFormatter
             }
         }
 
-        public void Append(string str, int start = 0, int count = Int32.MaxValue)
+        public void Append(FormattedString str, int start = 0, int count = Int32.MaxValue)
         {
-            if (str == null || CurrentRemaining < 0)
+            if (str.IsEmpty || CurrentRemaining < 0)
             {
                 return;
             }
 
             count = Math.Min(count, str.Length - start);
             int length = Math.Min(count, CurrentRemaining);
-            _sb.Append(str, start, length);
+            _sb.Append(str.Substring(start, length));
 
             if (!_suppressEllipsis && length < count)
             {
@@ -172,9 +172,7 @@ internal abstract partial class CommonObjectFormatter
             AppendGroupClosing(inline: true);
         }
 
-        public override string ToString()
-        {
-            return _sb.ToString();
-        }
+        public FormattedString ToFormattedString() => _sb.ToFormattedString();
+        public override string ToString() => _sb.ToString();
     }
 }

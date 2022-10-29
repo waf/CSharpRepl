@@ -11,7 +11,6 @@ using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Completion;
-using Microsoft.CodeAnalysis.QuickInfo;
 using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt.Highlighting;
 

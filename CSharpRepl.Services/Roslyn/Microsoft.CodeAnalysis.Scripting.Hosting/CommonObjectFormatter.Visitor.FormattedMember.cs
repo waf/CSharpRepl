@@ -5,6 +5,7 @@
 #nullable disable
 
 using System.Diagnostics;
+using PrettyPrompt.Highlighting;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -18,12 +19,12 @@ internal abstract partial class CommonObjectFormatter
             public readonly int Index;
 
             // Formatted name of the member or null if it doesn't have a name (Index is >=0 then).
-            public readonly string Name;
+            public readonly FormattedString Name;
 
             // Formatted value of the member.
-            public readonly string Value;
+            public readonly FormattedString Value;
 
-            public FormattedMember(int index, string name, string value)
+            public FormattedMember(int index, FormattedString name, FormattedString value)
             {
                 Debug.Assert((name != null) || (index >= 0));
                 Name = name;
@@ -36,19 +37,16 @@ internal abstract partial class CommonObjectFormatter
             /// it's only used for a conservative approximation (shorter is more conservative when trying
             /// to determine the minimum number of members that will fill the output).
             /// </remarks>
-            public int MinimalLength
-            {
-                get { return (Name != null ? Name.Length : "[0]".Length) + Value.Length; }
-            }
+            public int MinimalLength => (Name != null ? Name.Length : "[0]".Length) + Value.Length;
 
-            public string GetDisplayName()
+            public FormattedString GetDisplayName()
             {
-                return Name ?? "[" + Index.ToString() + "]";
+                return Name.IsEmpty ? "[" + Index.ToString() + "]" : Name;
             }
 
             public bool HasKeyName()
             {
-                return Index >= 0 && Name != null && Name.Length >= 2 && Name[0] == '[' && Name[Name.Length - 1] == ']';
+                return Index >= 0 && Name != null && Name.Length >= 2 && Name.Text[0] == '[' && Name.Text[Name.Length - 1] == ']';
             }
 
             public bool AppendAsCollectionEntry(Builder result)
