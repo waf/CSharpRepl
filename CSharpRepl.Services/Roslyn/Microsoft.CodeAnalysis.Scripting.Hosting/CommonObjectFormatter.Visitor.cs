@@ -92,10 +92,10 @@ internal abstract partial class CommonObjectFormatter
             }
 
             debuggerDisplayName = null;
-            string primitive = _formatter.PrimitiveFormatter.FormatPrimitive(obj, _primitiveOptions);
-            if (primitive != null)
+            var primitive = _formatter.PrimitiveFormatter.FormatPrimitive(obj, _primitiveOptions);
+            if (primitive.TryGet(out var primitiveValue))
             {
-                result.Append(primitive);
+                result.Append(primitiveValue);
                 return result;
             }
 

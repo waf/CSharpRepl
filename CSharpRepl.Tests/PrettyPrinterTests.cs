@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
@@ -16,7 +17,12 @@ public class PrettyPrinterTests
     [MemberData(nameof(FormatObjectInputs))]
     public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult)
     {
-        var prettyPrinted = new PrettyPrinter(new SyntaxHighlighter(new MemoryCache(new MemoryCacheOptions()), new Theme(null, null, null, null, Array.Empty<SyntaxHighlightingColor>()))).FormatObject(obj, showDetails);
+        var prettyPrinted = new PrettyPrinter(
+            new SyntaxHighlighter(
+                new MemoryCache(new MemoryCacheOptions()), 
+                new Theme(null, null, null, null, Array.Empty<SyntaxHighlightingColor>())),
+            new Configuration())
+            .FormatObject(obj, showDetails);
         Assert.Equal(expectedResult, prettyPrinted);
     }
 
