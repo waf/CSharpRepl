@@ -10,7 +10,7 @@ namespace CSharpRepl.Services.Roslyn;
 
 internal sealed class PrettyPrinter
 {
-    private readonly ObjectFormatter formatter;
+    private readonly CSharpObjectFormatter formatter;
     private readonly PrintOptions summaryOptions;
     private readonly PrintOptions detailedOptions;
 
