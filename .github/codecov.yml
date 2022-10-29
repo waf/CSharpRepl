@@ -10,3 +10,7 @@ coverage:
     patch:
       default:
         enabled: no
+ignore:
+  - "**/Microsoft.CodeAnalysis.CSharp.Symbols"  # ignore folders and all its contents
+  - "**/Microsoft.CodeAnalysis.PooledObjects"  # ignore folders and all its contents
+  - "**/Microsoft.CodeAnalysis"  # ignore folders and all its contents

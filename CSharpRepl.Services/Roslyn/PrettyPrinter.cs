@@ -2,45 +2,55 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using System;
+using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
-using System;
+using PrettyPrompt.Highlighting;
 
 namespace CSharpRepl.Services.Roslyn;
 
 internal sealed class PrettyPrinter
 {
-    private readonly ObjectFormatter formatter;
+    private readonly CSharpObjectFormatterImpl formatter;
     private readonly PrintOptions summaryOptions;
     private readonly PrintOptions detailedOptions;
 
-    public PrettyPrinter()
+    public PrettyPrinter(SyntaxHighlighter syntaxHighlighter, Configuration config)
     {
-        this.formatter = CSharpObjectFormatter.Instance;
-        this.summaryOptions = new PrintOptions
+        formatter = new CSharpObjectFormatterImpl(syntaxHighlighter, config);
+        summaryOptions = new PrintOptions
         {
             MemberDisplayFormat = MemberDisplayFormat.SingleLine,
             MaximumOutputLength = 20_000,
         };
-        this.detailedOptions = new PrintOptions
+        detailedOptions = new PrintOptions
         {
             MemberDisplayFormat = MemberDisplayFormat.SeparateLines,
             MaximumOutputLength = 20_000,
         };
     }
 
-    public string? FormatObject(object? obj, bool displayDetails) => obj switch
+    public FormattedString FormatObject(object? obj, bool displayDetails)
     {
-        null => null, // intercept null, don't print the string "null"
-        string str when displayDetails => str, // when displayDetails is true, don't show the escaped string (i.e. interpret the escape characters, via displaying to console)
-        _ => FormatObjectSafe(obj, displayDetails ? detailedOptions : summaryOptions)
-    };
+        return obj switch
+        {
+            // intercept null, don't print the string "null"
+            null => null,
 
-    public string FormatException(Exception obj, bool displayDetails) => displayDetails
-        ? formatter.FormatException(obj)
-        : obj.Message;
+            // when displayDetails is true, don't show the escaped string (i.e. interpret the escape characters, via displaying to console)
+            string str when displayDetails => str,
 
-    private string? FormatObjectSafe(object obj, PrintOptions options)
+            Exception exception =>
+                    displayDetails ?
+                    formatter.FormatException(exception) :
+                    new FormattedString(exception.Message, new ConsoleFormat(AnsiColor.Red)),
+
+            _ => FormatObjectSafe(obj, displayDetails ? detailedOptions : summaryOptions)
+        };
+    }
+
+    private FormattedString FormatObjectSafe(object obj, PrintOptions options)
     {
         try
         {

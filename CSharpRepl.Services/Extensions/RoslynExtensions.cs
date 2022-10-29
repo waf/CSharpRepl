@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
 
@@ -91,6 +92,18 @@ internal static class RoslynExtensions
             SymbolDisplayPartKind.RecordClassName => ClassificationTypeNames.RecordClassName,
             SymbolDisplayPartKind.RecordStructName => ClassificationTypeNames.RecordStructName,
             _ => null,
+        };
+    }
+
+    public static string? MemberTypeToClassificationTypeName(MemberTypes type)
+    {
+        return type switch
+        {
+            MemberTypes.Constructor or MemberTypes.Method => ClassificationTypeNames.MethodName,
+            MemberTypes.Event => ClassificationTypeNames.EventName,
+            MemberTypes.Field => ClassificationTypeNames.FieldName,
+            MemberTypes.Property => ClassificationTypeNames.PropertyName,
+            _ => null
         };
     }
 }
