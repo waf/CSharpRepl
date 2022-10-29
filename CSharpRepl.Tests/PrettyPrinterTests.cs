@@ -22,7 +22,8 @@ public class PrettyPrinterTests
                 new MemoryCache(new MemoryCacheOptions()), 
                 new Theme(null, null, null, null, Array.Empty<SyntaxHighlightingColor>())),
             new Configuration())
-            .FormatObject(obj, showDetails);
+            .FormatObject(obj, showDetails)
+            .Text;
         Assert.Equal(expectedResult, prettyPrinted);
     }
 
