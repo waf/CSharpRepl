@@ -35,8 +35,7 @@ internal sealed class PrettyPrinter
     {
         return obj switch
         {
-            // intercept null, don't print the string "null"
-            null => null,
+            null => formatter.NullLiteral,
 
             // when displayDetails is true, don't show the escaped string (i.e. interpret the escape characters, via displaying to console)
             string str when displayDetails => str,

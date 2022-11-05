@@ -26,7 +26,7 @@ internal class CSharpPrimitiveFormatter : CommonPrimitiveFormatter
         NullLiteral = new FormattedString("null", keywordFormat);
     }
 
-    protected override FormattedString NullLiteral { get; }
+    public override FormattedString NullLiteral { get; }
 
     protected override FormattedString FormatLiteral(bool value)
     {
