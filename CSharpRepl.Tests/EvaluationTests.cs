@@ -40,7 +40,7 @@ public class EvaluationTests : IAsyncLifetime
         var success = Assert.IsType<EvaluationResult.Success>(result);
         Assert.Equal("5", success.Input);
 
-        var returnValue = Assert.IsType<int>(success.ReturnValue);
+        var returnValue = Assert.IsType<int>(success.ReturnValue.Value);
         Assert.Equal(5, returnValue);
     }
 
@@ -52,7 +52,7 @@ public class EvaluationTests : IAsyncLifetime
 
         var assignment = Assert.IsType<EvaluationResult.Success>(variableAssignment);
         var usage = Assert.IsType<EvaluationResult.Success>(variableUsage);
-        Assert.Null(assignment.ReturnValue);
+        Assert.Null(assignment.ReturnValue.Value);
         Assert.Equal("Hello Mundo", usage.ReturnValue);
     }
 
@@ -65,7 +65,7 @@ public class EvaluationTests : IAsyncLifetime
         var installationResult = Assert.IsType<EvaluationResult.Success>(installation);
         var usageResult = Assert.IsType<EvaluationResult.Success>(usage);
 
-        Assert.Null(installationResult.ReturnValue);
+        Assert.Null(installationResult.ReturnValue.Value);
         Assert.Contains(installationResult.References, r => r.Display.EndsWith("Newtonsoft.Json.dll"));
         Assert.Contains("Adding references for 'Newtonsoft.Json", ProgramTests.RemoveFormatting(stdout.ToString()));
         Assert.Equal(@"{""Foo"":""bar""}", usageResult.ReturnValue);
@@ -80,8 +80,8 @@ public class EvaluationTests : IAsyncLifetime
         var installationResult = Assert.IsType<EvaluationResult.Success>(installation);
         var usageResult = Assert.IsType<EvaluationResult.Success>(usage);
 
-        Assert.Null(installationResult.ReturnValue);
-        Assert.NotNull(usageResult.ReturnValue);
+        Assert.Null(installationResult.ReturnValue.Value);
+        Assert.NotNull(usageResult.ReturnValue.Value);
         Assert.Contains("Adding references for 'Microsoft.CodeAnalysis.CSharp.3.11.0'", ProgramTests.RemoveFormatting(stdout.ToString()));
     }
 
@@ -173,7 +173,7 @@ public class EvaluationTests : IAsyncLifetime
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(importResult);
 
-        var referencedSystemManagementPath = (string)((EvaluationResult.Success)importResult).ReturnValue;
+        var referencedSystemManagementPath = (string)((EvaluationResult.Success)importResult).ReturnValue.Value;
         referencedSystemManagementPath = referencedSystemManagementPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
         var winRuntimeSelected = referencedSystemManagementPath.Contains(Path.Combine("runtimes", "win", "lib"), StringComparison.OrdinalIgnoreCase);
         var isWin = Environment.OSVersion.Platform == PlatformID.Win32NT;

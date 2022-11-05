@@ -1,15 +1,13 @@
-﻿using CSharpRepl.Services;
-using CSharpRepl.Services.Disassembly;
-using CSharpRepl.Services.Roslyn;
-using CSharpRepl.Services.Roslyn.References;
-using CSharpRepl.Services.Roslyn.Scripting;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using NSubstitute;
-using PrettyPrompt.Consoles;
-using System;
+﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using CSharpRepl.Services;
+using CSharpRepl.Services.Disassembly;
+using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.Scripting;
+using Microsoft.CodeAnalysis;
+using NSubstitute;
+using PrettyPrompt.Consoles;
 using Xunit;
 
 namespace CSharpRepl.Tests;
@@ -17,22 +15,12 @@ namespace CSharpRepl.Tests;
 [Collection(nameof(RoslynServices))]
 public class DisassemblerTests : IAsyncLifetime
 {
-    private readonly Disassembler disassembler;
     private readonly RoslynServices services;
 
     public DisassemblerTests()
     {
-        var options = new CSharpCompilationOptions(
-            OutputKind.DynamicallyLinkedLibrary,
-            usings: Array.Empty<string>()
-        );
         var console = Substitute.For<IConsole>();
         console.BufferWidth.Returns(200);
-        var config = new Configuration();
-        var referenceService = new AssemblyReferenceService(config, new TestTraceLogger());
-        var scriptRunner = new ScriptRunner(options, referenceService, console, config);
-
-        this.disassembler = new Disassembler(options, referenceService, scriptRunner);
         this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
     }
 
@@ -49,7 +37,7 @@ public class DisassemblerTests : IAsyncLifetime
         var input = File.ReadAllText($"./Data/Disassembly/{testCase}.Input.txt").Replace("\r\n", "\n");
         var expectedOutput = File.ReadAllText($"./Data/Disassembly/{testCase}.Output.{optimizationLevel}.il").Replace("\r\n", "\n");
 
-        var result = disassembler.Disassemble(input, debugMode: optimizationLevel == OptimizationLevel.Debug);
+        var result = services.ConvertToIntermediateLanguage(input, debugMode: optimizationLevel == OptimizationLevel.Debug).Result;
         var actualOutput = Assert
             .IsType<EvaluationResult.Success>(result)
             .ReturnValue

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using CSharpRepl.PrettyPromptConfig;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.Scripting;
 using NSubstitute;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
@@ -76,6 +77,39 @@ public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynS
 
         Assert.Equal(expectedText, formattedText.Replace("\r", ""));
         Assert.Equal(expectedCaret, formattedCaret);
+    }
+
+    [Theory]
+    [InlineData("_ = 1", true, 1)]
+    [InlineData("_ = 1;", false, null)]
+
+    [InlineData("object o; o = null", true, null)]
+    [InlineData("object o; o = null;", false, null)]
+
+    [InlineData("int i = 1;", false, null)]
+
+    [InlineData("\"abc\".ToString()", true, "abc")]
+    [InlineData("\"abc\".ToString();", false, null)]
+    
+    [InlineData("object o = null; o?.ToString()", true, null)]
+    [InlineData("object o = null; o?.ToString();", false, null)]
+
+    [InlineData("Console.WriteLine()", false, null)]
+    [InlineData("Console.WriteLine();", false, null)]
+    public async Task NullOutput_Versus_NoOutput(string text, bool hasOutput, object? expectedOutput)
+    {
+        var result = (EvaluationResult.Success)await services.EvaluateAsync(text);
+
+        Assert.Equal(hasOutput, result.ReturnValue.HasValue);
+
+        if (hasOutput)
+        {
+            Assert.Equal(expectedOutput, result.ReturnValue.Value);
+        }
+        else
+        {
+            Assert.Null(expectedOutput);
+        }
     }
 }
 

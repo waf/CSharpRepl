@@ -17,7 +17,7 @@ internal abstract partial class CommonPrimitiveFormatter
     /// <summary>
     /// String that describes "null" literal in the language.
     /// </summary>
-    protected abstract FormattedString NullLiteral { get; }
+    public abstract FormattedString NullLiteral { get; }
 
     protected abstract FormattedString FormatLiteral(bool value);
     protected abstract FormattedString FormatLiteral(string value, bool quote, bool escapeNonPrintable, int numberRadix = NumberRadixDecimal);

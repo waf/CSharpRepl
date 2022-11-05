@@ -114,8 +114,15 @@ internal sealed class ReadEvalPrintLoop
         switch (result)
         {
             case EvaluationResult.Success ok:
-                var formatted = await roslyn.PrettyPrintAsync(ok?.ReturnValue, displayDetails);
-                console.WriteLine(formatted);
+                if (ok.ReturnValue.HasValue)
+                {
+                    var formatted = await roslyn.PrettyPrintAsync(ok.ReturnValue.Value, displayDetails);
+                    console.WriteLine(formatted);
+                }
+                else
+                {
+                    console.WriteLine("");
+                }
                 break;
             case EvaluationResult.Error err:
                 var formattedError = await roslyn.PrettyPrintAsync(err.Exception, displayDetails);
