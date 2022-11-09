@@ -157,6 +157,22 @@ public class EvaluationTests : IAsyncLifetime
         Assert.IsType<EvaluationResult.Success>(importProject2Result);
     }
 
+    [Fact]
+    public async Task Evaluate_SolutionReference_ReferencesMultipleTargetFrameworks()
+    {
+        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/ComplexSolution/ComplexSolution.sln""");
+        var importEntryPoint = await services.EvaluateAsync(@"using EntryPoint;");
+        var importLibraryA = await services.EvaluateAsync(@"using LibraryA;");
+        var importLibraryB = await services.EvaluateAsync(@"using LibraryB;");
+        var callResult = await services.EvaluateAsync(@"Program.Main();");
+
+        Assert.IsType<EvaluationResult.Success>(referenceResult);
+        Assert.IsType<EvaluationResult.Success>(importEntryPoint);
+        Assert.IsType<EvaluationResult.Success>(importLibraryA);
+        Assert.IsType<EvaluationResult.Success>(importLibraryB);
+        Assert.IsType<EvaluationResult.Success>(callResult);
+    }
+
     /// <summary>
     /// https://github.com/waf/CSharpRepl/issues/128
     /// </summary>

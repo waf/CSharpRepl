@@ -39,7 +39,7 @@ internal sealed class WorkspaceManager
         this.compilationOptions = compilationOptions;
         this.referenceAssemblyService = referenceAssemblyService;
         this.logger = logger;
-        this.workspace = new AdhocWorkspace(MefHostServices.Create(MefHostServices.DefaultAssemblies));
+        this.workspace = new AdhocWorkspace(MefHostServices.DefaultHost);
 
         logger.Log(() => "MEF Default Assemblies: " + string.Join(", ", MefHostServices.DefaultAssemblies.Select(a => a.Location)));
 

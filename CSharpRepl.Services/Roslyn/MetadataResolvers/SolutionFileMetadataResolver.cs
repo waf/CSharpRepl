@@ -4,12 +4,15 @@
 
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Dotnet;
+using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.MSBuild;
 using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
@@ -23,11 +26,18 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
     {
         this.builder = builder;
         this.console = console;
+
+        if (!MSBuildLocator.IsRegistered)
+        {
+            _ = MSBuildLocator.RegisterDefaults();
+        }
     }
 
     public override bool CanResolve(string reference) =>
         reference.EndsWith(".sln", StringComparison.OrdinalIgnoreCase) ||
-        reference.EndsWith(".sln\"", StringComparison.OrdinalIgnoreCase);
+        reference.EndsWith(".sln\"", StringComparison.OrdinalIgnoreCase) ||
+        reference.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) ||
+        reference.EndsWith(".csproj\"", StringComparison.OrdinalIgnoreCase);
 
     public override async Task<ImmutableArray<PortableExecutableReference>> ResolveAsync(string reference, CancellationToken cancellationToken)
     {
@@ -37,18 +47,38 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
 
         var (exitCode, output) = await builder.BuildAsync(solutionPath, cancellationToken);
 
-        var projectPaths = builder
-            .ParseBuildGraph(output)
-            .Select(kvp => Path.GetFullPath(kvp.Value)); //GetFullPath will normalize separators
-
-        if (!projectPaths.Any())
+        if (exitCode != 0)
         {
-            console.WriteErrorLine("Project reference not added: could not determine built assembly");
+            console.WriteErrorLine("Reference not added: build failed.");
             return ImmutableArray<PortableExecutableReference>.Empty;
         }
 
-        return projectPaths
-                .Select(projectPath => MetadataReference.CreateFromFile(projectPath))
-                .ToImmutableArray();
+        console.WriteErrorLine("Adding references from built project...");
+        var metadataReferences = await GetMetadataReferences(solutionPath, cancellationToken);
+        return metadataReferences;
+    }
+
+    private static async Task<ImmutableArray<PortableExecutableReference>> GetMetadataReferences(string solutionOrProject, CancellationToken cancellationToken)
+    {
+        var workspace = MSBuildWorkspace.Create();
+
+        var projects = Path.GetExtension(solutionOrProject) switch
+        {
+            ".csproj" => new[] { await workspace.OpenProjectAsync(solutionOrProject, cancellationToken: cancellationToken) },
+            ".sln" => (await workspace.OpenSolutionAsync(solutionOrProject, cancellationToken: cancellationToken)).Projects,
+            _ => throw new ArgumentException("Unexpected filetype for file " + solutionOrProject)
+        };
+
+        return projects
+            .SelectMany(p => 
+                p.MetadataReferences
+                .OfType<PortableExecutableReference>()
+                .Concat(p.OutputFilePath is not null
+                    ? new[] { MetadataReference.CreateFromFile(p.OutputFilePath) }
+                    : Array.Empty<PortableExecutableReference>()
+                )
+            )
+            .Distinct()
+            .ToImmutableArray();
     }
 }

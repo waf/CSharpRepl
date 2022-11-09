@@ -58,7 +58,6 @@ internal sealed class ScriptRunner
         this.metadataResolver = new CompositeMetadataReferenceResolver(
             nugetResolver,
             solutionFileMetadataResolver,
-            new ProjectFileMetadataResolver(dotnetBuilder, console),
             new AssemblyReferenceMetadataResolver(console, referenceAssemblyService)
         );
         this.scriptOptions = ScriptOptions.Default
@@ -78,7 +77,7 @@ internal sealed class ScriptRunner
             var alternativeResolutions = await alternativeReferenceResolver.GetAllAlternativeReferences(text, cancellationToken);
             if (alternativeResolutions.Length > 0)
             {
-                this.scriptOptions = this.scriptOptions.AddReferences(alternativeResolutions);
+                this.scriptOptions = this.scriptOptions.WithReferences(scriptOptions.MetadataReferences.Concat(alternativeResolutions).DistinctBy(r => r.Display));
             }
 
             var usings = referenceAssemblyService.GetUsings(text);
