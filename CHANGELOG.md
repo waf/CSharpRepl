@@ -1,3 +1,12 @@
+## Release 0.5.0
+
+- Targets .NET 7
+- Syntax highlighting and formatting for output
+- Default to allowing C# Preview features
+- Support referencing projects that target multiple frameworks
+- Intelligent handling of the display of null literals vs code that returns void
+- Update of PrettyPrompt library to fix crash related to completion pane sizing
+
 ## Release 0.4.0
 
 - Visual Studio dark theme as default
