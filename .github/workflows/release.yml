@@ -16,9 +16,9 @@ jobs:
     - uses: actions/checkout@230611dbd0eb52da1e1f4f7bc8bb0c3a339fc8b7
     
     - name: Install Dotnet
-      uses: actions/setup-dotnet@e3ce4164b306e5cd25c71d9fcd57e1647b6af302
+      uses: actions/setup-dotnet@607fce577a46308457984d59e4954e075820f10a
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '7.0.x'
       
     - name: Dotnet Installation Info
       run: dotnet --info

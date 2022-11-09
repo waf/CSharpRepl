@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Version>0.4.0</Version>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <RollForward>LatestMajor</RollForward>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
@@ -27,7 +27,7 @@
   <ItemGroup>
     <PackageReference Include="PrettyPrompt" Version="4.0.1" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="6.0.0" />
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>
