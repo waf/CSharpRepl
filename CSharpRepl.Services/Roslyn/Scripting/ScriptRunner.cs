@@ -64,6 +64,7 @@ internal sealed class ScriptRunner
             .WithMetadataResolver(metadataResolver)
             .WithReferences(referenceAssemblyService.LoadedImplementationAssemblies)
             .WithAllowUnsafe(compilationOptions.AllowUnsafe)
+            .WithLanguageVersion(LanguageVersion.Preview)
             .AddImports(compilationOptions.Usings);
     }
 
