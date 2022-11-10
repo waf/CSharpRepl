@@ -165,12 +165,15 @@ public class EvaluationTests : IAsyncLifetime
         var importLibraryA = await services.EvaluateAsync(@"using LibraryA;");
         var importLibraryB = await services.EvaluateAsync(@"using LibraryB;");
         var callResult = await services.EvaluateAsync(@"Program.Main();");
+        // we should be able to import the nuget package dependency from LibraryB.
+        var importNugetPackage = await services.EvaluateAsync(@"using Newtonsoft.Json;");
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(importEntryPoint);
         Assert.IsType<EvaluationResult.Success>(importLibraryA);
         Assert.IsType<EvaluationResult.Success>(importLibraryB);
         Assert.IsType<EvaluationResult.Success>(callResult);
+        Assert.IsType<EvaluationResult.Success>(importNugetPackage);
     }
 
     /// <summary>

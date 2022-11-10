@@ -45,7 +45,7 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
             .Split('\"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Last());
 
-        var (exitCode, output) = await builder.BuildAsync(solutionPath, cancellationToken);
+        var (exitCode, _) = await builder.BuildAsync(solutionPath, cancellationToken);
 
         if (exitCode != 0)
         {
@@ -58,7 +58,7 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
         return metadataReferences;
     }
 
-    private static async Task<ImmutableArray<PortableExecutableReference>> GetMetadataReferences(string solutionOrProject, CancellationToken cancellationToken)
+    private async Task<ImmutableArray<PortableExecutableReference>> GetMetadataReferences(string solutionOrProject, CancellationToken cancellationToken)
     {
         var workspace = MSBuildWorkspace.Create();
 
@@ -68,6 +68,11 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
             ".sln" => (await workspace.OpenSolutionAsync(solutionOrProject, cancellationToken: cancellationToken)).Projects,
             _ => throw new ArgumentException("Unexpected filetype for file " + solutionOrProject)
         };
+
+        foreach (var error in workspace.Diagnostics.Where(d => d.Kind == WorkspaceDiagnosticKind.Failure))
+        {
+            console.WriteErrorLine(error.Message);
+        }
 
         return projects
             .SelectMany(p => 
