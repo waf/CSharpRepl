@@ -53,7 +53,7 @@ internal sealed class NugetPackageInstaller
         {
             ISettings settings = ReadSettings();
             var targetFramework = NugetHelper.GetCurrentFramework();
-            var nuGetProject = CreateFolderProject(Path.Combine(Configuration.ApplicationDirectory, "packages"));
+            var nuGetProject = CreateFolderProject(targetFramework, Path.Combine(Configuration.ApplicationDirectory, "packages"));
             var sourceRepositoryProvider = new SourceRepositoryProvider(new PackageSourceProvider(settings), Repository.Provider.GetCoreV3());
             var packageManager = CreatePackageManager(settings, nuGetProject, sourceRepositoryProvider);
 
@@ -260,14 +260,15 @@ internal sealed class NugetPackageInstaller
         return packageManager;
     }
 
-    private static FolderNuGetProject CreateFolderProject(string directory)
+    private static FolderNuGetProject CreateFolderProject(NuGetFramework targetFramework, string directory)
     {
         string projectRoot = Path.GetFullPath(directory);
         Directory.CreateDirectory(projectRoot);
         if (!Directory.Exists(projectRoot)) Directory.CreateDirectory(projectRoot);
         var nuGetProject = new FolderNuGetProject(
             projectRoot,
-            packagePathResolver: new PackagePathResolver(projectRoot)
+            packagePathResolver: new PackagePathResolver(projectRoot),
+            targetFramework
         );
         return nuGetProject;
     }
