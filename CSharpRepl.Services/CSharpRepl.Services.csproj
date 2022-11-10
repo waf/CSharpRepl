@@ -20,29 +20,8 @@
     <PackageReference Include="PrettyPrompt" Version="4.0.1" />
     <PackageReference Include="System.IO.Abstractions" Version="17.2.3" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
-    <!-- when updating NuGet.PackageManagement also update the RuntimeCopyLocalItems configuration below -->
-    <PackageReference Include="NuGet.PackageManagement" Version="6.3.1" />
+    <PackageReference Include="NuGet.PackageManagement" Version="6.4.0" />
   </ItemGroup>
-
-  <!--
-    We shouldn't package the Nuget.* DLLs, but should instead have them loaded from the runtime sdk.
-    https://github.com/microsoft/qsharp-compiler/issues/1470
-    https://github.com/OmniSharp/omnisharp-roslyn/commit/efeafeca33abe1d19659ed8c7ebab1d7c3481188#diff-50e91c82311ea26f2a73202525dfdf2b0a89c178ee666b2bf3ad4c84ac4c06dc
-  -->
-  <Target AfterTargets="AfterResolveReferences" Name="SkipCopyOfHostDlls">
-    <ItemGroup>
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.common\6.3.1\lib\netstandard2.0\NuGet.Common.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.configuration\6.3.1\lib\netstandard2.0\NuGet.Configuration.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.dependencyresolver.core\6.3.1\lib\net5.0\NuGet.DependencyResolver.Core.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.frameworks\6.3.1\lib\netstandard2.0\NuGet.Frameworks.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.librarymodel\6.3.1\lib\netstandard2.0\NuGet.LibraryModel.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.packaging.core\6.3.1\lib\net5.0\NuGet.Packaging.Core.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.packaging\6.3.1\lib\net5.0\NuGet.Packaging.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.projectmodel\6.3.1\lib\net5.0\NuGet.ProjectModel.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.protocol\6.3.1\lib\net5.0\NuGet.Protocol.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.versioning\6.3.1\lib\netstandard2.0\NuGet.Versioning.dll" />
-    </ItemGroup>
-  </Target>
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
