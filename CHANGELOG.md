@@ -1,3 +1,8 @@
+## Release 0.5.1
+
+- Update Nuget package libraries to work on .NET 7
+- Ensure the .NET 7 version of nuget libraries are installed if they're available, rather than e.g. falling back to .NET Standard
+
 ## Release 0.5.0
 
 - Targets .NET 7
