@@ -9,17 +9,13 @@ namespace CSharpRepl.Tests;
 
 public class ProgramTests
 {
-    private static readonly Regex AnsiEscapeCodeRegex = new(@"\u001b\[.+?m");
-
-    public static string RemoveFormatting(string input) => AnsiEscapeCodeRegex.Replace(input, "");
-
     [Fact]
     public async Task MainMethod_Help_ShowsHelp()
     {
         using var outputCollector = OutputCollector.Capture(out var capturedOutput);
         await Program.Main(new[] { "-h" });
         var output = capturedOutput.ToString();
-        output = RemoveFormatting(output);
+        output = output.RemoveFormatting();
 
         Assert.Contains("Starts a REPL (read eval print loop) according to the provided [OPTIONS].", output);
         // should show default shared framework
@@ -34,7 +30,7 @@ public class ProgramTests
         await Program.Main(new[] { "-v" });
 
         var output = capturedOutput.ToString();
-        output = RemoveFormatting(output);
+        output = output.RemoveFormatting();
         Assert.Contains("C# REPL", output);
         var version = new Version(output.Trim("C# REPL-rc-alpha-beta\r\n".ToCharArray()));
         Assert.True(version.Major + version.Minor > 0);

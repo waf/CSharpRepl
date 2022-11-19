@@ -67,7 +67,7 @@ public class EvaluationTests : IAsyncLifetime
 
         Assert.Null(installationResult.ReturnValue.Value);
         Assert.Contains(installationResult.References, r => r.Display.EndsWith("Newtonsoft.Json.dll"));
-        Assert.Contains("Adding references for 'Newtonsoft.Json", ProgramTests.RemoveFormatting(stdout.ToString()));
+        Assert.Contains("Adding references for 'Newtonsoft.Json", stdout.ToString().RemoveFormatting());
         Assert.Equal(@"{""Foo"":""bar""}", usageResult.ReturnValue);
     }
 
@@ -82,7 +82,7 @@ public class EvaluationTests : IAsyncLifetime
 
         Assert.Null(installationResult.ReturnValue.Value);
         Assert.NotNull(usageResult.ReturnValue.Value);
-        Assert.Contains("Adding references for 'Microsoft.CodeAnalysis.CSharp.3.11.0'", ProgramTests.RemoveFormatting(stdout.ToString()));
+        Assert.Contains("Adding references for 'Microsoft.CodeAnalysis.CSharp.3.11.0'", stdout.ToString().RemoveFormatting());
     }
 
     [Fact]

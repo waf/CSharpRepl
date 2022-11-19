@@ -2,12 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using CSharpRepl.Services;
 using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis.PooledObjects;
@@ -83,34 +82,33 @@ internal abstract partial class CommonObjectFormatter
         builder.Append(e.GetType());
         builder.Append(": ");
         builder.Append(e.Message);
-        builder.Append(Environment.NewLine);
 
-        var trace = new StackTrace(e, fNeedFileInfo: true);
-        foreach (var frame in trace.GetFrames())
+        var frames = (EnhancedStackFrame[])new EnhancedStackTrace(e).GetFrames();
+        var count = frames.Length;
+        const int ScriptRunnerMethods = 5;
+        for (var i = 0; i < count - ScriptRunnerMethods; i++)
         {
-            if (!Filter.Include(frame))
+            builder.Append(Environment.NewLine);
+
+            var frame = frames[i];
+            builder.Append("   at ");
+
+            var methodSignature = frame.MethodInfo.ToString();
+            methodSignature = Regex.Replace(methodSignature, @"Submission#[0-9]+\.", ""); //https://github.com/waf/CSharpRepl/issues/194
+            builder.Append(methodSignature);
+
+            if (frame.GetFileName() is { Length: > 0 } fileName)
             {
-                continue;
+                builder.Append(" in ");
+                builder.Append(EnhancedStackTrace.TryGetFullPath(fileName));
             }
 
-            var method = frame.GetMethod();
-            var methodDisplay = FormatMethodSignature(method);
-
-            if (methodDisplay == null)
+            var lineNo = frame.GetFileLineNumber();
+            if (lineNo != 0)
             {
-                continue;
+                builder.Append(":line ");
+                builder.Append(lineNo);
             }
-
-            builder.Append("  + ");
-            builder.Append(methodDisplay);
-
-            var fileName = frame.GetFileName();
-            if (fileName != null)
-            {
-                builder.Append(string.Format(CultureInfo.CurrentUICulture, " at {0} : {1}", fileName, frame.GetFileLineNumber()));
-            }
-
-            builder.AppendLine();
         }
 
         return new FormattedString(pooled.ToStringAndFree(), new ConsoleFormat(AnsiColor.Red));
