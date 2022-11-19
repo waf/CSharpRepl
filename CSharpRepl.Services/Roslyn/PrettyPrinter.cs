@@ -5,6 +5,7 @@
 using System;
 using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
+using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using PrettyPrompt.Highlighting;
 
@@ -39,6 +40,9 @@ internal sealed class PrettyPrinter
 
             // when displayDetails is true, don't show the escaped string (i.e. interpret the escape characters, via displaying to console)
             string str when displayDetails => str,
+
+            //call stack for compilation error exception is useless
+            CompilationErrorException compilationErrorException => compilationErrorException.Message,
 
             Exception exception =>
                     displayDetails ?

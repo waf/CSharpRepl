@@ -40,6 +40,20 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         Assert.Equal(expectedOutput.Replace("\n", NewLine), output);
     }
 
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/193
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CompilationErrorException(bool detailedOutput)
+    {
+        var result = await services.EvaluateAsync("+");
+        var exception = ((EvaluationResult.Error)result).Exception;
+        var output = prettyPrinter.FormatObject(exception, detailedOutput).Text;
+        Assert.Equal("(1,2): error CS1733: Expected expression", output);
+    }
+
     [Theory]
     [MemberData(nameof(FormatObjectInputs))]
     public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult)
