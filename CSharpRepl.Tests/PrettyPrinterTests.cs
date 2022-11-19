@@ -30,8 +30,8 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
 
     [Theory]
     [InlineData(@"throw null;", $"System.NullReferenceException: Object reference not set to an instance of an object.")]
-    [InlineData(@"void M1() => M2(); void M2() => throw null; M1()", $"System.NullReferenceException: Object reference not set to an instance of an object.\n   at void Submission#1.M2()\n   at void Submission#1.M1()")]
-    [InlineData(@"async Task M1() => await M2(); async Task M2() => throw null; await M1()", $"System.NullReferenceException: Object reference not set to an instance of an object.\n   at async Task Submission#2.M2()\n   at async Task Submission#2.M1()")]
+    [InlineData(@"void M1() => M2(); void M2() => throw null; M1()", $"System.NullReferenceException: Object reference not set to an instance of an object.\n   at void M2()\n   at void M1()")]
+    [InlineData(@"async Task M1() => await M2(); async Task M2() => throw null; await M1()", $"System.NullReferenceException: Object reference not set to an instance of an object.\n   at async Task M2()\n   at async Task M1()")]
     public async Task ExceptionCallstack(string input, string expectedOutput)
     {
         var result = await services.EvaluateAsync(input);

@@ -6,6 +6,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using CSharpRepl.Services;
 using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis.PooledObjects;
@@ -91,7 +92,10 @@ internal abstract partial class CommonObjectFormatter
 
             var frame = frames[i];
             builder.Append("   at ");
-            frame.MethodInfo.Append(builder);
+
+            var methodSignature = frame.MethodInfo.ToString();
+            methodSignature = Regex.Replace(methodSignature, @"Submission#[0-9]+\.", ""); //https://github.com/waf/CSharpRepl/issues/194
+            builder.Append(methodSignature);
 
             if (frame.GetFileName() is { Length: > 0 } fileName)
             {
