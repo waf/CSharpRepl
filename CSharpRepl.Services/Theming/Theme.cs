@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis.Classification;
 using Newtonsoft.Json;
 using PrettyPrompt.Highlighting;
+using Spectre.Console;
 
 namespace CSharpRepl.Services.Theming;
 
@@ -86,7 +87,10 @@ public sealed class Theme
     public SyntaxHighlightingColor[] SyntaxHighlightingColors { get; }
 
     [JsonIgnore]
-    private readonly Dictionary<string, AnsiColor> syntaxHighlightingColorsDictionary;
+    private readonly Dictionary<string, AnsiColor> syntaxHighlightingAnsiColorsDictionary;
+
+    [JsonIgnore]
+    private readonly Dictionary<string, Color> syntaxHighlightingSpectreColorsDictionary;
 
     public Theme(
         string? selectedCompletionItemBackground,
@@ -101,10 +105,15 @@ public sealed class Theme
         SelectedTextBackground = selectedTextBackground;
 
         SyntaxHighlightingColors = syntaxHighlightingColors;
-        syntaxHighlightingColorsDictionary = syntaxHighlightingColors.ToDictionary(c => c.Name, c => new ThemeColor(c.Foreground).ToAnsiColor());
+        syntaxHighlightingAnsiColorsDictionary = syntaxHighlightingColors.ToDictionary(c => c.Name, c => new ThemeColor(c.Foreground).ToAnsiColor());
+        syntaxHighlightingSpectreColorsDictionary = syntaxHighlightingColors.ToDictionary(c => c.Name, c => new ThemeColor(c.Foreground).ToSpectreColor());
     }
 
-    public AnsiColor? GetSyntaxHighlightingColorOrDefault(string name) => TryGetSyntaxHighlightingColor(name, out var color) ? color : null;
-    public AnsiColor GetSyntaxHighlightingColorOrDefault(string name, AnsiColor defaultValue) => syntaxHighlightingColorsDictionary.GetValueOrDefault(name, defaultValue);
-    public bool TryGetSyntaxHighlightingColor(string name, out AnsiColor color) => syntaxHighlightingColorsDictionary.TryGetValue(name, out color);
+    public AnsiColor? GetSyntaxHighlightingAnsiColor(string name) => TryGetSyntaxHighlightingAnsiColor(name, out var color) ? color : null;
+    public AnsiColor GetSyntaxHighlightingAnsiColor(string name, AnsiColor defaultValue) => syntaxHighlightingAnsiColorsDictionary.GetValueOrDefault(name, defaultValue);
+    public bool TryGetSyntaxHighlightingAnsiColor(string name, out AnsiColor color) => syntaxHighlightingAnsiColorsDictionary.TryGetValue(name, out color);
+
+    public Color? GetSyntaxHighlightingSpectreColor(string name) => TryGetSyntaxHighlightingSpectreColor(name, out var color) ? color : null;
+    public Color GetSyntaxHighlightingSpectreColor(string name, Color defaultValue) => syntaxHighlightingSpectreColorsDictionary.GetValueOrDefault(name, defaultValue);
+    public bool TryGetSyntaxHighlightingSpectreColor(string name, out Color color) => syntaxHighlightingSpectreColorsDictionary.TryGetValue(name, out color);
 }

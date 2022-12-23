@@ -194,7 +194,7 @@ internal sealed class ConsoleNugetLogger : ILogger
         private static FormattedString Format(string text, string prefix, Configuration configuration)
         {
             text = prefix + text;
-            if (configuration.Theme.GetSyntaxHighlightingColorOrDefault(ClassificationTypeNames.StringLiteral).TryGet(out var color))
+            if (configuration.Theme.TryGetSyntaxHighlightingAnsiColor(ClassificationTypeNames.StringLiteral, out var color))
             {
                 var formattings = new List<FormatSpan>(1);
                 foreach (Match match in QuotesRegex.Matches(text))

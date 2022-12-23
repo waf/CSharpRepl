@@ -30,7 +30,7 @@ internal sealed class SyntaxHighlighter
     {
         this.cache = cache;
         this.theme = theme;
-        this.unhighlightedColor = theme.GetSyntaxHighlightingColorOrDefault("text") ?? AnsiColor.White;
+        this.unhighlightedColor = theme.GetSyntaxHighlightingAnsiColor("text", AnsiColor.White);
     }
 
     internal async Task<IReadOnlyCollection<HighlightedSpan>> HighlightAsync(Document document)
@@ -48,7 +48,7 @@ internal sealed class SyntaxHighlighter
             .Select(classifications =>
             {
                 var highlight = classifications
-                    .Select(classification => theme.GetSyntaxHighlightingColorOrDefault(classification.ClassificationType))
+                    .Select(classification => theme.GetSyntaxHighlightingAnsiColor(classification.ClassificationType))
                     .FirstOrDefault(themeColor => themeColor is not null)
                     ?? unhighlightedColor;
                 return new HighlightedSpan(classifications.Key, highlight);
@@ -60,6 +60,6 @@ internal sealed class SyntaxHighlighter
         return highlighted;
     }
 
-    internal AnsiColor GetColor(string keyword) => theme.GetSyntaxHighlightingColorOrDefault(keyword, unhighlightedColor);
-    internal bool TryGetColor(string keyword, out AnsiColor color) => theme.TryGetSyntaxHighlightingColor(keyword, out color);
+    internal AnsiColor GetColor(string keyword) => theme.GetSyntaxHighlightingAnsiColor(keyword, unhighlightedColor);
+    internal bool TryGetColor(string keyword, out AnsiColor color) => theme.TryGetSyntaxHighlightingAnsiColor(keyword, out color);
 }
