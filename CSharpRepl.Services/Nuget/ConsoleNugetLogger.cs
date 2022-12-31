@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using CSharpRepl.Services.Extensions;
 using Microsoft.CodeAnalysis.Classification;
 using NuGet.Common;
 using PrettyPrompt.Consoles;
@@ -22,14 +21,14 @@ internal sealed class ConsoleNugetLogger : ILogger
 {
     private const int NumberOfMessagesToShow = 6;
 
-    private readonly IConsole console;
+    private readonly IConsoleEx console;
     private readonly Configuration configuration;
     private readonly string successPrefix;
     private readonly string errorPrefix;
     private readonly List<Line> lines = new();
     private int linesRendered;
 
-    public ConsoleNugetLogger(IConsole console, Configuration configuration)
+    public ConsoleNugetLogger(IConsoleEx console, Configuration configuration)
     {
         this.console = console;
         this.configuration = configuration;
@@ -105,7 +104,7 @@ internal sealed class ConsoleNugetLogger : ILogger
         {
             if (!lines[i].IsError) lines.RemoveAt(i);
         }
-        
+
         //add final summary
         lines.Add(CreateLine(text, isError: !success));
 

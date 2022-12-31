@@ -16,7 +16,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Text;
-using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Roslyn.Scripting;
 
@@ -25,7 +24,7 @@ namespace CSharpRepl.Services.Roslyn.Scripting;
 /// </summary>
 internal sealed class ScriptRunner
 {
-    private readonly IConsole console;
+    private readonly IConsoleEx console;
     private readonly InteractiveAssemblyLoader assemblyLoader;
     private readonly CompositeAlternativeReferenceResolver alternativeReferenceResolver;
     private readonly MetadataReferenceResolver metadataResolver;
@@ -38,7 +37,7 @@ internal sealed class ScriptRunner
         WorkspaceManager workspaceManager,
         CSharpCompilationOptions compilationOptions,
         AssemblyReferenceService referenceAssemblyService,
-        IConsole console,
+        IConsoleEx console,
         Configuration configuration)
     {
         this.console = console;

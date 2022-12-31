@@ -201,7 +201,7 @@ public class RoslynServices_REPL_Tests
         }
     }
 
-    private static async Task<(IConsole Console, ReadEvalPrintLoop Repl, Configuration Configuration, StringBuilder StdOut, StringBuilder StdErr)> InitAsync(Configuration? configuration = null)
+    private static async Task<(IConsoleEx Console, ReadEvalPrintLoop Repl, Configuration Configuration, StringBuilder StdOut, StringBuilder StdErr)> InitAsync(Configuration? configuration = null)
     {
         var (console, stdout, stderr) = FakeConsole.CreateStubbedOutputAndError();
         configuration ??= new Configuration();

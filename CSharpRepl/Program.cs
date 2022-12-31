@@ -14,6 +14,7 @@ using CSharpRepl.Services.Logging;
 using CSharpRepl.Services.Roslyn;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
+using Spectre.Console;
 
 namespace CSharpRepl;
 
@@ -25,7 +26,7 @@ internal static class Program
 {
     internal static async Task<int> Main(string[] args)
     {
-        var console = new SystemConsole();
+        var console = new SystemConsoleEx();
         var appStorage = CreateApplicationStorageDirectory();
         var configFile = Path.Combine(appStorage, "config.rsp");
 
@@ -104,7 +105,7 @@ internal static class Program
         return TraceLogger.Create($"csharprepl-tracelog-{DateTime.UtcNow:yyyy-MM-dd}.txt");
     }
 
-    private static (Prompt? prompt, int exitCode) InitializePrompt(SystemConsole console, string appStorage, RoslynServices roslyn, Configuration config)
+    private static (Prompt? prompt, int exitCode) InitializePrompt(IConsoleEx console, string appStorage, RoslynServices roslyn, Configuration config)
     {
         try
         {
@@ -118,7 +119,8 @@ internal static class Program
                    completionItemDescriptionPaneBackground: config.Theme.GetCompletionItemDescriptionPaneBackground(),
                    selectedCompletionItemBackground: config.Theme.GetSelectedCompletionItemBackgroundColor(),
                    selectedTextBackground: config.Theme.GetSelectedTextBackground(),
-                   tabSize: config.TabSize));
+                   tabSize: config.TabSize),
+               console: console);
             return (prompt, ExitCodes.Success);
         }
         catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 87", StringComparison.Ordinal))

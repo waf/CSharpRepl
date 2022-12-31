@@ -57,7 +57,7 @@ public sealed partial class RoslynServices
         nameof(referenceService), nameof(compilationOptions))]
     private Task Initialization { get; }
 
-    public RoslynServices(IConsole console, Configuration config, ITraceLogger logger)
+    public RoslynServices(IConsoleEx console, Configuration config, ITraceLogger logger)
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
         this.logger = logger;

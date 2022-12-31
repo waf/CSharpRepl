@@ -15,7 +15,7 @@ namespace CSharpRepl.Tests;
 public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
 {
     private readonly ReadEvalPrintLoop repl;
-    private readonly IConsole console;
+    private readonly IConsoleEx console;
     private readonly StringBuilder capturedOutput;
     private readonly StringBuilder capturedError;
     private readonly IPrompt prompt;

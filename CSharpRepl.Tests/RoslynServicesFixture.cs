@@ -12,7 +12,7 @@ namespace CSharpRepl.Tests;
 
 public sealed class RoslynServicesFixture : IAsyncLifetime
 {
-    public IConsole ConsoleStub { get; }
+    public IConsoleEx ConsoleStub { get; }
     public StringBuilder CapturedConsoleOutput { get; }
     public StringBuilder CapturedConsoleError { get; }
     public IPrompt PromptStub { get; }
