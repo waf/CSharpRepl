@@ -10,8 +10,6 @@ using System.Threading;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Host;
-using Microsoft.CodeAnalysis.QuickInfo;
 using PrettyPrompt.Completion;
 using PrettyPrompt.Documents;
 using PrettyPrompt.Highlighting;

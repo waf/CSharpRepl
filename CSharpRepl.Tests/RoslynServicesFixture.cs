@@ -1,11 +1,10 @@
-﻿using CSharpRepl.Services;
+﻿using System;
+using System.Text;
+using System.Threading.Tasks;
+using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using NSubstitute;
 using PrettyPrompt;
-using PrettyPrompt.Consoles;
-using System;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace CSharpRepl.Tests;

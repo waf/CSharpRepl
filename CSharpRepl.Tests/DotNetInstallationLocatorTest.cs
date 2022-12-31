@@ -1,9 +1,9 @@
-﻿using CSharpRepl.Services.Roslyn.References;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.IO.Abstractions.TestingHelpers;
-using Xunit;
 using System.IO;
+using System.IO.Abstractions.TestingHelpers;
+using CSharpRepl.Services.Roslyn.References;
+using Xunit;
 
 namespace CSharpRepl.Tests;
 

@@ -1,8 +1,8 @@
-﻿using CSharpRepl.Services;
+﻿using System;
+using System.Threading.Tasks;
+using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
-using System;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace CSharpRepl.Tests;

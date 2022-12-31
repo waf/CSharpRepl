@@ -2,12 +2,10 @@
 using System.IO;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
-using CSharpRepl.Services.Disassembly;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using Microsoft.CodeAnalysis;
 using NSubstitute;
-using PrettyPrompt.Consoles;
 using Xunit;
 
 namespace CSharpRepl.Tests;

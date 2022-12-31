@@ -1,8 +1,8 @@
-﻿using CSharpRepl.Logging;
-using CSharpRepl.Services.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using CSharpRepl.Logging;
+using CSharpRepl.Services.Logging;
 using Xunit;
 
 namespace CSharpRepl.Tests;

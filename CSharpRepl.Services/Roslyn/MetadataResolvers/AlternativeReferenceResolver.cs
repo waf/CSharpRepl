@@ -2,10 +2,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 /// <summary>
@@ -26,10 +26,10 @@ public abstract class AlternativeReferenceResolver : IIndividualMetadataReferenc
 
     public abstract bool CanResolve(string reference);
 
-    public virtual Task<ImmutableArray<PortableExecutableReference>> ResolveAsync(string reference, CancellationToken cancellationToken) 
+    public virtual Task<ImmutableArray<PortableExecutableReference>> ResolveAsync(string reference, CancellationToken cancellationToken)
         => Task.FromResult(Resolve(reference));
 
-    public virtual ImmutableArray<PortableExecutableReference> Resolve(string reference) 
+    public virtual ImmutableArray<PortableExecutableReference> Resolve(string reference)
         => ImmutableArray<PortableExecutableReference>.Empty;
 
 }

@@ -4,7 +4,6 @@
 
 #nullable disable
 
-using System;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 

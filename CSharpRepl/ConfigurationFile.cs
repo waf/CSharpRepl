@@ -45,7 +45,7 @@ internal static class ConfigurationFile
         try
         {
             var editorName = GetEnvironmentVariable("EDITOR");
-            if(editorName is null)
+            if (editorName is null)
             {
                 var vsCodeLocationProcess = Process.Start(new ProcessStartInfo
                 {

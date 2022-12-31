@@ -10,7 +10,6 @@ using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using NSubstitute;
 using PrettyPrompt;
-using PrettyPrompt.Consoles;
 using Xunit;
 
 using static System.ConsoleKey;
@@ -90,7 +89,7 @@ public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynS
 
     [InlineData("\"abc\".ToString()", true, "abc")]
     [InlineData("\"abc\".ToString();", false, null)]
-    
+
     [InlineData("object o = null; o?.ToString()", true, null)]
     [InlineData("object o = null; o?.ToString();", false, null)]
 

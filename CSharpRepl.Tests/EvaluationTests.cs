@@ -11,7 +11,6 @@ using CSharpRepl.Services;
 using CSharpRepl.Services.Dotnet;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
-using PrettyPrompt.Consoles;
 using Xunit;
 
 namespace CSharpRepl.Tests;

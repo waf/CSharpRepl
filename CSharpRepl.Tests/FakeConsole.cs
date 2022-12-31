@@ -16,7 +16,6 @@ using CSharpRepl.Services;
 using NSubstitute;
 using NSubstitute.Core;
 using PrettyPrompt;
-using PrettyPrompt.Consoles;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using Spectre.Console.Testing;

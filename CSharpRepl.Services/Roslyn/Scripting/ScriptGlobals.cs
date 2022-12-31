@@ -3,7 +3,6 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System.Collections.Generic;
-using PrettyPrompt.Consoles;
 using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 
 namespace CSharpRepl.Services.Roslyn.Scripting;

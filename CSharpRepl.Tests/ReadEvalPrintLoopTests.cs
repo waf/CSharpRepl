@@ -6,7 +6,6 @@ using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using NSubstitute;
 using PrettyPrompt;
-using PrettyPrompt.Consoles;
 using Xunit;
 
 namespace CSharpRepl.Tests;
