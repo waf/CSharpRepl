@@ -142,7 +142,7 @@ public sealed partial class RoslynServices
     }
 
     public AnsiColor ToColor(string keyword) =>
-        highlighter.GetColor(keyword);
+        highlighter.GetAnsiColor(keyword);
 
     public async Task<IReadOnlyCollection<HighlightedSpan>> SyntaxHighlightAsync(string text)
     {

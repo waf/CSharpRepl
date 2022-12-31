@@ -36,7 +36,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     {
         var result = await services.EvaluateAsync(input);
         var exception = ((EvaluationResult.Error)result).Exception;
-        var output = prettyPrinter.FormatObject(exception, displayDetails: true).Text;
+        var output = prettyPrinter.FormatObject(exception, displayDetails: true).ToString();
         Assert.Equal(expectedOutput.Replace("\n", NewLine), output);
     }
 
@@ -50,7 +50,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     {
         var result = await services.EvaluateAsync("+");
         var exception = ((EvaluationResult.Error)result).Exception;
-        var output = prettyPrinter.FormatObject(exception, detailedOutput).Text;
+        var output = prettyPrinter.FormatObject(exception, detailedOutput).ToString();
         Assert.Equal("(1,2): error CS1733: Expected expression", output);
     }
 
@@ -58,7 +58,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     [MemberData(nameof(FormatObjectInputs))]
     public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult)
     {
-        var prettyPrinted = prettyPrinter.FormatObject(obj, showDetails).Text;
+        var prettyPrinted = prettyPrinter.FormatObject(obj, showDetails).ToString();
         Assert.Equal(expectedResult, prettyPrinted);
     }
 

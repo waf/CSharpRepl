@@ -20,9 +20,9 @@ internal class CSharpPrimitiveFormatter : CommonPrimitiveFormatter
 
     public CSharpPrimitiveFormatter(SyntaxHighlighter syntaxHighlighter)
     {
-        numericLiteralFormat = new ConsoleFormat(Foreground: syntaxHighlighter.GetColor(ClassificationTypeNames.NumericLiteral));
-        stringLiteralFormat = new ConsoleFormat(Foreground: syntaxHighlighter.GetColor(ClassificationTypeNames.StringLiteral));
-        keywordFormat = new ConsoleFormat(Foreground: syntaxHighlighter.GetColor(ClassificationTypeNames.Keyword));
+        numericLiteralFormat = new ConsoleFormat(Foreground: syntaxHighlighter.GetAnsiColor(ClassificationTypeNames.NumericLiteral));
+        stringLiteralFormat = new ConsoleFormat(Foreground: syntaxHighlighter.GetAnsiColor(ClassificationTypeNames.StringLiteral));
+        keywordFormat = new ConsoleFormat(Foreground: syntaxHighlighter.GetAnsiColor(ClassificationTypeNames.Keyword));
         NullLiteral = new FormattedString("null", keywordFormat);
     }
 

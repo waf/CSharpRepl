@@ -63,7 +63,7 @@ internal sealed class AutoCompleteService
             {
                 var classification = RoslynExtensions.TextTagToClassificationTypeName(item.Tags.First());
                 if (classification is not null &&
-                    highlighter.TryGetColor(classification, out var color))
+                    highlighter.TryGetAnsiColor(classification, out var color))
                 {
                     var prefix = GetCompletionItemSymbolPrefix(classification, configuration.UseUnicode);
                     return new FormattedString($"{prefix}{text}", new FormatSpan(prefix.Length, text.Length, new ConsoleFormat(Foreground: color)));
@@ -116,7 +116,7 @@ internal sealed class AutoCompleteService
         {
             var classification = RoslynExtensions.TextTagToClassificationTypeName(taggedText.Tag);
             if (classification is not null &&
-                highlighter.TryGetColor(classification, out var color))
+                highlighter.TryGetAnsiColor(classification, out var color))
             {
                 stringBuilder.Append(taggedText.Text, new FormatSpan(0, taggedText.Text.Length, new ConsoleFormat(Foreground: color)));
             }
