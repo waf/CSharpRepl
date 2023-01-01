@@ -48,7 +48,7 @@ internal sealed class AutoCompleteService
             .GetCompletionsAsync(document, caret)
             .ConfigureAwait(false);
 
-        var completionsWithDescriptions = completions?.Items
+        var completionsWithDescriptions = completions?.ItemsList
             .Select(item => new CompletionItemWithDescription(item, GetDisplayText(item), cancellationToken => GetExtendedDescriptionAsync(completionService, document, item, highlighter)))
             .ToArray() ?? Array.Empty<CompletionItemWithDescription>();
 

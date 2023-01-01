@@ -1,4 +1,4 @@
-﻿// Method begins at RVA 0x2050
+﻿// Method begins at RVA 0x206c
 // Header size: 12
 // Code size: 14 (0xe)
 .maxstack 2

@@ -118,7 +118,7 @@ internal class Disassembler
         var asmReader = asm.GetMetadataReader();
         var definedTypes = asmReader.TypeDefinitions.ToArray();
         var definedTypeNames = definedTypes.Select(t => asmReader.GetString(asmReader.GetTypeDefinition(t).Name)).ToArray();
-        if (definedTypeNames.Except(new[] { "<Module>", "Program" }).Any())
+        if (definedTypeNames.Except(new[] { "<Module>", "Program", "RefSafetyRulesAttribute", "EmbeddedAttribute" }).Any())
         {
             new ReflectionDisassembler(ilCodeOutput, CancellationToken.None).WriteModuleContents(file); // writes to the "ilCodeOutput" variable
             return ilCodeOutput;
