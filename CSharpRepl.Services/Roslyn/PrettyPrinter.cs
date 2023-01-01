@@ -4,10 +4,11 @@
 
 using System;
 using CSharpRepl.Services.SyntaxHighlighting;
+using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
-using PrettyPrompt.Highlighting;
+using Spectre.Console;
 
 namespace CSharpRepl.Services.Roslyn;
 
@@ -32,7 +33,7 @@ internal sealed class PrettyPrinter
         };
     }
 
-    public FormattedString FormatObject(object? obj, bool displayDetails)
+    public StyledString FormatObject(object? obj, bool displayDetails)
     {
         return obj switch
         {
@@ -47,13 +48,13 @@ internal sealed class PrettyPrinter
             Exception exception =>
                     displayDetails ?
                     formatter.FormatException(exception) :
-                    new FormattedString(exception.Message, new ConsoleFormat(AnsiColor.Red)),
+                    new StyledStringSegment(exception.Message, new Style(foreground: Color.Red)),
 
             _ => FormatObjectSafe(obj, displayDetails ? detailedOptions : summaryOptions)
         };
     }
 
-    private FormattedString FormatObjectSafe(object obj, PrintOptions options)
+    private StyledString FormatObjectSafe(object obj, PrintOptions options)
     {
         try
         {
@@ -61,7 +62,7 @@ internal sealed class PrettyPrinter
         }
         catch (Exception) // sometimes the roslyn formatter APIs fail to format. Most notably with ref structs.
         {
-            return obj.ToString();
+            return obj.ToString() ?? "";
         }
     }
 }

@@ -17,7 +17,6 @@ using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Extensions.DependencyModel;
-using PrettyPrompt.Consoles;
 using Spectre.Console;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;

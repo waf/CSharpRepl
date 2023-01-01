@@ -93,7 +93,7 @@ internal sealed class AutoCompleteService
                 ClassificationTypeNames.NamespaceName => "⬜",
                 ClassificationTypeNames.TypeParameterName => "⬛",
                 _ => "⚫",
-            }; ;
+            };
             Debug.Assert(symbol.Length <= prefix.Length);
             symbol.CopyTo(prefix);
             prefix[symbol.Length] = ' ';

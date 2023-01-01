@@ -26,15 +26,15 @@ internal static class Program
 {
     internal static async Task<int> Main(string[] args)
     {
+        Console.InputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
+
         var console = new SystemConsoleEx();
         var appStorage = CreateApplicationStorageDirectory();
         var configFile = Path.Combine(appStorage, "config.rsp");
 
         if (!TryParseArguments(args, configFile, out var config))
             return ExitCodes.ErrorParseArguments;
-
-        if (config.UseUnicode)
-            Console.OutputEncoding = Encoding.UTF8;
 
         if (config.OutputForEarlyExit.Text is not null)
         {

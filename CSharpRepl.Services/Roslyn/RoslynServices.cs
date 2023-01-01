@@ -16,6 +16,7 @@ using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SymbolExploration;
 using CSharpRepl.Services.SyntaxHighlighting;
+using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp;
@@ -120,7 +121,7 @@ public sealed partial class RoslynServices
         }
     }
 
-    public async Task<FormattedString> PrettyPrintAsync(object? obj, bool displayDetails)
+    public async Task<StyledString> PrettyPrintAsync(object? obj, bool displayDetails)
     {
         await Initialization.ConfigureAwait(false);
         return prettyPrinter.FormatObject(obj, displayDetails);

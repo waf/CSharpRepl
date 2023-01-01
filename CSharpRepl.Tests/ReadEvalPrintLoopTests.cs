@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CSharpRepl.PrettyPromptConfig;
@@ -14,7 +15,7 @@ namespace CSharpRepl.Tests;
 public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
 {
     private readonly ReadEvalPrintLoop repl;
-    private readonly IConsoleEx console;
+    private readonly FakeConsoleAbstract console;
     private readonly StringBuilder capturedOutput;
     private readonly StringBuilder capturedError;
     private readonly IPrompt prompt;
@@ -76,7 +77,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
 
         await repl.RunAsync(new Configuration());
 
-        console.Received().Write("8");
+        Assert.Equal("8", console.AnsiConsole.Lines.Last());
     }
 
     [Fact]
@@ -93,7 +94,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
             loadScript: @"var x = ""Hello World"";"
         ));
 
-        Assert.Contains(@"""Hello World""", capturedOutput.ToString());
+        Assert.Contains(@"""Hello World""", console.AnsiConsole.Output);
     }
 
     [Fact]
@@ -110,7 +111,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
             references: new[] { "Data/DemoLibrary.dll" }
         ));
 
-        Assert.Contains("30", capturedOutput.ToString());
+        Assert.Contains("30", console.AnsiConsole.Output);
     }
 
     [Fact]

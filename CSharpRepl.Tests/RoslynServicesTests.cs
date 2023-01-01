@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CSharpRepl.PrettyPromptConfig;
@@ -182,7 +183,7 @@ public class RoslynServices_REPL_Tests
         var (console, repl, configuration, _, _) = await InitAsync();
         console.StubInput(input);
         await repl.RunAsync(configuration);
-        console.Received().Write(output);
+        Assert.Equal(output, console.AnsiConsole.Lines.Last());
     }
 
     public static IEnumerable<object[]> EnumerateCompletionDoesNotInterfereData()
@@ -200,7 +201,7 @@ public class RoslynServices_REPL_Tests
         }
     }
 
-    private static async Task<(IConsoleEx Console, ReadEvalPrintLoop Repl, Configuration Configuration, StringBuilder StdOut, StringBuilder StdErr)> InitAsync(Configuration? configuration = null)
+    private static async Task<(FakeConsoleAbstract Console, ReadEvalPrintLoop Repl, Configuration Configuration, StringBuilder StdOut, StringBuilder StdErr)> InitAsync(Configuration? configuration = null)
     {
         var (console, stdout, stderr) = FakeConsole.CreateStubbedOutputAndError();
         configuration ??= new Configuration();

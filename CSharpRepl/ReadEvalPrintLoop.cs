@@ -12,6 +12,7 @@ using CSharpRepl.Services.Roslyn.Scripting;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
 using PrettyPrompt.Highlighting;
+using Spectre.Console;
 
 namespace CSharpRepl;
 
@@ -117,16 +118,15 @@ internal sealed class ReadEvalPrintLoop
                 if (ok.ReturnValue.HasValue)
                 {
                     var formatted = await roslyn.PrettyPrintAsync(ok.ReturnValue.Value, displayDetails);
-                    console.WriteLine(formatted);
+                    console.Write(formatted.ToParagraph());
                 }
-                else
-                {
-                    console.WriteLine("");
-                }
+                console.WriteLine();
                 break;
             case EvaluationResult.Error err:
                 var formattedError = await roslyn.PrettyPrintAsync(err.Exception, displayDetails);
-                console.WriteErrorLine(formattedError);
+
+                console.WriteError(formattedError.ToParagraph(), formattedError.ToString());
+                console.WriteLine();
                 break;
             case EvaluationResult.Cancelled:
                 console.WriteErrorLine(
