@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Reflection;
 using CSharpRepl.Services;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
@@ -26,6 +25,4 @@ internal class CSharpObjectFormatterImpl : CommonObjectFormatter
         TypeNameFormatter = new CSharpTypeNameFormatter(PrimitiveFormatter);
         Filter = new CSharpMemberFilter();
     }
-
-    protected override string FormatRefKind(ParameterInfo parameter) => parameter.IsOut ? "out" : "ref";
 }

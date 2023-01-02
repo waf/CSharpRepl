@@ -48,7 +48,7 @@ internal sealed class PrettyPrinter
             Exception exception =>
                     displayDetails ?
                     formatter.FormatException(exception) :
-                    new StyledStringSegment(exception.Message, new Style(foreground: Color.Red)),
+                    exception.Message,
 
             _ => FormatObjectSafe(obj, displayDetails ? detailedOptions : summaryOptions)
         };
