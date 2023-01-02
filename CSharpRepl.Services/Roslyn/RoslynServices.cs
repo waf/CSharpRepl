@@ -16,6 +16,7 @@ using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SymbolExploration;
 using CSharpRepl.Services.SyntaxHighlighting;
+using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp;
@@ -57,7 +58,7 @@ public sealed partial class RoslynServices
         nameof(referenceService), nameof(compilationOptions))]
     private Task Initialization { get; }
 
-    public RoslynServices(IConsole console, Configuration config, ITraceLogger logger)
+    public RoslynServices(IConsoleEx console, Configuration config, ITraceLogger logger)
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
         this.logger = logger;
@@ -120,7 +121,7 @@ public sealed partial class RoslynServices
         }
     }
 
-    public async Task<FormattedString> PrettyPrintAsync(object? obj, bool displayDetails)
+    public async Task<StyledString> PrettyPrintAsync(object? obj, bool displayDetails)
     {
         await Initialization.ConfigureAwait(false);
         return prettyPrinter.FormatObject(obj, displayDetails);
@@ -142,7 +143,7 @@ public sealed partial class RoslynServices
     }
 
     public AnsiColor ToColor(string keyword) =>
-        highlighter.GetColor(keyword);
+        highlighter.GetAnsiColor(keyword);
 
     public async Task<IReadOnlyCollection<HighlightedSpan>> SyntaxHighlightAsync(string text)
     {

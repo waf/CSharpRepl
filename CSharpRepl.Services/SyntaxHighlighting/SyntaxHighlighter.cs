@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt.Highlighting;
+using Spectre.Console;
 
 namespace CSharpRepl.Services.SyntaxHighlighting;
 
@@ -23,14 +24,16 @@ internal sealed class SyntaxHighlighter
 {
     private const string CacheKeyPrefix = "SyntaxHighlighter_";
     private readonly Theme theme;
-    private readonly AnsiColor unhighlightedColor;
+    private readonly AnsiColor unhighlightedAnsiColor;
+    private readonly Color unhighlightedSpectreColor;
     private readonly MemoryCache cache;
 
     public SyntaxHighlighter(MemoryCache cache, Theme theme)
     {
         this.cache = cache;
         this.theme = theme;
-        this.unhighlightedColor = theme.GetSyntaxHighlightingColorOrDefault("text") ?? AnsiColor.White;
+        this.unhighlightedAnsiColor = theme.GetSyntaxHighlightingAnsiColor("text", AnsiColor.White);
+        this.unhighlightedSpectreColor = theme.GetSyntaxHighlightingSpectreColor("text", Color.White);
     }
 
     internal async Task<IReadOnlyCollection<HighlightedSpan>> HighlightAsync(Document document)
@@ -48,9 +51,9 @@ internal sealed class SyntaxHighlighter
             .Select(classifications =>
             {
                 var highlight = classifications
-                    .Select(classification => theme.GetSyntaxHighlightingColorOrDefault(classification.ClassificationType))
+                    .Select(classification => theme.GetSyntaxHighlightingAnsiColor(classification.ClassificationType))
                     .FirstOrDefault(themeColor => themeColor is not null)
-                    ?? unhighlightedColor;
+                    ?? unhighlightedAnsiColor;
                 return new HighlightedSpan(classifications.Key, highlight);
             })
             .ToList();
@@ -60,6 +63,9 @@ internal sealed class SyntaxHighlighter
         return highlighted;
     }
 
-    internal AnsiColor GetColor(string keyword) => theme.GetSyntaxHighlightingColorOrDefault(keyword, unhighlightedColor);
-    internal bool TryGetColor(string keyword, out AnsiColor color) => theme.TryGetSyntaxHighlightingColor(keyword, out color);
+    internal AnsiColor GetAnsiColor(string keyword) => theme.GetSyntaxHighlightingAnsiColor(keyword, unhighlightedAnsiColor);
+    internal bool TryGetAnsiColor(string keyword, out AnsiColor color) => theme.TryGetSyntaxHighlightingAnsiColor(keyword, out color);
+
+    internal Color GetSpectreColor(string keyword) => theme.GetSyntaxHighlightingSpectreColor(keyword, unhighlightedSpectreColor);
+    internal bool TryGetSpectreColor(string keyword, out Color color) => theme.TryGetSyntaxHighlightingSpectreColor(keyword, out color);
 }

@@ -15,8 +15,9 @@ using CSharpRepl.Services;
 using CSharpRepl.Services.Completion;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.SyntaxHighlighting;
-using PrettyPrompt.Highlighting;
+using CSharpRepl.Services.Theming;
 using Roslyn.Utilities;
+using Spectre.Console;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -70,16 +71,16 @@ internal abstract partial class CommonObjectFormatter
             return new Builder(_builderOptions.WithMaximumOutputLength(Math.Min(_builderOptions.MaximumLineLength, limit)), suppressEllipsis: true);
         }
 
-        public FormattedString FormatObject(object obj)
+        public StyledString FormatObject(object obj)
         {
             try
             {
                 var builder = new Builder(_builderOptions, suppressEllipsis: false);
-                return FormatObjectRecursive(builder, obj, isRoot: true, debuggerDisplayName: out _).ToFormattedString();
+                return FormatObjectRecursive(builder, obj, isRoot: true, debuggerDisplayName: out _).ToTextWithStyle();
             }
             catch (InsufficientExecutionStackException)
             {
-                return new FormattedString("<Stack overflow while evaluating object>", new ConsoleFormat(AnsiColor.Red));
+                return new StyledString("<Stack overflow while evaluating object>", new Style(foreground: Color.Red));
             }
         }
 
@@ -416,7 +417,7 @@ internal abstract partial class CommonObjectFormatter
                 if (debuggerDisplay != null)
                 {
                     var k = FormatWithEmbeddedExpressions(lengthLimit, debuggerDisplay.Name, obj) ?? member.Name;
-                    var v = FormatWithEmbeddedExpressions(lengthLimit, debuggerDisplay.Value, obj) ?? FormattedString.Empty; // TODO: ?
+                    var v = FormatWithEmbeddedExpressions(lengthLimit, debuggerDisplay.Value, obj) ?? StyledString.Empty; // TODO: ?
                     if (!AddMember(result, new FormattedMember(-1, k, v), ref lengthLimit))
                     {
                         return;
@@ -425,13 +426,12 @@ internal abstract partial class CommonObjectFormatter
                     continue;
                 }
 
-                Exception exception;
-                object value = GetMemberValue(member, obj, out exception);
+                object value = GetMemberValue(member, obj, out var exception);
                 if (exception != null)
                 {
                     var memberValueBuilder = MakeMemberBuilder(lengthLimit);
                     FormatException(memberValueBuilder, exception);
-                    if (!AddMember(result, new FormattedMember(-1, member.Name, memberValueBuilder.ToFormattedString()), ref lengthLimit))
+                    if (!AddMember(result, new FormattedMember(-1, member.Name, memberValueBuilder.ToTextWithStyle()), ref lengthLimit))
                     {
                         return;
                     }
@@ -452,13 +452,13 @@ internal abstract partial class CommonObjectFormatter
                                 Builder valueBuilder = MakeMemberBuilder(lengthLimit);
                                 FormatObjectRecursive(valueBuilder, item, isRoot: false, debuggerDisplayName: out var debuggerDisplayName);
 
-                                FormattedString name = FormattedString.Empty;
+                                StyledString name = StyledString.Empty;
                                 if (!string.IsNullOrEmpty(debuggerDisplayName))
                                 {
-                                    name = FormatWithEmbeddedExpressions(MakeMemberBuilder(lengthLimit), debuggerDisplayName, item).ToFormattedString();
+                                    name = FormatWithEmbeddedExpressions(MakeMemberBuilder(lengthLimit), debuggerDisplayName, item).ToTextWithStyle();
                                 }
 
-                                if (!AddMember(result, new FormattedMember(i, name, valueBuilder.ToFormattedString()), ref lengthLimit))
+                                if (!AddMember(result, new FormattedMember(i, name, valueBuilder.ToTextWithStyle()), ref lengthLimit))
                                 {
                                     return;
                                 }
@@ -478,20 +478,20 @@ internal abstract partial class CommonObjectFormatter
                     Builder valueBuilder = MakeMemberBuilder(lengthLimit);
                     FormatObjectRecursive(valueBuilder, value, isRoot: false, debuggerDisplayName: out var debuggerDisplayName);
 
-                    FormattedString name;
+                    StyledString name;
                     if (string.IsNullOrEmpty(debuggerDisplayName))
                     {
                         var classification = RoslynExtensions.MemberTypeToClassificationTypeName(member.MemberType);
                         var prefix = AutoCompleteService.GetCompletionItemSymbolPrefix(classification, _config.UseUnicode);
-                        var color = _syntaxHighlighter.GetColor(classification);
-                        name = new FormattedString($"{prefix}{member.Name}", new FormatSpan(prefix.Length, member.Name.Length, new ConsoleFormat(Foreground: color)));
+                        var color = _syntaxHighlighter.GetSpectreColor(classification);
+                        name = new StyledString(new StyledStringSegment[] { prefix, new StyledStringSegment(member.Name, new Style(foreground: color)) });
                     }
                     else
                     {
-                        name = FormatWithEmbeddedExpressions(MakeMemberBuilder(lengthLimit), debuggerDisplayName, value).ToFormattedString();
+                        name = FormatWithEmbeddedExpressions(MakeMemberBuilder(lengthLimit), debuggerDisplayName, value).ToTextWithStyle();
                     }
 
-                    if (!AddMember(result, new FormattedMember(-1, name, valueBuilder.ToFormattedString()), ref lengthLimit))
+                    if (!AddMember(result, new FormattedMember(-1, name, valueBuilder.ToTextWithStyle()), ref lengthLimit))
                     {
                         return;
                     }
@@ -786,7 +786,7 @@ internal abstract partial class CommonObjectFormatter
         /// If parentheses are present we only look for methods.
         /// Only parameterless members are considered.
         /// </remarks>
-        private FormattedString? FormatWithEmbeddedExpressions(int lengthLimit, string format, object obj)
+        private StyledString? FormatWithEmbeddedExpressions(int lengthLimit, string format, object obj)
         {
             if (string.IsNullOrEmpty(format))
             {
@@ -794,7 +794,7 @@ internal abstract partial class CommonObjectFormatter
             }
 
             var builder = new Builder(_builderOptions.WithMaximumOutputLength(lengthLimit), suppressEllipsis: true);
-            return FormatWithEmbeddedExpressions(builder, format, obj).ToFormattedString();
+            return FormatWithEmbeddedExpressions(builder, format, obj).ToTextWithStyle();
         }
 
         private Builder FormatWithEmbeddedExpressions(Builder result, string format, object obj)

@@ -2,12 +2,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using CSharpRepl.Services.Logging;
 using System;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
 using System.Runtime.InteropServices;
+using CSharpRepl.Services.Logging;
 
 namespace CSharpRepl.Services.Roslyn.References;
 

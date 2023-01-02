@@ -1,6 +1,4 @@
-﻿using PrettyPrompt.Consoles;
-
-namespace CSharpRepl.Services.Extensions;
+﻿namespace CSharpRepl.Services.Extensions;
 
 internal static class MiscExtensions
 {

@@ -11,7 +11,6 @@ using CSharpRepl.Services;
 using CSharpRepl.Services.Dotnet;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
-using PrettyPrompt.Consoles;
 using Xunit;
 
 namespace CSharpRepl.Tests;
@@ -21,7 +20,7 @@ public class EvaluationTests : IAsyncLifetime
 {
     private readonly RoslynServices services;
     private readonly StringBuilder stdout;
-    private readonly IConsole console;
+    private readonly IConsoleEx console;
 
     public EvaluationTests()
     {

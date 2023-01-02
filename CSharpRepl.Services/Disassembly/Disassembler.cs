@@ -2,6 +2,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
+using System.Threading;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Roslyn.Scripting;
 using ICSharpCode.Decompiler;
@@ -9,14 +16,6 @@ using ICSharpCode.Decompiler.Disassembler;
 using ICSharpCode.Decompiler.Metadata;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection.Metadata;
-using System.Reflection.Metadata.Ecma335;
-using System.Reflection.PortableExecutable;
-using System.Threading;
 
 namespace CSharpRepl.Services.Disassembly;
 
@@ -118,7 +117,7 @@ internal class Disassembler
         var asmReader = asm.GetMetadataReader();
         var definedTypes = asmReader.TypeDefinitions.ToArray();
         var definedTypeNames = definedTypes.Select(t => asmReader.GetString(asmReader.GetTypeDefinition(t).Name)).ToArray();
-        if (definedTypeNames.Except(new[] { "<Module>", "Program" }).Any())
+        if (definedTypeNames.Except(new[] { "<Module>", "Program", "RefSafetyRulesAttribute", "EmbeddedAttribute" }).Any())
         {
             new ReflectionDisassembler(ilCodeOutput, CancellationToken.None).WriteModuleContents(file); // writes to the "ilCodeOutput" variable
             return ilCodeOutput;

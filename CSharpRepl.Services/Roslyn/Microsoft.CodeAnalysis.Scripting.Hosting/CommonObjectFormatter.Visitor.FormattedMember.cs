@@ -5,7 +5,7 @@
 #nullable disable
 
 using System.Diagnostics;
-using PrettyPrompt.Highlighting;
+using CSharpRepl.Services.Theming;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -19,14 +19,14 @@ internal abstract partial class CommonObjectFormatter
             public readonly int Index;
 
             // Formatted name of the member or null if it doesn't have a name (Index is >=0 then).
-            public readonly FormattedString Name;
+            public readonly StyledString Name;
 
             // Formatted value of the member.
-            public readonly FormattedString Value;
+            public readonly StyledString Value;
 
-            public FormattedMember(int index, FormattedString name, FormattedString value)
+            public FormattedMember(int index, StyledString name, StyledString value)
             {
-                Debug.Assert((name != null) || (index >= 0));
+                Debug.Assert(!name.IsEmpty || (index >= 0));
                 Name = name;
                 Index = index;
                 Value = value;
@@ -37,16 +37,16 @@ internal abstract partial class CommonObjectFormatter
             /// it's only used for a conservative approximation (shorter is more conservative when trying
             /// to determine the minimum number of members that will fill the output).
             /// </remarks>
-            public int MinimalLength => (Name != null ? Name.Length : "[0]".Length) + Value.Length;
+            public int MinimalLength => (!Name.IsEmpty ? Name.Length : "[0]".Length) + Value.Length;
 
-            public FormattedString GetDisplayName()
+            public StyledString GetDisplayName()
             {
                 return Name.IsEmpty ? "[" + Index.ToString() + "]" : Name;
             }
 
             public bool HasKeyName()
             {
-                return Index >= 0 && Name != null && Name.Length >= 2 && Name.Text[0] == '[' && Name.Text[Name.Length - 1] == ']';
+                return Index >= 0 && !Name.IsEmpty && Name.Length >= 2 && Name.FirstChar == '[' && Name.LastChar == ']';
             }
 
             public bool AppendAsCollectionEntry(Builder result)

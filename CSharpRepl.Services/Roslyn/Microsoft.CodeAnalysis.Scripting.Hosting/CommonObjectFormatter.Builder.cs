@@ -5,7 +5,7 @@
 #nullable disable
 
 using System;
-using PrettyPrompt.Highlighting;
+using CSharpRepl.Services.Theming;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -16,7 +16,7 @@ internal abstract partial class CommonObjectFormatter
 {
     private sealed class Builder
     {
-        private readonly FormattedStringBuilder _sb = new();
+        private StyledStringBuilder _sb = new();
         private readonly bool _suppressEllipsis;
         private readonly BuilderOptions _options;
 
@@ -88,7 +88,7 @@ internal abstract partial class CommonObjectFormatter
             }
         }
 
-        public void Append(FormattedString str, int start = 0, int count = Int32.MaxValue)
+        public void Append(StyledString str, int start = 0, int count = Int32.MaxValue)
         {
             if (str.IsEmpty || CurrentRemaining < 0)
             {
@@ -172,7 +172,7 @@ internal abstract partial class CommonObjectFormatter
             AppendGroupClosing(inline: true);
         }
 
-        public FormattedString ToFormattedString() => _sb.ToFormattedString();
+        public StyledString ToTextWithStyle() => _sb.ToStyledString();
         public override string ToString() => _sb.ToString();
     }
 }

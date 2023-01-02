@@ -6,18 +6,16 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Dotnet;
 
 internal class DotnetBuilder
 {
-    private readonly IConsole console;
+    private readonly IConsoleEx console;
 
-    public DotnetBuilder(IConsole console)
+    public DotnetBuilder(IConsoleEx console)
     {
         this.console = console;
     }

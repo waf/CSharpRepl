@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Nuget;
 using Microsoft.CodeAnalysis;
-using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 
@@ -21,7 +20,7 @@ internal sealed class NugetPackageMetadataResolver : AlternativeReferenceResolve
     private const string NugetPrefixWithHashR = "#r \"" + NugetPrefix;
     private readonly NugetPackageInstaller nugetInstaller;
 
-    public NugetPackageMetadataResolver(IConsole console, Configuration configuration)
+    public NugetPackageMetadataResolver(IConsoleEx console, Configuration configuration)
     {
         this.nugetInstaller = new NugetPackageInstaller(console, configuration);
     }

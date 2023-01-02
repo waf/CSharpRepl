@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CSharpRepl.PrettyPromptConfig;
@@ -10,7 +11,6 @@ using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using NSubstitute;
 using PrettyPrompt;
-using PrettyPrompt.Consoles;
 using Xunit;
 
 using static System.ConsoleKey;
@@ -25,7 +25,6 @@ public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynS
 
     public RoslynServicesTests(RoslynServicesFixture fixture)
     {
-        var (console, _) = FakeConsole.CreateStubbedOutput();
         this.services = fixture.RoslynServices;
     }
 
@@ -90,7 +89,7 @@ public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynS
 
     [InlineData("\"abc\".ToString()", true, "abc")]
     [InlineData("\"abc\".ToString();", false, null)]
-    
+
     [InlineData("object o = null; o?.ToString()", true, null)]
     [InlineData("object o = null; o?.ToString();", false, null)]
 
@@ -143,13 +142,23 @@ public class RoslynServices_REPL_Tests
         Assert.Contains("18", stdout.ToString());
     }
 
-    [Fact]
-    public async Task IncompleteStatement_CustomKeyBindings()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IncompleteStatement_CustomKeyBindings(bool isErrorRedirected)
     {
         var (console, repl, configuration, _, stderr) = await InitAsync(GetCustomKeyBindingsConfiguration());
+        console.PrettyPromptConsole.IsErrorRedirected = isErrorRedirected;
         console.StubInput($"5 +{Control}{Enter}exit{Control}{Enter}");
         await repl.RunAsync(configuration);
-        Assert.Contains("Expected expression", stderr.ToString());
+        if (isErrorRedirected)
+        {
+            Assert.Contains("Expected expression", stderr.ToString()); 
+        }
+        else
+        {
+            Assert.Contains("Expected expression", console.AnsiConsole.Output);
+        }
     }
 
     [Fact]
@@ -160,20 +169,22 @@ public class RoslynServices_REPL_Tests
         // because the completion window would open on the closing quote and commit on the closing parenthesis.
         // It happens quite often e.g. inside an if statement with parentheses.
         var (console, repl, configuration, _, _) = await InitAsync(GetCustomKeyBindingsConfiguration());
+        console.PrettyPromptConsole.IsErrorRedirected = true; // -> errors will go to PrettyPromptConsole
         console.StubInput($@"{{ Console.WriteLine(""Hello""); }}{Control}{Enter}exit{Control}{Enter}");
         await repl.RunAsync(configuration);
-        console.DidNotReceive().WriteErrorLine(Arg.Any<string>());
-        console.DidNotReceive().WriteError(Arg.Any<string>());
+        console.PrettyPromptConsole.DidNotReceive().WriteErrorLine(Arg.Any<string>());
+        console.PrettyPromptConsole.DidNotReceive().WriteError(Arg.Any<string>());
     }
 
     [Fact]
     public async Task UsingStatement_CanBeCompleted()
     {
         var (console, repl, configuration, _, _) = await InitAsync();
+        console.PrettyPromptConsole.IsErrorRedirected = true; // -> errors will go to PrettyPromptConsole
         console.StubInput($@"using Syst{Tab};{Enter}exit{Enter}");
         await repl.RunAsync(configuration);
-        console.DidNotReceive().WriteErrorLine(Arg.Any<string>());
-        console.DidNotReceive().WriteError(Arg.Any<string>());
+        console.PrettyPromptConsole.DidNotReceive().WriteErrorLine(Arg.Any<string>());
+        console.PrettyPromptConsole.DidNotReceive().WriteError(Arg.Any<string>());
     }
 
     [Theory]
@@ -183,7 +194,7 @@ public class RoslynServices_REPL_Tests
         var (console, repl, configuration, _, _) = await InitAsync();
         console.StubInput(input);
         await repl.RunAsync(configuration);
-        console.Received().Write(output);
+        Assert.Equal(output, console.AnsiConsole.Lines.Last());
     }
 
     public static IEnumerable<object[]> EnumerateCompletionDoesNotInterfereData()
@@ -201,12 +212,12 @@ public class RoslynServices_REPL_Tests
         }
     }
 
-    private static async Task<(IConsole Console, ReadEvalPrintLoop Repl, Configuration Configuration, StringBuilder StdOut, StringBuilder StdErr)> InitAsync(Configuration? configuration = null)
+    private static async Task<(FakeConsoleAbstract Console, ReadEvalPrintLoop Repl, Configuration Configuration, StringBuilder StdOut, StringBuilder StdErr)> InitAsync(Configuration? configuration = null)
     {
         var (console, stdout, stderr) = FakeConsole.CreateStubbedOutputAndError();
         configuration ??= new Configuration();
         var services = new RoslynServices(console, configuration, new TestTraceLogger());
-        var prompt = new Prompt(console: console, callbacks: new CSharpReplPromptCallbacks(console, services, configuration), configuration: new PromptConfiguration(keyBindings: configuration.KeyBindings));
+        var prompt = new Prompt(console: console.PrettyPromptConsole, callbacks: new CSharpReplPromptCallbacks(console, services, configuration), configuration: new PromptConfiguration(keyBindings: configuration.KeyBindings));
         var repl = new ReadEvalPrintLoop(services, prompt, console);
         await services.WarmUpAsync(Array.Empty<string>());
         return (console, repl, configuration, stdout, stderr);

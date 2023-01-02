@@ -403,7 +403,7 @@ internal sealed class DocumentationComment
                     var langword = reader.GetAttribute(XmlNames.LangwordAttributeName);
                     if (langword != null)
                     {
-                        text.Append(langword, new ConsoleFormat(highlighter.GetColor(ClassificationTypeNames.Keyword)));
+                        text.Append(langword, new ConsoleFormat(highlighter.GetAnsiColor(ClassificationTypeNames.Keyword)));
                         reader.Read();
                         return;
                     }
@@ -447,7 +447,7 @@ internal sealed class DocumentationComment
                 var partText = part.ToString();
                 var classification = RoslynExtensions.SymbolDisplayPartKindToClassificationTypeName(part.Kind);
                 if (classification is not null &&
-                    highlighter.TryGetColor(classification, out var color))
+                    highlighter.TryGetAnsiColor(classification, out var color))
                 {
                     text.Append(partText, new ConsoleFormat(color));
                 }

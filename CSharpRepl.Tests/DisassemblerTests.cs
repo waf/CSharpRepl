@@ -2,12 +2,10 @@
 using System.IO;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
-using CSharpRepl.Services.Disassembly;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using Microsoft.CodeAnalysis;
 using NSubstitute;
-using PrettyPrompt.Consoles;
 using Xunit;
 
 namespace CSharpRepl.Tests;
@@ -19,8 +17,8 @@ public class DisassemblerTests : IAsyncLifetime
 
     public DisassemblerTests()
     {
-        var console = Substitute.For<IConsole>();
-        console.BufferWidth.Returns(200);
+        var console = Substitute.For<IConsoleEx>();
+        console.PrettyPromptConsole.BufferWidth.Returns(200);
         this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
     }
 

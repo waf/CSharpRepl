@@ -12,10 +12,14 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using CSharpRepl.Services;
 using NSubstitute;
 using NSubstitute.Core;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
+using Spectre.Console;
+using Spectre.Console.Rendering;
+using Spectre.Console.Testing;
 
 namespace CSharpRepl.Tests;
 
@@ -23,36 +27,36 @@ internal static class FakeConsole
 {
     private static readonly Regex FormatStringSplit = new(@"({\d+}|{{|}}|.)", RegexOptions.Compiled);
 
-    public static (IConsole console, StringBuilder stdout, StringBuilder stderr) CreateStubbedOutputAndError(int width = 100, int height = 100)
+    public static (FakeConsoleAbstract console, StringBuilder stdout, StringBuilder stderr) CreateStubbedOutputAndError(int width = 100, int height = 100)
     {
         var stub = Create(width, height);
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
-        stub.When(c => c.Write(Arg.Any<string>())).Do(args => stdout.Append(args.Arg<string>()));
-        stub.When(c => c.WriteLine(Arg.Any<string>())).Do(args => stdout.AppendLine(args.Arg<string>()));
-        stub.When(c => c.WriteError(Arg.Any<string>())).Do(args => stderr.Append(args.Arg<string>()));
-        stub.When(c => c.WriteErrorLine(Arg.Any<string>())).Do(args => stderr.AppendLine(args.Arg<string>()));
+        stub.PrettyPromptConsole.When(c => c.Write(Arg.Any<string>())).Do(args => stdout.Append(args.Arg<string>()));
+        stub.PrettyPromptConsole.When(c => c.WriteLine(Arg.Any<string>())).Do(args => stdout.AppendLine(args.Arg<string>()));
+        stub.PrettyPromptConsole.When(c => c.WriteError(Arg.Any<string>())).Do(args => stderr.Append(args.Arg<string>()));
+        stub.PrettyPromptConsole.When(c => c.WriteErrorLine(Arg.Any<string>())).Do(args => stderr.AppendLine(args.Arg<string>()));
         return (stub, stdout, stderr);
     }
 
-    public static (IConsole console, StringBuilder stdout) CreateStubbedOutput(int width = 100, int height = 100)
+    public static (FakeConsoleAbstract console, StringBuilder stdout) CreateStubbedOutput(int width = 100, int height = 100)
     {
         var console = Create(width, height);
         var stdout = new StringBuilder();
-        console.When(c => c.Write(Arg.Any<string>())).Do(args => stdout.Append(args.Arg<string>()));
-        console.When(c => c.WriteLine(Arg.Any<string>())).Do(args => stdout.AppendLine(args.Arg<string>()));
+        console.PrettyPromptConsole.When(c => c.Write(Arg.Any<string>())).Do(args => stdout.Append(args.Arg<string>()));
+        console.PrettyPromptConsole.When(c => c.WriteLine(Arg.Any<string>())).Do(args => stdout.AppendLine(args.Arg<string>()));
         return (console, stdout);
     }
 
-    public static IConsole Create(int width = 100, int height = 100)
+    public static FakeConsoleAbstract Create(int width = 100, int height = 100)
     {
         var console = Substitute.For<FakeConsoleAbstract>();
-        console.BufferWidth.Returns(width);
-        console.WindowHeight.Returns(height);
+        console.PrettyPromptConsole.BufferWidth.Returns(width);
+        console.PrettyPromptConsole.WindowHeight.Returns(height);
         return console;
     }
 
-    public static IReadOnlyList<string> GetAllOutput(this IConsole consoleStub) =>
+    public static IReadOnlyList<string> GetAllOutput(this IConsoleEx consoleStub) =>
         consoleStub.ReceivedCalls()
             .Where(call => call.GetMethodInfo().Name == nameof(Console.Write))
             .Select(call =>
@@ -63,7 +67,7 @@ internal static class FakeConsole
             })
             .ToArray();
 
-    public static string GetFinalOutput(this IConsole consoleStub)
+    public static string GetFinalOutput(this IConsoleEx consoleStub)
     {
         return consoleStub.GetAllOutput()[^2]; // second to last. The last is always the newline drawn after the prompt is submitted
     }
@@ -75,7 +79,7 @@ internal static class FakeConsole
     /// <see cref="ConsoleModifiers"/> or <see cref="ConsoleKey"/>).
     /// </summary>
     /// <example>$"{Control}LHello{Enter}" is turned into Ctrl-L, H, e, l, l, o, Enter key</example>
-    public static ConfiguredCall StubInput(this IConsole consoleStub, params FormattableString[] inputs)
+    public static ConfiguredCall StubInput(this IConsoleEx consoleStub, params FormattableString[] inputs)
     {
         var keys = inputs
             .SelectMany(line => MapToConsoleKeyPresses(line))
@@ -91,13 +95,13 @@ internal static class FakeConsole
     /// <see cref="ConsoleModifiers"/> or <see cref="ConsoleKey"/>) and with optional Action to be invoked after key press.
     /// Use <see cref="Input(FormattableString)" and <see cref="Input(FormattableString, Action)"/> methods to create inputs./>
     /// </summary>
-    public static ConfiguredCall StubInput(this IConsole consoleStub, params FormattableStringWithAction[] inputs)
+    public static ConfiguredCall StubInput(this IConsoleEx consoleStub, params FormattableStringWithAction[] inputs)
     {
         var keys = inputs
             .SelectMany(EnumerateKeys)
             .ToList();
 
-        return consoleStub
+        return consoleStub.PrettyPromptConsole
             .ReadKey(intercept: true)
             .Returns(keys.First(), keys.Skip(1).ToArray());
 
@@ -124,9 +128,9 @@ internal static class FakeConsole
         }
     }
 
-    public static ConfiguredCall StubInput(this IConsole consoleStub, List<ConsoleKeyInfo> keys)
+    public static ConfiguredCall StubInput(this IConsoleEx consoleStub, List<ConsoleKeyInfo> keys)
     {
-        return consoleStub
+        return consoleStub.PrettyPromptConsole
             .ReadKey(intercept: true)
             .Returns(keys.First(), keys.Skip(1).ToArray());
     }
@@ -249,14 +253,33 @@ internal static class FakeConsole
     }
 }
 
-public abstract class FakeConsoleAbstract : IConsole
+public abstract class FakeConsoleAbstract : IConsoleEx
 {
+    public readonly TestConsole AnsiConsole = new();
+
+    IConsole IConsoleEx.PrettyPromptConsole => PrettyPromptConsole;
+    public FakePrettyPromptConsoleAbstract PrettyPromptConsole { get; } = Substitute.For<FakePrettyPromptConsoleAbstract>();
+
+    public Profile Profile => AnsiConsole.Profile;
+    public IAnsiConsoleCursor Cursor => AnsiConsole.Cursor;
+    public IAnsiConsoleInput Input => AnsiConsole.Input;
+    public IExclusivityMode ExclusivityMode => AnsiConsole.ExclusivityMode;
+    public RenderPipeline Pipeline => AnsiConsole.Pipeline;
+
+    public void Clear(bool home) => AnsiConsole.Clear(home);
+    public void Write(IRenderable renderable) => AnsiConsole.Write(renderable);
+}
+
+public abstract class FakePrettyPromptConsoleAbstract : IConsole
+{
+    public abstract IConsole PrettyPromptConsole { get; }
     public abstract int CursorTop { get; }
     public abstract int BufferWidth { get; }
     public abstract int WindowHeight { get; }
     public abstract int WindowTop { get; }
     public abstract bool KeyAvailable { get; }
     public abstract bool CaptureControlC { get; set; }
+    public bool IsErrorRedirected { get; set; }
 
     public abstract event ConsoleCancelEventHandler CancelKeyPress;
 

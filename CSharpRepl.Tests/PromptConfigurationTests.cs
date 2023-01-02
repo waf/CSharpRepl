@@ -16,7 +16,7 @@ namespace CSharpRepl.Tests;
 public class PromptConfigurationTests : IAsyncLifetime
 {
     private readonly RoslynServices services;
-    private readonly IConsole console;
+    private readonly IConsoleEx console;
     private readonly StringBuilder stdout;
 
     public PromptConfigurationTests()

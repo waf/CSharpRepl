@@ -48,7 +48,7 @@ internal sealed class AutoCompleteService
             .GetCompletionsAsync(document, caret)
             .ConfigureAwait(false);
 
-        var completionsWithDescriptions = completions?.Items
+        var completionsWithDescriptions = completions?.ItemsList
             .Select(item => new CompletionItemWithDescription(item, GetDisplayText(item), cancellationToken => GetExtendedDescriptionAsync(completionService, document, item, highlighter)))
             .ToArray() ?? Array.Empty<CompletionItemWithDescription>();
 
@@ -63,7 +63,7 @@ internal sealed class AutoCompleteService
             {
                 var classification = RoslynExtensions.TextTagToClassificationTypeName(item.Tags.First());
                 if (classification is not null &&
-                    highlighter.TryGetColor(classification, out var color))
+                    highlighter.TryGetAnsiColor(classification, out var color))
                 {
                     var prefix = GetCompletionItemSymbolPrefix(classification, configuration.UseUnicode);
                     return new FormattedString($"{prefix}{text}", new FormatSpan(prefix.Length, text.Length, new ConsoleFormat(Foreground: color)));
@@ -93,7 +93,7 @@ internal sealed class AutoCompleteService
                 ClassificationTypeNames.NamespaceName => "⬜",
                 ClassificationTypeNames.TypeParameterName => "⬛",
                 _ => "⚫",
-            }; ;
+            };
             Debug.Assert(symbol.Length <= prefix.Length);
             symbol.CopyTo(prefix);
             prefix[symbol.Length] = ' ';
@@ -116,7 +116,7 @@ internal sealed class AutoCompleteService
         {
             var classification = RoslynExtensions.TextTagToClassificationTypeName(taggedText.Tag);
             if (classification is not null &&
-                highlighter.TryGetColor(classification, out var color))
+                highlighter.TryGetAnsiColor(classification, out var color))
             {
                 stringBuilder.Append(taggedText.Text, new FormatSpan(0, taggedText.Text.Length, new ConsoleFormat(Foreground: color)));
             }

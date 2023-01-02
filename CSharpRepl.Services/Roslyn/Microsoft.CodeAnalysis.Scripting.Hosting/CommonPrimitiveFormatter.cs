@@ -5,8 +5,8 @@
 using System;
 using System.Globalization;
 using System.Reflection;
+using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
-using PrettyPrompt.Highlighting;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -17,27 +17,27 @@ internal abstract partial class CommonPrimitiveFormatter
     /// <summary>
     /// String that describes "null" literal in the language.
     /// </summary>
-    public abstract FormattedString NullLiteral { get; }
+    public abstract StyledStringSegment NullLiteral { get; }
 
-    protected abstract FormattedString FormatLiteral(bool value);
-    protected abstract FormattedString FormatLiteral(string value, bool quote, bool escapeNonPrintable, int numberRadix = NumberRadixDecimal);
-    protected abstract FormattedString FormatLiteral(char value, bool quote, bool escapeNonPrintable, bool includeCodePoints = false, int numberRadix = NumberRadixDecimal);
-    protected abstract FormattedString FormatLiteral(sbyte value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
-    protected abstract FormattedString FormatLiteral(byte value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
-    protected abstract FormattedString FormatLiteral(short value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
-    protected abstract FormattedString FormatLiteral(ushort value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
-    protected abstract FormattedString FormatLiteral(int value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
-    protected abstract FormattedString FormatLiteral(uint value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
-    protected abstract FormattedString FormatLiteral(long value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
-    protected abstract FormattedString FormatLiteral(ulong value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
-    protected abstract FormattedString FormatLiteral(double value, CultureInfo? cultureInfo = null);
-    protected abstract FormattedString FormatLiteral(float value, CultureInfo? cultureInfo = null);
-    protected abstract FormattedString FormatLiteral(decimal value, CultureInfo? cultureInfo = null);
+    protected abstract StyledStringSegment FormatLiteral(bool value);
+    protected abstract StyledStringSegment FormatLiteral(string value, bool quote, bool escapeNonPrintable, int numberRadix = NumberRadixDecimal);
+    protected abstract StyledStringSegment FormatLiteral(char value, bool quote, bool escapeNonPrintable, bool includeCodePoints = false, int numberRadix = NumberRadixDecimal);
+    protected abstract StyledStringSegment FormatLiteral(sbyte value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
+    protected abstract StyledStringSegment FormatLiteral(byte value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
+    protected abstract StyledStringSegment FormatLiteral(short value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
+    protected abstract StyledStringSegment FormatLiteral(ushort value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
+    protected abstract StyledStringSegment FormatLiteral(int value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
+    protected abstract StyledStringSegment FormatLiteral(uint value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
+    protected abstract StyledStringSegment FormatLiteral(long value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
+    protected abstract StyledStringSegment FormatLiteral(ulong value, int numberRadix = NumberRadixDecimal, CultureInfo? cultureInfo = null);
+    protected abstract StyledStringSegment FormatLiteral(double value, CultureInfo? cultureInfo = null);
+    protected abstract StyledStringSegment FormatLiteral(float value, CultureInfo? cultureInfo = null);
+    protected abstract StyledStringSegment FormatLiteral(decimal value, CultureInfo? cultureInfo = null);
 
     /// <summary>
     /// Returns null if the type is not considered primitive in the target language.
     /// </summary>
-    public FormattedString? FormatPrimitive(object? obj, CommonPrimitiveFormatterOptions options)
+    public StyledStringSegment? FormatPrimitive(object? obj, CommonPrimitiveFormatterOptions options)
     {
         if (ReferenceEquals(obj, VoidValue))
         {
@@ -53,7 +53,7 @@ internal abstract partial class CommonPrimitiveFormatter
 
         if (type.GetTypeInfo().IsEnum)
         {
-            return obj.ToString();
+            return obj.ToString() ?? "";
         }
 
         switch (GetPrimitiveSpecialType(type))

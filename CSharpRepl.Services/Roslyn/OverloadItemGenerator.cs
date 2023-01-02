@@ -10,8 +10,6 @@ using System.Threading;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Host;
-using Microsoft.CodeAnalysis.QuickInfo;
 using PrettyPrompt.Completion;
 using PrettyPrompt.Documents;
 using PrettyPrompt.Highlighting;
@@ -69,7 +67,7 @@ internal class OverloadItemGenerator
             var partText = part.ToString();
             var classification = RoslynExtensions.SymbolDisplayPartKindToClassificationTypeName(part.Kind);
             if (classification is not null &&
-                highlighter.TryGetColor(classification, out var color))
+                highlighter.TryGetAnsiColor(classification, out var color))
             {
                 bool bold = false;
                 if (currentArgumentSpan.Length > 0 &&

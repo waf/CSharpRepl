@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -13,16 +12,15 @@ using CSharpRepl.Services.Dotnet;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
-using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 
 internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolver
 {
     private readonly DotnetBuilder builder;
-    private readonly IConsole console;
+    private readonly IConsoleEx console;
 
-    public SolutionFileMetadataResolver(DotnetBuilder builder, IConsole console)
+    public SolutionFileMetadataResolver(DotnetBuilder builder, IConsoleEx console)
     {
         this.builder = builder;
         this.console = console;
@@ -53,7 +51,7 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
             return ImmutableArray<PortableExecutableReference>.Empty;
         }
 
-        console.WriteErrorLine("Adding references from built project...");
+        console.WriteLine("Adding references from built project...");
         var metadataReferences = await GetMetadataReferences(solutionPath, cancellationToken);
         return metadataReferences;
     }
@@ -75,7 +73,7 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
         }
 
         return projects
-            .SelectMany(p => 
+            .SelectMany(p =>
                 p.MetadataReferences
                 .OfType<PortableExecutableReference>()
                 .Concat(p.OutputFilePath is not null

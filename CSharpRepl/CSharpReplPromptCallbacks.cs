@@ -30,11 +30,11 @@ namespace CSharpRepl.PrettyPromptConfig;
 /// </summary>
 internal class CSharpReplPromptCallbacks : PromptCallbacks
 {
-    private readonly IConsole console;
+    private readonly IConsoleEx console;
     private readonly RoslynServices roslyn;
     private readonly Configuration configuration;
 
-    public CSharpReplPromptCallbacks(IConsole console, RoslynServices roslyn, Configuration configuration)
+    public CSharpReplPromptCallbacks(IConsoleEx console, RoslynServices roslyn, Configuration configuration)
     {
         this.console = console;
         this.roslyn = roslyn;
@@ -152,7 +152,7 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         }
 
         static KeyPress NewLineWithIndentation(int indentation) =>
-            new KeyPress(ConsoleKey.Insert.ToKeyInfo('\0', shift: true), "\n" + new string('\t', indentation));
+            new(ConsoleKey.Insert.ToKeyInfo('\0', shift: true), "\n" + new string('\t', indentation));
     }
 
     protected override Task<bool> ConfirmCompletionCommit(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
@@ -181,7 +181,7 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
     protected override Task<(IReadOnlyList<OverloadItem>, int ArgumentIndex)> GetOverloadsAsync(string text, int caret, CancellationToken cancellationToken)
         => roslyn.GetOverloadsAsync(text, caret, cancellationToken);
 
-    private static async Task<KeyPressCallbackResult?> Disassemble(RoslynServices roslyn, string text, IConsole console, bool debugMode)
+    private static async Task<KeyPressCallbackResult?> Disassemble(RoslynServices roslyn, string text, IConsoleEx console, bool debugMode)
     {
         var result = await roslyn.ConvertToIntermediateLanguage(text, debugMode);
 
@@ -189,7 +189,7 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         {
             case EvaluationResult.Success success:
                 var ilCode = success.ReturnValue.ToString();
-                var output = Prompt.RenderAnsiOutput(ilCode, Array.Empty<FormatSpan>(), console.BufferWidth);
+                var output = Prompt.RenderAnsiOutput(ilCode, Array.Empty<FormatSpan>(), console.PrettyPromptConsole.BufferWidth);
                 return new KeyPressCallbackResult(text, output);
             case EvaluationResult.Error err:
                 return new KeyPressCallbackResult(text, AnsiColor.Red.GetEscapeSequence() + err.Exception.Message + AnsiEscapeCodes.Reset);

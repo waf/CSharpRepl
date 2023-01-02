@@ -148,7 +148,7 @@ internal static class CommandLine
             if (!r.Children.Any()) return;
 
             string frameworkValue = r.GetValueOrDefault<string>() ?? string.Empty;
-            if(!SharedFramework.SupportedFrameworks.Any(f => frameworkValue.StartsWith(f, StringComparison.OrdinalIgnoreCase)))
+            if (!SharedFramework.SupportedFrameworks.Any(f => frameworkValue.StartsWith(f, StringComparison.OrdinalIgnoreCase)))
             {
                 r.ErrorMessage = "Unrecognized --framework value";
             }
@@ -165,7 +165,7 @@ internal static class CommandLine
             .Build()
             .Parse(parseArgs);
 
-        if(!File.Exists(configFilePath))
+        if (!File.Exists(configFilePath))
         {
             ConfigurationFile.CreateDefaultConfigurationFile(configFilePath, availableCommands, ignoreCommands: new[] { Help, Version, Configure });
         }

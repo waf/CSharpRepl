@@ -17,7 +17,7 @@ using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Extensions.DependencyModel;
-using PrettyPrompt.Consoles;
+using Spectre.Console;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 
@@ -31,10 +31,10 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
     private readonly AssemblyReferenceService referenceAssemblyService;
     private readonly AssemblyLoadContext loadContext;
     private readonly DependencyContextJsonReader dependencyContextJsonReader = new();
-    private readonly IConsole console;
+    private readonly IConsoleEx console;
     private readonly Dictionary<string, DependenciesInfo> dependencyContextsPerAssemblyName = new();
 
-    public AssemblyReferenceMetadataResolver(IConsole console, AssemblyReferenceService referenceAssemblyService)
+    public AssemblyReferenceMetadataResolver(IConsoleEx console, AssemblyReferenceService referenceAssemblyService)
     {
         this.console = console;
         this.referenceAssemblyService = referenceAssemblyService;

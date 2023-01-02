@@ -9,8 +9,9 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using CSharpRepl.Services;
 using CSharpRepl.Services.SyntaxHighlighting;
+using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.PooledObjects;
-using PrettyPrompt.Highlighting;
+using Spectre.Console;
 using static Microsoft.CodeAnalysis.Scripting.Hosting.ObjectFormatterHelpers;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
@@ -29,7 +30,7 @@ internal abstract partial class CommonObjectFormatter
         this.config = config;
     }
 
-    public FormattedString FormatObject(object obj, PrintOptions options)
+    public StyledString FormatObject(object obj, PrintOptions options)
     {
         if (options == null)
         {
@@ -69,7 +70,7 @@ internal abstract partial class CommonObjectFormatter
             arrayBoundRadix: printOptions.NumberRadix,
             showNamespaces: false);
 
-    public FormattedString FormatException(Exception e)
+    public StyledString FormatException(Exception e)
     {
         if (e == null)
         {
@@ -111,7 +112,7 @@ internal abstract partial class CommonObjectFormatter
             }
         }
 
-        return new FormattedString(pooled.ToStringAndFree(), new ConsoleFormat(AnsiColor.Red));
+        return new StyledString(pooled.ToStringAndFree(), new Style(foreground: Color.Red));
     }
 
     /// <summary>

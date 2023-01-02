@@ -2,6 +2,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Logging;
 using CSharpRepl.Services.Roslyn.References;
@@ -10,9 +13,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace CSharpRepl.Services.Roslyn;
 

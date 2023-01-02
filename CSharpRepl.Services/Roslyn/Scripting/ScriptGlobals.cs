@@ -3,7 +3,6 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System.Collections.Generic;
-using PrettyPrompt.Consoles;
 using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 
 namespace CSharpRepl.Services.Roslyn.Scripting;
@@ -14,9 +13,9 @@ namespace CSharpRepl.Services.Roslyn.Scripting;
 /// <remarks>Must be public so it can be referenced by the script</remarks>
 public sealed class ScriptGlobals
 {
-    private readonly IConsole console;
+    private readonly IConsoleEx console;
 
-    public ScriptGlobals(IConsole console, string[] args)
+    public ScriptGlobals(IConsoleEx console, string[] args)
     {
         this.console = console;
         this.args = args;

@@ -25,7 +25,6 @@ using NuGet.Protocol.Core.Types;
 using NuGet.Resolver;
 using NuGet.RuntimeModel;
 using NuGet.Versioning;
-using PrettyPrompt.Consoles;
 
 namespace CSharpRepl.Services.Nuget;
 
@@ -36,7 +35,7 @@ internal sealed class NugetPackageInstaller
     private readonly ConsoleNugetLogger logger;
     private readonly bool usePrereleaseNugets;
 
-    public NugetPackageInstaller(IConsole console, Configuration configuration)
+    public NugetPackageInstaller(IConsoleEx console, Configuration configuration)
     {
         this.logger = new ConsoleNugetLogger(console, configuration);
         this.usePrereleaseNugets = configuration.UsePrereleaseNugets;
@@ -282,8 +281,8 @@ internal sealed class NugetPackageInstaller
         return settings;
     }
 
-    public RuntimeGraph GetRuntimeGraph() 
-        => NugetHelper.GetRuntimeGraph(e=>logger.LogError(e));
+    public RuntimeGraph GetRuntimeGraph()
+        => NugetHelper.GetRuntimeGraph(e => logger.LogError(e));
 
     /// <summary>
     /// This is a patch for https://github.com/waf/CSharpRepl/issues/52.
