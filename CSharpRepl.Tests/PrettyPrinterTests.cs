@@ -15,11 +15,13 @@ namespace CSharpRepl.Tests;
 
 public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
 {
+    private readonly FakeConsoleAbstract console;
     private readonly RoslynServices services;
     private readonly PrettyPrinter prettyPrinter;
 
     public PrettyPrinterTests(RoslynServicesFixture fixture)
     {
+        this.console = fixture.ConsoleStub;
         this.services = fixture.RoslynServices;
         this.prettyPrinter = new PrettyPrinter(
             new SyntaxHighlighter(
@@ -29,14 +31,16 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     }
 
     [Theory]
-    [InlineData(@"throw null;", $"System.NullReferenceException: Object reference not set to an instance of an object.")]
-    [InlineData(@"void M1() => M2(); void M2() => throw null; M1()", $"System.NullReferenceException: Object reference not set to an instance of an object.\n   at void M2()\n   at void M1()")]
-    [InlineData(@"async Task M1() => await M2(); async Task M2() => throw null; await M1()", $"System.NullReferenceException: Object reference not set to an instance of an object.\n   at async Task M2()\n   at async Task M1()")]
+    [InlineData(@"throw null;", $"NullReferenceException: Object reference not set to an instance of an object.")]
+    [InlineData(@"void M1() => M2(); void M2() => throw null; M1()", $"NullReferenceException: Object reference not set to an instance of an object.\n    at void M2()\n    at void M1()")]
+    [InlineData(@"async Task M1() => await M2(); async Task M2() => throw null; await M1()", $"NullReferenceException: Object reference not set to an instance of an object.\n    at async Task M2()\n    at async Task M1()")]
+    [InlineData(@"void M((int A, int B) tuple) => throw null; M(default)", $"NullReferenceException: Object reference not set to an instance of an object.\n    at void M((int A, int B) tuple)")]
     public async Task ExceptionCallstack(string input, string expectedOutput)
     {
         var result = await services.EvaluateAsync(input);
         var exception = ((EvaluationResult.Error)result).Exception;
         var output = prettyPrinter.FormatObject(exception, displayDetails: true).ToString();
+
         Assert.Equal(expectedOutput.Replace("\n", NewLine), output);
     }
 

@@ -125,7 +125,12 @@ internal sealed class ReadEvalPrintLoop
             case EvaluationResult.Error err:
                 var formattedError = await roslyn.PrettyPrintAsync(err.Exception, displayDetails);
 
-                console.WriteError(formattedError.ToParagraph(), formattedError.ToString());
+                var panel = new Panel(formattedError.ToParagraph())
+                {
+                    Header = new PanelHeader(" Exception ", Justify.Center),
+                    BorderStyle = new Style(foreground: Color.Red)
+                };
+                console.WriteError(panel, formattedError.ToString());
                 console.WriteLine();
                 break;
             case EvaluationResult.Cancelled:
@@ -183,13 +188,13 @@ Run --help at the command line to view these options
     /// </summary>
     private string Preprocessor(string keyword, string? argument = null)
     {
-        var highlightedKeyword = Color("preprocessor keyword") + keyword + AnsiEscapeCodes.Reset;
-        var highlightedArgument = argument is null ? "" : Color("string") + @" """ + argument + @"""" + AnsiEscapeCodes.Reset;
+        var highlightedKeyword = Colorize("preprocessor keyword") + keyword + AnsiEscapeCodes.Reset;
+        var highlightedArgument = argument is null ? "" : Colorize("string") + @" """ + argument + @"""" + AnsiEscapeCodes.Reset;
 
         return highlightedKeyword + highlightedArgument;
     }
 
-    private string Color(string reference) =>
+    private string Colorize(string reference) =>
         PromptConfiguration.HasUserOptedOutFromColor
         ? string.Empty
         : AnsiEscapeCodes.ToAnsiEscapeSequenceSlow(new ConsoleFormat(roslyn!.ToColor(reference)));

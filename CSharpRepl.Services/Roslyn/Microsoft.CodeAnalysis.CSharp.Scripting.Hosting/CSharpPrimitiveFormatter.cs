@@ -17,21 +17,21 @@ internal class CSharpPrimitiveFormatter : CommonPrimitiveFormatter
 {
     private readonly Style numericLiteralFormat;
     private readonly Style stringLiteralFormat;
-    private readonly Style keywordFormat;
+    private readonly SyntaxHighlighter highlighter;
 
-    public CSharpPrimitiveFormatter(SyntaxHighlighter syntaxHighlighter)
+    public CSharpPrimitiveFormatter(SyntaxHighlighter highlighter)
     {
-        numericLiteralFormat = new Style(foreground: syntaxHighlighter.GetSpectreColor(ClassificationTypeNames.NumericLiteral));
-        stringLiteralFormat = new Style(foreground: syntaxHighlighter.GetSpectreColor(ClassificationTypeNames.StringLiteral));
-        keywordFormat = new Style(foreground: syntaxHighlighter.GetSpectreColor(ClassificationTypeNames.Keyword));
-        NullLiteral = new StyledStringSegment("null", keywordFormat);
+        numericLiteralFormat = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.NumericLiteral));
+        stringLiteralFormat = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.StringLiteral));
+        NullLiteral = new StyledStringSegment("null", highlighter.KeywordStyle);
+        this.highlighter = highlighter;
     }
 
     public override StyledStringSegment NullLiteral { get; }
 
     protected override StyledStringSegment FormatLiteral(bool value)
     {
-        return new(ObjectDisplay.FormatLiteral(value), keywordFormat);
+        return new(ObjectDisplay.FormatLiteral(value), highlighter.KeywordStyle);
     }
 
     protected override StyledStringSegment FormatLiteral(string value, bool useQuotes, bool escapeNonPrintable, int numberRadix = NumberRadixDecimal)

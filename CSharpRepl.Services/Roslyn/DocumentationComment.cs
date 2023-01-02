@@ -403,7 +403,7 @@ internal sealed class DocumentationComment
                     var langword = reader.GetAttribute(XmlNames.LangwordAttributeName);
                     if (langword != null)
                     {
-                        text.Append(langword, new ConsoleFormat(highlighter.GetAnsiColor(ClassificationTypeNames.Keyword)));
+                        text.Append(langword, highlighter.KeywordFormat);
                         reader.Read();
                         return;
                     }

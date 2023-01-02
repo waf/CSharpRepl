@@ -68,4 +68,7 @@ internal sealed class SyntaxHighlighter
 
     internal Color GetSpectreColor(string keyword) => theme.GetSyntaxHighlightingSpectreColor(keyword, unhighlightedSpectreColor);
     internal bool TryGetSpectreColor(string keyword, out Color color) => theme.TryGetSyntaxHighlightingSpectreColor(keyword, out color);
+
+    public Style KeywordStyle => new(foreground: GetSpectreColor(ClassificationTypeNames.Keyword));
+    public ConsoleFormat KeywordFormat => new(Foreground: GetAnsiColor(ClassificationTypeNames.Keyword));
 }

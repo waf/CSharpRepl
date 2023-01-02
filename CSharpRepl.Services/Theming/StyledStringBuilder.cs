@@ -7,7 +7,7 @@ using Spectre.Console;
 
 namespace CSharpRepl.Services.Theming;
 
-public struct StyledStringBuilder
+public sealed class StyledStringBuilder
 {
     private readonly List<StyledStringSegment> parts = new();
 
@@ -22,14 +22,20 @@ public struct StyledStringBuilder
         Add(text);
     }
 
-    public StyledStringBuilder(string text, Style? style)
+    public StyledStringBuilder(string? text, Style? style)
     {
-        Add(new StyledStringSegment(text, style));
+        if (text != null)
+        {
+            Add(new StyledStringSegment(text, style));
+        }
     }
 
-    public StyledStringBuilder Append(string text, Style? style = null)
+    public StyledStringBuilder Append(string? text, Style? style = null)
     {
-        Add(new StyledStringSegment(text, style));
+        if (text != null)
+        {
+            Add(new StyledStringSegment(text, style));
+        }
         return this;
     }
 
@@ -54,5 +60,6 @@ public struct StyledStringBuilder
         length += text.Length;
     }
 
+    public override string ToString() => string.Join("", parts);
     public StyledString ToStyledString() => new(parts);
 }

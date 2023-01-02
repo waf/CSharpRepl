@@ -1,18 +1,16 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Reflection;
-using System.Text.RegularExpressions;
 using CSharpRepl.Services;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
-using Microsoft.CodeAnalysis.PooledObjects;
+using Microsoft.CodeAnalysis.Classification;
 using Spectre.Console;
-using static Microsoft.CodeAnalysis.Scripting.Hosting.ObjectFormatterHelpers;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -21,12 +19,12 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 /// </summary>
 internal abstract partial class CommonObjectFormatter
 {
-    private readonly SyntaxHighlighter syntaxHighlighter;
+    private readonly SyntaxHighlighter highlighter;
     private readonly Configuration config;
 
     protected CommonObjectFormatter(SyntaxHighlighter syntaxHighlighter, Configuration config)
     {
-        this.syntaxHighlighter = syntaxHighlighter;
+        this.highlighter = syntaxHighlighter;
         this.config = config;
     }
 
@@ -40,7 +38,7 @@ internal abstract partial class CommonObjectFormatter
             throw new ArgumentNullException(nameof(options));
         }
 
-        var visitor = new Visitor(this, GetInternalBuilderOptions(options), GetPrimitiveOptions(options), GetTypeNameOptions(options), options.MemberDisplayFormat, syntaxHighlighter, config);
+        var visitor = new Visitor(this, GetInternalBuilderOptions(options), GetPrimitiveOptions(options), GetTypeNameOptions(options), options.MemberDisplayFormat, highlighter, config);
         return visitor.FormatObject(obj);
     }
 
@@ -77,10 +75,9 @@ internal abstract partial class CommonObjectFormatter
             throw new ArgumentNullException(nameof(e));
         }
 
-        var pooled = PooledStringBuilder.GetInstance();
-        var builder = pooled.Builder;
+        var builder = new StyledStringBuilder();
 
-        builder.Append(e.GetType());
+        builder.AppendType(e.GetType(), highlighter, fullName: true);
         builder.Append(": ");
         builder.Append(e.Message);
 
@@ -90,13 +87,11 @@ internal abstract partial class CommonObjectFormatter
         for (var i = 0; i < count - ScriptRunnerMethods; i++)
         {
             builder.Append(Environment.NewLine);
+            builder.Append(" ");
 
             var frame = frames[i];
             builder.Append("   at ");
-
-            var methodSignature = frame.MethodInfo.ToString();
-            methodSignature = Regex.Replace(methodSignature, @"Submission#[0-9]+\.", ""); //https://github.com/waf/CSharpRepl/issues/194
-            builder.Append(methodSignature);
+            AppendMethod(frame.MethodInfo, builder);
 
             if (frame.GetFileName() is { Length: > 0 } fileName)
             {
@@ -107,64 +102,161 @@ internal abstract partial class CommonObjectFormatter
             var lineNo = frame.GetFileLineNumber();
             if (lineNo != 0)
             {
-                builder.Append(":line ");
-                builder.Append(lineNo);
+                builder.Append($":line {lineNo}");
             }
         }
 
-        return new StyledString(pooled.ToStringAndFree(), new Style(foreground: Color.Red));
+        return builder.ToStyledString();
     }
 
-    /// <summary>
-    /// Returns a method signature display string. Used to display stack frames.
-    /// </summary>
-    /// <returns>Null if the method is a compiler generated method that shouldn't be displayed to the user.</returns>
-    protected internal virtual string FormatMethodSignature(MethodBase method)
+    //Modified version of https://github.com/benaadams/Ben.Demystifier/blob/main/src/Ben.Demystifier/ResolvedMethod.cs
+    private StyledStringBuilder AppendMethod(ResolvedMethod method, StyledStringBuilder builder)
     {
-        var pooled = PooledStringBuilder.GetInstance();
-        var builder = pooled.Builder;
-
-        var declaringType = method.DeclaringType;
-        var options = new CommonTypeNameFormatterOptions(arrayBoundRadix: NumberRadixDecimal, showNamespaces: true);
-
-        builder.Append(TypeNameFormatter.FormatTypeName(declaringType, options));
-        builder.Append('.');
-        builder.Append(method.Name);
-        if (method.IsGenericMethod)
+        if (method.IsAsync)
         {
-            builder.Append(TypeNameFormatter.FormatTypeArguments(method.GetGenericArguments(), options));
+            builder.Append("async ", highlighter.KeywordStyle);
         }
 
-        builder.Append('(');
-
-        bool first = true;
-        foreach (var parameter in method.GetParameters())
+        if (method.ReturnParameter != null)
         {
-            if (first)
+            AppendParameter(method.ReturnParameter, builder).Append(" ");
+        }
+
+        if (method.DeclaringType != null)
+        {
+            if (method.Name == ".ctor")
             {
-                first = false;
+                if (string.IsNullOrEmpty(method.SubMethod) && !method.IsLambda)
+                    builder.Append("new ", highlighter.KeywordStyle);
+
+                builder.AppendType(method.DeclaringType, highlighter);
+            }
+            else if (method.Name == ".cctor")
+            {
+                builder.Append("static ", highlighter.KeywordStyle);
+                builder.AppendType(method.DeclaringType, highlighter);
             }
             else
             {
-                builder.Append(", ");
-            }
+                var builderLengthBefore = builder.Length;
+                builder.AppendType(method.DeclaringType, highlighter);
+                if (builderLengthBefore < builder.Length) builder.Append(".");
 
-            if (parameter.ParameterType.IsByRef)
+                if (method.Name != null)
+                {
+                    builder.Append(method.Name, new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.MethodName)));
+                }
+            }
+        }
+        else
+        {
+            builder.Append(method.Name);
+        }
+        builder.Append(method.GenericArguments);
+
+        builder.Append("(");
+        if (method.MethodBase != null)
+        {
+            var isFirst = true;
+            foreach (var param in method.Parameters)
             {
-                builder.Append(FormatRefKind(parameter));
-                builder.Append(' ');
-                builder.Append(TypeNameFormatter.FormatTypeName(parameter.ParameterType.GetElementType(), options));
+                if (isFirst)
+                {
+                    isFirst = false;
+                }
+                else
+                {
+                    builder.Append(", ");
+                }
+                AppendParameter(param, builder);
+            }
+        }
+        else
+        {
+            builder.Append("?");
+        }
+        builder.Append(")");
+
+        if (!string.IsNullOrEmpty(method.SubMethod) || method.IsLambda)
+        {
+            builder.Append("+");
+            builder.Append(method.SubMethod);
+            builder.Append("(");
+            if (method.SubMethodBase != null)
+            {
+                var isFirst = true;
+                foreach (var param in method.SubMethodParameters)
+                {
+                    if (isFirst)
+                    {
+                        isFirst = false;
+                    }
+                    else
+                    {
+                        builder.Append(", ");
+                    }
+                    AppendParameter(param, builder);
+                }
             }
             else
             {
-                builder.Append(TypeNameFormatter.FormatTypeName(parameter.ParameterType, options));
+                builder.Append("?");
+            }
+            builder.Append(")");
+            if (method.IsLambda)
+            {
+                builder.Append(" => { }");
+
+                if (method.Ordinal.HasValue)
+                {
+                    builder.Append(" [");
+                    builder.Append(method.Ordinal?.ToString());
+                    builder.Append("]");
+                }
             }
         }
 
-        builder.Append(')');
+        if (method.RecurseCount > 0)
+        {
+            builder.Append($" x {method.RecurseCount + 1:0}");
+        }
 
-        return pooled.ToStringAndFree();
+        return builder;
+
+        //https://github.com/benaadams/Ben.Demystifier/blob/main/src/Ben.Demystifier/ResolvedParameter.cs
+        StyledStringBuilder AppendParameter(ResolvedParameter parameter, StyledStringBuilder sb)
+        {
+            if (parameter.ResolvedType.Assembly.ManifestModule.Name == "FSharp.Core.dll" && parameter.ResolvedType.Name == "Unit")
+                return sb;
+
+            if (!string.IsNullOrEmpty(parameter.Prefix))
+            {
+                sb.Append(parameter.Prefix)
+                  .Append(" ");
+            }
+
+            if (parameter.IsDynamicType)
+            {
+                sb.Append("dynamic", highlighter.KeywordStyle);
+            }
+            else if (parameter.ResolvedType != null)
+            {
+                IList<string>? tupleNames = null;
+                if (parameter is ValueTupleResolvedParameter { TupleNames: { } tupleNames2 }) { tupleNames = tupleNames2; };
+                builder.AppendType(parameter.ResolvedType, highlighter, fullName: false, tupleNames);
+            }
+            else
+            {
+                sb.Append("?");
+            }
+
+            if (!string.IsNullOrEmpty(parameter.Name))
+            {
+                sb.Append(" ")
+                  .Append(parameter.Name, new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.ParameterName)));
+            }
+
+            return sb;
+        }
     }
-
-    protected abstract string FormatRefKind(ParameterInfo parameter);
 }
