@@ -125,7 +125,7 @@ internal sealed class ConsoleNugetLogger : ILogger
     {
         try
         {
-            console.HideCursor();
+            console.Cursor.Show(false);
             for (int i = 0; i < linesRendered; i++)
             {
                 console.Write(AnsiEscapeCodes.GetMoveCursorUp(1));
@@ -138,20 +138,20 @@ internal sealed class ConsoleNugetLogger : ILogger
                 if (line.IsError)
                 {
                     console.Write(AnsiColor.Red.GetEscapeSequence());
-                    console.WriteLine(line.Text.Text);
+                    console.WriteLine(line.Text.Text ?? "");
                     console.Write(AnsiEscapeCodes.Reset);
                 }
                 else
                 {
                     console.WriteLine(line.Text);
                 }
-
-                linesRendered += Math.DivRem(line.Text.Length, console.BufferWidth, out var remainder) + (remainder == 0 ? 0 : 1);
+                
+                linesRendered += Math.DivRem(line.Text.Length, console.PrettyPromptConsole.BufferWidth, out var remainder) + (remainder == 0 ? 0 : 1);
             }
         }
         finally
         {
-            console.ShowCursor();
+            console.Cursor.Show(true);
         }
     }
 

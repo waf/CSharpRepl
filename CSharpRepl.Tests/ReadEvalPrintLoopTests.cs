@@ -46,8 +46,8 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
 
         await repl.RunAsync(new Configuration());
 
-        console.Received().WriteLine(Arg.Is<string>(str => str.Contains("Welcome to the C# REPL")));
-        console.Received().WriteLine(Arg.Is<string>(str => str.Contains("Type C# at the prompt")));
+        Assert.Contains("Welcome to the C# REPL", console.AnsiConsole.Output);
+        Assert.Contains("Type C# at the prompt", console.AnsiConsole.Output);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
 
         await repl.RunAsync(new Configuration());
 
-        console.Received().Clear();
+        ((IConsoleEx)console.Received()).Clear(true);
     }
 
     [Fact]
@@ -154,7 +154,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
 
         await repl.RunAsync(new Configuration());
 
-        Assert.Contains("bonk!", capturedError.ToString());
+        Assert.Contains("bonk!", console.AnsiConsole.Output);
     }
 
     [Fact]

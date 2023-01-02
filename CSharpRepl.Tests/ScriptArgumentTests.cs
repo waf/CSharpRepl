@@ -40,6 +40,6 @@ public class ScriptArgumentTests
         var printStatement = await services.EvaluateAsync("Print(DateTime.MinValue)");
 
         Assert.IsType<EvaluationResult.Success>(printStatement);
-        Assert.Equal("[1/1/0001 12:00:00 AM]" + Environment.NewLine, stdOut.ToString());
+        Assert.Equal("[1/1/0001 12:00:00 AM]\n", console.AnsiConsole.Output);
     }
 }

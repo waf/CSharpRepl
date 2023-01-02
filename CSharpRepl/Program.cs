@@ -29,7 +29,7 @@ internal static class Program
         Console.InputEncoding = Encoding.UTF8;
         Console.OutputEncoding = Encoding.UTF8;
 
-        var console = new SystemConsoleEx();
+        IConsoleEx console = new SystemConsoleEx();
         var appStorage = CreateApplicationStorageDirectory();
         var configFile = Path.Combine(appStorage, "config.rsp");
 
@@ -120,7 +120,7 @@ internal static class Program
                    selectedCompletionItemBackground: config.Theme.GetSelectedCompletionItemBackgroundColor(),
                    selectedTextBackground: config.Theme.GetSelectedTextBackground(),
                    tabSize: config.TabSize),
-               console: console);
+               console: console.PrettyPromptConsole);
             return (prompt, ExitCodes.Success);
         }
         catch (InvalidOperationException ex) when (ex.Message.EndsWith("error code: 87", StringComparison.Ordinal))

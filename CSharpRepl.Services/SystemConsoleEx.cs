@@ -8,26 +8,11 @@ using Spectre.Console.Rendering;
 
 namespace CSharpRepl.Services;
 
-public sealed class SystemConsoleEx : SystemConsole, IConsoleEx
+public sealed class SystemConsoleEx : IConsoleEx
 {
-    private readonly IAnsiConsole ansiConsole;
+    private readonly IAnsiConsole ansiConsole = AnsiConsole.Console;
 
-    public SystemConsoleEx()
-    {
-        ansiConsole = AnsiConsole.Console;
-    }
-
-    public void WriteError(IRenderable renderable, string text)
-    {
-        if (IsErrorRedirected)
-        {
-            WriteError(text);
-        }
-        else
-        {
-            Write(renderable);
-        }
-    }
+    public IConsole PrettyPromptConsole { get; } = new SystemConsole();
 
     public Profile Profile => ansiConsole.Profile;
     public IAnsiConsoleCursor Cursor => ansiConsole.Cursor;

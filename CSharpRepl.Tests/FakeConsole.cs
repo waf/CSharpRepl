@@ -16,6 +16,7 @@ using CSharpRepl.Services;
 using NSubstitute;
 using NSubstitute.Core;
 using PrettyPrompt;
+using PrettyPrompt.Consoles;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using Spectre.Console.Testing;
@@ -31,10 +32,10 @@ internal static class FakeConsole
         var stub = Create(width, height);
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
-        stub.When(c => c.Write(Arg.Any<string>())).Do(args => stdout.Append(args.Arg<string>()));
-        stub.When(c => c.WriteLine(Arg.Any<string>())).Do(args => stdout.AppendLine(args.Arg<string>()));
-        stub.When(c => c.WriteError(Arg.Any<string>())).Do(args => stderr.Append(args.Arg<string>()));
-        stub.When(c => c.WriteErrorLine(Arg.Any<string>())).Do(args => stderr.AppendLine(args.Arg<string>()));
+        stub.PrettyPromptConsole.When(c => c.Write(Arg.Any<string>())).Do(args => stdout.Append(args.Arg<string>()));
+        stub.PrettyPromptConsole.When(c => c.WriteLine(Arg.Any<string>())).Do(args => stdout.AppendLine(args.Arg<string>()));
+        stub.PrettyPromptConsole.When(c => c.WriteError(Arg.Any<string>())).Do(args => stderr.Append(args.Arg<string>()));
+        stub.PrettyPromptConsole.When(c => c.WriteErrorLine(Arg.Any<string>())).Do(args => stderr.AppendLine(args.Arg<string>()));
         return (stub, stdout, stderr);
     }
 
@@ -42,16 +43,16 @@ internal static class FakeConsole
     {
         var console = Create(width, height);
         var stdout = new StringBuilder();
-        console.When(c => c.Write(Arg.Any<string>())).Do(args => stdout.Append(args.Arg<string>()));
-        console.When(c => c.WriteLine(Arg.Any<string>())).Do(args => stdout.AppendLine(args.Arg<string>()));
+        console.PrettyPromptConsole.When(c => c.Write(Arg.Any<string>())).Do(args => stdout.Append(args.Arg<string>()));
+        console.PrettyPromptConsole.When(c => c.WriteLine(Arg.Any<string>())).Do(args => stdout.AppendLine(args.Arg<string>()));
         return (console, stdout);
     }
 
     public static FakeConsoleAbstract Create(int width = 100, int height = 100)
     {
         var console = Substitute.For<FakeConsoleAbstract>();
-        console.BufferWidth.Returns(width);
-        console.WindowHeight.Returns(height);
+        console.PrettyPromptConsole.BufferWidth.Returns(width);
+        console.PrettyPromptConsole.WindowHeight.Returns(height);
         return console;
     }
 
@@ -100,7 +101,7 @@ internal static class FakeConsole
             .SelectMany(EnumerateKeys)
             .ToList();
 
-        return consoleStub
+        return consoleStub.PrettyPromptConsole
             .ReadKey(intercept: true)
             .Returns(keys.First(), keys.Skip(1).ToArray());
 
@@ -129,7 +130,7 @@ internal static class FakeConsole
 
     public static ConfiguredCall StubInput(this IConsoleEx consoleStub, List<ConsoleKeyInfo> keys)
     {
-        return consoleStub
+        return consoleStub.PrettyPromptConsole
             .ReadKey(intercept: true)
             .Returns(keys.First(), keys.Skip(1).ToArray());
     }
@@ -256,13 +257,29 @@ public abstract class FakeConsoleAbstract : IConsoleEx
 {
     public readonly TestConsole AnsiConsole = new();
 
+    IConsole IConsoleEx.PrettyPromptConsole => PrettyPromptConsole;
+    public FakePrettyPromptConsoleAbstract PrettyPromptConsole { get; } = Substitute.For<FakePrettyPromptConsoleAbstract>();
+
+    public Profile Profile => AnsiConsole.Profile;
+    public IAnsiConsoleCursor Cursor => AnsiConsole.Cursor;
+    public IAnsiConsoleInput Input => AnsiConsole.Input;
+    public IExclusivityMode ExclusivityMode => AnsiConsole.ExclusivityMode;
+    public RenderPipeline Pipeline => AnsiConsole.Pipeline;
+
+    public void Clear(bool home) => AnsiConsole.Clear(home);
+    public void Write(IRenderable renderable) => AnsiConsole.Write(renderable);
+}
+
+public abstract class FakePrettyPromptConsoleAbstract : IConsole
+{
+    public abstract IConsole PrettyPromptConsole { get; }
     public abstract int CursorTop { get; }
     public abstract int BufferWidth { get; }
     public abstract int WindowHeight { get; }
     public abstract int WindowTop { get; }
     public abstract bool KeyAvailable { get; }
     public abstract bool CaptureControlC { get; set; }
-    public bool IsErrorRedirected => true;
+    public bool IsErrorRedirected { get; set; }
 
     public abstract event ConsoleCancelEventHandler CancelKeyPress;
 
@@ -277,30 +294,9 @@ public abstract class FakeConsoleAbstract : IConsoleEx
     public abstract void WriteErrorLine(string? value);
     public abstract void WriteLine(string? value);
 
-    public void WriteError(IRenderable renderable, string text)
-    {
-        if (IsErrorRedirected)
-        {
-            WriteError(text);
-        }
-        else
-        {
-            Write(renderable);
-        }
-    }
-
     //following implementations is needed because NSubstitute does not support ROS
     public void Write(ReadOnlySpan<char> value) => Write(value.ToString());
     public void WriteError(ReadOnlySpan<char> value) => WriteError(value.ToString());
     public void WriteErrorLine(ReadOnlySpan<char> value) => WriteErrorLine(value.ToString());
     public void WriteLine(ReadOnlySpan<char> value) => WriteLine(value.ToString());
-
-    //IAnsiConsole
-    public Profile Profile => AnsiConsole.Profile;
-    public IAnsiConsoleCursor Cursor => AnsiConsole.Cursor;
-    public IAnsiConsoleInput Input => AnsiConsole.Input;
-    public IExclusivityMode ExclusivityMode => AnsiConsole.ExclusivityMode;
-    public RenderPipeline Pipeline => AnsiConsole.Pipeline;
-    public void Clear(bool home) => AnsiConsole.Clear(home);
-    public void Write(IRenderable renderable) => AnsiConsole.Write(renderable);
 }
