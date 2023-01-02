@@ -16,7 +16,7 @@ internal abstract partial class CommonObjectFormatter
 {
     private sealed class Builder
     {
-        private StyledStringBuilder _sb = new();
+        private readonly StyledStringBuilder _sb = new();
         private readonly bool _suppressEllipsis;
         private readonly BuilderOptions _options;
 
