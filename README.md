@@ -22,7 +22,7 @@ C# REPL provides the following features:
 
 ## Installation
 
-C# REPL is a .NET 6 global tool, and runs on Windows 10, Mac OS, and Linux. It can be installed via:
+C# REPL is a .NET 7 global tool, and runs on Windows 10, Mac OS, and Linux. It can be installed via:
 
 ```console
 dotnet tool install -g csharprepl
