@@ -20,15 +20,18 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
     private readonly DotnetBuilder builder;
     private readonly IConsoleEx console;
 
-    public SolutionFileMetadataResolver(DotnetBuilder builder, IConsoleEx console)
+    static SolutionFileMetadataResolver()
     {
-        this.builder = builder;
-        this.console = console;
-
         if (!MSBuildLocator.IsRegistered)
         {
             _ = MSBuildLocator.RegisterDefaults();
         }
+    }
+
+    public SolutionFileMetadataResolver(DotnetBuilder builder, IConsoleEx console)
+    {
+        this.builder = builder;
+        this.console = console;
     }
 
     public override bool CanResolve(string reference) =>
