@@ -145,7 +145,7 @@ internal sealed class ConsoleNugetLogger : ILogger
                 {
                     console.WriteLine(line.Text);
                 }
-                
+
                 linesRendered += Math.DivRem(line.Text.Length, console.PrettyPromptConsole.BufferWidth, out var remainder) + (remainder == 0 ? 0 : 1);
             }
         }

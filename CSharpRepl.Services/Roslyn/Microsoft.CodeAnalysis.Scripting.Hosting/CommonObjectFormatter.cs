@@ -38,7 +38,7 @@ internal abstract partial class CommonObjectFormatter
             throw new ArgumentNullException(nameof(options));
         }
 
-        var visitor = new Visitor(this, GetInternalBuilderOptions(options), GetPrimitiveOptions(options), GetTypeNameOptions(options), options.MemberDisplayFormat, highlighter, config);
+        var visitor = new Visitor(this, TypeNameFormatter, GetInternalBuilderOptions(options), GetPrimitiveOptions(options), GetTypeNameOptions(options), options.MemberDisplayFormat, highlighter, config);
         return visitor.FormatObject(obj);
     }
 

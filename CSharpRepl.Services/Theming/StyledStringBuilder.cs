@@ -54,6 +54,12 @@ public sealed class StyledStringBuilder
         return this;
     }
 
+    public StyledStringBuilder Append(StyledStringSegment text)
+    {
+        Add(text);
+        return this;
+    }
+
     private void Add(StyledStringSegment text)
     {
         parts.Add(text);

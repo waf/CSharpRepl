@@ -14,7 +14,6 @@ using System.Xml;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Classification;
 using PrettyPrompt.Highlighting;
 using XmlNames = CSharpRepl.Services.Roslyn.DocumentationCommentXmlNames;
 
