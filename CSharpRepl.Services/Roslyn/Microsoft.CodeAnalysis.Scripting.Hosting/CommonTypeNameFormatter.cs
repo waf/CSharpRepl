@@ -37,6 +37,16 @@ internal abstract partial class CommonTypeNameFormatter
         this.highlighter = highlighter;
     }
 
+    public static Style GetTypeStyle(Type type, SyntaxHighlighter highlighter)
+    {
+        Style format;
+        if (type.IsValueType) format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.StructName));
+        else if (type.IsInterface) format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.InterfaceName));
+        else if (type.IsSubclassOf(typeof(Delegate))) format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.DelegateName));
+        else format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.ClassName));
+        return format;
+    }
+
     // TODO (tomat): Use DebuggerDisplay.Type if specified?
     public virtual StyledString FormatTypeName(Type type, CommonTypeNameFormatterOptions options)
     {
@@ -72,7 +82,7 @@ internal abstract partial class CommonTypeNameFormatter
 
     private StyledString FormatNonGenericTypeName(TypeInfo typeInfo, CommonTypeNameFormatterOptions options)
     {
-        var typeStyle = StyledStringBuilderExtensions.GetTypeStyle(typeInfo, highlighter);
+        var typeStyle = CommonTypeNameFormatter.GetTypeStyle(typeInfo, highlighter);
         var sb = new StyledStringBuilder();
         if (typeInfo.DeclaringType is null)
         {
@@ -297,7 +307,7 @@ internal abstract partial class CommonTypeNameFormatter
         // generic arguments of all the outer types and the current type;
         int currentArgCount = (typeInfo.IsGenericTypeDefinition ? typeInfo.GenericTypeParameters.Length : typeInfo.GenericTypeArguments.Length) - genericArgIndex;
 
-        var typeStyle = StyledStringBuilderExtensions.GetTypeStyle(typeInfo, highlighter);
+        var typeStyle = CommonTypeNameFormatter.GetTypeStyle(typeInfo, highlighter);
         if (currentArgCount > 0)
         {
             string name = typeInfo.Name;
