@@ -153,7 +153,7 @@ public class RoslynServices_REPL_Tests
         await repl.RunAsync(configuration);
         if (isErrorRedirected)
         {
-            Assert.Contains("Expected expression", stderr.ToString()); 
+            Assert.Contains("Expected expression", stderr.ToString());
         }
         else
         {

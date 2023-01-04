@@ -8,6 +8,8 @@ namespace CSharpRepl.Services.Theming;
 
 public readonly struct StyledStringSegment
 {
+    public static StyledStringSegment Empty => new("");
+
     public readonly string Text;
     public readonly Style? Style;
 

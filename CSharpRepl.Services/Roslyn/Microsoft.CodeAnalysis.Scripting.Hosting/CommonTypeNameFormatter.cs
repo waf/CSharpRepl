@@ -2,14 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
-using System.Text;
+using CSharpRepl.Services.SyntaxHighlighting;
+using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.PooledObjects;
+using Spectre.Console;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -18,7 +20,9 @@ using TypeInfo = System.Reflection.TypeInfo;
 
 internal abstract partial class CommonTypeNameFormatter
 {
-    protected abstract string GetPrimitiveTypeName(SpecialType type);
+    private readonly SyntaxHighlighter highlighter;
+
+    protected abstract StyledString? GetPrimitiveTypeName(SpecialType type);
 
     protected abstract string GenericParameterOpening { get; }
     protected abstract string GenericParameterClosing { get; }
@@ -28,23 +32,38 @@ internal abstract partial class CommonTypeNameFormatter
 
     protected abstract CommonPrimitiveFormatter PrimitiveFormatter { get; }
 
+    public CommonTypeNameFormatter(SyntaxHighlighter highlighter)
+    {
+        this.highlighter = highlighter;
+    }
+
+    public static Style GetTypeStyle(Type type, SyntaxHighlighter highlighter)
+    {
+        Style format;
+        if (type.IsValueType) format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.StructName));
+        else if (type.IsInterface) format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.InterfaceName));
+        else if (type.IsSubclassOf(typeof(Delegate))) format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.DelegateName));
+        else format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.ClassName));
+        return format;
+    }
+
     // TODO (tomat): Use DebuggerDisplay.Type if specified?
-    public virtual string FormatTypeName(Type type, CommonTypeNameFormatterOptions options)
+    public virtual StyledString FormatTypeName(Type type, CommonTypeNameFormatterOptions options)
     {
         if (type == null)
         {
             throw new ArgumentNullException(nameof(type));
         }
 
-        string primitiveTypeName = GetPrimitiveTypeName(GetPrimitiveSpecialType(type));
-        if (primitiveTypeName != null)
+        var primitiveTypeName = GetPrimitiveTypeName(GetPrimitiveSpecialType(type));
+        if (primitiveTypeName.HasValue)
         {
-            return primitiveTypeName;
+            return primitiveTypeName.Value;
         }
 
         if (type.IsGenericParameter)
         {
-            return type.Name;
+            return new StyledString(type.Name, new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.TypeParameterName)));
         }
 
         if (type.IsArray)
@@ -61,34 +80,37 @@ internal abstract partial class CommonTypeNameFormatter
         return FormatNonGenericTypeName(typeInfo, options);
     }
 
-    private static string FormatNonGenericTypeName(TypeInfo typeInfo, CommonTypeNameFormatterOptions options)
+    private StyledString FormatNonGenericTypeName(TypeInfo typeInfo, CommonTypeNameFormatterOptions options)
     {
-        if (options.ShowNamespaces)
+        var typeStyle = CommonTypeNameFormatter.GetTypeStyle(typeInfo, highlighter);
+        var sb = new StyledStringBuilder();
+        if (typeInfo.DeclaringType is null)
         {
-            return typeInfo.FullName.Replace('+', '.');
+            var namespaceParts =
+                options.ShowNamespaces ?
+                typeInfo.Namespace?.Split('.', StringSplitOptions.RemoveEmptyEntries) :
+                null;
+            namespaceParts ??= Array.Empty<string>();
+
+            var namespaceStyle = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.NamespaceName));
+            for (int i = 0; i < namespaceParts.Length; i++)
+            {
+                sb.Append(namespaceParts[i], namespaceStyle);
+                sb.Append('.');
+            }
+
+            sb.Append(typeInfo.Name, typeStyle);
         }
-
-        if (typeInfo.DeclaringType == null)
+        else
         {
-            return typeInfo.Name;
+            sb.Append(FormatTypeName(typeInfo.DeclaringType, options));
+            sb.Append('.');
+            sb.Append(typeInfo.Name, typeStyle);
         }
-
-        var stack = ArrayBuilder<string>.GetInstance();
-
-        do
-        {
-            stack.Add(typeInfo.Name);
-            typeInfo = typeInfo.DeclaringType?.GetTypeInfo();
-        } while (typeInfo != null);
-
-        stack.ReverseContents();
-        var typeName = string.Join(".", stack);
-        stack.Free();
-
-        return typeName;
+        return sb.ToStyledString();
     }
 
-    public virtual string FormatTypeArguments(Type[] typeArguments, CommonTypeNameFormatterOptions options)
+    public virtual StyledString FormatTypeArguments(Type[] typeArguments, CommonTypeNameFormatterOptions options)
     {
         if (typeArguments == null)
         {
@@ -100,8 +122,7 @@ internal abstract partial class CommonTypeNameFormatter
             throw new ArgumentException(null, nameof(typeArguments));
         }
 
-        var pooled = PooledStringBuilder.GetInstance();
-        var builder = pooled.Builder;
+        var builder = new StyledStringBuilder();
 
         builder.Append(GenericParameterOpening);
 
@@ -122,32 +143,32 @@ internal abstract partial class CommonTypeNameFormatter
 
         builder.Append(GenericParameterClosing);
 
-        return pooled.ToStringAndFree();
+        return builder.ToStyledString();
     }
 
     /// <summary>
     /// Formats an array type name (vector or multidimensional).
     /// </summary>
-    public virtual string FormatArrayTypeName(Type arrayType, Array arrayOpt, CommonTypeNameFormatterOptions options)
+    public virtual StyledString FormatArrayTypeName(Type arrayType, Array? arrayOpt, CommonTypeNameFormatterOptions options)
     {
         if (arrayType == null)
         {
             throw new ArgumentNullException(nameof(arrayType));
         }
 
-        StringBuilder sb = new StringBuilder();
+        var sb = new StyledStringBuilder();
 
         // print the inner-most element type first:
-        Type elementType = arrayType.GetElementType();
+        var elementType = arrayType.GetElementType()!;
         while (elementType.IsArray)
         {
-            elementType = elementType.GetElementType();
+            elementType = elementType.GetElementType()!;
         }
 
         sb.Append(FormatTypeName(elementType, options));
 
         // print all components of a jagged array:
-        Type type = arrayType;
+        var type = arrayType;
         do
         {
             if (arrayOpt != null)
@@ -196,14 +217,14 @@ internal abstract partial class CommonTypeNameFormatter
                 AppendArrayRank(sb, type);
             }
 
-            type = type.GetElementType();
+            type = type.GetElementType()!;
         }
         while (type.IsArray);
 
-        return sb.ToString();
+        return sb.ToStyledString();
     }
 
-    private void AppendArrayBound(StringBuilder sb, long bound, int numberRadix)
+    private void AppendArrayBound(StyledStringBuilder sb, long bound, int numberRadix)
     {
         var options = new CommonPrimitiveFormatterOptions(
             numberRadix: numberRadix,
@@ -214,24 +235,23 @@ internal abstract partial class CommonTypeNameFormatter
         var formatted = bound is >= int.MinValue and <= int.MaxValue
             ? PrimitiveFormatter.FormatPrimitive((int)bound, options)
             : PrimitiveFormatter.FormatPrimitive(bound, options);
-        sb.Append(formatted);
+        sb.Append(formatted ?? StyledStringSegment.Empty);
     }
 
-    private void AppendArrayRank(StringBuilder sb, Type arrayType)
+    private void AppendArrayRank(StyledStringBuilder sb, Type arrayType)
     {
         sb.Append(ArrayOpening);
         int rank = arrayType.GetArrayRank();
-        if (rank > 1)
+        for (int i = 0; i < rank - 1; i++)
         {
-            sb.Append(',', rank - 1);
+            sb.Append(',');
         }
         sb.Append(ArrayClosing);
     }
 
-    private string FormatGenericTypeName(TypeInfo typeInfo, CommonTypeNameFormatterOptions options)
+    private StyledString FormatGenericTypeName([MaybeNull] TypeInfo typeInfo, CommonTypeNameFormatterOptions options)
     {
-        var pooledBuilder = PooledStringBuilder.GetInstance();
-        var builder = pooledBuilder.Builder;
+        var builder = new StyledStringBuilder();
 
         // consolidated generic arguments (includes arguments of all declaring types):
         // TODO (DevDiv #173210): shouldn't need parameters, but StackTrace gives us unconstructed symbols.
@@ -274,11 +294,11 @@ internal abstract partial class CommonTypeNameFormatter
             AppendTypeInstantiation(builder, typeInfo, genericArguments, ref typeArgumentIndex, options);
         }
 
-        return pooledBuilder.ToStringAndFree();
+        return builder.ToStyledString();
     }
 
     private void AppendTypeInstantiation(
-        StringBuilder builder,
+        StyledStringBuilder builder,
         TypeInfo typeInfo,
         Type[] genericArguments,
         ref int genericArgIndex,
@@ -287,6 +307,7 @@ internal abstract partial class CommonTypeNameFormatter
         // generic arguments of all the outer types and the current type;
         int currentArgCount = (typeInfo.IsGenericTypeDefinition ? typeInfo.GenericTypeParameters.Length : typeInfo.GenericTypeArguments.Length) - genericArgIndex;
 
+        var typeStyle = CommonTypeNameFormatter.GetTypeStyle(typeInfo, highlighter);
         if (currentArgCount > 0)
         {
             string name = typeInfo.Name;
@@ -294,11 +315,11 @@ internal abstract partial class CommonTypeNameFormatter
             int backtick = name.IndexOf('`');
             if (backtick > 0)
             {
-                builder.Append(name.Substring(0, backtick));
+                builder.Append(name[..backtick], typeStyle);
             }
             else
             {
-                builder.Append(name);
+                builder.Append(name, typeStyle);
             }
 
             builder.Append(GenericParameterOpening);
@@ -316,7 +337,7 @@ internal abstract partial class CommonTypeNameFormatter
         }
         else
         {
-            builder.Append(typeInfo.Name);
+            builder.Append(typeInfo.Name, typeStyle);
         }
     }
 }

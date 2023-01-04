@@ -22,7 +22,7 @@ internal class CSharpObjectFormatterImpl : CommonObjectFormatter
         : base(syntaxHighlighter, config)
     {
         PrimitiveFormatter = new CSharpPrimitiveFormatter(syntaxHighlighter);
-        TypeNameFormatter = new CSharpTypeNameFormatter(PrimitiveFormatter);
+        TypeNameFormatter = new CSharpTypeNameFormatter(PrimitiveFormatter, syntaxHighlighter);
         Filter = new CSharpMemberFilter();
     }
 }

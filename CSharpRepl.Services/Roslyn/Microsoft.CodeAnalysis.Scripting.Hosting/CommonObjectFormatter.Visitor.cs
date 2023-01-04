@@ -29,7 +29,7 @@ internal abstract partial class CommonObjectFormatter
     private sealed partial class Visitor
     {
         private readonly CommonObjectFormatter _formatter;
-
+        private readonly CommonTypeNameFormatter typeNameFormatter;
         private readonly BuilderOptions _builderOptions;
         private CommonPrimitiveFormatterOptions _primitiveOptions;
         private readonly CommonTypeNameFormatterOptions _typeNameOptions;
@@ -50,6 +50,7 @@ internal abstract partial class CommonObjectFormatter
 
         public Visitor(
             CommonObjectFormatter formatter,
+            CommonTypeNameFormatter typeNameFormatter,
             BuilderOptions builderOptions,
             CommonPrimitiveFormatterOptions primitiveOptions,
             CommonTypeNameFormatterOptions typeNameOptions,
@@ -58,6 +59,7 @@ internal abstract partial class CommonObjectFormatter
             Configuration config)
         {
             _formatter = formatter;
+            this.typeNameFormatter = typeNameFormatter;
             _builderOptions = builderOptions;
             _primitiveOptions = primitiveOptions;
             _typeNameOptions = typeNameOptions;

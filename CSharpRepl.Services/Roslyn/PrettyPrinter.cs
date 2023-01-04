@@ -8,7 +8,6 @@ using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
-using Spectre.Console;
 
 namespace CSharpRepl.Services.Roslyn;
 

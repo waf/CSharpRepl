@@ -13,8 +13,6 @@ using CSharpRepl.Services;
 using CSharpRepl.Services.Logging;
 using CSharpRepl.Services.Roslyn;
 using PrettyPrompt;
-using PrettyPrompt.Consoles;
-using Spectre.Console;
 
 namespace CSharpRepl;
 
