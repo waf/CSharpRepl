@@ -109,11 +109,35 @@ public sealed class Theme
         syntaxHighlightingSpectreColorsDictionary = syntaxHighlightingColors.ToDictionary(c => c.Name, c => new ThemeColor(c.Foreground).ToSpectreColor());
     }
 
-    public AnsiColor? GetSyntaxHighlightingAnsiColor(string name) => TryGetSyntaxHighlightingAnsiColor(name, out var color) ? color : null;
-    public AnsiColor GetSyntaxHighlightingAnsiColor(string name, AnsiColor defaultValue) => syntaxHighlightingAnsiColorsDictionary.GetValueOrDefault(name, defaultValue);
-    public bool TryGetSyntaxHighlightingAnsiColor(string name, out AnsiColor color) => syntaxHighlightingAnsiColorsDictionary.TryGetValue(name, out color);
+    public AnsiColor? GetSyntaxHighlightingAnsiColor(string? classification)
+        => TryGetSyntaxHighlightingAnsiColor(classification, out var color) ? color : null;
 
-    public Color? GetSyntaxHighlightingSpectreColor(string name) => TryGetSyntaxHighlightingSpectreColor(name, out var color) ? color : null;
-    public Color GetSyntaxHighlightingSpectreColor(string name, Color defaultValue) => syntaxHighlightingSpectreColorsDictionary.GetValueOrDefault(name, defaultValue);
-    public bool TryGetSyntaxHighlightingSpectreColor(string name, out Color color) => syntaxHighlightingSpectreColorsDictionary.TryGetValue(name, out color);
+    public AnsiColor GetSyntaxHighlightingAnsiColor(string? classification, AnsiColor defaultValue)
+        => classification is null ? default : syntaxHighlightingAnsiColorsDictionary.GetValueOrDefault(classification, defaultValue);
+
+    public bool TryGetSyntaxHighlightingAnsiColor(string? classification, out AnsiColor color)
+    {
+        if (classification is null)
+        {
+            color = default;
+            return false;
+        }
+        return syntaxHighlightingAnsiColorsDictionary.TryGetValue(classification, out color);
+    }
+
+    public Color? GetSyntaxHighlightingSpectreColor(string? classification)
+        => TryGetSyntaxHighlightingSpectreColor(classification, out var color) ? color : null;
+
+    public Color GetSyntaxHighlightingSpectreColor(string? classification, Color defaultValue)
+        => classification is null ? default : syntaxHighlightingSpectreColorsDictionary.GetValueOrDefault(classification, defaultValue);
+
+    public bool TryGetSyntaxHighlightingSpectreColor(string? classification, out Color color)
+    {
+        if (classification is null)
+        {
+            color = default;
+            return false;
+        }
+        return syntaxHighlightingSpectreColorsDictionary.TryGetValue(classification, out color);
+    }
 }

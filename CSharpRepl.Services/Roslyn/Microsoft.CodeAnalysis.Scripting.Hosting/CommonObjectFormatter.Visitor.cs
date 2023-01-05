@@ -485,8 +485,8 @@ internal abstract partial class CommonObjectFormatter
                     {
                         var classification = RoslynExtensions.MemberTypeToClassificationTypeName(member.MemberType);
                         var prefix = AutoCompleteService.GetCompletionItemSymbolPrefix(classification, _config.UseUnicode);
-                        var color = _syntaxHighlighter.GetSpectreColor(classification);
-                        name = new StyledString(new StyledStringSegment[] { prefix, new StyledStringSegment(member.Name, new Style(foreground: color)) });
+                        var style = _syntaxHighlighter.GetStyle(classification);
+                        name = new StyledString(new StyledStringSegment[] { prefix, new StyledStringSegment(member.Name, style) });
                     }
                     else
                     {

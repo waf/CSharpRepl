@@ -66,8 +66,7 @@ internal class OverloadItemGenerator
         {
             var partText = part.ToString();
             var classification = RoslynExtensions.SymbolDisplayPartKindToClassificationTypeName(part.Kind);
-            if (classification is not null &&
-                highlighter.TryGetAnsiColor(classification, out var color))
+            if (highlighter.TryGetAnsiColor(classification, out var color))
             {
                 bool bold = false;
                 if (currentArgumentSpan.Length > 0 &&

@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Classification;
-using Spectre.Console;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -103,22 +102,22 @@ file class CommonObjectFormatterException
                 if (string.IsNullOrEmpty(method.SubMethod) && !method.IsLambda)
                     builder.Append("new ", highlighter.KeywordStyle);
 
-                CommonObjectFormatterException.AppendType(builder, method.DeclaringType, highlighter);
+                AppendType(builder, method.DeclaringType, highlighter);
             }
             else if (method.Name == ".cctor")
             {
                 builder.Append("static ", highlighter.KeywordStyle);
-                CommonObjectFormatterException.AppendType(builder, method.DeclaringType, highlighter);
+                AppendType(builder, method.DeclaringType, highlighter);
             }
             else
             {
                 var builderLengthBefore = builder.Length;
-                CommonObjectFormatterException.AppendType(builder, method.DeclaringType, highlighter);
+                AppendType(builder, method.DeclaringType, highlighter);
                 if (builderLengthBefore < builder.Length) builder.Append(".");
 
                 if (method.Name != null)
                 {
-                    builder.Append(method.Name, new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.MethodName)));
+                    builder.Append(method.Name, highlighter.GetStyle(ClassificationTypeNames.MethodName));
                 }
             }
         }
@@ -227,7 +226,7 @@ file class CommonObjectFormatterException
             if (!string.IsNullOrEmpty(parameter.Name))
             {
                 sb.Append(" ")
-                  .Append(parameter.Name, new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.ParameterName)));
+                  .Append(parameter.Name, highlighter.GetStyle(ClassificationTypeNames.ParameterName));
             }
 
             return sb;
@@ -315,7 +314,7 @@ file class CommonObjectFormatterException
                 {
                     if (options.IncludeGenericParameterNames)
                     {
-                        builder.Append(type.Name, new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.TypeParameterName)));
+                        builder.Append(type.Name, highlighter.GetStyle(ClassificationTypeNames.TypeParameterName));
                     }
                 }
                 else

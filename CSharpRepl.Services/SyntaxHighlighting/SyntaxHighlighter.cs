@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Theming;
@@ -63,12 +64,40 @@ internal sealed class SyntaxHighlighter
         return highlighted;
     }
 
-    internal AnsiColor GetAnsiColor(string keyword) => theme.GetSyntaxHighlightingAnsiColor(keyword, unhighlightedAnsiColor);
-    internal bool TryGetAnsiColor(string keyword, out AnsiColor color) => theme.TryGetSyntaxHighlightingAnsiColor(keyword, out color);
+    public AnsiColor GetAnsiColor(string? classification) => theme.GetSyntaxHighlightingAnsiColor(classification, unhighlightedAnsiColor);
+    public bool TryGetAnsiColor(string? classification, out AnsiColor color) => theme.TryGetSyntaxHighlightingAnsiColor(classification, out color);
+    public ConsoleFormat GetFormat(string? classification) => new(Foreground: GetAnsiColor(classification));
+    public bool TryGetFormat(string? classification, out ConsoleFormat format)
+    {
+        if (theme.TryGetSyntaxHighlightingAnsiColor(classification, out var color))
+        {
+            format = new ConsoleFormat(Foreground: color);
+            return true;
+        }
+        else
+        {
+            format = ConsoleFormat.None;
+            return false;
+        }
+    }
 
-    internal Color GetSpectreColor(string keyword) => theme.GetSyntaxHighlightingSpectreColor(keyword, unhighlightedSpectreColor);
-    internal bool TryGetSpectreColor(string keyword, out Color color) => theme.TryGetSyntaxHighlightingSpectreColor(keyword, out color);
+    public Color GetSpectreColor(string? classification) => theme.GetSyntaxHighlightingSpectreColor(classification, unhighlightedSpectreColor);
+    public bool TryGetSpectreColor(string? classification, out Color color) => theme.TryGetSyntaxHighlightingSpectreColor(classification, out color);
+    public Style GetStyle(string? classification) => new(foreground: GetSpectreColor(classification));
+    public bool TryGetStyle(string? classification, [NotNullWhen(true)] out Style? style)
+    {
+        if (theme.TryGetSyntaxHighlightingSpectreColor(classification, out var color))
+        {
+            style = new Style(foreground: color);
+            return true;
+        }
+        else
+        {
+            style = null;
+            return false;
+        }
+    }
 
-    public Style KeywordStyle => new(foreground: GetSpectreColor(ClassificationTypeNames.Keyword));
-    public ConsoleFormat KeywordFormat => new(Foreground: GetAnsiColor(ClassificationTypeNames.Keyword));
+    public Style KeywordStyle => GetStyle(ClassificationTypeNames.Keyword);
+    public ConsoleFormat KeywordFormat => GetFormat(ClassificationTypeNames.Keyword);
 }

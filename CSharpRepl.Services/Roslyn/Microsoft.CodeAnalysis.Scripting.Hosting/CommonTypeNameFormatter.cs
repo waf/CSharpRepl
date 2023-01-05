@@ -40,10 +40,10 @@ internal abstract partial class CommonTypeNameFormatter
     public static Style GetTypeStyle(Type type, SyntaxHighlighter highlighter)
     {
         Style format;
-        if (type.IsValueType) format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.StructName));
-        else if (type.IsInterface) format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.InterfaceName));
-        else if (type.IsSubclassOf(typeof(Delegate))) format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.DelegateName));
-        else format = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.ClassName));
+        if (type.IsValueType) format = highlighter.GetStyle(ClassificationTypeNames.StructName);
+        else if (type.IsInterface) format = highlighter.GetStyle(ClassificationTypeNames.InterfaceName);
+        else if (type.IsSubclassOf(typeof(Delegate))) format = highlighter.GetStyle(ClassificationTypeNames.DelegateName);
+        else format = highlighter.GetStyle(ClassificationTypeNames.ClassName);
         return format;
     }
 
@@ -63,7 +63,7 @@ internal abstract partial class CommonTypeNameFormatter
 
         if (type.IsGenericParameter)
         {
-            return new StyledString(type.Name, new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.TypeParameterName)));
+            return new StyledString(type.Name, highlighter.GetStyle(ClassificationTypeNames.TypeParameterName));
         }
 
         if (type.IsArray)
@@ -92,7 +92,7 @@ internal abstract partial class CommonTypeNameFormatter
                 null;
             namespaceParts ??= Array.Empty<string>();
 
-            var namespaceStyle = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.NamespaceName));
+            var namespaceStyle = highlighter.GetStyle(ClassificationTypeNames.NamespaceName);
             for (int i = 0; i < namespaceParts.Length; i++)
             {
                 sb.Append(namespaceParts[i], namespaceStyle);
