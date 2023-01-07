@@ -6,6 +6,7 @@
 
 using System;
 using CSharpRepl.Services.Theming;
+using Spectre.Console;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -68,7 +69,7 @@ internal abstract partial class CommonObjectFormatter
             _sb.Append(ellipsis);
         }
 
-        public void Append(char c, int count = 1)
+        public void Append(char c, int count = 1, Style style = null)
         {
             if (CurrentRemaining < 0)
             {
@@ -79,7 +80,7 @@ internal abstract partial class CommonObjectFormatter
 
             for (int i = 0; i < length; i++)
             {
-                _sb.Append(c);
+                _sb.Append(c, style);
             }
 
             if (!_suppressEllipsis && length < count)
@@ -87,6 +88,9 @@ internal abstract partial class CommonObjectFormatter
                 AppendEllipsis();
             }
         }
+
+        public void Append(string str, int start = 0, int count = Int32.MaxValue, Style style = null)
+            => Append(new StyledString(str, style), start, count);
 
         public void Append(StyledString str, int start = 0, int count = Int32.MaxValue)
         {

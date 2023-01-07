@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using System;
 using System.Collections.Generic;
 using Spectre.Console;
 
@@ -30,6 +31,11 @@ public sealed class StyledStringBuilder
         }
     }
 
+    //string has implicit conversion to Style which is not desirable here
+    [Obsolete("Do not use this overload. You need to pass Style object and not string implicitly parsed to Style.")]
+    public StyledStringBuilder(string? text, string style)
+        => throw new NotSupportedException();
+
     public StyledStringBuilder Append(string? text, Style? style = null)
     {
         if (text != null)
@@ -38,6 +44,11 @@ public sealed class StyledStringBuilder
         }
         return this;
     }
+
+    //string has implicit conversion to Style which is not desirable here
+    [Obsolete("Do not use this overload. You need to pass Style object and not string implicitly parsed to Style.")]
+    public StyledStringBuilder Append(string? text, string style)
+        => throw new NotSupportedException();
 
     public StyledStringBuilder Append(char c, Style? style = null)
     {

@@ -55,13 +55,16 @@ internal abstract partial class CommonTypeNameFormatter
             throw new ArgumentNullException(nameof(type));
         }
 
-        var primitiveTypeName = GetPrimitiveTypeName(GetPrimitiveSpecialType(type));
+        var primitiveTypeName =
+            options.UseLanguageKeywords ?
+            GetPrimitiveTypeName(GetPrimitiveSpecialType(type)) :
+            null;
         if (primitiveTypeName.HasValue)
         {
             return primitiveTypeName.Value;
         }
 
-        if (type.IsGenericParameter)
+        if (type.IsGenericParameter || (type.IsByRef && type.GetElementType()?.IsGenericParameter == true))
         {
             return new StyledString(type.Name, highlighter.GetStyle(ClassificationTypeNames.TypeParameterName));
         }
@@ -82,7 +85,6 @@ internal abstract partial class CommonTypeNameFormatter
 
     private StyledString FormatNonGenericTypeName(TypeInfo typeInfo, CommonTypeNameFormatterOptions options)
     {
-        var typeStyle = CommonTypeNameFormatter.GetTypeStyle(typeInfo, highlighter);
         var sb = new StyledStringBuilder();
         if (typeInfo.DeclaringType is null)
         {
@@ -98,16 +100,30 @@ internal abstract partial class CommonTypeNameFormatter
                 sb.Append(namespaceParts[i], namespaceStyle);
                 sb.Append('.');
             }
-
-            sb.Append(typeInfo.Name, typeStyle);
+            AppendNameWithoutGenericPart(typeInfo, sb);
         }
         else
         {
             sb.Append(FormatTypeName(typeInfo.DeclaringType, options));
             sb.Append('.');
-            sb.Append(typeInfo.Name, typeStyle);
+            AppendNameWithoutGenericPart(typeInfo, sb);
         }
         return sb.ToStyledString();
+
+        void AppendNameWithoutGenericPart(TypeInfo typeInfo, StyledStringBuilder builder)
+        {
+            var typeStyle = GetTypeStyle(typeInfo, highlighter);
+            var name = typeInfo.Name;
+            int backtick = name.IndexOf('`');
+            if (backtick > 0)
+            {
+                builder.Append(name[..backtick], typeStyle);
+            }
+            else
+            {
+                builder.Append(name, typeStyle);
+            }
+        }
     }
 
     public virtual StyledString FormatTypeArguments(Type[] typeArguments, CommonTypeNameFormatterOptions options)
@@ -307,20 +323,10 @@ internal abstract partial class CommonTypeNameFormatter
         // generic arguments of all the outer types and the current type;
         int currentArgCount = (typeInfo.IsGenericTypeDefinition ? typeInfo.GenericTypeParameters.Length : typeInfo.GenericTypeArguments.Length) - genericArgIndex;
 
-        var typeStyle = CommonTypeNameFormatter.GetTypeStyle(typeInfo, highlighter);
+        var typeStyle = GetTypeStyle(typeInfo, highlighter);
         if (currentArgCount > 0)
         {
-            string name = typeInfo.Name;
-
-            int backtick = name.IndexOf('`');
-            if (backtick > 0)
-            {
-                builder.Append(name[..backtick], typeStyle);
-            }
-            else
-            {
-                builder.Append(name, typeStyle);
-            }
+            builder.Append(FormatNonGenericTypeName(typeInfo, options));
 
             builder.Append(GenericParameterOpening);
 
