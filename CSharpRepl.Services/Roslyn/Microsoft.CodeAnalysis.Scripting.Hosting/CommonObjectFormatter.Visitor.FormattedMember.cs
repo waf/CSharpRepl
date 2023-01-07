@@ -11,7 +11,7 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
 internal abstract partial class CommonObjectFormatter
 {
-    private sealed partial class Visitor
+    internal sealed partial class Visitor
     {
         private readonly struct FormattedMember
         {

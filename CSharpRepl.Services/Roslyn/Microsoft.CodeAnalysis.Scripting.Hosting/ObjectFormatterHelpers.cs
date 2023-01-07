@@ -18,7 +18,7 @@ using TypeInfo = System.Reflection.TypeInfo;
 
 internal static class ObjectFormatterHelpers
 {
-    internal static readonly object VoidValue = new object();
+    internal static readonly object VoidValue = new();
 
     internal const int NumberRadixDecimal = 10;
     internal const int NumberRadixHexadecimal = 16;

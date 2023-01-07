@@ -438,17 +438,16 @@ internal sealed class DocumentationComment
                 return false;
             }
 
-            var format = SymbolDisplayFormat.MinimallyQualifiedFormat
+            var displayFormat = SymbolDisplayFormat.MinimallyQualifiedFormat
                 .RemoveMemberOptions(SymbolDisplayMemberOptions.IncludeType)
                 .RemoveKindOptions(SymbolDisplayKindOptions.IncludeMemberKeyword);
-            foreach (var part in symbol.ToDisplayParts(format))
+            foreach (var part in symbol.ToDisplayParts(displayFormat))
             {
                 var partText = part.ToString();
                 var classification = RoslynExtensions.SymbolDisplayPartKindToClassificationTypeName(part.Kind);
-                if (classification is not null &&
-                    highlighter.TryGetAnsiColor(classification, out var color))
+                if (highlighter.TryGetFormat(classification, out var format))
                 {
-                    text.Append(partText, new ConsoleFormat(color));
+                    text.Append(partText, format);
                 }
                 else
                 {

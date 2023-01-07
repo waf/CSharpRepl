@@ -1,4 +1,6 @@
-﻿namespace CSharpRepl.Services.Extensions;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace CSharpRepl.Services.Extensions;
 
 internal static class MiscExtensions
 {
@@ -14,6 +16,21 @@ internal static class MiscExtensions
         {
             value = default;
             return false;
+        }
+    }
+
+    public static bool TryGet<T>(this T? nullableValue, [MaybeNullWhen(false)] out T value)
+        where T : class
+    {
+        if (nullableValue is null)
+        {
+            value = null;
+            return false;
+        }
+        else
+        {
+            value = nullableValue;
+            return true;
         }
     }
 }

@@ -6,12 +6,14 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
 internal readonly struct CommonTypeNameFormatterOptions
 {
-    public int ArrayBoundRadix { get; }
-    public bool ShowNamespaces { get; }
+    public readonly int ArrayBoundRadix;
+    public readonly bool ShowNamespaces;
+    public readonly bool UseLanguageKeywords;
 
-    public CommonTypeNameFormatterOptions(int arrayBoundRadix, bool showNamespaces)
+    public CommonTypeNameFormatterOptions(int arrayBoundRadix, bool showNamespaces, bool useLanguageKeywords = true)
     {
         ArrayBoundRadix = arrayBoundRadix;
         ShowNamespaces = showNamespaces;
+        UseLanguageKeywords = useLanguageKeywords;
     }
 }

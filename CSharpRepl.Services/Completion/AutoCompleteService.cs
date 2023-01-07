@@ -62,11 +62,10 @@ internal sealed class AutoCompleteService
             if (item.Tags.Length > 0)
             {
                 var classification = RoslynExtensions.TextTagToClassificationTypeName(item.Tags.First());
-                if (classification is not null &&
-                    highlighter.TryGetAnsiColor(classification, out var color))
+                if (highlighter.TryGetFormat(classification, out var format))
                 {
                     var prefix = GetCompletionItemSymbolPrefix(classification, configuration.UseUnicode);
-                    return new FormattedString($"{prefix}{text}", new FormatSpan(prefix.Length, text.Length, new ConsoleFormat(Foreground: color)));
+                    return new FormattedString($"{prefix}{text}", new FormatSpan(prefix.Length, text.Length, format));
                 }
             }
             return text;
@@ -115,10 +114,9 @@ internal sealed class AutoCompleteService
         foreach (var taggedText in description.TaggedParts)
         {
             var classification = RoslynExtensions.TextTagToClassificationTypeName(taggedText.Tag);
-            if (classification is not null &&
-                highlighter.TryGetAnsiColor(classification, out var color))
+            if (highlighter.TryGetFormat(classification, out var format))
             {
-                stringBuilder.Append(taggedText.Text, new FormatSpan(0, taggedText.Text.Length, new ConsoleFormat(Foreground: color)));
+                stringBuilder.Append(taggedText.Text, new FormatSpan(0, taggedText.Text.Length, format));
             }
             else
             {

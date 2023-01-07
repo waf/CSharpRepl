@@ -21,8 +21,8 @@ internal class CSharpPrimitiveFormatter : CommonPrimitiveFormatter
 
     public CSharpPrimitiveFormatter(SyntaxHighlighter highlighter)
     {
-        numericLiteralFormat = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.NumericLiteral));
-        stringLiteralFormat = new Style(foreground: highlighter.GetSpectreColor(ClassificationTypeNames.StringLiteral));
+        numericLiteralFormat = highlighter.GetStyle(ClassificationTypeNames.NumericLiteral);
+        stringLiteralFormat = highlighter.GetStyle(ClassificationTypeNames.StringLiteral);
         NullLiteral = new StyledStringSegment("null", highlighter.KeywordStyle);
         this.highlighter = highlighter;
     }
