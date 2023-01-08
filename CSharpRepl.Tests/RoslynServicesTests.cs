@@ -189,34 +189,144 @@ public class RoslynServices_REPL_Tests
 
     [Theory]
     [MemberData(nameof(EnumerateCompletionDoesNotInterfereData))]
-    public async Task CompletionDoesNotInterfere(FormattableString input, string output)
+    public async Task CompletionDoesNotInterfere(FormattableString input, string expectedInput, string expectedOutput)
     {
-        var (console, repl, configuration, _, _) = await InitAsync();
+        var submittedInputs = new List<string>();
+        var (console, repl, configuration, _, _) = await InitAsync(evaluatingInputHandler: submittedInputs.Add);
         console.StubInput(input);
         await repl.RunAsync(configuration);
-        Assert.Equal(output, console.AnsiConsole.Lines.Last());
+        Assert.Equal(expectedInput, submittedInputs.Last());
+        Assert.Equal(expectedOutput, console.AnsiConsole.Lines.Last());
     }
 
     public static IEnumerable<object[]> EnumerateCompletionDoesNotInterfereData()
     {
-        foreach (var (input, output) in EnumerateCompletionDoesNotInterfereData())
+        foreach (var (input, expectedInput, expectedOutput) in EnumerateCompletionDoesNotInterfereData())
         {
-            yield return new object[] { input, output };
+            yield return new object[] { input, expectedInput, expectedOutput };
         }
-        static IEnumerable<(FormattableString Input, string Output)> EnumerateCompletionDoesNotInterfereData()
+        static IEnumerable<(FormattableString Input, string ExpectedInput, string ExpectedOutput)> EnumerateCompletionDoesNotInterfereData()
         {
-            yield return ($@""""".Where(c => c == 'x').Count(){Enter}{Enter}exit{Enter}", "0"); //https://github.com/waf/CSharpRepl/issues/145
-            yield return ($@""""".Where(c=>c=='x').Count(){Enter}{Enter}exit{Enter}", "0"); //https://github.com/waf/CSharpRepl/issues/145
-            yield return ($@"new {{ c = 5 }}.c{Enter}{Enter}exit{Enter}", "5"); //https://github.com/waf/CSharpRepl/issues/157
-            yield return ($@"new{{c=5}}.c{Enter}{Enter}exit{Enter}", "5"); //https://github.com/waf/CSharpRepl/issues/157
+            //https://github.com/waf/CSharpRepl/issues/145
+            yield return
+                (
+                    $@""""".Where(c => c == 'x').Count(){Enter}exit{Enter}",
+                    @""""".Where(c => c == 'x').Count()",
+                    "0"
+                );
+            yield return
+                (
+                    $@""""".Where(c=>c=='x').Count(){Enter}exit{Enter}",
+                    @""""".Where(c=>c=='x').Count()",
+                    "0"
+                );
+
+            //https://github.com/waf/CSharpRepl/issues/157
+            yield return
+                (
+                    $@"new {{ c = 5 }}.c{Enter}{Enter}exit{Enter}",
+                    @"new { c = 5 }.c",
+                    "5"
+                );
+            yield return
+                (
+                    $@"new{{c=5}}.c{Enter}{Enter}exit{Enter}",
+                    @"new { c = 5 }.c",
+                    "5"
+                );
+
+            //https://github.com/waf/CSharpRepl/issues/200
+            yield return
+                (
+                    $@"new int[] {{ 1, 2, 3 }}.Select(){LeftArrow}i => i{RightArrow}.Count(){Enter}exit{Enter}",
+                    @"new int[] { 1, 2, 3 }.Select(i => i).Count()",
+                    "3"
+                );
+            yield return
+                (
+                    $@"new int[] {{1,2,3}}.Select(){LeftArrow}i=>i{RightArrow}.Count(){Enter}exit{Enter}",
+                    @"new int[] { 1, 2, 3 }.Select(i=>i).Count()",
+                    "3"
+                );
+
+            //https://github.com/waf/CSharpRepl/issues/201 - sequential writing
+            yield return
+                (
+                    $@"new int[] {{ 1, 2, 3 }}.Select((i, v) => i + v).Count(){Enter}exit{Enter}",
+                    @"new int[] { 1, 2, 3 }.Select((i, v) => i + v).Count()",
+                    "3"
+                );
+            yield return
+                (
+                    $@"new int[] {{1,2,3}}.Select((i,v)=>i+v).Count(){Enter}exit{Enter}",
+                    @"new int[] { 1, 2, 3 }.Select((i,v)=>i+v).Count()",
+                    "3"
+                );
+
+            //https://github.com/waf/CSharpRepl/issues/201 - sequential writing and more than 2 lambda args
+            yield return
+                (
+                    $@"new int[] {{ 1, 2, 3 }}.Select((i, v, {Backspace}{Backspace}) => i + v).Count(){Enter}exit{Enter}",
+                    @"new int[] { 1, 2, 3 }.Select((i, v) => i + v).Count()",
+                    "3"
+                );
+            yield return
+                (
+                    $@"new int[] {{1,2,3}}.Select((i,v,{Backspace})=>i+v).Count(){Enter}exit{Enter}",
+                    @"new int[] { 1, 2, 3 }.Select((i,v)=>i+v).Count()",
+                    "3"
+                );
+
+            //https://github.com/waf/CSharpRepl/issues/201 - editing completed expression (write 'Select()' then write the labmda inside)
+            yield return
+                (
+                    $@"new int[] {{ 1, 2, 3 }}.Select(){LeftArrow}(i, v) => i + v{RightArrow}.Count(){Enter}exit{Enter}",
+                    @"new int[] { 1, 2, 3 }.Select((i, v) => i + v).Count()",
+                    "3"
+                );
+            yield return
+                (
+                    $@"new int[] {{1,2,3}}.Select(){LeftArrow}(i,v)=>i+v{RightArrow}.Count(){Enter}exit{Enter}",
+                    @"new int[] { 1, 2, 3 }.Select((i,v)=>i+v).Count()",
+                    "3"
+                );
+
+            //https://github.com/waf/CSharpRepl/issues/201 - editing completed expression (write 'Select((i, v) => i + v)' then delete 'i,' and write it again)
+            yield return
+                (
+                    $@"new int[] {{ 1, 2, 3 }}.Select((i, v) => i + v){LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{Backspace}{Backspace}i,{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}.Count(){Enter}exit{Enter}",
+                    @"new int[] { 1, 2, 3 }.Select((i, v) => i + v).Count()",
+                    "3"
+                );
+
+            //https://github.com/waf/CSharpRepl/issues/201 - editing completed expression (write 'Select((i, v) => i + v)' then delete 'v)' and write it again)
+            yield return
+                (
+                    $@"new int[] {{ 1, 2, 3 }}.Select((i, v) => i + v){LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{Backspace}{Backspace}v){RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}.Count(){Enter}exit{Enter}",
+                    @"new int[] { 1, 2, 3 }.Select((i, v) => i + v).Count()",
+                    "3"
+                );
+
+            //editing completed expression (write 'Select(i=>i)' then replace 'i' definition with '()' and then fill '()' with 'i,v')
+            yield return
+                (
+                    $@"new int[] {{ 1, 2, 3 }}.Select(i=>i){LeftArrow}{LeftArrow}{LeftArrow}{LeftArrow}{Backspace}(){LeftArrow}i,v{RightArrow}{RightArrow}{RightArrow}{RightArrow}{RightArrow}.Count(){Enter}exit{Enter}",
+                    @"new int[] { 1, 2, 3 }.Select((i,v)=>i).Count()",
+                    "3"
+                );
         }
     }
 
-    private static async Task<(FakeConsoleAbstract Console, ReadEvalPrintLoop Repl, Configuration Configuration, StringBuilder StdOut, StringBuilder StdErr)> InitAsync(Configuration? configuration = null)
+    private static async Task<(FakeConsoleAbstract Console, ReadEvalPrintLoop Repl, Configuration Configuration, StringBuilder StdOut, StringBuilder StdErr)> InitAsync(
+        Configuration? configuration = null,
+        Action<string>? evaluatingInputHandler = null)
     {
         var (console, stdout, stderr) = FakeConsole.CreateStubbedOutputAndError();
         configuration ??= new Configuration();
+
         var services = new RoslynServices(console, configuration, new TestTraceLogger());
+        if (evaluatingInputHandler != null) services.EvaluatingInput += evaluatingInputHandler;
+
         var prompt = new Prompt(console: console.PrettyPromptConsole, callbacks: new CSharpReplPromptCallbacks(console, services, configuration), configuration: new PromptConfiguration(keyBindings: configuration.KeyBindings));
         var repl = new ReadEvalPrintLoop(services, prompt, console);
         await services.WarmUpAsync(Array.Empty<string>());
