@@ -4,7 +4,6 @@
 
 using CSharpRepl.Services;
 using CSharpRepl.Services.SyntaxHighlighting;
-using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using MemberFilter = Microsoft.CodeAnalysis.Scripting.Hosting.MemberFilter;
 
@@ -12,8 +11,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 
 internal class CSharpObjectFormatterImpl : CommonObjectFormatter
 {
-    public StyledStringSegment NullLiteral => PrimitiveFormatter.NullLiteral;
-
     protected override CommonTypeNameFormatter TypeNameFormatter { get; }
     protected override CommonPrimitiveFormatter PrimitiveFormatter { get; }
     protected override MemberFilter Filter { get; }

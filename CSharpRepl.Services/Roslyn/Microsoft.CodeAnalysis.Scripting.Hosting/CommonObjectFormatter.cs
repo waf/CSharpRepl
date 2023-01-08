@@ -5,6 +5,7 @@
 using System;
 using System.Globalization;
 using CSharpRepl.Services;
+using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 
@@ -15,13 +16,20 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 /// </summary>
 internal abstract partial class CommonObjectFormatter
 {
-    private readonly SyntaxHighlighter highlighter;
-    private readonly Configuration config;
+    protected readonly SyntaxHighlighter highlighter;
+    protected readonly Configuration configuration;
+
+    protected virtual MemberFilter Filter { get; } = new CommonMemberFilter();
+
+    protected abstract CommonTypeNameFormatter TypeNameFormatter { get; }
+    protected abstract CommonPrimitiveFormatter PrimitiveFormatter { get; }
+
+    public StyledStringSegment NullLiteral => PrimitiveFormatter.NullLiteral;
 
     protected CommonObjectFormatter(SyntaxHighlighter syntaxHighlighter, Configuration config)
     {
         this.highlighter = syntaxHighlighter;
-        this.config = config;
+        this.configuration = config;
     }
 
     public StyledString FormatObject(object obj, PrintOptions options)
@@ -34,14 +42,9 @@ internal abstract partial class CommonObjectFormatter
             throw new ArgumentNullException(nameof(options));
         }
 
-        var visitor = new Visitor(this, TypeNameFormatter, GetInternalBuilderOptions(options), GetPrimitiveOptions(options), GetTypeNameOptions(options), options.MemberDisplayFormat, highlighter, config);
-        return visitor.FormatObject(obj);
+        var visitor = new Visitor(this, TypeNameFormatter, GetInternalBuilderOptions(options), GetPrimitiveOptions(options), GetTypeNameOptions(options), options.MemberDisplayFormat, highlighter, configuration);
+        return visitor.FormatObject(obj, level: options.MemberDisplayFormat == MemberDisplayFormat.SeparateLines ? Level.FirstDetailed : Level.FirstSimple);
     }
-
-    protected virtual MemberFilter Filter { get; } = new CommonMemberFilter();
-
-    protected abstract CommonTypeNameFormatter TypeNameFormatter { get; }
-    protected abstract CommonPrimitiveFormatter PrimitiveFormatter { get; }
 
     protected virtual BuilderOptions GetInternalBuilderOptions(PrintOptions printOptions) =>
         new(

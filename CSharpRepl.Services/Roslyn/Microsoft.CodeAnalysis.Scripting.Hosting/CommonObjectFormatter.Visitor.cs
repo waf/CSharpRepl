@@ -32,7 +32,7 @@ internal abstract partial class CommonObjectFormatter
         private static readonly ICustomObjectFormatter[] customObjectFormatters = new ICustomObjectFormatter[]
         {
             TypeFormatter.Instance,
-            MethodInfoFormatter.Instance
+            MethodInfoFormatter.Instance,
         };
 
         public CommonObjectFormatter Formatter { get; }
@@ -80,12 +80,16 @@ internal abstract partial class CommonObjectFormatter
             return new Builder(BuilderOptions.WithMaximumOutputLength(Math.Min(BuilderOptions.MaximumLineLength, limit)), suppressEllipsis: true);
         }
 
-        public StyledString FormatObject(object obj)
+#nullable enable
+        public StyledString FormatObject(object? obj, Level level)
+#nullable disable
         {
+            if (obj is null) return Formatter.PrimitiveFormatter.NullLiteral;
+
             try
             {
                 var builder = new Builder(BuilderOptions, suppressEllipsis: false);
-                return FormatObjectRecursive(builder, obj, level: 0, debuggerDisplayName: out _).ToTextWithStyle();
+                return FormatObjectRecursive(builder, obj, level, debuggerDisplayName: out _).ToTextWithStyle();
             }
             catch (InsufficientExecutionStackException)
             {
@@ -93,151 +97,158 @@ internal abstract partial class CommonObjectFormatter
             }
         }
 
-        private Builder FormatObjectRecursive(Builder result, object obj, int level, out string debuggerDisplayName)
+        private Builder FormatObjectRecursive(Builder result, object obj, Level level, out string debuggerDisplayName)
         {
-            // TODO (https://github.com/dotnet/roslyn/issues/6689): remove this
-            if (level > 0 && MemberDisplayFormat == MemberDisplayFormat.SeparateLines)
+            var oldMemberDisplayFormat = MemberDisplayFormat;
+            try
             {
-                MemberDisplayFormat = MemberDisplayFormat.SingleLine;
-            }
-
-            debuggerDisplayName = null;
-            var primitive = Formatter.PrimitiveFormatter.FormatPrimitive(obj, PrimitiveOptions);
-            if (primitive.TryGet(out var primitiveValue))
-            {
-                result.Append(primitiveValue);
-                return result;
-            }
-
-            Type type = obj.GetType();
-            TypeInfo typeInfo = type.GetTypeInfo();
-
-            //
-            // Override KeyValuePair<,>.ToString() to get better dictionary elements formatting:
-            //
-            // { { format(key), format(value) }, ... }
-            // instead of
-            // { [key.ToString(), value.ToString()], ... } 
-            //
-            // This is more general than overriding Dictionary<,> debugger proxy attribute since it applies on all
-            // types that return an array of KeyValuePair in their DebuggerDisplay to display items.
-            //
-            if (typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == typeof(KeyValuePair<,>))
-            {
-                if (level == 0)
+                if (level > 0 && MemberDisplayFormat == MemberDisplayFormat.SeparateLines)
                 {
-                    result.Append(Formatter.TypeNameFormatter.FormatTypeName(type, TypeNameOptions));
-                    result.Append(' ');
+                    MemberDisplayFormat = MemberDisplayFormat.SingleLine;
                 }
 
-                FormatKeyValuePair(result, obj, level);
-                return result;
-            }
-
-            if (typeInfo.IsArray)
-            {
-                if (VisitedObjects.Add(obj))
+                debuggerDisplayName = null;
+                var primitive = Formatter.PrimitiveFormatter.FormatPrimitive(obj, PrimitiveOptions);
+                if (primitive.TryGet(out var primitiveValue))
                 {
-                    FormatArray(result, (Array)obj, level);
-
-                    VisitedObjects.Remove(obj);
-                }
-                else
-                {
-                    result.AppendInfiniteRecursionMarker();
-                }
-
-                return result;
-            }
-
-            DebuggerDisplayAttribute debuggerDisplay = GetApplicableDebuggerDisplayAttribute(typeInfo);
-            if (debuggerDisplay != null)
-            {
-                debuggerDisplayName = debuggerDisplay.Name;
-            }
-
-            // Suppresses members if inlineMembers is true,
-            // does nothing otherwise.
-            bool suppressInlineMembers = false;
-
-            //
-            // TypeName(count) for ICollection implementers
-            // or
-            // TypeName([[DebuggerDisplay.Value]])        // Inline
-            // [[DebuggerDisplay.Value]]                  // Inline && !isRoot
-            // or
-            // [[ToString()]] if ToString overridden
-            // or
-            // TypeName 
-            // 
-            ICollection collection;
-            if ((collection = obj as ICollection) != null)
-            {
-                FormatCollectionHeader(result, collection);
-            }
-            else if (debuggerDisplay != null && !string.IsNullOrEmpty(debuggerDisplay.Value))
-            {
-                if (level == 0)
-                {
-                    result.Append(Formatter.TypeNameFormatter.FormatTypeName(type, TypeNameOptions));
-                    result.Append('(');
-                }
-
-                FormatWithEmbeddedExpressions(result, debuggerDisplay.Value, obj, level);
-
-                if (level == 0)
-                {
-                    result.Append(')');
-                }
-
-                suppressInlineMembers = true;
-            }
-            else if (HasOverriddenToString(typeInfo))
-            {
-                ObjectToString(result, obj, level);
-                suppressInlineMembers = true;
-            }
-            else
-            {
-                result.Append(Formatter.TypeNameFormatter.FormatTypeName(type, TypeNameOptions));
-            }
-
-            MemberDisplayFormat memberFormat = MemberDisplayFormat;
-
-            if (memberFormat == MemberDisplayFormat.Hidden)
-            {
-                if (collection != null)
-                {
-                    // NB: Collections specifically ignore MemberDisplayFormat.Hidden.
-                    memberFormat = MemberDisplayFormat.SingleLine;
-                }
-                else
-                {
+                    result.Append(primitiveValue);
                     return result;
                 }
+
+                Type type = obj.GetType();
+                TypeInfo typeInfo = type.GetTypeInfo();
+
+                //
+                // Override KeyValuePair<,>.ToString() to get better dictionary elements formatting:
+                //
+                // { { format(key), format(value) }, ... }
+                // instead of
+                // { [key.ToString(), value.ToString()], ... } 
+                //
+                // This is more general than overriding Dictionary<,> debugger proxy attribute since it applies on all
+                // types that return an array of KeyValuePair in their DebuggerDisplay to display items.
+                //
+                if (typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == typeof(KeyValuePair<,>))
+                {
+                    if (level == 0)
+                    {
+                        result.Append(Formatter.TypeNameFormatter.FormatTypeName(type, TypeNameOptions));
+                        result.Append(' ');
+                    }
+
+                    FormatKeyValuePair(result, obj, level);
+                    return result;
+                }
+
+                if (typeInfo.IsArray)
+                {
+                    if (VisitedObjects.Add(obj))
+                    {
+                        FormatArray(result, (Array)obj, level);
+
+                        VisitedObjects.Remove(obj);
+                    }
+                    else
+                    {
+                        result.AppendInfiniteRecursionMarker();
+                    }
+
+                    return result;
+                }
+
+                DebuggerDisplayAttribute debuggerDisplay = GetApplicableDebuggerDisplayAttribute(typeInfo);
+                if (debuggerDisplay != null)
+                {
+                    debuggerDisplayName = debuggerDisplay.Name;
+                }
+
+                // Suppresses members if inlineMembers is true,
+                // does nothing otherwise.
+                bool suppressInlineMembers = false;
+
+                //
+                // TypeName(count) for ICollection implementers
+                // or
+                // TypeName([[DebuggerDisplay.Value]])        // Inline
+                // [[DebuggerDisplay.Value]]                  // Inline && !isRoot
+                // or
+                // [[ToString()]] if ToString overridden
+                // or
+                // TypeName 
+                // 
+                ICollection collection;
+                if ((collection = obj as ICollection) != null)
+                {
+                    FormatCollectionHeader(result, collection);
+                }
+                else if (debuggerDisplay != null && !string.IsNullOrEmpty(debuggerDisplay.Value))
+                {
+                    if (level == 0)
+                    {
+                        result.Append(Formatter.TypeNameFormatter.FormatTypeName(type, TypeNameOptions));
+                        result.Append('(');
+                    }
+
+                    FormatWithEmbeddedExpressions(result, debuggerDisplay.Value, obj, level);
+
+                    if (level == 0)
+                    {
+                        result.Append(')');
+                    }
+
+                    suppressInlineMembers = true;
+                }
+                else if (HasOverriddenToString(typeInfo))
+                {
+                    if (ObjectToString(result, obj, level)) return result;
+                    suppressInlineMembers = true;
+                }
+                else
+                {
+                    result.Append(Formatter.TypeNameFormatter.FormatTypeName(type, TypeNameOptions));
+                }
+
+                MemberDisplayFormat memberFormat = MemberDisplayFormat;
+
+                if (memberFormat == MemberDisplayFormat.Hidden)
+                {
+                    if (collection != null)
+                    {
+                        // NB: Collections specifically ignore MemberDisplayFormat.Hidden.
+                        memberFormat = MemberDisplayFormat.SingleLine;
+                    }
+                    else
+                    {
+                        return result;
+                    }
+                }
+
+                bool includeNonPublic = memberFormat == MemberDisplayFormat.SeparateLines;
+                bool inlineMembers = memberFormat == MemberDisplayFormat.SingleLine;
+
+                object proxy = GetDebuggerTypeProxy(obj);
+                if (proxy != null)
+                {
+                    includeNonPublic = false;
+                    suppressInlineMembers = false;
+                }
+
+                if (!suppressInlineMembers || !inlineMembers)
+                {
+                    FormatMembers(result, obj, proxy, includeNonPublic, inlineMembers, level);
+                }
+
+                return result;
             }
-
-            bool includeNonPublic = memberFormat == MemberDisplayFormat.SeparateLines;
-            bool inlineMembers = memberFormat == MemberDisplayFormat.SingleLine;
-
-            object proxy = GetDebuggerTypeProxy(obj);
-            if (proxy != null)
+            finally
             {
-                includeNonPublic = false;
-                suppressInlineMembers = false;
+                MemberDisplayFormat = oldMemberDisplayFormat;
             }
-
-            if (!suppressInlineMembers || !inlineMembers)
-            {
-                FormatMembers(result, obj, proxy, includeNonPublic, inlineMembers, level);
-            }
-
-            return result;
         }
 
         #region Members
 
-        private void FormatMembers(Builder result, object obj, object proxy, bool includeNonPublic, bool inlineMembers, int level)
+        private void FormatMembers(Builder result, object obj, object proxy, bool includeNonPublic, bool inlineMembers, Level level)
         {
             // TODO (tomat): we should not use recursion
             RuntimeHelpers.EnsureSufficientExecutionStack();
@@ -295,7 +306,7 @@ internal abstract partial class CommonObjectFormatter
         /// }
         /// </code>
         /// </summary>
-        private void FormatObjectMembers(Builder result, object obj, TypeInfo preProxyTypeInfo, bool includeNonPublic, bool inline, int level)
+        private void FormatObjectMembers(Builder result, object obj, TypeInfo preProxyTypeInfo, bool includeNonPublic, bool inline, Level level)
         {
             int lengthLimit = result.Remaining;
             if (lengthLimit < 0)
@@ -341,7 +352,7 @@ internal abstract partial class CommonObjectFormatter
         /// <summary>
         /// Enumerates sorted object members to display.
         /// </summary>
-        private void FormatObjectMembersRecursive(List<FormattedMember> result, object obj, bool includeNonPublic, ref int lengthLimit, int level)
+        private void FormatObjectMembersRecursive(List<FormattedMember> result, object obj, bool includeNonPublic, ref int lengthLimit, Level level)
         {
             Debug.Assert(obj != null);
 
@@ -425,8 +436,8 @@ internal abstract partial class CommonObjectFormatter
                 var debuggerDisplay = GetApplicableDebuggerDisplayAttribute(member);
                 if (debuggerDisplay != null)
                 {
-                    var k = FormatWithEmbeddedExpressions(lengthLimit, debuggerDisplay.Name, obj, level + 1) ?? member.Name;
-                    var v = FormatWithEmbeddedExpressions(lengthLimit, debuggerDisplay.Value, obj, level + 1) ?? StyledString.Empty; // TODO: ?
+                    var k = FormatWithEmbeddedExpressions(lengthLimit, debuggerDisplay.Name, obj, level.Increment()) ?? member.Name;
+                    var v = FormatWithEmbeddedExpressions(lengthLimit, debuggerDisplay.Value, obj, level.Increment()) ?? StyledString.Empty; // TODO: ?
                     if (!AddMember(result, new FormattedMember(-1, k, v), ref lengthLimit))
                     {
                         return;
@@ -459,7 +470,7 @@ internal abstract partial class CommonObjectFormatter
                             foreach (object item in array)
                             {
                                 Builder valueBuilder = MakeMemberBuilder(lengthLimit);
-                                FormatObjectRecursive(valueBuilder, item, level + 1, debuggerDisplayName: out var debuggerDisplayName);
+                                FormatObjectRecursive(valueBuilder, item, level.Increment(), debuggerDisplayName: out var debuggerDisplayName);
 
                                 StyledString name = StyledString.Empty;
                                 if (!string.IsNullOrEmpty(debuggerDisplayName))
@@ -485,7 +496,7 @@ internal abstract partial class CommonObjectFormatter
                 else
                 {
                     Builder valueBuilder = MakeMemberBuilder(lengthLimit);
-                    FormatObjectRecursive(valueBuilder, value, level + 1, debuggerDisplayName: out var debuggerDisplayName);
+                    FormatObjectRecursive(valueBuilder, value, level.Increment(), debuggerDisplayName: out var debuggerDisplayName);
 
                     StyledString name;
                     if (string.IsNullOrEmpty(debuggerDisplayName))
@@ -497,7 +508,7 @@ internal abstract partial class CommonObjectFormatter
                     }
                     else
                     {
-                        name = FormatWithEmbeddedExpressions(MakeMemberBuilder(lengthLimit), debuggerDisplayName, value, level + 1).ToTextWithStyle();
+                        name = FormatWithEmbeddedExpressions(MakeMemberBuilder(lengthLimit), debuggerDisplayName, value, level.Increment()).ToTextWithStyle();
                     }
 
                     if (!AddMember(result, new FormattedMember(-1, name, valueBuilder.ToTextWithStyle()), ref lengthLimit))
@@ -542,7 +553,7 @@ internal abstract partial class CommonObjectFormatter
 
         #region Collections
 
-        private void FormatKeyValuePair(Builder result, object obj, int level)
+        private void FormatKeyValuePair(Builder result, object obj, Level level)
         {
             TypeInfo type = obj.GetType().GetTypeInfo();
             object key = type.GetDeclaredProperty("Key").GetValue(obj, Array.Empty<object>());
@@ -550,9 +561,9 @@ internal abstract partial class CommonObjectFormatter
             string _;
             result.AppendGroupOpening();
             result.AppendCollectionItemSeparator(isFirst: true, inline: true);
-            FormatObjectRecursive(result, key, level + 1, debuggerDisplayName: out _);
+            FormatObjectRecursive(result, key, level.Increment(), debuggerDisplayName: out _);
             result.AppendCollectionItemSeparator(isFirst: false, inline: true);
-            FormatObjectRecursive(result, value, level + 1, debuggerDisplayName: out _);
+            FormatObjectRecursive(result, value, level.Increment(), debuggerDisplayName: out _);
             result.AppendGroupClosing(inline: true);
         }
 
@@ -577,7 +588,7 @@ internal abstract partial class CommonObjectFormatter
             }
         }
 
-        private void FormatArray(Builder result, Array array, int level)
+        private void FormatArray(Builder result, Array array, Level level)
         {
             FormatCollectionHeader(result, array);
 
@@ -594,7 +605,7 @@ internal abstract partial class CommonObjectFormatter
             }
         }
 
-        private void FormatDictionaryMembers(Builder result, IDictionary dict, bool inline, int level)
+        private void FormatDictionaryMembers(Builder result, IDictionary dict, bool inline, Level level)
         {
             result.AppendGroupOpening();
 
@@ -612,9 +623,9 @@ internal abstract partial class CommonObjectFormatter
                         result.AppendCollectionItemSeparator(isFirst: i == 0, inline: inline);
                         result.AppendGroupOpening();
                         result.AppendCollectionItemSeparator(isFirst: true, inline: true);
-                        FormatObjectRecursive(result, entry.Key, level + 1, debuggerDisplayName: out _);
+                        FormatObjectRecursive(result, entry.Key, level.Increment(), debuggerDisplayName: out _);
                         result.AppendCollectionItemSeparator(isFirst: false, inline: true);
-                        FormatObjectRecursive(result, entry.Value, level + 1, debuggerDisplayName: out _);
+                        FormatObjectRecursive(result, entry.Value, level.Increment(), debuggerDisplayName: out _);
                         result.AppendGroupClosing(inline: true);
                         i++;
                     }
@@ -635,7 +646,7 @@ internal abstract partial class CommonObjectFormatter
             result.AppendGroupClosing(inline);
         }
 
-        private void FormatSequenceMembers(Builder result, IEnumerable sequence, bool inline, int level)
+        private void FormatSequenceMembers(Builder result, IEnumerable sequence, bool inline, Level level)
         {
             result.AppendGroupOpening();
             int i = 0;
@@ -646,7 +657,7 @@ internal abstract partial class CommonObjectFormatter
                 {
                     string _;
                     result.AppendCollectionItemSeparator(isFirst: i == 0, inline: inline);
-                    FormatObjectRecursive(result, item, level + 1, debuggerDisplayName: out _);
+                    FormatObjectRecursive(result, item, level.Increment(), debuggerDisplayName: out _);
                     i++;
                 }
             }
@@ -660,7 +671,7 @@ internal abstract partial class CommonObjectFormatter
             result.AppendGroupClosing(inline);
         }
 
-        private void FormatMultidimensionalArrayElements(Builder result, Array array, bool inline, int level)
+        private void FormatMultidimensionalArrayElements(Builder result, Array array, bool inline, Level level)
         {
             Debug.Assert(array.Rank > 1);
 
@@ -714,7 +725,7 @@ internal abstract partial class CommonObjectFormatter
                 }
 
                 string _;
-                FormatObjectRecursive(result, array.GetValue(indices), level + 1, debuggerDisplayName: out _);
+                FormatObjectRecursive(result, array.GetValue(indices), level.Increment(), debuggerDisplayName: out _);
 
                 indices[indices.Length - 1]++;
                 flatIndex++;
@@ -725,30 +736,51 @@ internal abstract partial class CommonObjectFormatter
 
         #region Scalars
 
-        private void ObjectToString(Builder result, object obj, int level)
+        /// <returns>Formatting was exhaustive and we do not need to continue with recursive members formatting.</returns>
+        private bool ObjectToString(Builder result, object obj, Level level)
         {
             try
             {
-                string str = obj.ToString();
-                if (obj is ITuple)
+                if (customObjectFormatters.FirstOrDefault(f => f.IsApplicable(obj)).TryGet(out var customFormatter))
                 {
-                    result.Append(str);
-                }
-                else if (customObjectFormatters.FirstOrDefault(f => f.IsApplicable(obj)).TryGet(out var customFormatter))
-                {
-                    result.Append(customFormatter.Format(obj, level, this));
+                    var oldMemberDisplayFormat = MemberDisplayFormat;
+                    if (oldMemberDisplayFormat == MemberDisplayFormat.SeparateLines)
+                    {
+                        Debug.Assert(level == Level.FirstDetailed);
+                        level = Level.FirstDetailed;
+                        MemberDisplayFormat = MemberDisplayFormat.SingleLine;
+                    }
+
+                    try
+                    {
+                        result.Append(customFormatter.Format(obj, level, new Formatter(this)));
+                        return customFormatter.IsFormattingExhaustive;
+                    }
+                    finally
+                    {
+                        MemberDisplayFormat = oldMemberDisplayFormat;
+                    }
                 }
                 else
                 {
-                    result.Append('[');
-                    result.Append(str);
-                    result.Append(']');
+                    if (obj is ITuple)
+                    {
+                        result.Append(obj.ToString());
+                    }
+                    else
+                    {
+                        result.Append('[');
+                        result.Append(obj.ToString());
+                        result.Append(']');
+                    }
                 }
             }
             catch (Exception e)
             {
                 FormatException(result, e);
             }
+
+            return false;
         }
 
         #endregion
@@ -772,7 +804,7 @@ internal abstract partial class CommonObjectFormatter
         /// If parentheses are present we only look for methods.
         /// Only parameterless members are considered.
         /// </remarks>
-        private StyledString? FormatWithEmbeddedExpressions(int lengthLimit, string format, object obj, int level)
+        private StyledString? FormatWithEmbeddedExpressions(int lengthLimit, string format, object obj, Level level)
         {
             if (string.IsNullOrEmpty(format))
             {
@@ -783,7 +815,7 @@ internal abstract partial class CommonObjectFormatter
             return FormatWithEmbeddedExpressions(builder, format, obj, level).ToTextWithStyle();
         }
 
-        private Builder FormatWithEmbeddedExpressions(Builder result, string format, object obj, int level)
+        private Builder FormatWithEmbeddedExpressions(Builder result, string format, object obj, Level level)
         {
             int i = 0;
             while (i < format.Length)
@@ -799,9 +831,8 @@ internal abstract partial class CommonObjectFormatter
                     {
                         int expressionEnd = format.IndexOf('}', i);
 
-                        bool noQuotes, callableOnly;
                         string memberName;
-                        if (expressionEnd == -1 || (memberName = ParseSimpleMemberName(format, i, expressionEnd, out noQuotes, out callableOnly)) == null)
+                        if (expressionEnd == -1 || (memberName = ParseSimpleMemberName(format, i, expressionEnd, out bool noQuotes, out bool callableOnly)) == null)
                         {
                             // the expression isn't properly formatted
                             result.Append(format, i - 1, format.Length - i + 1);
@@ -815,8 +846,7 @@ internal abstract partial class CommonObjectFormatter
                         }
                         else
                         {
-                            Exception exception;
-                            object value = GetMemberValue(member, obj, out exception);
+                            object value = GetMemberValue(member, obj, out Exception exception);
 
                             if (exception != null)
                             {
@@ -836,7 +866,7 @@ internal abstract partial class CommonObjectFormatter
                                     cultureInfo: PrimitiveOptions.CultureInfo);
 
                                 string _;
-                                FormatObjectRecursive(result, value, level + 1, debuggerDisplayName: out _);
+                                FormatObjectRecursive(result, value, level.Increment(), debuggerDisplayName: out _);
 
                                 PrimitiveOptions = oldPrimitiveOptions;
                                 MemberDisplayFormat = oldMemberDisplayFormat;
