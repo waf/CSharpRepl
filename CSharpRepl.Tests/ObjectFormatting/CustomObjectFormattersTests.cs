@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
 using Xunit;
 
@@ -80,6 +81,29 @@ public class CustomObjectFormattersTests
     private interface ITestInterface
     {
         void M();
+    }
+    #endregion
+
+    #region TupleFormatter
+    [Theory]
+    [MemberData(nameof(TupleData))]
+    public void TestTupleFormatting(ITuple value, string expectedOutput_0, string expectedOutput_1)
+    {
+        Assert.Equal(expectedOutput_0, formatter.Format(TupleFormatter.Instance, value, Level.FirstDetailed));
+        Assert.Equal(expectedOutput_1, formatter.Format(TupleFormatter.Instance, value, Level.FirstSimple));
+    }
+
+    public static IEnumerable<object[]> TupleData
+    {
+        get
+        {
+            yield return new object[]
+            {
+                (2, new[] { 1, 2, 3 }, typeof(List<int>)),
+                "(2, int[3] { 1, 2, 3 }, System.Collections.Generic.List<System.Int32>)",
+                "(2, int[3] { 1, 2, 3 }, List<int>)",
+            };
+        }
     }
     #endregion
 }
