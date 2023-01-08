@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
 using CSharpRepl.Services.SyntaxHighlighting;
@@ -8,23 +10,30 @@ using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Microsoft.Extensions.Caching.Memory;
 using Xunit;
 
-namespace CSharpRepl.Tests;
+namespace CSharpRepl.Tests.ObjectFormatting;
 
 internal class TestFormatter : CSharpObjectFormatterImpl
 {
-    private readonly Visitor visitor;
-
     public TestFormatter(SyntaxHighlighter highlighter, Configuration config)
         : base(highlighter, config)
-    {
-        var options = new PrintOptions();
-        visitor = new Visitor(this, TypeNameFormatter, GetInternalBuilderOptions(options), GetPrimitiveOptions(options), GetTypeNameOptions(options), options.MemberDisplayFormat, highlighter, config);
-    }
+    { }
 
-    public string Format(ICustomObjectFormatter formatter, object value, int level)
+    public string Format(ICustomObjectFormatter formatter, object value, Level level, PrintOptions? options = null)
     {
+        options ??= new PrintOptions();
+
+        var visitor = new Visitor(
+                    this,
+                    TypeNameFormatter,
+                    GetInternalBuilderOptions(options),
+                    GetPrimitiveOptions(options),
+                    GetTypeNameOptions(options),
+                    options.MemberDisplayFormat,
+                    highlighter,
+                    configuration);
+
         Assert.True(formatter.IsApplicable(value));
-        return formatter.Format(value, level, visitor).ToString();
+        return formatter.Format(value, level, new Formatter(visitor)).ToString();
     }
 
     public static TestFormatter Create() => new(

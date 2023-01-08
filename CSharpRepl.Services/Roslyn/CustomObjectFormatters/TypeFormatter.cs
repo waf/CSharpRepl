@@ -4,29 +4,22 @@
 
 using System;
 using CSharpRepl.Services.Theming;
-using Microsoft.CodeAnalysis.Scripting.Hosting;
 
 namespace CSharpRepl.Services.Roslyn.CustomObjectFormatters;
 
 internal class TypeFormatter : CustomObjectFormatter<Type>
 {
-    public static readonly TypeFormatter Instance = new(forceUsageOfLanguageKeywords: false);
-    public static readonly TypeFormatter InstanceWithForcedUsageOfLanguageKeywords = new(forceUsageOfLanguageKeywords: true);
+    public static readonly TypeFormatter Instance = new();
 
-    private readonly bool forceUsageOfLanguageKeywords;
+    public override bool IsFormattingExhaustive => false;
 
-    private TypeFormatter(bool forceUsageOfLanguageKeywords)
+    private TypeFormatter() { }
+
+    public override StyledString Format(Type value, Level level, Formatter formatter)
     {
-        this.forceUsageOfLanguageKeywords = forceUsageOfLanguageKeywords;
-    }
-
-    public override StyledString Format(Type value, int level, CommonObjectFormatter.Visitor visitor)
-    {
-        return visitor.TypeNameFormatter.FormatTypeName(
+        return formatter.FormatTypeName(
             value,
-            new CommonTypeNameFormatterOptions(
-                arrayBoundRadix: visitor.TypeNameOptions.ArrayBoundRadix,
-                showNamespaces: level == 0,
-                useLanguageKeywords: forceUsageOfLanguageKeywords || level > 0));
+            showNamespaces: level == Level.FirstDetailed,
+            useLanguageKeywords: level != Level.FirstDetailed);
     }
 }

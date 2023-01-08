@@ -11,7 +11,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Xunit;
 using static System.Environment;
 
-namespace CSharpRepl.Tests;
+namespace CSharpRepl.Tests.ObjectFormatting;
 
 public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
 {
@@ -21,9 +21,9 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
 
     public PrettyPrinterTests(RoslynServicesFixture fixture)
     {
-        this.console = fixture.ConsoleStub;
-        this.services = fixture.RoslynServices;
-        this.prettyPrinter = new PrettyPrinter(
+        console = fixture.ConsoleStub;
+        services = fixture.RoslynServices;
+        prettyPrinter = new PrettyPrinter(
             new SyntaxHighlighter(
                 new MemoryCache(new MemoryCacheOptions()),
                 new Theme(null, null, null, null, Array.Empty<SyntaxHighlightingColor>())),
@@ -60,26 +60,36 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
 
     [Theory]
     [MemberData(nameof(FormatObjectInputs))]
-    public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult)
+    public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult, bool expectedResultIsNotComplete)
     {
         var prettyPrinted = prettyPrinter.FormatObject(obj, showDetails).ToString();
-        Assert.Equal(expectedResult, prettyPrinted);
+        if (expectedResultIsNotComplete)
+        {
+            Assert.StartsWith(expectedResult, prettyPrinted);
+        }
+        else
+        {
+            Assert.Equal(expectedResult, prettyPrinted);
+        }
     }
 
-    public static IEnumerable<object[]> FormatObjectInputs = new[]
+    public static IEnumerable<object[]> FormatObjectInputs => new[]
     {
-        new object[] { null, false, "null" },
-        new object[] { null, true, "null" },
+        new object[] { null, false, "null", false },
+        new object[] { null, true, "null", false },
 
-        new object[] { @"""hello world""", false, @"""\""hello world\"""""},
-        new object[] { @"""hello world""", true, @"""hello world"""},
+        new object[] { @"""hello world""", false, @"""\""hello world\""""", false  },
+        new object[] { @"""hello world""", true, @"""hello world""", false  },
 
-        new object[] { "a\nb", false, @"""a\nb"""},
-        new object[] { "a\nb", true, "a\nb"},
+        new object[] { "a\nb", false, @"""a\nb""", false },
+        new object[] { "a\nb", true, "a\nb", false },
 
-        new object[] { new[] { 1, 2, 3 }, false, "int[3] { 1, 2, 3 }"},
-        new object[] { new[] { 1, 2, 3 }, true, $"int[3] {"{"}{NewLine}  1,{NewLine}  2,{NewLine}  3{NewLine}{"}"}{NewLine}"},
+        new object[] { new[] { 1, 2, 3 }, false, "int[3] { 1, 2, 3 }", false },
+        new object[] { new[] { 1, 2, 3 }, true, $"int[3] {"{"}{NewLine}  1,{NewLine}  2,{NewLine}  3{NewLine}{"}"}{NewLine}", false },
 
-        new object[] { Encoding.UTF8, true, "System.Text.UTF8Encoding+UTF8EncodingSealed"},
+        new object[] { typeof(int), false, "int", false },
+        new object[] { typeof(int), true, "System.Int32", true },
+
+        new object[] { Encoding.UTF8, true, "System.Text.UTF8Encoding+UTF8EncodingSealed", false },
     };
 }
