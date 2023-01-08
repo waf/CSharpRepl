@@ -58,6 +58,8 @@ public sealed partial class RoslynServices
         nameof(referenceService), nameof(compilationOptions))]
     private Task Initialization { get; }
 
+    internal event Action<string>? EvaluatingInput;
+
     public RoslynServices(IConsoleEx console, Configuration config, ITraceLogger logger)
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
@@ -102,8 +104,11 @@ public sealed partial class RoslynServices
             //each RunCompilation (modifies script state) and UpdateCurrentDocument (changes CurrentDocument) cannot be run concurrently
             await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
+            input = input.Trim();
+            EvaluatingInput?.Invoke(input);
+
             var result = await scriptRunner
-                .RunCompilation(input.Trim(), args, cancellationToken)
+                .RunCompilation(input, args, cancellationToken)
                 .ConfigureAwait(false);
 
             if (result is EvaluationResult.Success success)
@@ -215,30 +220,45 @@ public sealed partial class RoslynServices
 
         if (keyChar is ' ' or '=')
         {
-            await Initialization.ConfigureAwait(false);
-
-            var sourceText = SourceText.From(text);
-            var document = workspaceManager.CurrentDocument.WithText(sourceText);
-            var tree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
-            if (tree is null) return true;
-            var root = await tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
-
-            var node = FindNonWhitespaceNode(text, root, caret);
-
-            if (node is ArgumentSyntax)
+            var node = await GetNode().ConfigureAwait(false);
+            if (node is
+                ArgumentSyntax or //https://github.com/waf/CSharpRepl/issues/145
+                ArgumentListSyntax or //https://github.com/waf/CSharpRepl/issues/200
+                AnonymousObjectMemberDeclaratorSyntax) //https://github.com/waf/CSharpRepl/issues/157
             {
-                //https://github.com/waf/CSharpRepl/issues/145
+
                 return false;
             }
+        }
 
-            if (node is AnonymousObjectMemberDeclaratorSyntax)
+        if (keyChar is ',' or ')')
+        {
+            var node = await GetNode().ConfigureAwait(false);
+
+            //https://github.com/waf/CSharpRepl/issues/201
+            if (node is
+                ArgumentSyntax or ParameterSyntax or ParameterListSyntax or
+                IdentifierNameSyntax { Parent: ParenthesizedExpressionSyntax { Parent: ArgumentSyntax } } or
+                IdentifierNameSyntax { Parent: ParameterSyntax })
             {
-                //https://github.com/waf/CSharpRepl/issues/157
                 return false;
             }
         }
 
         return true;
+
+        async Task<SyntaxNode?> GetNode()
+        {
+            await Initialization.ConfigureAwait(false);
+
+            var sourceText = SourceText.From(text);
+            var document = workspaceManager.CurrentDocument.WithText(sourceText);
+            var tree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+            if (tree is null) return null;
+            var root = await tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
+
+            return FindNonWhitespaceNode(text, root, caret);
+        }
     }
 
     public async Task<(string Text, int Caret)> FormatInput(string text, int caret, bool formatParentNodeOnly, CancellationToken cancellationToken)
