@@ -33,6 +33,7 @@ internal abstract partial class CommonObjectFormatter
         {
             TypeFormatter.Instance,
             MethodInfoFormatter.Instance,
+            TupleFormatter.Instance
         };
 
         public CommonObjectFormatter Formatter { get; }
@@ -763,16 +764,9 @@ internal abstract partial class CommonObjectFormatter
                 }
                 else
                 {
-                    if (obj is ITuple)
-                    {
-                        result.Append(obj.ToString());
-                    }
-                    else
-                    {
-                        result.Append('[');
-                        result.Append(obj.ToString());
-                        result.Append(']');
-                    }
+                    result.Append('[');
+                    result.Append(obj.ToString());
+                    result.Append(']');
                 }
             }
             catch (Exception e)
