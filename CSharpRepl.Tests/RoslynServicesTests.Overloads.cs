@@ -2,16 +2,30 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CSharpRepl.Services.Roslyn;
 using PrettyPrompt.Completion;
 using Xunit;
 
 namespace CSharpRepl.Tests;
 
-public partial class RoslynServicesTests
+
+[Collection(nameof(RoslynServicesOverloadsTests))]
+public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixture<RoslynServicesFixture>
 {
+    private readonly RoslynServices services;
+
+    public RoslynServicesOverloadsTests(RoslynServicesFixture fixture)
+    {
+        this.services = fixture.RoslynServices;
+    }
+
+    public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
+    public Task DisposeAsync() => Task.CompletedTask;
+
     //Method invocation overloads.
     [Fact]
     public async Task Complete_Overloads()

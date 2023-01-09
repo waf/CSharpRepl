@@ -112,9 +112,19 @@ public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynS
     }
 }
 
-[Collection(nameof(RoslynServices))]
-public class RoslynServices_REPL_Tests
+[Collection(nameof(RoslynServices_REPL_Tests))]
+public partial class RoslynServices_REPL_Tests : IAsyncLifetime, IClassFixture<RoslynServicesFixture>
 {
+    private readonly RoslynServices services;
+
+    public RoslynServices_REPL_Tests(RoslynServicesFixture fixture)
+    {
+        this.services = fixture.RoslynServices;
+    }
+
+    public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
+    public Task DisposeAsync() => Task.CompletedTask;
+
     [Fact]
     public async Task CompleteStatement_DefaultKeyBindings()
     {
@@ -192,8 +202,9 @@ public class RoslynServices_REPL_Tests
     public async Task CompletionDoesNotInterfere(FormattableString input, string expectedInput, string expectedOutput)
     {
         var submittedInputs = new List<string>();
-        var (console, repl, configuration, _, _) = await InitAsync(evaluatingInputHandler: submittedInputs.Add);
+        var (console, repl, configuration, _, _) = await InitAsync();
         console.StubInput(input);
+        services.EvaluatingInput += submittedInputs.Add;
         await repl.RunAsync(configuration);
         Assert.Equal(expectedInput, submittedInputs.Last());
         Assert.Equal(expectedOutput, console.AnsiConsole.Lines.Last());
@@ -317,15 +328,10 @@ public class RoslynServices_REPL_Tests
         }
     }
 
-    private static async Task<(FakeConsoleAbstract Console, ReadEvalPrintLoop Repl, Configuration Configuration, StringBuilder StdOut, StringBuilder StdErr)> InitAsync(
-        Configuration? configuration = null,
-        Action<string>? evaluatingInputHandler = null)
+    private async Task<(FakeConsoleAbstract Console, ReadEvalPrintLoop Repl, Configuration Configuration, StringBuilder StdOut, StringBuilder StdErr)> InitAsync(Configuration? configuration = null)
     {
         var (console, stdout, stderr) = FakeConsole.CreateStubbedOutputAndError();
         configuration ??= new Configuration();
-
-        var services = new RoslynServices(console, configuration, new TestTraceLogger());
-        if (evaluatingInputHandler != null) services.EvaluatingInput += evaluatingInputHandler;
 
         var prompt = new Prompt(console: console.PrettyPromptConsole, callbacks: new CSharpReplPromptCallbacks(console, services, configuration), configuration: new PromptConfiguration(keyBindings: configuration.KeyBindings));
         var repl = new ReadEvalPrintLoop(services, prompt, console);
