@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
+using CSharpRepl.Services.Completion;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SymbolExploration;
@@ -77,18 +78,22 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
     protected override async Task<IReadOnlyList<CompletionItem>> GetCompletionItemsAsync(string text, int caret, TextSpan spanToBeReplaced, CancellationToken cancellationToken)
     {
         var completions = await roslyn.CompleteAsync(text, caret).ConfigureAwait(false);
-        var commitKeybinding = CreateCommitRuleForUserKeybinding(configuration.KeyBindings.CommitCompletion);
         return completions
             .OrderByDescending(i => i.Item.Rules.MatchPriority)
             .ThenBy(i => i.Item.SortText)
-            .Select(r => new CompletionItem(
+            .Select(CreatePrettyPromptCompletionItem)
+            .ToArray();
+    }
+
+    internal CompletionItem CreatePrettyPromptCompletionItem(CompletionItemWithDescription r)
+    {
+        var commitKeybinding = CreateCommitRuleForUserKeybinding(configuration.KeyBindings.CommitCompletion);
+        return new CompletionItem(
                 replacementText: r.Item.DisplayText,
                 displayText: r.DisplayText,
                 getExtendedDescription: r.GetDescriptionAsync,
                 filterText: r.Item.FilterText,
-                commitCharacterRules: MergeCommitRules(r.Item.Rules.CommitCharacterRules, commitKeybinding)
-            ))
-            .ToArray();
+                commitCharacterRules: MergeCommitRules(r.Item.Rules.CommitCharacterRules, commitKeybinding));
     }
 
     private static CharacterSetModificationRule CreateCommitRuleForUserKeybinding(in KeyPressPatterns commitCompletion)
