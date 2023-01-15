@@ -70,4 +70,23 @@ public class DisassemblerTests : IAsyncLifetime
         var success = Assert.IsType<EvaluationResult.Success>(result);
         Assert.Contains("Compiling code as Scripting session (will be overly verbose): succeeded", success.ReturnValue.ToString());
     }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/208
+    /// </summary>
+    [Fact]
+    public async Task Disassemble_Empty()
+    {
+        // import a namespace
+        await services.EvaluateAsync("using System;");
+
+        // disassemble code that uses the above imported namespace.
+        var result = await services.ConvertToIntermediateLanguage("", debugMode: false);
+
+        var success = Assert.IsType<EvaluationResult.Success>(result);
+        var resultText = success.ReturnValue.ToString();
+        Assert.Contains(".class private auto ansi '<Module>'", resultText);
+        Assert.Contains("// end of class <Module>", resultText);
+        Assert.Contains("// Disassembled in Release Mode", resultText);
+    }
 }

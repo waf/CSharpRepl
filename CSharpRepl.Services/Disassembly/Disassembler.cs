@@ -124,18 +124,28 @@ internal class Disassembler
         }
 
         // if we find any additional methods, fallback to disassembling and returning the entire file.
-        var programType = asmReader.GetTypeDefinition(definedTypes[Array.IndexOf(definedTypeNames, "Program")]);
+        var programTypeIndex = Array.IndexOf(definedTypeNames, "Program");
+        if (programTypeIndex == -1)
+        {
+            return DisassembleAll(file, ilCodeOutput);
+        }
+        var programType = asmReader.GetTypeDefinition(definedTypes[programTypeIndex]);
         var methods = programType.GetMethods().ToArray();
         var methodNames = methods.Select(m => asmReader.GetString(asmReader.GetMethodDefinition(m).Name)).ToArray();
         if (methodNames.Except(new[] { "<Main>$", ".ctor" }).Any())
         {
-            new ReflectionDisassembler(ilCodeOutput, CancellationToken.None).WriteModuleContents(file); // writes to the "ilCodeOutput" variable
-            return ilCodeOutput;
+            return DisassembleAll(file, ilCodeOutput);
         }
 
         // we successfully found that there's only a simple Program.Main, so disassemble just the Main method body.
         new MethodBodyDisassembler(ilCodeOutput, CancellationToken.None).Disassemble(file, methods[Array.IndexOf(methodNames, "<Main>$")]);
         return ilCodeOutput;
+
+        static PlainTextOutput DisassembleAll(PEFile file, PlainTextOutput ilCodeOutput)
+        {
+            new ReflectionDisassembler(ilCodeOutput, CancellationToken.None).WriteModuleContents(file); // writes to the "ilCodeOutput" variable
+            return ilCodeOutput;
+        }
     }
 
     private Compilation Compile(string code, OptimizationLevel optimizationLevel, OutputKind outputKind)
