@@ -5,7 +5,10 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using CSharpRepl.PrettyPromptConfig;
+using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
+using PrettyPrompt.Documents;
 using Xunit;
 
 namespace CSharpRepl.Tests;
@@ -14,11 +17,13 @@ namespace CSharpRepl.Tests;
 public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixture>
 {
     private readonly RoslynServices services;
+    private readonly CSharpReplPromptCallbacks promptCallbacks;
 
     public CompletionTests(RoslynServicesFixture fixture)
     {
         var (console, _) = FakeConsole.CreateStubbedOutput();
         this.services = fixture.RoslynServices;
+        promptCallbacks = new CSharpReplPromptCallbacks(console, services, new Configuration());
     }
 
     public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
@@ -97,5 +102,29 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
         Assert.NotNull(whereCompletion);
         var whereDescription = await whereCompletion.GetDescriptionAsync(cancellationToken: default);
         Assert.Contains("Filters a sequence of values based on a predicate", whereDescription.Text);
+    }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/215
+    /// </summary>
+    [Theory]
+    [InlineData("fil", "file", "File", "FileAccess")]
+    [InlineData("Fil", "File", "FileAccess", "FileAttributes")]
+    [InlineData("con", "const", "ConcurrentExclusiveSchedulerPair", "Console")]
+    [InlineData("Con", "ConcurrentExclusiveSchedulerPair", "Console", "ConsoleCancelEventArgs")]
+    [InlineData("en", "enum", "Encoder")]
+    [InlineData("enu", "enum", "Enum", "Enumerable")]
+    [InlineData("Enu", "Enum", "Enumerable")]
+    public async Task Complete_ItemsFilteringAndOrder(string text, params string[] expectedItems)
+    {
+        var caret = text.Length;
+        var span = new TextSpan(0, text.Length);
+        var completions = (await this.services.CompleteAsync(text, caret))
+            .OrderByDescending(i => promptCallbacks.CreatePrettyPromptCompletionItem(i).GetCompletionItemPriority(text, caret, span));
+
+        for (int i = 0; i < expectedItems.Length; i++)
+        {
+            Assert.Equal(expectedItems[i], completions.ElementAt(i).Item.DisplayText);
+        }
     }
 }
