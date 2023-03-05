@@ -22,7 +22,7 @@ internal class TupleFormatter : CustomObjectFormatter<ITuple>
         sb.Append('(');
         for (int i = 0; i < value.Length; i++)
         {
-            sb.Append(formatter.FormatObject(value[i], level));
+            sb.Append(formatter.FormatObjectToText(value[i], level));
 
             bool isLast = i == value.Length - 1;
             if (!isLast) sb.Append(", ");

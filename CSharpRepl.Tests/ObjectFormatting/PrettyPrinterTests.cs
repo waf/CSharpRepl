@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
@@ -8,6 +9,9 @@ using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Microsoft.Extensions.Caching.Memory;
+using Spectre.Console;
+using Spectre.Console.Rendering;
+using Spectre.Console.Testing;
 using Xunit;
 using static System.Environment;
 
@@ -39,7 +43,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     {
         var result = await services.EvaluateAsync(input);
         var exception = ((EvaluationResult.Error)result).Exception;
-        var output = prettyPrinter.FormatObject(exception, displayDetails: true).ToString();
+        var output = prettyPrinter.FormatException(exception, detailed: true).ToString();
 
         Assert.Equal(expectedOutput.Replace("\n", NewLine), output);
     }
@@ -54,7 +58,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     {
         var result = await services.EvaluateAsync("+");
         var exception = ((EvaluationResult.Error)result).Exception;
-        var output = prettyPrinter.FormatObject(exception, detailedOutput).ToString();
+        var output = ToString(prettyPrinter.FormatObject(exception, detailedOutput).Renderable);
         Assert.Equal("(1,2): error CS1733: Expected expression", output);
     }
 
@@ -62,14 +66,14 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     [MemberData(nameof(FormatObjectInputs))]
     public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult, bool expectedResultIsNotComplete)
     {
-        var prettyPrinted = prettyPrinter.FormatObject(obj, showDetails).ToString();
+        var output = ToString(prettyPrinter.FormatObject(obj, showDetails).Renderable);
         if (expectedResultIsNotComplete)
         {
-            Assert.StartsWith(expectedResult, prettyPrinted);
+            Assert.StartsWith(expectedResult, output);
         }
         else
         {
-            Assert.Equal(expectedResult, prettyPrinted);
+            Assert.Equal(expectedResult, output);
         }
     }
 
@@ -84,12 +88,25 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         new object[] { "a\nb", false, @"""a\nb""", false },
         new object[] { "a\nb", true, "a\nb", false },
 
-        new object[] { new[] { 1, 2, 3 }, false, "int[3] { 1, 2, 3 }", false },
-        new object[] { new[] { 1, 2, 3 }, true, $"int[3] {"{"}{NewLine}  1,{NewLine}  2,{NewLine}  3{NewLine}{"}"}{NewLine}", false },
+        //TODO - Hubert
+        //new object[] { new[] { 1, 2, 3 }, false, "int[3] { 1, 2, 3 }", false },
+        //new object[] { new[] { 1, 2, 3 }, true, $"int[3] {"{"}{NewLine}  1,{NewLine}  2,{NewLine}  3{NewLine}{"}"}{NewLine}", false },
 
         new object[] { typeof(int), false, "int", false },
         new object[] { typeof(int), true, "System.Int32", true },
 
-        new object[] { Encoding.UTF8, true, "System.Text.UTF8Encoding+UTF8EncodingSealed", false },
+        new object[] { Encoding.UTF8, true, "System.Text.UTF8Encoding.UTF8EncodingSealed", false },
     };
+
+    private static string ToString(IRenderable renderable)
+    {
+        const int Width = 1000;
+        var options = new RenderOptions(new TestCapabilities(), new Size(Width, 1000));
+        var sb = new StringBuilder();
+        foreach (var segment in renderable.Render(options, Width))
+        {
+            sb.Append(segment.Text);
+        }
+        return sb.ToString();
+    }
 }

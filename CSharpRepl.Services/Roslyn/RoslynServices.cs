@@ -27,6 +27,8 @@ using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
 using PrettyPrompt.Highlighting;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 using PrettyPromptTextSpan = PrettyPrompt.Documents.TextSpan;
 
 namespace CSharpRepl.Services.Roslyn;
@@ -126,10 +128,37 @@ public sealed partial class RoslynServices
         }
     }
 
-    public async Task<StyledString> PrettyPrintAsync(object? obj, bool displayDetails)
+    //TODO - Hubert - displayDetails->level
+    public async Task<IRenderable> PrettyPrintAsync(object? obj, bool displayDetails)
     {
         await Initialization.ConfigureAwait(false);
-        return prettyPrinter.FormatObject(obj, displayDetails);
+
+        var formattedObject = prettyPrinter.FormatObject(obj, displayDetails);
+
+        if (displayDetails)
+        {
+            var tree = new Tree(formattedObject.Renderable);
+
+            var formattedMembers = formattedObject.FormatMembers(
+                prettyPrinter,
+                level: displayDetails ? CustomObjectFormatters.Level.FirstDetailed : CustomObjectFormatters.Level.FirstSimple,
+                includeNonPublic: false);
+
+            foreach (var formattedMember in formattedMembers)
+            {
+                tree.AddNode(formattedMember.Renderable);
+            }
+
+            return tree;
+        }
+
+        return formattedObject.Renderable;
+    }
+
+    public async Task<StyledString> PrettyPrintAsync(Exception obj, bool displayDetails)
+    {
+        await Initialization.ConfigureAwait(false);
+        return prettyPrinter.FormatException(obj, displayDetails);
     }
 
     public async Task<IReadOnlyCollection<CompletionItemWithDescription>> CompleteAsync(string text, int caret)

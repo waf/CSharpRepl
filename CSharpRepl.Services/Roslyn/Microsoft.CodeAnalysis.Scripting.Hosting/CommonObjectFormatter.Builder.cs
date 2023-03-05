@@ -176,7 +176,7 @@ internal abstract partial class CommonObjectFormatter
             AppendGroupClosing(inline: true);
         }
 
-        public StyledString ToTextWithStyle() => _sb.ToStyledString();
+        public StyledString ToStyledString() => _sb.ToStyledString();
         public override string ToString() => _sb.ToString();
     }
 }

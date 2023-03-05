@@ -3,8 +3,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
-using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Spectre.Console;
 
 namespace CSharpRepl.Services.Roslyn.CustomObjectFormatters;
@@ -22,7 +22,10 @@ internal interface ICustomObjectFormatter
     /// </summary>
     bool IsApplicable(object? value);
 
-    StyledString Format(object? value, Level level, Formatter formatter);
+    StyledString FormatToText(object? value, Level level, Formatter formatter);
+
+    //TODO - Hubert
+    //IRenderable FormatToRenderable(object? value, Level level, Formatter formatter);
 }
 
 internal abstract class CustomObjectFormatter : ICustomObjectFormatter
@@ -34,9 +37,11 @@ internal abstract class CustomObjectFormatter : ICustomObjectFormatter
     }
 
     public abstract Type Type { get; }
+
+    //TODO - Hubert - not necessary anymore?
     public abstract bool IsFormattingExhaustive { get; }
 
-    StyledString ICustomObjectFormatter.Format(object? value, Level level, Formatter formatter)
+    StyledString ICustomObjectFormatter.FormatToText(object? value, Level level, Formatter formatter)
     {
         if (value is null) return formatter.NullLiteral;
         return Format(value, level, formatter);
@@ -58,29 +63,26 @@ internal abstract class CustomObjectFormatter<T> : CustomObjectFormatter
 
 internal class Formatter
 {
-    private readonly CommonObjectFormatter.Visitor visitor;
+    private readonly PrettyPrinter prettyPrinter;
+    private readonly SyntaxHighlighter syntaxHighlighter;
 
-    public StyledStringSegment NullLiteral => visitor.Formatter.NullLiteral;
-    public Style KeywordStyle => visitor.SyntaxHighlighter.KeywordStyle;
+    public StyledStringSegment NullLiteral => prettyPrinter.NullLiteral;
+    public Style KeywordStyle => syntaxHighlighter.KeywordStyle;
 
-    public Formatter(CommonObjectFormatter.Visitor visitor)
+    public Formatter(PrettyPrinter prettyPrinter, SyntaxHighlighter syntaxHighlighter)
     {
-        this.visitor = visitor;
+        this.prettyPrinter = prettyPrinter;
+        this.syntaxHighlighter = syntaxHighlighter;
     }
 
-    public StyledString FormatObject(object? obj, Level level)
-        => visitor.FormatObject(obj, level);
+    public StyledString FormatObjectToText(object? obj, Level level)
+        => prettyPrinter.FormatObjectSafeToStyledString(obj, level, quoteStringsAndCharacters: null);
 
     public StyledString FormatTypeName(Type type, bool showNamespaces, bool useLanguageKeywords)
-        => visitor.TypeNameFormatter.FormatTypeName(
-            type,
-            new CommonTypeNameFormatterOptions(
-                arrayBoundRadix: visitor.TypeNameOptions.ArrayBoundRadix,
-                showNamespaces,
-                useLanguageKeywords));
+        => prettyPrinter.FormatTypeName(type, showNamespaces, useLanguageKeywords);
 
     public Style GetStyle(string? classification)
-        => visitor.SyntaxHighlighter.GetStyle(classification);
+        => syntaxHighlighter.GetStyle(classification);
 }
 
 internal enum Level

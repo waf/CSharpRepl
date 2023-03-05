@@ -118,7 +118,7 @@ internal sealed class ReadEvalPrintLoop
                 if (ok.ReturnValue.HasValue)
                 {
                     var formatted = await roslyn.PrettyPrintAsync(ok.ReturnValue.Value, displayDetails);
-                    console.Write(formatted.ToParagraph());
+                    console.Write(formatted);
                 }
                 console.WriteLine();
                 break;

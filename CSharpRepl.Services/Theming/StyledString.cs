@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using CSharpRepl.Services.Extensions;
 using PrettyPrompt.Documents;
 using Spectre.Console;
@@ -96,4 +97,6 @@ public readonly struct StyledString
 
     public static implicit operator StyledString(string text) => new(new StyledStringSegment(text));
     public static implicit operator StyledString(StyledStringSegment text) => new(text);
+
+    public static StyledString operator +(StyledString a, StyledString b) => new(a.parts.Concat(b.parts));
 }

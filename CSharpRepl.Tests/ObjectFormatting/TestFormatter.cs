@@ -2,6 +2,7 @@
 
 using System;
 using CSharpRepl.Services;
+using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
@@ -22,18 +23,9 @@ internal class TestFormatter : CSharpObjectFormatterImpl
     {
         options ??= new PrintOptions();
 
-        var visitor = new Visitor(
-                    this,
-                    TypeNameFormatter,
-                    GetInternalBuilderOptions(options),
-                    GetPrimitiveOptions(options),
-                    GetTypeNameOptions(options),
-                    options.MemberDisplayFormat,
-                    highlighter,
-                    configuration);
-
+        var prettyPrompt = new PrettyPrinter(highlighter, configuration);
         Assert.True(formatter.IsApplicable(value));
-        return formatter.Format(value, level, new Formatter(visitor)).ToString();
+        return formatter.FormatToText(value, level, new Formatter(prettyPrompt, highlighter)).ToString();
     }
 
     public static TestFormatter Create() => new(

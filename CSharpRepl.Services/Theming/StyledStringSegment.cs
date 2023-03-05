@@ -24,4 +24,6 @@ public readonly struct StyledStringSegment
     public override string ToString() => Text;
 
     public static implicit operator StyledStringSegment(string text) => new(text, null);
+
+    public Paragraph ToParagraph() => new(Text, Style);
 }
