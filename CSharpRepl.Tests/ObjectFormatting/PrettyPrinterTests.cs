@@ -51,21 +51,21 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     /// https://github.com/waf/CSharpRepl/issues/193
     /// </summary>
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task CompilationErrorException(bool detailedOutput)
+    [InlineData(Level.FirstDetailed)]
+    [InlineData(Level.FirstSimple)]
+    internal async Task CompilationErrorException(Level level)
     {
         var result = await services.EvaluateAsync("+");
         var exception = ((EvaluationResult.Error)result).Exception;
-        var output = ToString(prettyPrinter.FormatObject(exception, detailedOutput).Renderable);
+        var output = ToString(prettyPrinter.FormatObject(exception, level).Renderable);
         Assert.Equal("(1,2): error CS1733: Expected expression", output);
     }
 
     [Theory]
     [MemberData(nameof(FormatObjectInputs))]
-    public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult, bool expectedResultIsNotComplete)
+    internal void FormatObject_ObjectInput_PrintsOutput(object obj, Level level, string expectedResult, bool expectedResultIsNotComplete)
     {
-        var output = ToString(prettyPrinter.FormatObject(obj, showDetails).Renderable);
+        var output = ToString(prettyPrinter.FormatObject(obj, level).Renderable);
         if (expectedResultIsNotComplete)
         {
             Assert.StartsWith(expectedResult, output);
@@ -78,23 +78,23 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
 
     public static IEnumerable<object[]> FormatObjectInputs => new[]
     {
-        new object[] { null, false, "null", false },
-        new object[] { null, true, "null", false },
+        new object[] { null, Level.FirstSimple, "null", false },
+        new object[] { null, Level.FirstDetailed, "null", false },
 
-        new object[] { @"""hello world""", false, @"""\""hello world\""""", false  },
-        new object[] { @"""hello world""", true, @"""hello world""", false  },
+        new object[] { @"""hello world""", Level.FirstSimple, @"""\""hello world\""""", false  },
+        new object[] { @"""hello world""", Level.FirstDetailed, @"""hello world""", false  },
 
-        new object[] { "a\nb", false, @"""a\nb""", false },
-        new object[] { "a\nb", true, "a\nb", false },
+        new object[] { "a\nb", Level.FirstSimple, @"""a\nb""", false },
+        new object[] { "a\nb", Level.FirstDetailed, "a\nb", false },
 
         //TODO - Hubert
-        //new object[] { new[] { 1, 2, 3 }, false, "int[3] { 1, 2, 3 }", false },
-        //new object[] { new[] { 1, 2, 3 }, true, $"int[3] {"{"}{NewLine}  1,{NewLine}  2,{NewLine}  3{NewLine}{"}"}{NewLine}", false },
+        //new object[] { new[] { 1, 2, 3 }, Level.FirstSimple, "int[3] { 1, 2, 3 }", false },
+        //new object[] { new[] { 1, 2, 3 }, Level.FirstDetailed, $"int[3] {"{"}{NewLine}  1,{NewLine}  2,{NewLine}  3{NewLine}{"}"}{NewLine}", false },
 
-        new object[] { typeof(int), false, "int", false },
-        new object[] { typeof(int), true, "System.Int32", true },
+        new object[] { typeof(int), Level.FirstSimple, "int", false },
+        new object[] { typeof(int), Level.FirstDetailed, "System.Int32", true },
 
-        new object[] { Encoding.UTF8, true, "System.Text.UTF8Encoding.UTF8EncodingSealed", false },
+        new object[] { Encoding.UTF8, Level.FirstDetailed, "System.Text.UTF8Encoding.UTF8EncodingSealed", false },
     };
 
     private static string ToString(IRenderable renderable)

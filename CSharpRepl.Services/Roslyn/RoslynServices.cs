@@ -128,12 +128,12 @@ public sealed partial class RoslynServices
         }
     }
 
-    //TODO - Hubert - displayDetails->level
     public async Task<IRenderable> PrettyPrintAsync(object? obj, bool displayDetails)
     {
         await Initialization.ConfigureAwait(false);
 
-        var formattedObject = prettyPrinter.FormatObject(obj, displayDetails);
+        var level = displayDetails ? Level.FirstDetailed : Level.FirstSimple;
+        var formattedObject = prettyPrinter.FormatObject(obj, level);
 
         if (displayDetails)
         {
@@ -141,7 +141,7 @@ public sealed partial class RoslynServices
 
             var formattedMembers = formattedObject.FormatMembers(
                 prettyPrinter,
-                level: displayDetails ? CustomObjectFormatters.Level.FirstDetailed : CustomObjectFormatters.Level.FirstSimple,
+                level: level,
                 includeNonPublic: false);
 
             foreach (var formattedMember in formattedMembers)

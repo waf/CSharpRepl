@@ -84,16 +84,3 @@ internal class Formatter
     public Style GetStyle(string? classification)
         => syntaxHighlighter.GetStyle(classification);
 }
-
-internal enum Level
-{
-    FirstDetailed,
-    FirstSimple,
-    Second,
-    ThirdPlus
-}
-
-internal static class LevelX
-{
-    public static Level Increment(this Level level) => (Level)Math.Min((int)level + 1, (int)Level.ThirdPlus);
-}

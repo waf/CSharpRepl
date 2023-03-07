@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
 using Xunit;
 

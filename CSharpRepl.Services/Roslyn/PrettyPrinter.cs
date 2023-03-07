@@ -52,10 +52,7 @@ internal sealed partial class PrettyPrinter
         this.config = config;
     }
 
-    public FormattedObject FormatObject(object? obj, bool detailed)
-        => FormatObject(obj, detailed ? Level.FirstDetailed : Level.FirstSimple, quoteStringsAndCharacters: null);
-
-    private FormattedObject FormatObject(object? obj, Level level, bool? quoteStringsAndCharacters)
+    public FormattedObject FormatObject(object? obj, Level level)
     {
         return obj switch
         {
@@ -71,12 +68,7 @@ internal sealed partial class PrettyPrinter
 
             Exception exception => new FormattedObject(FormatException(exception, detailed: level == Level.FirstDetailed).ToParagraph(), value: exception),
 
-            _ => new FormattedObject(
-                FormatObjectSafeToRenderable(
-                    obj,
-                    level,
-                    quoteStringsAndCharacters),
-                obj)
+            _ => new FormattedObject(FormatObjectSafeToRenderable(obj, level), obj)
         };
     }
 
@@ -106,12 +98,12 @@ internal sealed partial class PrettyPrinter
             styledStringToResult: styledString => styledString,
             styledStringSegmentToResult: styledStringSegment => styledStringSegment);
 
-    private IRenderable FormatObjectSafeToRenderable(object? obj, Level level, bool? quoteStringsAndCharacters)
+    private IRenderable FormatObjectSafeToRenderable(object? obj, Level level)
         => FormatObjectSafe<IRenderable>(
             obj,
             level == Level.FirstDetailed ? multiLineOptions : singleLineOptions,
             level,
-            quoteStringsAndCharacters,
+            quoteStringsAndCharacters: null,
             customObjectFormat: (customFormatter, obj, level, formatter) => customFormatter.FormatToText(obj, level, formatter).ToParagraph(), //TODO - Hubert ICustomObjectFormatter.FormatToRenderable
             styledStringToResult: styledString => styledString.ToParagraph(),
             styledStringSegmentToResult: styledStringSegment => styledStringSegment.ToParagraph());

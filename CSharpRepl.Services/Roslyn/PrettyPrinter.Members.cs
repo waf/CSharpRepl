@@ -46,7 +46,7 @@ internal sealed partial class PrettyPrinter
                 name = FormatWithEmbeddedExpressions(debuggerDisplay.Name, memberValue, level);
             }
 
-            memberFormattedValue = FormatObjectSafeToRenderable(memberValue, level, quoteStringsAndCharacters: null);
+            memberFormattedValue = FormatObjectSafeToRenderable(memberValue, level);
         }
         else
         {
