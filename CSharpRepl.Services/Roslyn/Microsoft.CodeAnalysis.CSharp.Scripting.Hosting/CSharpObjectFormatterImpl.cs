@@ -5,7 +5,7 @@
 using CSharpRepl.Services;
 using CSharpRepl.Services.SyntaxHighlighting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
-using MemberFilter = Microsoft.CodeAnalysis.Scripting.Hosting.MemberFilter;
+using CommonMemberFilter = Microsoft.CodeAnalysis.Scripting.Hosting.CommonMemberFilter;
 
 namespace Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 
@@ -13,8 +13,8 @@ internal class CSharpObjectFormatterImpl : CommonObjectFormatter
 {
     public override CommonTypeNameFormatter TypeNameFormatter { get; }
     public override CommonPrimitiveFormatter PrimitiveFormatter { get; }
-    
-    public override MemberFilter Filter { get; }
+
+    public override CommonMemberFilter Filter { get; }
 
     internal CSharpObjectFormatterImpl(SyntaxHighlighter syntaxHighlighter, Configuration config)
         : base(syntaxHighlighter, config)

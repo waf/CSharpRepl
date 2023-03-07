@@ -6,9 +6,9 @@ using System.Reflection;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
-internal class CommonMemberFilter : MemberFilter
+internal class CommonMemberFilter
 {
-    public override bool Include(MemberInfo member)
+    public bool Include(MemberInfo member)
     {
         return !IsGeneratedMemberName(member.Name);
     }
