@@ -28,9 +28,4 @@ internal abstract partial class CommonObjectFormatter
         highlighter = syntaxHighlighter;
         configuration = config;
     }
-
-    public virtual CommonTypeNameFormatterOptions GetTypeNameOptions(PrintOptions printOptions) =>
-        new(
-            arrayBoundRadix: printOptions.NumberRadix,
-            showNamespaces: false);
 }

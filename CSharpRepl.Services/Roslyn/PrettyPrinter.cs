@@ -14,12 +14,13 @@ using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using static Microsoft.CodeAnalysis.Scripting.Hosting.CommonObjectFormatter;
 
 namespace CSharpRepl.Services.Roslyn;
 
 internal sealed partial class PrettyPrinter
 {
+    private const int NumberRadix = 10;
+
     private static readonly ICustomObjectFormatter[] customObjectFormatters = new ICustomObjectFormatter[]
     {
         TypeFormatter.Instance,
@@ -28,8 +29,6 @@ internal sealed partial class PrettyPrinter
     };
 
     private readonly CSharpObjectFormatterImpl formatter;
-    private readonly PrintOptions singleLineOptions;
-    private readonly PrintOptions multiLineOptions;
     private readonly SyntaxHighlighter syntaxHighlighter;
     private readonly Configuration config;
 
@@ -38,16 +37,6 @@ internal sealed partial class PrettyPrinter
     public PrettyPrinter(SyntaxHighlighter syntaxHighlighter, Configuration config)
     {
         formatter = new CSharpObjectFormatterImpl(syntaxHighlighter, config);
-        singleLineOptions = new PrintOptions
-        {
-            MemberDisplayFormat = MemberDisplayFormat.SingleLine,
-            MaximumOutputLength = 20_000,
-        };
-        multiLineOptions = new PrintOptions
-        {
-            MemberDisplayFormat = MemberDisplayFormat.SeparateLines,
-            MaximumOutputLength = 20_000,
-        };
         this.syntaxHighlighter = syntaxHighlighter;
         this.config = config;
     }
@@ -56,7 +45,7 @@ internal sealed partial class PrettyPrinter
     {
         return obj switch
         {
-            null => new FormattedObject(formatter.NullLiteral.ToParagraph(), value: null),
+            null => new FormattedObject(NullLiteral.ToParagraph(), value: null),
 
             // when detailed is true, don't show the escaped string (i.e. interpret the escape characters, via displaying to console)
             string str when level == 0 => new FormattedObject(
@@ -76,14 +65,13 @@ internal sealed partial class PrettyPrinter
         => formatter.TypeNameFormatter.FormatTypeName(
                 type,
                 new CommonTypeNameFormatterOptions(
-                    arrayBoundRadix: singleLineOptions.NumberRadix,
+                    arrayBoundRadix: NumberRadix,
                     showNamespaces,
                     useLanguageKeywords));
 
     public StyledString FormatObjectSafeToStyledString(object? obj, Level level, bool? quoteStringsAndCharacters)
         => FormatObjectSafe<StyledString>(
             obj,
-            level == Level.FirstDetailed ? multiLineOptions : singleLineOptions,
             level,
             quoteStringsAndCharacters,
             customObjectFormat: (customFormatter, obj, level, formatter) => customFormatter.FormatToText(obj, level, formatter),
@@ -93,16 +81,14 @@ internal sealed partial class PrettyPrinter
     private IRenderable FormatObjectSafeToRenderable(object? obj, Level level)
         => FormatObjectSafe<IRenderable>(
             obj,
-            level == Level.FirstDetailed ? multiLineOptions : singleLineOptions,
             level,
             quoteStringsAndCharacters: null,
-            customObjectFormat: (customFormatter, obj, level, formatter) => customFormatter.FormatToText(obj, level, formatter).ToParagraph(), //TODO - Hubert ICustomObjectFormatter.FormatToRenderable
-            styledStringToResult: styledString => styledString.ToParagraph(),
+            customObjectFormat: (customFormatter, obj, level, formatter) => customFormatter.FormatToText(obj, level, formatter).ToParagraph(),
+            styledStringToResult: styledString => styledString.ToParagraph(), //TODO - Hubert ICustomObjectFormatter.FormatToRenderable
             styledStringSegmentToResult: styledStringSegment => styledStringSegment.ToParagraph());
 
     private TResult FormatObjectSafe<TResult>(
         object? obj,
-        PrintOptions options,
         Level level,
         bool? quoteStringsAndCharacters,
         Func<ICustomObjectFormatter, object, Level, Formatter, TResult> customObjectFormat,
@@ -111,27 +97,13 @@ internal sealed partial class PrettyPrinter
     {
         if (obj is null)
         {
-            return styledStringSegmentToResult(formatter.PrimitiveFormatter.NullLiteral);
+            return styledStringSegmentToResult(NullLiteral);
         }
 
         try
         {
-            var BuilderOptions = GetInternalBuilderOptions(options);
-            var PrimitiveOptions = GetPrimitiveOptions(options);
-            var TypeNameOptions = GetTypeNameOptions(options, level);
-
-            var oldPrimitiveOptions = PrimitiveOptions;
-            if (quoteStringsAndCharacters.HasValue)
-            {
-                PrimitiveOptions = new CommonPrimitiveFormatterOptions(
-                        PrimitiveOptions.NumberRadix,
-                        PrimitiveOptions.IncludeCharacterCodePoints,
-                        quoteStringsAndCharacters: quoteStringsAndCharacters.Value,
-                        escapeNonPrintableCharacters: PrimitiveOptions.EscapeNonPrintableCharacters,
-                        cultureInfo: PrimitiveOptions.CultureInfo);
-            }
-
-            var primitive = formatter.PrimitiveFormatter.FormatPrimitive(obj, PrimitiveOptions);
+            var primitiveOptions = GetPrimitiveOptions(quoteStringsAndCharacters ?? true);
+            var primitive = formatter.PrimitiveFormatter.FormatPrimitive(obj, primitiveOptions);
             if (primitive.TryGet(out var primitiveValue))
             {
                 return styledStringSegmentToResult(primitiveValue);
@@ -159,12 +131,13 @@ internal sealed partial class PrettyPrinter
                 }
                 catch (Exception ex)
                 {
-                    return styledStringToResult(GetValueRetrievalExceptionText(ex));
+                    return styledStringToResult(GetValueRetrievalExceptionText(ex, level));
                 }
             }
             else
             {
-                return styledStringToResult(formatter.TypeNameFormatter.FormatTypeName(type, TypeNameOptions));
+                var typeNameOptions = GetTypeNameOptions(level);
+                return styledStringToResult(formatter.TypeNameFormatter.FormatTypeName(type, typeNameOptions));
             }
         }
         catch
@@ -175,7 +148,7 @@ internal sealed partial class PrettyPrinter
             }
             catch (Exception ex)
             {
-                return styledStringToResult(GetValueRetrievalExceptionText(ex));
+                return styledStringToResult(GetValueRetrievalExceptionText(ex, level));
             }
         }
     }
@@ -215,7 +188,7 @@ internal sealed partial class PrettyPrinter
                         var value = ObjectFormatterHelpers.GetMemberValue(obj, member, out var exception);
                         if (exception != null)
                         {
-                            sb.Append(GetValueRetrievalExceptionText(exception));
+                            sb.Append(GetValueRetrievalExceptionText(exception, level));
                         }
                         else
                         {
@@ -234,24 +207,14 @@ internal sealed partial class PrettyPrinter
         return sb.ToStyledString();
     }
 
-    private BuilderOptions GetInternalBuilderOptions(PrintOptions printOptions) =>
-        new(
-            indentation: "  ",
-            newLine: Environment.NewLine,
-            ellipsis: printOptions.Ellipsis,
-            maximumLineLength: int.MaxValue,
-            maximumOutputLength: printOptions.MaximumOutputLength);
+    private CommonPrimitiveFormatterOptions GetPrimitiveOptions(bool quoteStringsAndCharacters) => new(
+        numberRadix: NumberRadix,
+        includeCodePoints: false,
+        quoteStringsAndCharacters: quoteStringsAndCharacters,
+        escapeNonPrintableCharacters: true,
+        cultureInfo: CultureInfo.CurrentUICulture);
 
-    private CommonPrimitiveFormatterOptions GetPrimitiveOptions(PrintOptions printOptions) =>
-        new(
-            numberRadix: printOptions.NumberRadix,
-            includeCodePoints: false,
-            quoteStringsAndCharacters: true,
-            escapeNonPrintableCharacters: printOptions.EscapeNonPrintableCharacters,
-            cultureInfo: CultureInfo.CurrentUICulture);
-
-    private CommonTypeNameFormatterOptions GetTypeNameOptions(PrintOptions printOptions, Level level) =>
-        new(
-            arrayBoundRadix: printOptions.NumberRadix,
-            showNamespaces: level == Level.FirstDetailed);
+    private CommonTypeNameFormatterOptions GetTypeNameOptions(Level level) => new(
+        arrayBoundRadix: NumberRadix,
+        showNamespaces: level == Level.FirstDetailed);
 }

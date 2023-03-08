@@ -50,7 +50,7 @@ internal sealed partial class PrettyPrinter
         else
         {
             name = GetMemberDefaultName(member);
-            memberFormattedValue = GetValueRetrievalExceptionText(exception).ToParagraph();
+            memberFormattedValue = GetValueRetrievalExceptionText(exception, level).ToParagraph();
         }
 
         var nameWithFormattedValue = new InlineRenderable((name + ": ").ToParagraph(), memberFormattedValue);
@@ -179,8 +179,8 @@ internal sealed partial class PrettyPrinter
         }
     }
 
-    private StyledString GetValueRetrievalExceptionText(Exception exception)
-        => GetErrorText(formatter.TypeNameFormatter.FormatTypeName(exception.GetType(), formatter.GetTypeNameOptions(singleLineOptions)));
+    private StyledString GetValueRetrievalExceptionText(Exception exception, Level level)
+        => GetErrorText(formatter.TypeNameFormatter.FormatTypeName(exception.GetType(), GetTypeNameOptions(level)));
 
     private StyledString GetErrorText(StyledString message)
     {
