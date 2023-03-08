@@ -42,7 +42,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     {
         var result = await services.EvaluateAsync(input);
         var exception = ((EvaluationResult.Error)result).Exception;
-        var output = prettyPrinter.FormatException(exception, detailed: true).ToString();
+        var output = prettyPrinter.FormatException(exception, Level.FirstDetailed).ToString();
 
         Assert.Equal(expectedOutput.Replace("\n", NewLine), output);
     }

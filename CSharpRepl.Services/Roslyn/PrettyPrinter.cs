@@ -66,18 +66,10 @@ internal sealed partial class PrettyPrinter
             //call stack for compilation error exception is useless
             CompilationErrorException compilationErrorException => new FormattedObject(new Paragraph(compilationErrorException.Message), value: null),
 
-            Exception exception => new FormattedObject(FormatException(exception, detailed: level == Level.FirstDetailed).ToParagraph(), value: exception),
+            Exception exception => new FormattedObject(FormatException(exception, level).ToParagraph(), value: exception),
 
             _ => new FormattedObject(FormatObjectSafeToRenderable(obj, level), obj)
         };
-    }
-
-    public StyledString FormatException(Exception exception, bool detailed)
-    {
-        return
-            detailed ?
-            formatter.FormatException(exception) :
-            exception.Message;
     }
 
     public StyledString FormatTypeName(Type type, bool showNamespaces, bool useLanguageKeywords)

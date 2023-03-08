@@ -128,14 +128,13 @@ public sealed partial class RoslynServices
         }
     }
 
-    public async Task<IRenderable> PrettyPrintAsync(object? obj, bool displayDetails)
+    public async Task<IRenderable> PrettyPrintAsync(object? obj, Level level)
     {
         await Initialization.ConfigureAwait(false);
 
-        var level = displayDetails ? Level.FirstDetailed : Level.FirstSimple;
         var formattedObject = prettyPrinter.FormatObject(obj, level);
 
-        if (displayDetails)
+        if (level == Level.FirstDetailed)
         {
             var tree = new Tree(formattedObject.Renderable);
 
@@ -155,10 +154,10 @@ public sealed partial class RoslynServices
         return formattedObject.Renderable;
     }
 
-    public async Task<StyledString> PrettyPrintAsync(Exception obj, bool displayDetails)
+    public async Task<StyledString> PrettyPrintAsync(Exception obj, Level level)
     {
         await Initialization.ConfigureAwait(false);
-        return prettyPrinter.FormatException(obj, displayDetails);
+        return prettyPrinter.FormatException(obj, level);
     }
 
     public async Task<IReadOnlyCollection<CompletionItemWithDescription>> CompleteAsync(string text, int caret)

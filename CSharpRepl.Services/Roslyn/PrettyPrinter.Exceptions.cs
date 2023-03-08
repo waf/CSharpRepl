@@ -10,28 +10,26 @@ using System.Text.RegularExpressions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Classification;
+using Microsoft.CodeAnalysis.Scripting.Hosting;
 
-namespace Microsoft.CodeAnalysis.Scripting.Hosting;
+namespace CSharpRepl.Services.Roslyn;
 
 /// <summary>
 /// Object pretty printer.
 /// </summary>
-internal abstract partial class CommonObjectFormatter
+internal sealed partial class PrettyPrinter
 {
-    public StyledString FormatException(Exception e)
+    public StyledString FormatException(Exception exception, Level level)
     {
-        if (e == null)
-        {
-            throw new ArgumentNullException(nameof(e));
-        }
+        if (level != Level.FirstDetailed) return exception.Message;
 
         var builder = new StyledStringBuilder();
 
-        CommonObjectFormatterException.AppendType(builder, e.GetType(), highlighter, fullName: true);
+        ExceptionFormatter.AppendType(builder, exception.GetType(), syntaxHighlighter, fullName: true);
         builder.Append(": ");
-        builder.Append(e.Message);
+        builder.Append(exception.Message);
 
-        var frames = (EnhancedStackFrame[])new EnhancedStackTrace(e).GetFrames();
+        var frames = (EnhancedStackFrame[])new EnhancedStackTrace(exception).GetFrames();
         var count = frames.Length;
         const int ScriptRunnerMethods = 5;
         for (var i = 0; i < count - ScriptRunnerMethods; i++)
@@ -41,7 +39,7 @@ internal abstract partial class CommonObjectFormatter
 
             var frame = frames[i];
             builder.Append("   at ");
-            CommonObjectFormatterException.AppendMethod(frame.MethodInfo, builder, highlighter);
+            ExceptionFormatter.AppendMethod(frame.MethodInfo, builder, syntaxHighlighter);
 
             if (frame.GetFileName() is { Length: > 0 } fileName)
             {
@@ -60,7 +58,7 @@ internal abstract partial class CommonObjectFormatter
     }
 }
 
-file class CommonObjectFormatterException
+file class ExceptionFormatter
 {
     public static StyledStringBuilder AppendType(
         StyledStringBuilder builder,
@@ -216,7 +214,7 @@ file class CommonObjectFormatterException
             {
                 IList<string>? tupleNames = null;
                 if (parameter is ValueTupleResolvedParameter { TupleNames: { } tupleNames2 }) { tupleNames = tupleNames2; };
-                CommonObjectFormatterException.AppendType(builder, parameter.ResolvedType, highlighter, fullName: false, tupleNames);
+                AppendType(builder, parameter.ResolvedType, highlighter, fullName: false, tupleNames);
             }
             else
             {

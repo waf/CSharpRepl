@@ -9,7 +9,6 @@ using System.Linq;
 using System.Reflection;
 using CSharpRepl.Services.Completion;
 using CSharpRepl.Services.Extensions;
-using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Spectre.Console;

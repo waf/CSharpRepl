@@ -6,7 +6,7 @@ using System;
 
 namespace CSharpRepl.Services.Roslyn;
 
-internal enum Level
+public enum Level
 {
     FirstDetailed,
     FirstSimple,
