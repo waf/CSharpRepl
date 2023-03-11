@@ -30,7 +30,7 @@ internal sealed partial class PrettyPrinter
 
     private readonly TypeNameFormatter typeNameFormatter;
     private readonly PrimitiveFormatter primitiveFormatter;
-    private readonly CommonMemberFilter filter = new();
+    private readonly MemberFilter filter = new();
 
     private readonly SyntaxHighlighter syntaxHighlighter;
     private readonly Configuration config;
