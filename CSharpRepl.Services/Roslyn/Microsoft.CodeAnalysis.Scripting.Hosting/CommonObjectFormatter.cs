@@ -5,6 +5,7 @@
 using CSharpRepl.Services;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
+using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -19,7 +20,7 @@ internal abstract partial class CommonObjectFormatter
     public virtual CommonMemberFilter Filter { get; } = new CommonMemberFilter();
 
     public abstract CommonTypeNameFormatter TypeNameFormatter { get; }
-    public abstract CommonPrimitiveFormatter PrimitiveFormatter { get; }
+    public abstract PrimitiveFormatter PrimitiveFormatter { get; }
 
     public StyledStringSegment NullLiteral => PrimitiveFormatter.NullLiteral;
 

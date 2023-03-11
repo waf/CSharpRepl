@@ -10,6 +10,7 @@ using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
+using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Spectre.Console;
 
@@ -30,7 +31,7 @@ internal abstract partial class CommonTypeNameFormatter
     protected abstract string ArrayOpening { get; }
     protected abstract string ArrayClosing { get; }
 
-    protected abstract CommonPrimitiveFormatter PrimitiveFormatter { get; }
+    protected abstract PrimitiveFormatter PrimitiveFormatter { get; }
 
     public CommonTypeNameFormatter(SyntaxHighlighter highlighter)
     {
@@ -242,7 +243,7 @@ internal abstract partial class CommonTypeNameFormatter
 
     private void AppendArrayBound(StyledStringBuilder sb, long bound, int numberRadix)
     {
-        var options = new CommonPrimitiveFormatterOptions(
+        var options = new PrimitiveFormatterOptions(
             numberRadix: numberRadix,
             includeCodePoints: false,
             quoteStringsAndCharacters: true,

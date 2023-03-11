@@ -207,7 +207,7 @@ internal sealed partial class PrettyPrinter
         return sb.ToStyledString();
     }
 
-    private CommonPrimitiveFormatterOptions GetPrimitiveOptions(bool quoteStringsAndCharacters) => new(
+    private PrimitiveFormatterOptions GetPrimitiveOptions(bool quoteStringsAndCharacters) => new(
         numberRadix: NumberRadix,
         includeCodePoints: false,
         quoteStringsAndCharacters: quoteStringsAndCharacters,

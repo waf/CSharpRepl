@@ -14,9 +14,9 @@ internal class CSharpTypeNameFormatter : CommonTypeNameFormatter
 {
     private readonly SyntaxHighlighter highlighter;
 
-    protected override CommonPrimitiveFormatter PrimitiveFormatter { get; }
+    protected override PrimitiveFormatter PrimitiveFormatter { get; }
 
-    public CSharpTypeNameFormatter(CommonPrimitiveFormatter primitiveFormatter, SyntaxHighlighter highlighter)
+    public CSharpTypeNameFormatter(PrimitiveFormatter primitiveFormatter, SyntaxHighlighter highlighter)
         : base(highlighter)
     {
         PrimitiveFormatter = primitiveFormatter;
