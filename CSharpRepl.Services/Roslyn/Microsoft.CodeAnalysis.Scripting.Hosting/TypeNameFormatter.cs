@@ -1,6 +1,10 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+//Modified version of
+//  Microsoft.CodeAnalysis.CSharp.Scripting.Hosting.CSharpTypeNameFormatter and
+//  Microsoft.CodeAnalysis.Scripting.Hosting.CommonTypeNameFormatter
 
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -11,6 +15,7 @@ using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
+using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Spectre.Console;
 
@@ -19,22 +24,20 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 using static ObjectFormatterHelpers;
 using TypeInfo = System.Reflection.TypeInfo;
 
-internal abstract partial class CommonTypeNameFormatter
+internal sealed class TypeNameFormatter
 {
+    private const string GenericParameterOpening = "<";
+    private const string GenericParameterClosing = ">";
+    private const string ArrayOpening = "[";
+    private const string ArrayClosing = "]";
+
     private readonly SyntaxHighlighter highlighter;
 
-    protected abstract StyledString? GetPrimitiveTypeName(SpecialType type);
+    private PrimitiveFormatter PrimitiveFormatter { get; }
 
-    protected abstract string GenericParameterOpening { get; }
-    protected abstract string GenericParameterClosing { get; }
-
-    protected abstract string ArrayOpening { get; }
-    protected abstract string ArrayClosing { get; }
-
-    protected abstract PrimitiveFormatter PrimitiveFormatter { get; }
-
-    public CommonTypeNameFormatter(SyntaxHighlighter highlighter)
+    public TypeNameFormatter(PrimitiveFormatter primitiveFormatter, SyntaxHighlighter highlighter)
     {
+        PrimitiveFormatter = primitiveFormatter;
         this.highlighter = highlighter;
     }
 
@@ -49,11 +52,16 @@ internal abstract partial class CommonTypeNameFormatter
     }
 
     // TODO (tomat): Use DebuggerDisplay.Type if specified?
-    public virtual StyledString FormatTypeName(Type type, CommonTypeNameFormatterOptions options)
+    public StyledString FormatTypeName(Type type, TypeNameFormatterOptions options)
     {
         if (type == null)
         {
             throw new ArgumentNullException(nameof(type));
+        }
+
+        if (GeneratedNameParser.TryParseSourceMethodNameFromGeneratedName(type.Name, GeneratedNameKind.StateMachineType, out var stateMachineName))
+        {
+            return stateMachineName;
         }
 
         var primitiveTypeName =
@@ -84,7 +92,7 @@ internal abstract partial class CommonTypeNameFormatter
         return FormatNonGenericTypeName(typeInfo, options);
     }
 
-    private StyledString FormatNonGenericTypeName(TypeInfo typeInfo, CommonTypeNameFormatterOptions options)
+    private StyledString FormatNonGenericTypeName(TypeInfo typeInfo, TypeNameFormatterOptions options)
     {
         var sb = new StyledStringBuilder();
         if (typeInfo.DeclaringType is null)
@@ -127,7 +135,7 @@ internal abstract partial class CommonTypeNameFormatter
         }
     }
 
-    public virtual StyledString FormatTypeArguments(Type[] typeArguments, CommonTypeNameFormatterOptions options)
+    public StyledString FormatTypeArguments(Type[] typeArguments, TypeNameFormatterOptions options)
     {
         if (typeArguments == null)
         {
@@ -166,7 +174,7 @@ internal abstract partial class CommonTypeNameFormatter
     /// <summary>
     /// Formats an array type name (vector or multidimensional).
     /// </summary>
-    public virtual StyledString FormatArrayTypeName(Type arrayType, Array? arrayOpt, CommonTypeNameFormatterOptions options)
+    public StyledString FormatArrayTypeName(Type arrayType, Array? arrayOpt, TypeNameFormatterOptions options)
     {
         if (arrayType == null)
         {
@@ -266,7 +274,7 @@ internal abstract partial class CommonTypeNameFormatter
         sb.Append(ArrayClosing);
     }
 
-    private StyledString FormatGenericTypeName([MaybeNull] TypeInfo typeInfo, CommonTypeNameFormatterOptions options)
+    private StyledString FormatGenericTypeName([MaybeNull] TypeInfo typeInfo, TypeNameFormatterOptions options)
     {
         var builder = new StyledStringBuilder();
 
@@ -319,7 +327,7 @@ internal abstract partial class CommonTypeNameFormatter
         TypeInfo typeInfo,
         Type[] genericArguments,
         ref int genericArgIndex,
-        CommonTypeNameFormatterOptions options)
+        TypeNameFormatterOptions options)
     {
         // generic arguments of all the outer types and the current type;
         int currentArgCount = (typeInfo.IsGenericTypeDefinition ? typeInfo.GenericTypeParameters.Length : typeInfo.GenericTypeArguments.Length) - genericArgIndex;
@@ -346,5 +354,34 @@ internal abstract partial class CommonTypeNameFormatter
         {
             builder.Append(typeInfo.Name, typeStyle);
         }
+    }
+
+    private StyledString? GetPrimitiveTypeName(SpecialType type)
+    {
+        var resultText = Get(type);
+        return
+            resultText is null ?
+            default(StyledString?) :
+            new StyledString(resultText, highlighter.KeywordStyle);
+
+        static string? Get(SpecialType type) => type switch
+        {
+            SpecialType.System_Boolean => "bool",
+            SpecialType.System_Byte => "byte",
+            SpecialType.System_Char => "char",
+            SpecialType.System_Decimal => "decimal",
+            SpecialType.System_Double => "double",
+            SpecialType.System_Int16 => "short",
+            SpecialType.System_Int32 => "int",
+            SpecialType.System_Int64 => "long",
+            SpecialType.System_SByte => "sbyte",
+            SpecialType.System_Single => "float",
+            SpecialType.System_String => "string",
+            SpecialType.System_UInt16 => "ushort",
+            SpecialType.System_UInt32 => "uint",
+            SpecialType.System_UInt64 => "ulong",
+            SpecialType.System_Object => "object",
+            _ => null,
+        };
     }
 }

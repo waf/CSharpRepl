@@ -297,7 +297,7 @@ file class ExceptionFormatter
             }
             else
             {
-                var format = CommonTypeNameFormatter.GetTypeStyle(type, highlighter);
+                var format = TypeNameFormatter.GetTypeStyle(type, highlighter);
                 if (type.Namespace == nameof(System))
                 {
                     builder.Append(type.Name, format);
@@ -383,7 +383,7 @@ file class ExceptionFormatter
                 }
             }
 
-            var format = CommonTypeNameFormatter.GetTypeStyle(type, highlighter);
+            var format = TypeNameFormatter.GetTypeStyle(type, highlighter);
 
             var genericPartIndex = type.Name.IndexOf('`');
             if (genericPartIndex <= 0)

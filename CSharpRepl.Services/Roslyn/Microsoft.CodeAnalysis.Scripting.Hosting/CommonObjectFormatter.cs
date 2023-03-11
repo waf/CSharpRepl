@@ -19,7 +19,7 @@ internal abstract partial class CommonObjectFormatter
 
     public virtual CommonMemberFilter Filter { get; } = new CommonMemberFilter();
 
-    public abstract CommonTypeNameFormatter TypeNameFormatter { get; }
+    public abstract TypeNameFormatter TypeNameFormatter { get; }
     public abstract PrimitiveFormatter PrimitiveFormatter { get; }
 
     public StyledStringSegment NullLiteral => PrimitiveFormatter.NullLiteral;

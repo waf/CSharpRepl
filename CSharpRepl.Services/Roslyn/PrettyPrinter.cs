@@ -64,7 +64,7 @@ internal sealed partial class PrettyPrinter
     public StyledString FormatTypeName(Type type, bool showNamespaces, bool useLanguageKeywords)
         => formatter.TypeNameFormatter.FormatTypeName(
                 type,
-                new CommonTypeNameFormatterOptions(
+                new TypeNameFormatterOptions(
                     arrayBoundRadix: NumberRadix,
                     showNamespaces,
                     useLanguageKeywords));
@@ -214,7 +214,7 @@ internal sealed partial class PrettyPrinter
         escapeNonPrintableCharacters: true,
         cultureInfo: CultureInfo.CurrentUICulture);
 
-    private CommonTypeNameFormatterOptions GetTypeNameOptions(Level level) => new(
+    private TypeNameFormatterOptions GetTypeNameOptions(Level level) => new(
         arrayBoundRadix: NumberRadix,
         showNamespaces: level == Level.FirstDetailed);
 }

@@ -11,7 +11,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 
 internal class CSharpObjectFormatterImpl : CommonObjectFormatter
 {
-    public override CommonTypeNameFormatter TypeNameFormatter { get; }
+    public override TypeNameFormatter TypeNameFormatter { get; }
     public override PrimitiveFormatter PrimitiveFormatter { get; }
 
     public override CommonMemberFilter Filter { get; }
@@ -20,7 +20,7 @@ internal class CSharpObjectFormatterImpl : CommonObjectFormatter
         : base(syntaxHighlighter, config)
     {
         PrimitiveFormatter = new PrimitiveFormatter(syntaxHighlighter);
-        TypeNameFormatter = new CSharpTypeNameFormatter(PrimitiveFormatter, syntaxHighlighter);
+        TypeNameFormatter = new TypeNameFormatter(PrimitiveFormatter, syntaxHighlighter);
         Filter = new CSharpMemberFilter();
     }
 }
