@@ -67,6 +67,5 @@ internal static class GeneratedNameKindExtensions
         => kind is GeneratedNameKind.LambdaDisplayClass
                 or GeneratedNameKind.StateMachineType
                 or GeneratedNameKind.DynamicCallSiteContainerType
-                or GeneratedNameKind.DelegateCacheContainerType
-                ;
+                or GeneratedNameKind.DelegateCacheContainerType;
 }

@@ -6,24 +6,28 @@ using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
-using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Microsoft.Extensions.Caching.Memory;
 using Xunit;
 
 namespace CSharpRepl.Tests.ObjectFormatting;
 
-internal class TestFormatter : CSharpObjectFormatterImpl
+internal class TestFormatter
 {
+    private readonly SyntaxHighlighter highlighter;
+    private readonly Configuration config;
+
     public TestFormatter(SyntaxHighlighter highlighter, Configuration config)
-        : base(highlighter, config)
-    { }
+    {
+        this.highlighter = highlighter;
+        this.config = config;
+    }
 
     public string Format(ICustomObjectFormatter formatter, object value, Level level, PrintOptions? options = null)
     {
         options ??= new PrintOptions();
 
-        var prettyPrompt = new PrettyPrinter(highlighter, configuration);
+        var prettyPrompt = new PrettyPrinter(highlighter, config);
         Assert.True(formatter.IsApplicable(value));
         return formatter.FormatToText(value, level, new Formatter(prettyPrompt, highlighter)).ToString();
     }

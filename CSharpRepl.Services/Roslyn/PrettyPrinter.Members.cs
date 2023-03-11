@@ -114,7 +114,7 @@ internal sealed partial class PrettyPrinter
 
         foreach (var member in members)
         {
-            if (!formatter.Filter.Include(member))
+            if (!filter.Include(member))
             {
                 continue;
             }
@@ -180,7 +180,7 @@ internal sealed partial class PrettyPrinter
     }
 
     private StyledString GetValueRetrievalExceptionText(Exception exception, Level level)
-        => GetErrorText(formatter.TypeNameFormatter.FormatTypeName(exception.GetType(), GetTypeNameOptions(level)));
+        => GetErrorText(typeNameFormatter.FormatTypeName(exception.GetType(), GetTypeNameOptions(level)));
 
     private StyledString GetErrorText(StyledString message)
     {

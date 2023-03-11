@@ -28,15 +28,19 @@ internal sealed partial class PrettyPrinter
         TupleFormatter.Instance
     };
 
-    private readonly CSharpObjectFormatterImpl formatter;
+    private readonly TypeNameFormatter typeNameFormatter;
+    private readonly PrimitiveFormatter primitiveFormatter;
+    private readonly CommonMemberFilter filter = new();
+
     private readonly SyntaxHighlighter syntaxHighlighter;
     private readonly Configuration config;
 
-    public StyledStringSegment NullLiteral => formatter.NullLiteral;
+    public StyledStringSegment NullLiteral => primitiveFormatter.NullLiteral;
 
     public PrettyPrinter(SyntaxHighlighter syntaxHighlighter, Configuration config)
     {
-        formatter = new CSharpObjectFormatterImpl(syntaxHighlighter, config);
+        this.primitiveFormatter = new PrimitiveFormatter(syntaxHighlighter);
+        this.typeNameFormatter = new TypeNameFormatter(primitiveFormatter, syntaxHighlighter);
         this.syntaxHighlighter = syntaxHighlighter;
         this.config = config;
     }
@@ -62,7 +66,7 @@ internal sealed partial class PrettyPrinter
     }
 
     public StyledString FormatTypeName(Type type, bool showNamespaces, bool useLanguageKeywords)
-        => formatter.TypeNameFormatter.FormatTypeName(
+        => typeNameFormatter.FormatTypeName(
                 type,
                 new TypeNameFormatterOptions(
                     arrayBoundRadix: NumberRadix,
@@ -103,7 +107,7 @@ internal sealed partial class PrettyPrinter
         try
         {
             var primitiveOptions = GetPrimitiveOptions(quoteStringsAndCharacters ?? true);
-            var primitive = formatter.PrimitiveFormatter.FormatPrimitive(obj, primitiveOptions);
+            var primitive = primitiveFormatter.FormatPrimitive(obj, primitiveOptions);
             if (primitive.TryGet(out var primitiveValue))
             {
                 return styledStringSegmentToResult(primitiveValue);
@@ -137,7 +141,7 @@ internal sealed partial class PrettyPrinter
             else
             {
                 var typeNameOptions = GetTypeNameOptions(level);
-                return styledStringToResult(formatter.TypeNameFormatter.FormatTypeName(type, typeNameOptions));
+                return styledStringToResult(typeNameFormatter.FormatTypeName(type, typeNameOptions));
             }
         }
         catch
