@@ -5,7 +5,7 @@
 using System.Runtime.CompilerServices;
 using CSharpRepl.Services.Theming;
 
-namespace CSharpRepl.Services.Roslyn.CustomObjectFormatters;
+namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 
 internal class TupleFormatter : CustomObjectFormatter<ITuple>
 {

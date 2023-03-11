@@ -10,9 +10,8 @@ using System.Text.RegularExpressions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Classification;
-using Microsoft.CodeAnalysis.Scripting.Hosting;
 
-namespace CSharpRepl.Services.Roslyn;
+namespace CSharpRepl.Services.Roslyn.Formatting;
 
 /// <summary>
 /// Object pretty printer.

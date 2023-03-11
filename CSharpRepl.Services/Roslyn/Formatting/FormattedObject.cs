@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
 using Spectre.Console.Rendering;
 
-namespace CSharpRepl.Services.Roslyn;
+namespace CSharpRepl.Services.Roslyn.Formatting;
 
 internal readonly struct FormattedObject
 {

@@ -2,8 +2,8 @@
 
 using System;
 using CSharpRepl.Services;
-using CSharpRepl.Services.Roslyn;
-using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
+using CSharpRepl.Services.Roslyn.Formatting;
+using CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Scripting.Hosting;

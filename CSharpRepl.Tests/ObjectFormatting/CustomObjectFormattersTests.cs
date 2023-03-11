@@ -4,8 +4,8 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using CSharpRepl.Services.Roslyn;
-using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
+using CSharpRepl.Services.Roslyn.Formatting;
+using CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 using Xunit;
 
 namespace CSharpRepl.Tests.ObjectFormatting;

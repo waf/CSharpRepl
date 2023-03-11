@@ -5,7 +5,7 @@
 using System;
 using CSharpRepl.Services.Theming;
 
-namespace CSharpRepl.Services.Roslyn.CustomObjectFormatters;
+namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 
 internal class TypeFormatter : CustomObjectFormatter<Type>
 {

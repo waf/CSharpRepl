@@ -4,7 +4,7 @@
 
 using System;
 
-namespace CSharpRepl.Services.Roslyn;
+namespace CSharpRepl.Services.Roslyn.Formatting;
 
 public enum Level
 {

@@ -11,11 +11,13 @@ using System.Globalization;
 using System.Reflection;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Spectre.Console;
 
-namespace Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
+namespace CSharpRepl.Services.Roslyn.Formatting;
 
 using static ObjectFormatterHelpers;
 

@@ -14,7 +14,7 @@ using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
-namespace CSharpRepl.Services.Roslyn;
+namespace CSharpRepl.Services.Roslyn.Formatting;
 
 internal sealed partial class PrettyPrinter
 {

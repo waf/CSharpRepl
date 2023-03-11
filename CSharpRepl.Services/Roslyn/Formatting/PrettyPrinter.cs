@@ -6,16 +6,15 @@ using System;
 using System.Globalization;
 using System.Linq;
 using CSharpRepl.Services.Extensions;
-using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
+using CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
-using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
-namespace CSharpRepl.Services.Roslyn;
+namespace CSharpRepl.Services.Roslyn.Formatting;
 
 internal sealed partial class PrettyPrinter
 {

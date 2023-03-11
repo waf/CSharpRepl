@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;

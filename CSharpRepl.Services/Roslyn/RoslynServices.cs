@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using CSharpRepl.Services.Completion;
 using CSharpRepl.Services.Disassembly;
 using CSharpRepl.Services.Logging;
+using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SymbolExploration;

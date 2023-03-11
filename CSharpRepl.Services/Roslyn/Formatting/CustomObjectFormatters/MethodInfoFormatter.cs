@@ -7,7 +7,7 @@ using System.Reflection;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Classification;
 
-namespace CSharpRepl.Services.Roslyn.CustomObjectFormatters;
+namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 
 internal class MethodInfoFormatter : CustomObjectFormatter<MethodInfo>
 {

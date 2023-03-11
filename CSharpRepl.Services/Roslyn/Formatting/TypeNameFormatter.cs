@@ -14,12 +14,12 @@ using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
-using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.PooledObjects;
+using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Spectre.Console;
 
-namespace Microsoft.CodeAnalysis.Scripting.Hosting;
+namespace CSharpRepl.Services.Roslyn.Formatting;
 
 using static ObjectFormatterHelpers;
 using TypeInfo = System.Reflection.TypeInfo;
@@ -73,7 +73,7 @@ internal sealed class TypeNameFormatter
             return primitiveTypeName.Value;
         }
 
-        if (type.IsGenericParameter || (type.IsByRef && type.GetElementType()?.IsGenericParameter == true))
+        if (type.IsGenericParameter || type.IsByRef && type.GetElementType()?.IsGenericParameter == true)
         {
             return new StyledString(type.Name, highlighter.GetStyle(ClassificationTypeNames.TypeParameterName));
         }
