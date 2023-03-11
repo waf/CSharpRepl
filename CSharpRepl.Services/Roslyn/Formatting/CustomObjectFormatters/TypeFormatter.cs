@@ -11,8 +11,6 @@ internal class TypeFormatter : CustomObjectFormatter<Type>
 {
     public static readonly TypeFormatter Instance = new();
 
-    public override bool IsFormattingExhaustive => false;
-
     private TypeFormatter() { }
 
     public override StyledString Format(Type value, Level level, Formatter formatter)

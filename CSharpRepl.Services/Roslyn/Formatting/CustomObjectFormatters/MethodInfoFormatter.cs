@@ -13,8 +13,6 @@ internal class MethodInfoFormatter : CustomObjectFormatter<MethodInfo>
 {
     public static readonly MethodInfoFormatter Instance = new();
 
-    public override bool IsFormattingExhaustive => false;
-
     private MethodInfoFormatter() { }
 
     public override StyledString Format(MethodInfo value, Level level, Formatter formatter)

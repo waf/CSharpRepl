@@ -12,25 +12,19 @@ namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 internal interface ICustomObjectFormatter
 {
     /// <summary>
-    /// Is all the information about the value present in the formatted result?
-    /// When true the members of value are not showed even when requesting detailed output.
-    /// </summary>
-    bool IsFormattingExhaustive { get; }
-
-    /// <summary>
     /// Is this formatter to the value?
     /// </summary>
-    bool IsApplicable(object? value);
+    bool IsApplicable(object value);
 
-    StyledString FormatToText(object? value, Level level, Formatter formatter);
+    StyledString FormatToText(object value, Level level, Formatter formatter);
 
     //TODO - Hubert
-    //IRenderable FormatToRenderable(object? value, Level level, Formatter formatter);
+    //IRenderable FormatToRenderable(object value, Level level, Formatter formatter);
 }
 
 internal abstract class CustomObjectFormatter : ICustomObjectFormatter
 {
-    public bool IsApplicable(object? value)
+    public bool IsApplicable(object value)
     {
         if (value is null) return true;
         return value.GetType().IsAssignableTo(Type);
@@ -38,14 +32,8 @@ internal abstract class CustomObjectFormatter : ICustomObjectFormatter
 
     public abstract Type Type { get; }
 
-    //TODO - Hubert - not necessary anymore?
-    public abstract bool IsFormattingExhaustive { get; }
-
-    StyledString ICustomObjectFormatter.FormatToText(object? value, Level level, Formatter formatter)
-    {
-        if (value is null) return formatter.NullLiteral;
-        return Format(value, level, formatter);
-    }
+    StyledString ICustomObjectFormatter.FormatToText(object value, Level level, Formatter formatter) 
+        => Format(value, level, formatter);
 
     protected abstract StyledString Format(object value, Level level, Formatter formatter);
 }

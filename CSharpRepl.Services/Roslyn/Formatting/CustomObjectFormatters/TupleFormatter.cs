@@ -11,8 +11,6 @@ internal class TupleFormatter : CustomObjectFormatter<ITuple>
 {
     public static readonly TupleFormatter Instance = new();
 
-    public override bool IsFormattingExhaustive => true;
-
     private TupleFormatter() { }
 
     public override StyledString Format(ITuple value, Level level, Formatter formatter)
