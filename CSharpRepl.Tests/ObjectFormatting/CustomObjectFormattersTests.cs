@@ -112,13 +112,12 @@ public class CustomObjectFormattersTests
                 "(int, string)",
             };
 
-            //TODO - Hubert
-            //yield return new object[]
-            //{
-            //    (2, new[] { 1, 2, 3 }, typeof(List<int>)),
-            //    "(2, int[3] { 1, 2, 3 }, System.Collections.Generic.List<System.Int32>)",
-            //    "(2, int[3] { 1, 2, 3 }, List<int>)",
-            //};
+            yield return new object[]
+            {
+                (2, new[] { 1, 2, 3 }, typeof(List<int>)),
+                "(2, int[3] { 1, 2, 3 }, System.Collections.Generic.List<System.Int32>)",
+                "(2, int[3] { 1, 2, 3 }, List<int>)",
+            };
         }
     }
     #endregion

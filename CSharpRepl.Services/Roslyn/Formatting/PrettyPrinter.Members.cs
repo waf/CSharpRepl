@@ -178,16 +178,4 @@ internal sealed partial class PrettyPrinter
             yield return (obj, member);
         }
     }
-
-    private StyledString GetValueRetrievalExceptionText(Exception exception, Level level)
-        => GetErrorText(typeNameFormatter.FormatTypeName(exception.GetType(), GetTypeNameOptions(level)));
-
-    private StyledString GetErrorText(StyledString message)
-    {
-        var sb = new StyledStringBuilder();
-        sb.Append("!<", style: new Style(foreground: Color.Red));
-        sb.Append(message);
-        sb.Append('>', style: new Style(foreground: Color.Red));
-        return sb.ToStyledString();
-    }
 }

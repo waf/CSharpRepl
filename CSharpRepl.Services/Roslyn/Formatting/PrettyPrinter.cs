@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using CSharpRepl.Services.Extensions;
@@ -22,10 +23,12 @@ internal sealed partial class PrettyPrinter
 
     private static readonly ICustomObjectFormatter[] customObjectFormatters = new ICustomObjectFormatter[]
     {
+        IEnumerableFormatter.Instance,
         TypeFormatter.Instance,
         MethodInfoFormatter.Instance,
         TupleFormatter.Instance
     };
+
 
     private readonly TypeNameFormatter typeNameFormatter;
     private readonly PrimitiveFormatter primitiveFormatter;
@@ -103,6 +106,8 @@ internal sealed partial class PrettyPrinter
             return styledStringSegmentToResult(NullLiteral);
         }
 
+        Debug.Assert(obj is not StyledString);
+
         try
         {
             var primitiveOptions = GetPrimitiveOptions(quoteStringsAndCharacters ?? true);
@@ -126,7 +131,8 @@ internal sealed partial class PrettyPrinter
                     styledStringToResult(("(" + formattedValue + ")")) :
                     styledStringToResult(formattedValue);
             }
-            else if (ObjectFormatterHelpers.HasOverriddenToString(type))
+
+            if (ObjectFormatterHelpers.HasOverriddenToString(type))
             {
                 try
                 {
@@ -137,11 +143,9 @@ internal sealed partial class PrettyPrinter
                     return styledStringToResult(GetValueRetrievalExceptionText(ex, level));
                 }
             }
-            else
-            {
-                var typeNameOptions = GetTypeNameOptions(level);
-                return styledStringToResult(typeNameFormatter.FormatTypeName(type, typeNameOptions));
-            }
+
+            var typeNameOptions = GetTypeNameOptions(level);
+            return styledStringToResult(typeNameFormatter.FormatTypeName(type, typeNameOptions));
         }
         catch
         {
@@ -220,4 +224,16 @@ internal sealed partial class PrettyPrinter
     private TypeNameFormatterOptions GetTypeNameOptions(Level level) => new(
         arrayBoundRadix: NumberRadix,
         showNamespaces: level == Level.FirstDetailed);
+
+    public StyledString GetValueRetrievalExceptionText(Exception exception, Level level)
+       => GetErrorText(typeNameFormatter.FormatTypeName(exception.GetType(), GetTypeNameOptions(level)));
+
+    private StyledString GetErrorText(StyledString message)
+    {
+        var sb = new StyledStringBuilder();
+        sb.Append("!<", style: new Style(foreground: Color.Red));
+        sb.Append(message);
+        sb.Append('>', style: new Style(foreground: Color.Red));
+        return sb.ToStyledString();
+    }
 }

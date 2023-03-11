@@ -71,4 +71,7 @@ internal class Formatter
 
     public Style GetStyle(string? classification)
         => syntaxHighlighter.GetStyle(classification);
+
+    public StyledString GetValueRetrievalExceptionText(Exception exception, Level level)
+        => prettyPrinter.GetValueRetrievalExceptionText(exception, level);
 }

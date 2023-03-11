@@ -64,38 +64,33 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
 
     [Theory]
     [MemberData(nameof(FormatObjectInputs))]
-    internal void FormatObject_ObjectInput_PrintsOutput(object obj, Level level, string expectedResult, bool expectedResultIsNotComplete)
+    internal void FormatObject_ObjectInput_PrintsOutput(object obj, Level level, string expectedResult)
     {
         var output = ToString(prettyPrinter.FormatObject(obj, level).Renderable);
-        if (expectedResultIsNotComplete)
-        {
-            Assert.StartsWith(expectedResult, output);
-        }
-        else
-        {
             Assert.Equal(expectedResult, output);
-        }
     }
 
     public static IEnumerable<object[]> FormatObjectInputs => new[]
     {
-        new object[] { null, Level.FirstSimple, "null", false },
-        new object[] { null, Level.FirstDetailed, "null", false },
+        new object[] { null, Level.FirstSimple, "null" },
+        new object[] { null, Level.FirstDetailed, "null" },
 
-        new object[] { @"""hello world""", Level.FirstSimple, @"""\""hello world\""""", false  },
-        new object[] { @"""hello world""", Level.FirstDetailed, @"""hello world""", false  },
+        new object[] { @"""hello world""", Level.FirstSimple, @"""\""hello world\"""""  },
+        new object[] { @"""hello world""", Level.FirstDetailed, @"""hello world"""  },
 
-        new object[] { "a\nb", Level.FirstSimple, @"""a\nb""", false },
-        new object[] { "a\nb", Level.FirstDetailed, "a\nb", false },
+        new object[] { "a\nb", Level.FirstSimple, @"""a\nb""" },
+        new object[] { "a\nb", Level.FirstDetailed, "a\nb" },
 
-        //TODO - Hubert
-        //new object[] { new[] { 1, 2, 3 }, Level.FirstSimple, "int[3] { 1, 2, 3 }", false },
-        //new object[] { new[] { 1, 2, 3 }, Level.FirstDetailed, $"int[3] {"{"}{NewLine}  1,{NewLine}  2,{NewLine}  3{NewLine}{"}"}{NewLine}", false },
+        new object[] { new[] { 1, 2, 3 }, Level.FirstSimple, "int[3] { 1, 2, 3 }" },
+        new object[] { new[] { 1, 2, 3 }, Level.FirstDetailed, "int[3] { 1, 2, 3 }" },
 
-        new object[] { typeof(int), Level.FirstSimple, "int", false },
-        new object[] { typeof(int), Level.FirstDetailed, "System.Int32", true },
+        new object[] { new List<int>{ 1, 2, 3 }, Level.FirstSimple, "List<int>(3) { 1, 2, 3 }" },
+        new object[] { new List<int>{ 1, 2, 3 }, Level.FirstDetailed, "List<int>(3) { 1, 2, 3 }" },
 
-        new object[] { Encoding.UTF8, Level.FirstDetailed, "System.Text.UTF8Encoding.UTF8EncodingSealed", false },
+        new object[] { typeof(int), Level.FirstSimple, "int" },
+        new object[] { typeof(int), Level.FirstDetailed, "System.Int32" },
+
+        new object[] { Encoding.UTF8, Level.FirstDetailed, "System.Text.UTF8Encoding.UTF8EncodingSealed" },
     };
 
     private static string ToString(IRenderable renderable)
