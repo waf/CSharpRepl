@@ -23,7 +23,7 @@ internal interface ICustomObjectFormatter
 
 internal abstract class CustomObjectFormatter : ICustomObjectFormatter
 {
-    public bool IsApplicable(object value)
+    public virtual bool IsApplicable(object value)
     {
         if (value is null) return true;
         return value.GetType().IsAssignableTo(Type);
@@ -32,7 +32,9 @@ internal abstract class CustomObjectFormatter : ICustomObjectFormatter
     public abstract Type Type { get; }
 
     public abstract StyledString FormatToText(object value, Level level, Formatter formatter);
-    public abstract FormattedObjectRenderable FormatToRenderable(object value, Level level, Formatter formatter);
+
+    public virtual FormattedObjectRenderable FormatToRenderable(object value, Level level, Formatter formatter)
+        => new(FormatToText(value, level, formatter).ToParagraph(), renderOnNewLine: false);
 }
 
 internal abstract class CustomObjectFormatter<T> : CustomObjectFormatter
@@ -49,7 +51,7 @@ internal abstract class CustomObjectFormatter<T> : CustomObjectFormatter
     public abstract StyledString FormatToText(T value, Level level, Formatter formatter);
 
     public virtual FormattedObjectRenderable FormatToRenderable(T value, Level level, Formatter formatter)
-        => new(FormatToText(value, level, formatter).ToParagraph(), renderOnNewLine: false);
+        => base.FormatToRenderable(value, level, formatter);
 }
 
 internal class Formatter
@@ -67,10 +69,10 @@ internal class Formatter
     }
 
     public StyledString FormatObjectToText(object? obj, Level level)
-        => prettyPrinter.FormatObjectSafeToStyledString(obj, level);
+        => prettyPrinter.FormatObjectToText(obj, level);
 
     public FormattedObjectRenderable FormatObjectToRenderable(object? obj, Level level)
-        => prettyPrinter.FormatObjectSafeToRenderable(obj, level);
+        => prettyPrinter.FormatObjectToRenderable(obj, level);
 
     public StyledString FormatTypeName(Type type, bool showNamespaces, bool useLanguageKeywords)
         => prettyPrinter.FormatTypeName(type, showNamespaces, useLanguageKeywords);

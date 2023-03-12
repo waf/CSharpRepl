@@ -7,7 +7,7 @@ using CSharpRepl.Services.Theming;
 
 namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 
-internal class TupleFormatter : CustomObjectFormatter<ITuple>
+internal sealed class TupleFormatter : CustomObjectFormatter<ITuple>
 {
     public static readonly TupleFormatter Instance = new();
 

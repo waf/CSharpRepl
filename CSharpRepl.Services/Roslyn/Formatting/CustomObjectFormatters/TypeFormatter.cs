@@ -7,7 +7,7 @@ using CSharpRepl.Services.Theming;
 
 namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 
-internal class TypeFormatter : CustomObjectFormatter<Type>
+internal sealed class TypeFormatter : CustomObjectFormatter<Type>
 {
     public static readonly TypeFormatter Instance = new();
 

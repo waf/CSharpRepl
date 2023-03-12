@@ -11,7 +11,7 @@ using Spectre.Console;
 
 namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 
-internal class IEnumerableFormatter : CustomObjectFormatter<IEnumerable>
+internal sealed class IEnumerableFormatter : CustomObjectFormatter<IEnumerable>
 {
     public static readonly IEnumerableFormatter Instance = new();
 

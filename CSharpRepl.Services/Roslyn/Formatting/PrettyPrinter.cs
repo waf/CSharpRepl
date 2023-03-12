@@ -26,7 +26,8 @@ internal sealed partial class PrettyPrinter
         IEnumerableFormatter.Instance,
         TypeFormatter.Instance,
         MethodInfoFormatter.Instance,
-        TupleFormatter.Instance
+        TupleFormatter.Instance,
+        KeyValuePairFormatter.Instance
     };
 
 
@@ -63,7 +64,7 @@ internal sealed partial class PrettyPrinter
 
             Exception exception => new FormattedObject(FormatException(exception, level).ToParagraph(), value: exception),
 
-            _ => new FormattedObject(FormatObjectSafeToRenderable(obj, level), obj)
+            _ => new FormattedObject(FormatObjectToRenderable(obj, level), obj)
         };
     }
 
@@ -75,7 +76,7 @@ internal sealed partial class PrettyPrinter
                     showNamespaces,
                     useLanguageKeywords));
 
-    public StyledString FormatObjectSafeToStyledString(object? obj, Level level, bool? quoteStringsAndCharacters = null)
+    public StyledString FormatObjectToText(object? obj, Level level, bool? quoteStringsAndCharacters = null)
         => FormatObjectSafe(
             obj,
             level,
@@ -84,7 +85,7 @@ internal sealed partial class PrettyPrinter
             styledStringToResult: styledString => styledString,
             styledStringSegmentToResult: styledStringSegment => styledStringSegment);
 
-    public FormattedObjectRenderable FormatObjectSafeToRenderable(object? obj, Level level)
+    public FormattedObjectRenderable FormatObjectToRenderable(object? obj, Level level)
         => FormatObjectSafe(
             obj,
             level,
@@ -199,7 +200,7 @@ internal sealed partial class PrettyPrinter
                         }
                         else
                         {
-                            sb.Append(FormatObjectSafeToStyledString(value, level.Increment(), quoteStringsAndCharacters: !noQuotes));
+                            sb.Append(FormatObjectToText(value, level.Increment(), quoteStringsAndCharacters: !noQuotes));
                         }
                     }
                     i = expressionEnd + 1;

@@ -69,7 +69,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     {
         var output =
             obj is Array or List<int> ?
-            prettyPrinter.FormatObjectSafeToStyledString(obj, level).ToString() :
+            prettyPrinter.FormatObjectToText(obj, level).ToString() :
             ToString(prettyPrinter.FormatObject(obj, level).Renderable);
         Assert.Equal(expectedResult, output);
     }

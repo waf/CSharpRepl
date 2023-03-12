@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.Classification;
 
 namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 
-internal class MethodInfoFormatter : CustomObjectFormatter<MethodInfo>
+internal sealed class MethodInfoFormatter : CustomObjectFormatter<MethodInfo>
 {
     public static readonly MethodInfoFormatter Instance = new();
 
