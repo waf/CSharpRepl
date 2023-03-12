@@ -13,7 +13,7 @@ internal class TupleFormatter : CustomObjectFormatter<ITuple>
 
     private TupleFormatter() { }
 
-    public override StyledString Format(ITuple value, Level level, Formatter formatter)
+    public override StyledString FormatToText(ITuple value, Level level, Formatter formatter)
     {
         var sb = new StyledStringBuilder();
 

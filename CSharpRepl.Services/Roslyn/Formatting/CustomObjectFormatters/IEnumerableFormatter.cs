@@ -5,7 +5,9 @@
 using System;
 using System.Collections;
 using System.Reflection;
+using CSharpRepl.Services.Roslyn.Formatting.Rendering;
 using CSharpRepl.Services.Theming;
+using Spectre.Console;
 
 namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 
@@ -15,24 +17,12 @@ internal class IEnumerableFormatter : CustomObjectFormatter<IEnumerable>
 
     private IEnumerableFormatter() { }
 
-    public override StyledString Format(IEnumerable value, Level level, Formatter formatter)
+    public override StyledString FormatToText(IEnumerable value, Level level, Formatter formatter)
     {
         var sb = new StyledStringBuilder();
 
         //header
-        var isArray = value is Array;
-        sb.Append(
-            formatter.FormatTypeName(
-                isArray ? (value.GetType().GetElementType() ?? value.GetType()) : value.GetType(),
-                showNamespaces: false,
-                useLanguageKeywords: true));
-
-        if (TryGetCount(value, formatter, out var count))
-        {
-            sb.Append(isArray ? '[' : '(');
-            sb.Append(count);
-            sb.Append(isArray ? ']' : ')');
-        }
+        AppendHeader(sb, value, formatter);
 
         //items
         sb.Append(" { ");
@@ -62,6 +52,82 @@ internal class IEnumerableFormatter : CustomObjectFormatter<IEnumerable>
         sb.Append(" }");
 
         return sb.ToStyledString();
+    }
+
+    public override FormattedObjectRenderable FormatToRenderable(IEnumerable value, Level level, Formatter formatter)
+    {
+        if (level >= Level.Second)
+        {
+            return new FormattedObjectRenderable(FormatToText(value, level, formatter).ToParagraph(), renderOnNewLine: false);
+        }
+
+        var sb = new StyledStringBuilder();
+
+        AppendHeader(sb, value, formatter);
+        var header = sb.ToStyledString().ToParagraph();
+
+        var table = new Table().AddColumns("Name", "Value", "Type");
+
+        var enumerator = value.GetEnumerator();
+        try
+        {
+            int counter = 0;
+            while (enumerator.MoveNext())
+            {
+                sb.Clear();
+                sb.Append('[').Append(formatter.FormatObjectToText(counter, Level.FirstSimple)).Append(']');
+
+                var name = sb.ToStyledString();
+
+                var itemValue = formatter.FormatObjectToRenderable(enumerator.Current, level.Increment());
+
+                var itemType =
+                    enumerator.Current is null ?
+                    new Paragraph("") :
+                    formatter.FormatObjectToText(enumerator.Current.GetType(), level.Increment()).ToParagraph();
+
+                table.AddRow(name.ToParagraph(), itemValue, itemType);
+
+                counter++;
+            }
+
+            if (counter == 0)
+            {
+                return new FormattedObjectRenderable(header, renderOnNewLine: false);
+            }
+        }
+        catch (Exception ex)
+        {
+            table.AddRow(new Paragraph(""), formatter.GetValueRetrievalExceptionText(ex, level.Increment()).ToParagraph(), new Paragraph(""));
+        }
+        finally
+        {
+            if (enumerator is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+
+        return new FormattedObjectRenderable(
+            new RenderableSequence(header, table, separateByLineBreak: true),
+            renderOnNewLine: false);
+    }
+
+    private static void AppendHeader(StyledStringBuilder sb, IEnumerable value, Formatter formatter)
+    {
+        var isArray = value is Array;
+        sb.Append(
+            formatter.FormatTypeName(
+                isArray ? (value.GetType().GetElementType() ?? value.GetType()) : value.GetType(),
+                showNamespaces: false,
+                useLanguageKeywords: true));
+
+        if (TryGetCount(value, formatter, out var count))
+        {
+            sb.Append(isArray ? '[' : '(');
+            sb.Append(count);
+            sb.Append(isArray ? ']' : ')');
+        }
     }
 
     private static bool TryGetCount(IEnumerable value, Formatter formatter, out StyledString count)

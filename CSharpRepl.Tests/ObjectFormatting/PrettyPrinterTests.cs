@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -66,8 +67,11 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     [MemberData(nameof(FormatObjectInputs))]
     internal void FormatObject_ObjectInput_PrintsOutput(object obj, Level level, string expectedResult)
     {
-        var output = ToString(prettyPrinter.FormatObject(obj, level).Renderable);
-            Assert.Equal(expectedResult, output);
+        var output =
+            obj is Array or List<int> ?
+            prettyPrinter.FormatObjectSafeToStyledString(obj, level).ToString() :
+            ToString(prettyPrinter.FormatObject(obj, level).Renderable);
+        Assert.Equal(expectedResult, output);
     }
 
     public static IEnumerable<object[]> FormatObjectInputs => new[]

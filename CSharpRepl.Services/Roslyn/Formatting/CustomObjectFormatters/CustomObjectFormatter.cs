@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using CSharpRepl.Services.Roslyn.Formatting.Rendering;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Spectre.Console;
@@ -17,9 +18,7 @@ internal interface ICustomObjectFormatter
     bool IsApplicable(object value);
 
     StyledString FormatToText(object value, Level level, Formatter formatter);
-
-    //TODO - Hubert
-    //IRenderable FormatToRenderable(object value, Level level, Formatter formatter);
+    FormattedObjectRenderable FormatToRenderable(object value, Level level, Formatter formatter);
 }
 
 internal abstract class CustomObjectFormatter : ICustomObjectFormatter
@@ -32,10 +31,8 @@ internal abstract class CustomObjectFormatter : ICustomObjectFormatter
 
     public abstract Type Type { get; }
 
-    StyledString ICustomObjectFormatter.FormatToText(object value, Level level, Formatter formatter) 
-        => Format(value, level, formatter);
-
-    protected abstract StyledString Format(object value, Level level, Formatter formatter);
+    public abstract StyledString FormatToText(object value, Level level, Formatter formatter);
+    public abstract FormattedObjectRenderable FormatToRenderable(object value, Level level, Formatter formatter);
 }
 
 internal abstract class CustomObjectFormatter<T> : CustomObjectFormatter
@@ -43,10 +40,16 @@ internal abstract class CustomObjectFormatter<T> : CustomObjectFormatter
 {
     public sealed override Type Type => typeof(T);
 
-    protected sealed override StyledString Format(object value, Level level, Formatter formatter)
-        => Format((T)value, level, formatter);
+    public sealed override StyledString FormatToText(object value, Level level, Formatter formatter)
+        => FormatToText((T)value, level, formatter);
 
-    public abstract StyledString Format(T value, Level level, Formatter formatter);
+    public sealed override FormattedObjectRenderable FormatToRenderable(object value, Level level, Formatter formatter)
+        => FormatToRenderable((T)value, level, formatter);
+
+    public abstract StyledString FormatToText(T value, Level level, Formatter formatter);
+
+    public virtual FormattedObjectRenderable FormatToRenderable(T value, Level level, Formatter formatter)
+        => new(FormatToText(value, level, formatter).ToParagraph(), renderOnNewLine: false);
 }
 
 internal class Formatter
@@ -64,7 +67,10 @@ internal class Formatter
     }
 
     public StyledString FormatObjectToText(object? obj, Level level)
-        => prettyPrinter.FormatObjectSafeToStyledString(obj, level, quoteStringsAndCharacters: null);
+        => prettyPrinter.FormatObjectSafeToStyledString(obj, level);
+
+    public FormattedObjectRenderable FormatObjectToRenderable(object? obj, Level level)
+        => prettyPrinter.FormatObjectSafeToRenderable(obj, level);
 
     public StyledString FormatTypeName(Type type, bool showNamespaces, bool useLanguageKeywords)
         => prettyPrinter.FormatTypeName(type, showNamespaces, useLanguageKeywords);

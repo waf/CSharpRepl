@@ -8,12 +8,12 @@ using System.Globalization;
 using System.Linq;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
+using CSharpRepl.Services.Roslyn.Formatting.Rendering;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Spectre.Console;
-using Spectre.Console.Rendering;
 
 namespace CSharpRepl.Services.Roslyn.Formatting;
 
@@ -75,8 +75,8 @@ internal sealed partial class PrettyPrinter
                     showNamespaces,
                     useLanguageKeywords));
 
-    public StyledString FormatObjectSafeToStyledString(object? obj, Level level, bool? quoteStringsAndCharacters)
-        => FormatObjectSafe<StyledString>(
+    public StyledString FormatObjectSafeToStyledString(object? obj, Level level, bool? quoteStringsAndCharacters = null)
+        => FormatObjectSafe(
             obj,
             level,
             quoteStringsAndCharacters,
@@ -84,14 +84,14 @@ internal sealed partial class PrettyPrinter
             styledStringToResult: styledString => styledString,
             styledStringSegmentToResult: styledStringSegment => styledStringSegment);
 
-    private IRenderable FormatObjectSafeToRenderable(object? obj, Level level)
-        => FormatObjectSafe<IRenderable>(
+    public FormattedObjectRenderable FormatObjectSafeToRenderable(object? obj, Level level)
+        => FormatObjectSafe(
             obj,
             level,
             quoteStringsAndCharacters: null,
-            customObjectFormat: (customFormatter, obj, level, formatter) => customFormatter.FormatToText(obj, level, formatter).ToParagraph(),
-            styledStringToResult: styledString => styledString.ToParagraph(), //TODO - Hubert ICustomObjectFormatter.FormatToRenderable
-            styledStringSegmentToResult: styledStringSegment => styledStringSegment.ToParagraph());
+            customObjectFormat: (customFormatter, obj, level, formatter) => customFormatter.FormatToRenderable(obj, level, formatter),
+            styledStringToResult: styledString => new FormattedObjectRenderable(styledString.ToParagraph(), renderOnNewLine: false),
+            styledStringSegmentToResult: styledStringSegment => new FormattedObjectRenderable(styledStringSegment.ToParagraph(), renderOnNewLine: false));
 
     private TResult FormatObjectSafe<TResult>(
         object? obj,

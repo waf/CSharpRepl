@@ -15,7 +15,7 @@ internal class MethodInfoFormatter : CustomObjectFormatter<MethodInfo>
 
     private MethodInfoFormatter() { }
 
-    public override StyledString Format(MethodInfo value, Level level, Formatter formatter)
+    public override StyledString FormatToText(MethodInfo value, Level level, Formatter formatter)
     {
         var methodNameStyle = formatter.GetStyle(ClassificationTypeNames.MethodName);
         var typeFormatter = TypeFormatter.Instance;
@@ -57,7 +57,7 @@ internal class MethodInfoFormatter : CustomObjectFormatter<MethodInfo>
                 sb.Append('<');
                 foreach (var a in value.GetGenericArguments())
                 {
-                    sb.Append(typeFormatter.Format(a, level, formatter));
+                    sb.Append(typeFormatter.FormatToText(a, level, formatter));
                 }
                 sb.Append('>');
             }
@@ -68,7 +68,7 @@ internal class MethodInfoFormatter : CustomObjectFormatter<MethodInfo>
             for (int i = 0; i < parameters.Length; i++)
             {
                 var p = parameters[i];
-                sb.Append(typeFormatter.Format(p.ParameterType, level, formatter));
+                sb.Append(typeFormatter.FormatToText(p.ParameterType, level, formatter));
 
                 if (level < Level.Second)
                 {
@@ -87,7 +87,7 @@ internal class MethodInfoFormatter : CustomObjectFormatter<MethodInfo>
             return
                 value.ReturnType == typeof(void) ?
                 sb.Append(new StyledString("void", formatter.KeywordStyle)) :
-                sb.Append(typeFormatter.Format(value.ReturnType, level, formatter));
+                sb.Append(typeFormatter.FormatToText(value.ReturnType, level, formatter));
         }
     }
 }

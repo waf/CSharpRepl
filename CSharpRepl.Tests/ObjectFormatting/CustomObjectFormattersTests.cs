@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -82,6 +83,43 @@ public class CustomObjectFormattersTests
     private interface ITestInterface
     {
         void M();
+    }
+    #endregion
+
+    #region IEnumerableFormatter
+    [Theory]
+    [MemberData(nameof(IEnumerableData))]
+    public void TestIEnumerableFormatting(IEnumerable value, string expectedOutput_0, string expectedOutput_1)
+    {
+        Assert.Equal(expectedOutput_0, formatter.Format(IEnumerableFormatter.Instance, value, Level.FirstDetailed));
+        Assert.Equal(expectedOutput_1, formatter.Format(IEnumerableFormatter.Instance, value, Level.FirstSimple));
+    }
+
+    public static IEnumerable<object[]> IEnumerableData
+    {
+        get
+        {
+            yield return new object[]
+            {
+                new[] { 1, 2, 3 },
+                "int[3] { 1, 2, 3 }",
+                "int[3] { 1, 2, 3 }",
+            };
+
+            yield return new object[]
+            {
+                new[] { typeof(int), typeof(string) },
+                "Type[2] { int, string }",
+                "Type[2] { int, string }",
+            };
+
+            yield return new object[]
+            {
+                new object[] { 2, new[] { 1, 2, 3 }, typeof(List<int>) },
+                "object[3] { 2, int[3] { 1, 2, 3 }, List<int> }",
+                "object[3] { 2, int[3] { 1, 2, 3 }, List<int> }",
+            };
+        }
     }
     #endregion
 

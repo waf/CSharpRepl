@@ -9,9 +9,9 @@ using System.Linq;
 using System.Reflection;
 using CSharpRepl.Services.Completion;
 using CSharpRepl.Services.Extensions;
+using CSharpRepl.Services.Roslyn.Formatting.Rendering;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
-using Spectre.Console;
 using Spectre.Console.Rendering;
 
 namespace CSharpRepl.Services.Roslyn.Formatting;
@@ -53,22 +53,12 @@ internal sealed partial class PrettyPrinter
             memberFormattedValue = GetValueRetrievalExceptionText(exception, level).ToParagraph();
         }
 
-        var nameWithFormattedValue = new InlineRenderable((name + ": ").ToParagraph(), memberFormattedValue);
+        var nameWithFormattedValue = new RenderableSequence(
+            (name + ": ").ToParagraph(),
+            memberFormattedValue,
+            separateByLineBreak: false);
+
         return new FormattedObject(nameWithFormattedValue, memberValue);
-    }
-
-    private sealed class InlineRenderable : Renderable
-    {
-        private readonly IRenderable r1, r2;
-
-        public InlineRenderable(IRenderable r1, IRenderable r2)
-        {
-            this.r1 = r1;
-            this.r2 = r2;
-        }
-
-        protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
-            => r1.Render(options, maxWidth).Concat(r2.Render(options, maxWidth));
     }
 
     private StyledString GetMemberDefaultName(MemberInfo member)

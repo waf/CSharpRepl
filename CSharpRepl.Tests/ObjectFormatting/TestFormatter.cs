@@ -6,7 +6,6 @@ using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
-using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Microsoft.Extensions.Caching.Memory;
 using Xunit;
 
@@ -23,10 +22,8 @@ internal class TestFormatter
         this.config = config;
     }
 
-    public string Format(ICustomObjectFormatter formatter, object value, Level level, PrintOptions? options = null)
+    public string Format(ICustomObjectFormatter formatter, object value, Level level)
     {
-        options ??= new PrintOptions();
-
         var prettyPrompt = new PrettyPrinter(highlighter, config);
         Assert.True(formatter.IsApplicable(value));
         return formatter.FormatToText(value, level, new Formatter(prettyPrompt, highlighter)).ToString();

@@ -13,7 +13,7 @@ internal class TypeFormatter : CustomObjectFormatter<Type>
 
     private TypeFormatter() { }
 
-    public override StyledString Format(Type value, Level level, Formatter formatter)
+    public override StyledString FormatToText(Type value, Level level, Formatter formatter)
     {
         return formatter.FormatTypeName(
             value,
