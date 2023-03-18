@@ -91,8 +91,20 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         new object[] { new List<int>{ 1, 2, 3 }, Level.FirstSimple, "List<int>(3) { 1, 2, 3 }" },
         new object[] { new List<int>{ 1, 2, 3 }, Level.FirstDetailed, "List<int>(3) { 1, 2, 3 }" },
 
+        new object[] { typeof(List<int>.Enumerator), Level.FirstSimple, "List<int>.Enumerator" },
+        new object[] { typeof(List<int>.Enumerator), Level.FirstDetailed, "System.Collections.Generic.List<System.Int32>.Enumerator" },
+
         new object[] { typeof(int), Level.FirstSimple, "int" },
         new object[] { typeof(int), Level.FirstDetailed, "System.Int32" },
+
+        new object[] { typeof(int[]), Level.FirstSimple, "int[]" },
+        new object[] { typeof(int[]), Level.FirstDetailed, "System.Int32[]" },
+
+        new object[] { typeof(int[,]), Level.FirstSimple, "int[,]" },
+        new object[] { typeof(int[,]), Level.FirstDetailed, "System.Int32[,]" },
+
+        new object[] { typeof(int[][]), Level.FirstSimple, "int[][]" },
+        new object[] { typeof(int[][]), Level.FirstDetailed, "System.Int32[][]" },
 
         new object[] { Encoding.UTF8, Level.FirstDetailed, "System.Text.UTF8Encoding.UTF8EncodingSealed" },
     };

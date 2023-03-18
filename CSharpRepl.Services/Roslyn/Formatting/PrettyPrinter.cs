@@ -43,7 +43,7 @@ internal sealed partial class PrettyPrinter
     public PrettyPrinter(IAnsiConsole console, SyntaxHighlighter syntaxHighlighter, Configuration config)
     {
         this.primitiveFormatter = new PrimitiveFormatter(syntaxHighlighter);
-        this.typeNameFormatter = new TypeNameFormatter(primitiveFormatter, syntaxHighlighter);
+        this.typeNameFormatter = new TypeNameFormatter(syntaxHighlighter);
         this.console = console;
         this.syntaxHighlighter = syntaxHighlighter;
         this.config = config;

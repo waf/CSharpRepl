@@ -8,7 +8,6 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Reflection;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
@@ -33,11 +32,8 @@ internal sealed class TypeNameFormatter
 
     private readonly SyntaxHighlighter highlighter;
 
-    private PrimitiveFormatter PrimitiveFormatter { get; }
-
-    public TypeNameFormatter(PrimitiveFormatter primitiveFormatter, SyntaxHighlighter highlighter)
+    public TypeNameFormatter(SyntaxHighlighter highlighter)
     {
-        PrimitiveFormatter = primitiveFormatter;
         this.highlighter = highlighter;
     }
 
@@ -80,7 +76,7 @@ internal sealed class TypeNameFormatter
 
         if (type.IsArray)
         {
-            return FormatArrayTypeName(type, arrayOpt: null, options: options);
+            return FormatArrayTypeName(type, options);
         }
 
         var typeInfo = type.GetTypeInfo();
@@ -135,46 +131,10 @@ internal sealed class TypeNameFormatter
         }
     }
 
-    public StyledString FormatTypeArguments(Type[] typeArguments, TypeNameFormatterOptions options)
-    {
-        if (typeArguments == null)
-        {
-            throw new ArgumentNullException(nameof(typeArguments));
-        }
-
-        if (typeArguments.Length == 0)
-        {
-            throw new ArgumentException(null, nameof(typeArguments));
-        }
-
-        var builder = new StyledStringBuilder();
-
-        builder.Append(GenericParameterOpening);
-
-        var first = true;
-        foreach (var typeArgument in typeArguments)
-        {
-            if (first)
-            {
-                first = false;
-            }
-            else
-            {
-                builder.Append(", ");
-            }
-
-            builder.Append(FormatTypeName(typeArgument, options));
-        }
-
-        builder.Append(GenericParameterClosing);
-
-        return builder.ToStyledString();
-    }
-
     /// <summary>
     /// Formats an array type name (vector or multidimensional).
     /// </summary>
-    public StyledString FormatArrayTypeName(Type arrayType, Array? arrayOpt, TypeNameFormatterOptions options)
+    public StyledString FormatArrayTypeName(Type arrayType, TypeNameFormatterOptions options)
     {
         if (arrayType == null)
         {
@@ -196,82 +156,24 @@ internal sealed class TypeNameFormatter
         var type = arrayType;
         do
         {
-            if (arrayOpt != null)
-            {
-                sb.Append(ArrayOpening);
-
-                int rank = type.GetArrayRank();
-
-                bool anyNonzeroLowerBound = false;
-                for (int i = 0; i < rank; i++)
-                {
-                    if (arrayOpt.GetLowerBound(i) > 0)
-                    {
-                        anyNonzeroLowerBound = true;
-                        break;
-                    }
-                }
-
-                for (int i = 0; i < rank; i++)
-                {
-                    int lowerBound = arrayOpt.GetLowerBound(i);
-                    int length = arrayOpt.GetLength(i);
-
-                    if (i > 0)
-                    {
-                        sb.Append(", ");
-                    }
-
-                    if (anyNonzeroLowerBound)
-                    {
-                        AppendArrayBound(sb, lowerBound, options.ArrayBoundRadix);
-                        sb.Append("..");
-                        AppendArrayBound(sb, length + lowerBound, options.ArrayBoundRadix);
-                    }
-                    else
-                    {
-                        AppendArrayBound(sb, length, options.ArrayBoundRadix);
-                    }
-                }
-
-                sb.Append(ArrayClosing);
-                arrayOpt = null;
-            }
-            else
-            {
-                AppendArrayRank(sb, type);
-            }
+            AppendArrayRank(type);
 
             type = type.GetElementType()!;
         }
         while (type.IsArray);
 
         return sb.ToStyledString();
-    }
 
-    private void AppendArrayBound(StyledStringBuilder sb, long bound, int numberRadix)
-    {
-        var options = new PrimitiveFormatterOptions(
-            numberRadix: numberRadix,
-            includeCodePoints: false,
-            quoteStringsAndCharacters: true,
-            escapeNonPrintableCharacters: true,
-            cultureInfo: CultureInfo.InvariantCulture);
-        var formatted = bound is >= int.MinValue and <= int.MaxValue
-            ? PrimitiveFormatter.FormatPrimitive((int)bound, options)
-            : PrimitiveFormatter.FormatPrimitive(bound, options);
-        sb.Append(formatted ?? StyledStringSegment.Empty);
-    }
-
-    private void AppendArrayRank(StyledStringBuilder sb, Type arrayType)
-    {
-        sb.Append(ArrayOpening);
-        int rank = arrayType.GetArrayRank();
-        for (int i = 0; i < rank - 1; i++)
+        void AppendArrayRank(Type arrayType)
         {
-            sb.Append(',');
+            sb.Append(ArrayOpening);
+            int rank = arrayType.GetArrayRank();
+            for (int i = 0; i < rank - 1; i++)
+            {
+                sb.Append(',');
+            }
+            sb.Append(ArrayClosing);
         }
-        sb.Append(ArrayClosing);
     }
 
     private StyledString FormatGenericTypeName([MaybeNull] TypeInfo typeInfo, TypeNameFormatterOptions options)
@@ -280,7 +182,7 @@ internal sealed class TypeNameFormatter
 
         // consolidated generic arguments (includes arguments of all declaring types):
         // TODO (DevDiv #173210): shouldn't need parameters, but StackTrace gives us unconstructed symbols.
-        Type[] genericArguments = typeInfo.IsGenericTypeDefinition ? typeInfo.GenericTypeParameters : typeInfo.GenericTypeArguments;
+        var genericArguments = typeInfo.IsGenericTypeDefinition ? typeInfo.GenericTypeParameters : typeInfo.GenericTypeArguments;
 
         if (typeInfo.DeclaringType != null)
         {
@@ -292,19 +194,10 @@ internal sealed class TypeNameFormatter
             }
             while (typeInfo != null);
 
-            if (options.ShowNamespaces)
-            {
-                var @namespace = nestedTypes.Last().Namespace;
-                if (@namespace != null)
-                {
-                    builder.Append(@namespace + ".");
-                }
-            }
-
             int typeArgumentIndex = 0;
             for (int i = nestedTypes.Count - 1; i >= 0; i--)
             {
-                AppendTypeInstantiation(builder, nestedTypes[i], genericArguments, ref typeArgumentIndex, options);
+                AppendTypeInstantiation(nestedTypes[i], ref typeArgumentIndex);
                 if (i > 0)
                 {
                     builder.Append('.');
@@ -316,43 +209,40 @@ internal sealed class TypeNameFormatter
         else
         {
             int typeArgumentIndex = 0;
-            AppendTypeInstantiation(builder, typeInfo, genericArguments, ref typeArgumentIndex, options);
+            AppendTypeInstantiation(typeInfo, ref typeArgumentIndex);
         }
 
         return builder.ToStyledString();
-    }
 
-    private void AppendTypeInstantiation(
-        StyledStringBuilder builder,
-        TypeInfo typeInfo,
-        Type[] genericArguments,
-        ref int genericArgIndex,
-        TypeNameFormatterOptions options)
-    {
-        // generic arguments of all the outer types and the current type;
-        int currentArgCount = (typeInfo.IsGenericTypeDefinition ? typeInfo.GenericTypeParameters.Length : typeInfo.GenericTypeArguments.Length) - genericArgIndex;
-
-        var typeStyle = GetTypeStyle(typeInfo, highlighter);
-        if (currentArgCount > 0)
+        void AppendTypeInstantiation(
+            TypeInfo typeInfo,
+            ref int genericArgIndex)
         {
-            builder.Append(FormatNonGenericTypeName(typeInfo, options));
+            // generic arguments of all the outer types and the current type;
+            int currentArgCount = (typeInfo.IsGenericTypeDefinition ? typeInfo.GenericTypeParameters.Length : typeInfo.GenericTypeArguments.Length) - genericArgIndex;
 
-            builder.Append(GenericParameterOpening);
-
-            for (int i = 0; i < currentArgCount; i++)
+            var typeStyle = GetTypeStyle(typeInfo, highlighter);
+            if (currentArgCount > 0)
             {
-                if (i > 0)
-                {
-                    builder.Append(", ");
-                }
-                builder.Append(FormatTypeName(genericArguments[genericArgIndex++], options));
-            }
+                builder.Append(FormatNonGenericTypeName(typeInfo, options));
 
-            builder.Append(GenericParameterClosing);
-        }
-        else
-        {
-            builder.Append(typeInfo.Name, typeStyle);
+                builder.Append(GenericParameterOpening);
+
+                for (int i = 0; i < currentArgCount; i++)
+                {
+                    if (i > 0)
+                    {
+                        builder.Append(", ");
+                    }
+                    builder.Append(FormatTypeName(genericArguments[genericArgIndex++], options));
+                }
+
+                builder.Append(GenericParameterClosing);
+            }
+            else
+            {
+                builder.Append(typeInfo.Name, typeStyle);
+            }
         }
     }
 
