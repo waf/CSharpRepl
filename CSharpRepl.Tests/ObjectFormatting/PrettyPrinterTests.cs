@@ -1,5 +1,8 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
@@ -65,7 +68,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
 
     [Theory]
     [MemberData(nameof(FormatObjectInputs))]
-    internal void FormatObject_ObjectInput_PrintsOutput(object obj, Level level, string expectedResult)
+    internal void FormatObject_ObjectInput_PrintsOutput(object? obj, Level level, string expectedResult)
     {
         var output =
             obj is Array or List<int> ?
@@ -74,10 +77,10 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         Assert.Equal(expectedResult, output);
     }
 
-    public static IEnumerable<object[]> FormatObjectInputs => new[]
+    public static IEnumerable<object?[]> FormatObjectInputs => new[]
     {
-        new object[] { null, Level.FirstSimple, "null" },
-        new object[] { null, Level.FirstDetailed, "null" },
+        new object?[] { null, Level.FirstSimple, "null" },
+        new object?[] { null, Level.FirstDetailed, "null" },
 
         new object[] { @"""hello world""", Level.FirstSimple, @"""\""hello world\"""""  },
         new object[] { @"""hello world""", Level.FirstDetailed, @"""hello world"""  },
@@ -107,6 +110,38 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         new object[] { typeof(int[][]), Level.FirstDetailed, "System.Int32[][]" },
 
         new object[] { Encoding.UTF8, Level.FirstDetailed, "System.Text.UTF8Encoding.UTF8EncodingSealed" },
+    };
+
+    [Theory]
+    [MemberData(nameof(ObjectMembersFormattingInputs))]
+    public void TestObjectMembersFormatting(object obj, Level level, string[] expectedResults, bool includeNonPublic)
+    {
+        var outputs = prettyPrinter.FormatMembers(obj, level, includeNonPublic).ToArray();
+        Assert.Equal(expectedResults.Length, outputs.Length);
+        foreach (var (output, expectedResult) in outputs.Zip(expectedResults))
+        {
+            Assert.Equal(expectedResult, ToString(output.Renderable)); 
+        }
+    }
+
+    private sealed class TestClassWithMembers
+    {
+#pragma warning disable IDE0051, IDE0052 // Remove unread private members
+        private readonly object fieldObject = new();
+        private string PropertyString => "abcd";
+#pragma warning restore IDE0051, IDE0052 // Remove unread private members
+
+        public int FieldInt32 = 2;
+        public bool PropertyBool { get; } = true;
+    }
+
+    public static IEnumerable<object[]> ObjectMembersFormattingInputs => new[]
+    {
+        new object[] { new(), Level.FirstDetailed, Array.Empty<string>(), false },
+        new object[] { new(), Level.FirstDetailed, Array.Empty<string>(), true },
+
+        new object[] { new TestClassWithMembers(), Level.FirstSimple, new[] { "FieldInt32: 2", "PropertyBool: true" }, false },
+        new object[] { new TestClassWithMembers(), Level.FirstDetailed, new[] { "FieldInt32: 2", "fieldObject: object", "PropertyBool: true", "PropertyString: \"abcd\"" }, true },
     };
 
     private static string ToString(IRenderable renderable)
