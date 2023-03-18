@@ -201,4 +201,13 @@ public class CustomObjectFormattersTests : IClassFixture<RoslynServicesFixture>
         }
     }
     #endregion
+
+    #region Guid
+    [Fact]
+    public void TestGuidFormatting()
+    {
+        var guid = Guid.NewGuid();
+        Assert.Equal(guid.ToString(), formatter.Format(GuidFormatter.Instance, guid, Level.FirstDetailed));
+    }
+    #endregion
 }

@@ -27,7 +27,8 @@ internal sealed partial class PrettyPrinter
         TypeFormatter.Instance,
         MethodInfoFormatter.Instance,
         TupleFormatter.Instance,
-        KeyValuePairFormatter.Instance
+        KeyValuePairFormatter.Instance,
+        GuidFormatter.Instance
     };
 
     private readonly TypeNameFormatter typeNameFormatter;
