@@ -61,11 +61,13 @@ internal class Formatter
 
     public StyledStringSegment NullLiteral => prettyPrinter.NullLiteral;
     public Style KeywordStyle => syntaxHighlighter.KeywordStyle;
+    public Profile ConsoleProfile { get; }
 
-    public Formatter(PrettyPrinter prettyPrinter, SyntaxHighlighter syntaxHighlighter)
+    public Formatter(PrettyPrinter prettyPrinter, SyntaxHighlighter syntaxHighlighter, Profile consoleProfile)
     {
         this.prettyPrinter = prettyPrinter;
         this.syntaxHighlighter = syntaxHighlighter;
+        ConsoleProfile = consoleProfile;
     }
 
     public StyledString FormatObjectToText(object? obj, Level level)

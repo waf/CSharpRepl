@@ -29,10 +29,21 @@ internal sealed class IEnumerableFormatter : CustomObjectFormatter<IEnumerable>
         var enumerator = value.GetEnumerator();
         try
         {
+            var maxParagraphLength = LengthLimiting.GetMaxParagraphLength(level, formatter.ConsoleProfile);
             bool any = false;
             while (enumerator.MoveNext())
             {
-                if (any) sb.Append(", ");
+                if (any)
+                {
+                    sb.Append(", ");
+
+                    if (maxParagraphLength > sb.Length &&
+                        sb.Length > formatter.ConsoleProfile.Width / 2) //just heuristic
+                    {
+                        sb.Append(", ...");
+                        break;
+                    }
+                }
                 var formattedItem = formatter.FormatObjectToText(enumerator.Current, level.Increment());
                 sb.Append(formattedItem);
                 any = true;
@@ -71,9 +82,16 @@ internal sealed class IEnumerableFormatter : CustomObjectFormatter<IEnumerable>
         var enumerator = value.GetEnumerator();
         try
         {
+            var maxItems = LengthLimiting.GetTableMaxItems(level, formatter.ConsoleProfile);
             int counter = 0;
             while (enumerator.MoveNext())
             {
+                if (counter > maxItems)
+                {
+                    table.AddRow("...", "...", "...");
+                    break;
+                }
+
                 sb.Clear();
                 sb.Append('[').Append(formatter.FormatObjectToText(counter, Level.FirstSimple)).Append(']');
 

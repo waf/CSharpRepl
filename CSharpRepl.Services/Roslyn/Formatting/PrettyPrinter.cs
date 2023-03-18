@@ -30,20 +30,20 @@ internal sealed partial class PrettyPrinter
         KeyValuePairFormatter.Instance
     };
 
-
     private readonly TypeNameFormatter typeNameFormatter;
     private readonly PrimitiveFormatter primitiveFormatter;
     private readonly MemberFilter filter = new();
-
+    private readonly IAnsiConsole console;
     private readonly SyntaxHighlighter syntaxHighlighter;
     private readonly Configuration config;
 
     public StyledStringSegment NullLiteral => primitiveFormatter.NullLiteral;
 
-    public PrettyPrinter(SyntaxHighlighter syntaxHighlighter, Configuration config)
+    public PrettyPrinter(IAnsiConsole console, SyntaxHighlighter syntaxHighlighter, Configuration config)
     {
         this.primitiveFormatter = new PrimitiveFormatter(syntaxHighlighter);
         this.typeNameFormatter = new TypeNameFormatter(primitiveFormatter, syntaxHighlighter);
+        this.console = console;
         this.syntaxHighlighter = syntaxHighlighter;
         this.config = config;
     }
@@ -55,8 +55,8 @@ internal sealed partial class PrettyPrinter
             null => new FormattedObject(NullLiteral.ToParagraph(), value: null),
 
             // when detailed is true, don't show the escaped string (i.e. interpret the escape characters, via displaying to console)
-            string str when level == 0 => new FormattedObject(
-                new Paragraph(str),
+            string str when level == Level.FirstDetailed => new FormattedObject(
+                new Paragraph(LengthLimiting.LimitLength(str, level, console.Profile)),
                 value: str),
 
             //call stack for compilation error exception is useless
@@ -115,29 +115,30 @@ internal sealed partial class PrettyPrinter
             var primitive = primitiveFormatter.FormatPrimitive(obj, primitiveOptions);
             if (primitive.TryGet(out var primitiveValue))
             {
-                return styledStringSegmentToResult(primitiveValue);
+                var result = LengthLimiting.LimitLength(primitiveValue, level, console.Profile);
+                return styledStringSegmentToResult(result);
             }
 
             var type = obj.GetType();
             if (customObjectFormatters.FirstOrDefault(f => f.IsApplicable(obj)).TryGet(out var customFormatter))
             {
-                return customObjectFormat(customFormatter, obj, level, new Formatter(this, syntaxHighlighter));
+                //custom formatters handle length limiting on it's own
+                return customObjectFormat(customFormatter, obj, level, new Formatter(this, syntaxHighlighter, console.Profile));
             }
 
             if (ObjectFormatterHelpers.GetApplicableDebuggerDisplayAttribute(type)?.Value is { } debuggerDisplayFormat)
             {
-                var formattedValue = FormatWithEmbeddedExpressions(debuggerDisplayFormat, obj, level);
-                return
-                    level is Level.FirstDetailed or Level.FirstSimple ?
-                    styledStringToResult(("(" + formattedValue + ")")) :
-                    styledStringToResult(formattedValue);
+                var result = LengthLimiting.LimitLength(FormatWithEmbeddedExpressions(debuggerDisplayFormat, obj, level), level, console.Profile);
+                var formattedValue = result;
+                return styledStringToResult(formattedValue);
             }
 
             if (ObjectFormatterHelpers.HasOverriddenToString(type))
             {
                 try
                 {
-                    return styledStringSegmentToResult($"[{obj}]");
+                    var result = LengthLimiting.LimitLength(obj.ToString(), level, console.Profile);
+                    return styledStringSegmentToResult(result);
                 }
                 catch (Exception ex)
                 {
@@ -152,7 +153,8 @@ internal sealed partial class PrettyPrinter
         {
             try
             {
-                return styledStringSegmentToResult(obj.ToString() ?? "");
+                var result = LengthLimiting.LimitLength(obj.ToString(), level, console.Profile) ?? "";
+                return styledStringSegmentToResult(result);
             }
             catch (Exception ex)
             {

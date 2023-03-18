@@ -26,4 +26,10 @@ public readonly struct StyledStringSegment
     public static implicit operator StyledStringSegment(string text) => new(text, null);
 
     public Paragraph ToParagraph() => new(Text, Style);
+
+    /// <summary>
+    /// <inheritdoc cref="string.Substring(int, int)"/>
+    /// </summary>
+    public StyledStringSegment Substring(int startIndex, int length)
+        => new(Text.Substring(startIndex, length), Style);
 }

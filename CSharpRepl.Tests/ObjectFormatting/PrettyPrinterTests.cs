@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,6 +28,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         console = fixture.ConsoleStub;
         services = fixture.RoslynServices;
         prettyPrinter = new PrettyPrinter(
+            console,
             new SyntaxHighlighter(
                 new MemoryCache(new MemoryCacheOptions()),
                 new Theme(null, null, null, null, Array.Empty<SyntaxHighlightingColor>())),

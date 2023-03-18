@@ -57,7 +57,7 @@ public readonly struct StyledString
     public char LastChar => parts[^1].Text[0];
 
     /// <summary>
-    /// Retrieves a substring from this instance. The substring starts at a specified character position and has a specified length.
+    /// <inheritdoc cref="string.Substring(int, int)"/>
     /// </summary>
     public StyledString Substring(int startIndex, int length)
     {

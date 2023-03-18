@@ -41,6 +41,7 @@ namespace CSharpRepl.Services.Roslyn;
 public sealed partial class RoslynServices
 {
     private readonly SyntaxHighlighter highlighter;
+    private readonly IConsoleEx console;
     private readonly ITraceLogger logger;
     private readonly SemaphoreSlim semaphore = new(1);
     private readonly IPromptCallbacks defaultPromptCallbacks = new PromptCallbacks();
@@ -66,6 +67,7 @@ public sealed partial class RoslynServices
     public RoslynServices(IConsoleEx console, Configuration config, ITraceLogger logger)
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
+        this.console = console;
         this.logger = logger;
         this.highlighter = new SyntaxHighlighter(cache, config.Theme);
         this.overloadItemGenerator = new(() => new(highlighter));
@@ -89,7 +91,7 @@ public sealed partial class RoslynServices
             this.scriptRunner = new ScriptRunner(workspaceManager, compilationOptions, referenceService, console, config);
 
             this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
-            this.prettyPrinter = new PrettyPrinter(highlighter, config);
+            this.prettyPrinter = new PrettyPrinter(console, highlighter, config);
             this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
             this.autocompleteService = new AutoCompleteService(highlighter, cache, config);
             logger.Log("Background initialization complete");
@@ -144,9 +146,17 @@ public sealed partial class RoslynServices
                 level: level,
                 includeNonPublic: false);
 
+            int nodeCount = 0;
+            int maxNodes = LengthLimiting.GetTreeMaxItems(level, console.Profile);
             foreach (var formattedMember in formattedMembers)
             {
+                if (nodeCount >= maxNodes)
+                {
+                    tree.AddNode(new Paragraph("..."));
+                    break;
+                }
                 tree.AddNode(formattedMember.Renderable);
+                nodeCount++;
             }
 
             return tree;

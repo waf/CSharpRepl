@@ -11,9 +11,14 @@ using Xunit;
 
 namespace CSharpRepl.Tests.ObjectFormatting;
 
-public class CustomObjectFormattersTests
+public class CustomObjectFormattersTests : IClassFixture<RoslynServicesFixture>
 {
-    private readonly TestFormatter formatter = TestFormatter.Create();
+    private readonly TestFormatter formatter;
+
+    public CustomObjectFormattersTests(RoslynServicesFixture fixture)
+    {
+        formatter = TestFormatter.Create(fixture.ConsoleStub);
+    }
 
     #region TypeFormatter
     [Theory]
