@@ -18,6 +18,7 @@ internal sealed class TypeFormatter : CustomObjectFormatter<Type>
         return formatter.FormatTypeName(
             value,
             showNamespaces: level == Level.FirstDetailed,
-            useLanguageKeywords: level != Level.FirstDetailed);
+            useLanguageKeywords: level != Level.FirstDetailed,
+            hideSystemNamespace: false);
     }
 }

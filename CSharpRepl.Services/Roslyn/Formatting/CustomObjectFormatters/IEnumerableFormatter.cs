@@ -138,7 +138,8 @@ internal sealed class IEnumerableFormatter : CustomObjectFormatter<IEnumerable>
             formatter.FormatTypeName(
                 isArray ? (value.GetType().GetElementType() ?? value.GetType()) : value.GetType(),
                 showNamespaces: false,
-                useLanguageKeywords: true));
+                useLanguageKeywords: true,
+                hideSystemNamespace: true));
 
         if (TryGetCount(value, formatter, out var count))
         {

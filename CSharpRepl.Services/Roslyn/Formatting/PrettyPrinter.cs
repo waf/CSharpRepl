@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -69,13 +70,15 @@ internal sealed partial class PrettyPrinter
         };
     }
 
-    public StyledString FormatTypeName(Type type, bool showNamespaces, bool useLanguageKeywords)
+    public StyledString FormatTypeName(Type type, bool showNamespaces, bool useLanguageKeywords, bool hideSystemNamespace = false, IList<string>? tupleNames = null)
         => typeNameFormatter.FormatTypeName(
                 type,
                 new TypeNameFormatterOptions(
                     arrayBoundRadix: NumberRadix,
                     showNamespaces,
-                    useLanguageKeywords));
+                    useLanguageKeywords,
+                    hideSystemNamespace),
+                tupleNames);
 
     public StyledString FormatObjectToText(object? obj, Level level, bool? quoteStringsAndCharacters = null)
         => FormatObjectSafe(
@@ -227,7 +230,9 @@ internal sealed partial class PrettyPrinter
 
     private TypeNameFormatterOptions GetTypeNameOptions(Level level) => new(
         arrayBoundRadix: NumberRadix,
-        showNamespaces: level == Level.FirstDetailed);
+        showNamespaces: level == Level.FirstDetailed,
+        useLanguageKeywords: true,
+        hideSystemNamespace: false);
 
     public StyledString GetValueRetrievalExceptionText(Exception exception, Level level)
        => GetErrorText(typeNameFormatter.FormatTypeName(exception.GetType(), GetTypeNameOptions(level)));

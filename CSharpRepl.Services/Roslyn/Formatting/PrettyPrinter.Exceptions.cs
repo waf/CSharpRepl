@@ -1,12 +1,10 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
+﻿// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Internal;
-using System.Text.RegularExpressions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Classification;
@@ -24,7 +22,7 @@ internal sealed partial class PrettyPrinter
 
         var builder = new StyledStringBuilder();
 
-        ExceptionFormatter.AppendType(builder, exception.GetType(), syntaxHighlighter, fullName: true);
+        ExceptionFormatter.AppendType(this, builder, exception.GetType(), fullName: true);
         builder.Append(": ");
         builder.Append(exception.Message);
 
@@ -38,7 +36,7 @@ internal sealed partial class PrettyPrinter
 
             var frame = frames[i];
             builder.Append("   at ");
-            ExceptionFormatter.AppendMethod(frame.MethodInfo, builder, syntaxHighlighter);
+            ExceptionFormatter.AppendMethod(this, frame.MethodInfo, builder, syntaxHighlighter);
 
             if (frame.GetFileName() is { Length: > 0 } fileName)
             {
@@ -60,27 +58,21 @@ internal sealed partial class PrettyPrinter
 file class ExceptionFormatter
 {
     public static StyledStringBuilder AppendType(
+        PrettyPrinter prettyPrinter,
         StyledStringBuilder builder,
         Type? type,
-        SyntaxHighlighter highlighter,
         bool fullName = true,
         IList<string>? tupleNames = null)
     {
         if (type is null) return builder;
 
-        if (TypeNameHelper.BuiltInTypeNames.TryGetValue(type, out var typeName))
-        {
-            builder.Append(typeName, highlighter.KeywordStyle);
-            return builder;
-        }
-
-        TypeNameHelperInternal.AppendTypeDisplayName(builder, type, fullName, includeGenericParameterNames: true, tupleNames, highlighter);
+        builder.Append(prettyPrinter.FormatTypeName(type, showNamespaces: fullName, useLanguageKeywords: true, hideSystemNamespace: true, tupleNames));
 
         return builder;
     }
 
     //Modified version of https://github.com/benaadams/Ben.Demystifier/blob/main/src/Ben.Demystifier/ResolvedMethod.cs
-    public static StyledStringBuilder AppendMethod(ResolvedMethod method, StyledStringBuilder builder, SyntaxHighlighter highlighter)
+    public static StyledStringBuilder AppendMethod(PrettyPrinter prettyPrinter, ResolvedMethod method, StyledStringBuilder builder, SyntaxHighlighter highlighter)
     {
         if (method.IsAsync)
         {
@@ -99,17 +91,17 @@ file class ExceptionFormatter
                 if (string.IsNullOrEmpty(method.SubMethod) && !method.IsLambda)
                     builder.Append("new ", highlighter.KeywordStyle);
 
-                AppendType(builder, method.DeclaringType, highlighter);
+                AppendType(prettyPrinter, builder, method.DeclaringType);
             }
             else if (method.Name == ".cctor")
             {
                 builder.Append("static ", highlighter.KeywordStyle);
-                AppendType(builder, method.DeclaringType, highlighter);
+                AppendType(prettyPrinter, builder, method.DeclaringType);
             }
             else
             {
                 var builderLengthBefore = builder.Length;
-                AppendType(builder, method.DeclaringType, highlighter);
+                AppendType(prettyPrinter, builder, method.DeclaringType);
                 if (builderLengthBefore < builder.Length) builder.Append(".");
 
                 if (method.Name != null)
@@ -211,9 +203,16 @@ file class ExceptionFormatter
             }
             else if (parameter.ResolvedType != null)
             {
-                IList<string>? tupleNames = null;
-                if (parameter is ValueTupleResolvedParameter { TupleNames: { } tupleNames2 }) { tupleNames = tupleNames2; };
-                AppendType(builder, parameter.ResolvedType, highlighter, fullName: false, tupleNames);
+                if (parameter.ResolvedType == typeof(void))
+                {
+                    sb.Append("void", highlighter.KeywordStyle);
+                }
+                else
+                {
+                    IList<string>? tupleNames = null;
+                    if (parameter is ValueTupleResolvedParameter { TupleNames: { } tupleNames2 }) { tupleNames = tupleNames2; };
+                    AppendType(prettyPrinter, builder, parameter.ResolvedType, fullName: false, tupleNames: tupleNames);
+                }
             }
             else
             {
@@ -227,208 +226,6 @@ file class ExceptionFormatter
             }
 
             return sb;
-        }
-    }
-
-    //Modified version of https://github.com/benaadams/Ben.Demystifier/blob/main/src/Ben.Demystifier/TypeNameHelper.cs
-    private static class TypeNameHelperInternal
-    {
-        public static StyledStringBuilder AppendTypeDisplayName(
-            StyledStringBuilder builder,
-            Type type,
-            bool fullName,
-            bool includeGenericParameterNames,
-            IList<string>? tupleNames,
-            SyntaxHighlighter highlighter)
-        {
-            ProcessType(builder, type, new DisplayNameOptions(fullName, includeGenericParameterNames), tupleNames, highlighter);
-            return builder;
-        }
-
-        private static void ProcessType(
-            StyledStringBuilder builder,
-            Type type,
-            DisplayNameOptions options,
-            IList<string>? tupleNames,
-            SyntaxHighlighter highlighter)
-        {
-            if (type.IsValueTuple())
-            {
-                builder.Append('(');
-                var itemTypes = type.GenericTypeArguments;
-                for (int i = 0; i < itemTypes.Length; i++)
-                {
-                    ProcessType(builder, itemTypes[i], new(fullName: false, includeGenericParameterNames: true), tupleNames: null, highlighter);
-                    if (tupleNames != null && itemTypes.Length == tupleNames.Count)
-                    {
-                        builder.Append(' ');
-                        builder.Append(tupleNames[i]);
-                    }
-                    if (i + 1 == itemTypes.Length)
-                    {
-                        continue;
-                    }
-                    builder.Append(", ");
-                }
-                builder.Append(')');
-            }
-            else if (type.IsGenericType)
-            {
-                var underlyingType = Nullable.GetUnderlyingType(type);
-                if (underlyingType != null)
-                {
-                    ProcessType(builder, underlyingType, options, tupleNames, highlighter);
-                    builder.Append('?');
-                }
-                else
-                {
-                    var genericArguments = type.GetGenericArguments();
-                    ProcessGenericType(builder, type, genericArguments, genericArguments.Length, options, highlighter);
-                }
-            }
-            else if (type.IsArray)
-            {
-                ProcessArrayType(builder, type, options, tupleNames, highlighter);
-            }
-            else if (TypeNameHelper.BuiltInTypeNames.TryGetValue(type, out var builtInName))
-            {
-                builder.Append(builtInName, highlighter.KeywordStyle);
-            }
-            else
-            {
-                var format = TypeNameFormatter.GetTypeStyle(type, highlighter);
-                if (type.Namespace == nameof(System))
-                {
-                    builder.Append(type.Name, format);
-                }
-                else if (
-                    type.Assembly.ManifestModule.Name == "FSharp.Core.dll" &&
-                    TypeNameHelper.FSharpTypeNames.TryGetValue(type.Name, out builtInName))
-                {
-                    builder.Append(builtInName, format);
-                }
-                else if (type.IsGenericParameter)
-                {
-                    if (options.IncludeGenericParameterNames)
-                    {
-                        builder.Append(type.Name, highlighter.GetStyle(ClassificationTypeNames.TypeParameterName));
-                    }
-                }
-                else
-                {
-                    var name = options.FullName ? type.FullName ?? type.Name : type.Name;
-                    if (!Regex.IsMatch(name, @"Submission#[0-9]+")) //https://github.com/waf/CSharpRepl/issues/194)
-                    {
-                        builder.Append(name, format);
-                    }
-                }
-            }
-        }
-
-        private static void ProcessArrayType(
-            StyledStringBuilder builder,
-            Type type,
-            DisplayNameOptions options,
-            IList<string>? tupleNames,
-            SyntaxHighlighter highlighter)
-        {
-            var innerType = type;
-            while (innerType.IsArray)
-            {
-                if (innerType.GetElementType() is { } inner)
-                {
-                    innerType = inner;
-                }
-            }
-
-            ProcessType(builder, innerType, options, tupleNames, highlighter);
-
-            while (type.IsArray)
-            {
-                builder.Append('[');
-                var commaCount = type.GetArrayRank() - 1;
-                for (int i = 0; i < commaCount; i++)
-                {
-                    builder.Append(',');
-                }
-                builder.Append(']');
-                if (type.GetElementType() is not { } elementType)
-                {
-                    break;
-                }
-                type = elementType;
-            }
-        }
-
-        private static void ProcessGenericType(StyledStringBuilder builder, Type type, Type[] genericArguments, int length, DisplayNameOptions options, SyntaxHighlighter highlighter)
-        {
-            var offset = 0;
-            if (type.IsNested && type.DeclaringType is not null)
-            {
-                offset = type.DeclaringType.GetGenericArguments().Length;
-            }
-
-            if (options.FullName)
-            {
-                if (type.IsNested && type.DeclaringType is not null)
-                {
-                    ProcessGenericType(builder, type.DeclaringType, genericArguments, offset, options, highlighter);
-                    builder.Append('+');
-                }
-                else if (!string.IsNullOrEmpty(type.Namespace))
-                {
-                    builder.Append(type.Namespace);
-                    builder.Append('.');
-                }
-            }
-
-            var format = TypeNameFormatter.GetTypeStyle(type, highlighter);
-
-            var genericPartIndex = type.Name.IndexOf('`');
-            if (genericPartIndex <= 0)
-            {
-                builder.Append(type.Name, format);
-                return;
-            }
-
-            if (type.Assembly.ManifestModule.Name == "FSharp.Core.dll" &&
-                TypeNameHelper.FSharpTypeNames.TryGetValue(type.Name, out var builtInName))
-            {
-                builder.Append(builtInName, format);
-            }
-            else
-            {
-                builder.Append(type.Name.AsSpan(0, genericPartIndex).ToString(), format);
-            }
-
-            builder.Append('<');
-            for (var i = offset; i < length; i++)
-            {
-                ProcessType(builder, genericArguments[i], options, tupleNames: null, highlighter);
-                if (i + 1 == length)
-                {
-                    continue;
-                }
-
-                builder.Append(',');
-                if (options.IncludeGenericParameterNames || !genericArguments[i + 1].IsGenericParameter)
-                {
-                    builder.Append(' ');
-                }
-            }
-            builder.Append('>');
-        }
-
-        private readonly struct DisplayNameOptions
-        {
-            public readonly bool FullName;
-            public readonly bool IncludeGenericParameterNames;
-
-            public DisplayNameOptions(bool fullName, bool includeGenericParameterNames)
-            {
-                FullName = fullName;
-                IncludeGenericParameterNames = includeGenericParameterNames;
-            }
         }
     }
 }

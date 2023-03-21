@@ -76,8 +76,8 @@ internal class Formatter
     public FormattedObjectRenderable FormatObjectToRenderable(object? obj, Level level)
         => prettyPrinter.FormatObjectToRenderable(obj, level);
 
-    public StyledString FormatTypeName(Type type, bool showNamespaces, bool useLanguageKeywords)
-        => prettyPrinter.FormatTypeName(type, showNamespaces, useLanguageKeywords);
+    public StyledString FormatTypeName(Type type, bool showNamespaces, bool useLanguageKeywords, bool hideSystemNamespace)
+        => prettyPrinter.FormatTypeName(type, showNamespaces, useLanguageKeywords, hideSystemNamespace);
 
     public Style GetStyle(string? classification)
         => syntaxHighlighter.GetStyle(classification);

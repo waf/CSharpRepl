@@ -7,8 +7,12 @@
 //  Microsoft.CodeAnalysis.Scripting.Hosting.CommonTypeNameFormatter
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Internal;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
@@ -23,7 +27,7 @@ namespace CSharpRepl.Services.Roslyn.Formatting;
 using static ObjectFormatterHelpers;
 using TypeInfo = System.Reflection.TypeInfo;
 
-internal sealed class TypeNameFormatter
+internal sealed partial class TypeNameFormatter
 {
     private const string GenericParameterOpening = "<";
     private const string GenericParameterClosing = ">";
@@ -48,7 +52,7 @@ internal sealed class TypeNameFormatter
     }
 
     // TODO (tomat): Use DebuggerDisplay.Type if specified?
-    public StyledString FormatTypeName(Type type, TypeNameFormatterOptions options)
+    public StyledString FormatTypeName(Type type, TypeNameFormatterOptions options, IList<string>? tupleNames = null)
     {
         if (type == null)
         {
@@ -82,7 +86,7 @@ internal sealed class TypeNameFormatter
         var typeInfo = type.GetTypeInfo();
         if (typeInfo.IsGenericType)
         {
-            return FormatGenericTypeName(typeInfo, options);
+            return FormatGenericTypeName(typeInfo, options, tupleNames);
         }
 
         return FormatNonGenericTypeName(typeInfo, options);
@@ -93,10 +97,14 @@ internal sealed class TypeNameFormatter
         var sb = new StyledStringBuilder();
         if (typeInfo.DeclaringType is null)
         {
-            var namespaceParts =
-                options.ShowNamespaces ?
-                typeInfo.Namespace?.Split('.', StringSplitOptions.RemoveEmptyEntries) :
-                null;
+            string[]? namespaceParts = null;
+            if (options.ShowNamespaces && typeInfo.Namespace != null)
+            {
+                if (!(options.HideSystemNamespace && typeInfo.Namespace == nameof(System)))
+                {
+                    namespaceParts = typeInfo.Namespace.Split('.', StringSplitOptions.RemoveEmptyEntries);
+                }
+            }
             namespaceParts ??= Array.Empty<string>();
 
             var namespaceStyle = highlighter.GetStyle(ClassificationTypeNames.NamespaceName);
@@ -119,6 +127,12 @@ internal sealed class TypeNameFormatter
         {
             var typeStyle = GetTypeStyle(typeInfo, highlighter);
             var name = typeInfo.Name;
+
+            if (SubmissionRegex().IsMatch(name)) //https://github.com/waf/CSharpRepl/issues/194)
+            {
+                return;
+            }
+
             int backtick = name.IndexOf('`');
             if (backtick > 0)
             {
@@ -176,7 +190,7 @@ internal sealed class TypeNameFormatter
         }
     }
 
-    private StyledString FormatGenericTypeName([MaybeNull] TypeInfo typeInfo, TypeNameFormatterOptions options)
+    private StyledString FormatGenericTypeName([MaybeNull] TypeInfo typeInfo, TypeNameFormatterOptions options, IList<string>? tupleNames)
     {
         var builder = new StyledStringBuilder();
 
@@ -208,8 +222,32 @@ internal sealed class TypeNameFormatter
         }
         else
         {
-            int typeArgumentIndex = 0;
-            AppendTypeInstantiation(typeInfo, ref typeArgumentIndex);
+            if (options.UseLanguageKeywords && typeInfo.IsValueTuple())
+            {
+                builder.Append('(');
+                int currentArgCount = typeInfo.IsGenericTypeDefinition ? typeInfo.GenericTypeParameters.Length : typeInfo.GenericTypeArguments.Length;
+                for (int i = 0; i < currentArgCount; i++)
+                {
+                    if (i > 0)
+                    {
+                        builder.Append(", ");
+                    }
+                    builder.Append(FormatTypeName(genericArguments[i], options));
+
+                    Debug.Assert(tupleNames is null || tupleNames.Count == currentArgCount);
+                    if (tupleNames != null && tupleNames.Count == currentArgCount)
+                    {
+                        builder.Append(' ');
+                        builder.Append(tupleNames[i]);
+                    }
+                }
+                builder.Append(')');
+            }
+            else
+            {
+                int typeArgumentIndex = 0;
+                AppendTypeInstantiation(typeInfo, ref typeArgumentIndex);
+            }
         }
 
         return builder.ToStyledString();
@@ -274,4 +312,7 @@ internal sealed class TypeNameFormatter
             _ => null,
         };
     }
+
+    [GeneratedRegex("Submission#[0-9]+")]
+    private static partial Regex SubmissionRegex();
 }

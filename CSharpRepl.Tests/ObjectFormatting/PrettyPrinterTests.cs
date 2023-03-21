@@ -109,6 +109,9 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         new object[] { typeof(int[][]), Level.FirstSimple, "int[][]" },
         new object[] { typeof(int[][]), Level.FirstDetailed, "System.Int32[][]" },
 
+        new object[] { typeof((int, int)), Level.FirstSimple, "(int, int)" },
+        new object[] { typeof((int, int)), Level.FirstDetailed, "System.ValueTuple<System.Int32, System.Int32>" },
+
         new object[] { Encoding.UTF8, Level.FirstDetailed, "System.Text.UTF8Encoding.UTF8EncodingSealed" },
     };
 

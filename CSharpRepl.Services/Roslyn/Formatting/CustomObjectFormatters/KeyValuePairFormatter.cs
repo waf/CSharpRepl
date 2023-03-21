@@ -23,7 +23,7 @@ internal sealed class KeyValuePairFormatter : CustomObjectFormatter
     {
         var sb = new StyledStringBuilder();
 
-        sb.Append(formatter.FormatTypeName(value.GetType(), showNamespaces: false, useLanguageKeywords: true));
+        sb.Append(formatter.FormatTypeName(value.GetType(), showNamespaces: false, useLanguageKeywords: true, hideSystemNamespace: true));
         sb.Append(" { ");
 
         dynamic kv = value;
