@@ -222,32 +222,41 @@ internal sealed partial class TypeNameFormatter
         }
         else
         {
-            if (options.UseLanguageKeywords && typeInfo.IsValueTuple())
+            if (options.UseLanguageKeywords)
             {
-                builder.Append('(');
-                int currentArgCount = typeInfo.IsGenericTypeDefinition ? typeInfo.GenericTypeParameters.Length : typeInfo.GenericTypeArguments.Length;
-                for (int i = 0; i < currentArgCount; i++)
+                var nullableUnderlyingType = Nullable.GetUnderlyingType(typeInfo);
+                if (nullableUnderlyingType != null)
                 {
-                    if (i > 0)
-                    {
-                        builder.Append(", ");
-                    }
-                    builder.Append(FormatTypeName(genericArguments[i], options));
-
-                    Debug.Assert(tupleNames is null || tupleNames.Count == currentArgCount);
-                    if (tupleNames != null && tupleNames.Count == currentArgCount)
-                    {
-                        builder.Append(' ');
-                        builder.Append(tupleNames[i]);
-                    }
+                    builder.Append(FormatTypeName(nullableUnderlyingType, options, tupleNames));
+                    builder.Append('?');
+                    return builder.ToStyledString();
                 }
-                builder.Append(')');
+                if (typeInfo.IsValueTuple())
+                {
+                    builder.Append('(');
+                    int currentArgCount = typeInfo.IsGenericTypeDefinition ? typeInfo.GenericTypeParameters.Length : typeInfo.GenericTypeArguments.Length;
+                    for (int i = 0; i < currentArgCount; i++)
+                    {
+                        if (i > 0)
+                        {
+                            builder.Append(", ");
+                        }
+                        builder.Append(FormatTypeName(genericArguments[i], options));
+
+                        Debug.Assert(tupleNames is null || tupleNames.Count == currentArgCount);
+                        if (tupleNames != null && tupleNames.Count == currentArgCount)
+                        {
+                            builder.Append(' ');
+                            builder.Append(tupleNames[i]);
+                        }
+                    }
+                    builder.Append(')');
+                    return builder.ToStyledString();
+                }
             }
-            else
-            {
-                int typeArgumentIndex = 0;
-                AppendTypeInstantiation(typeInfo, ref typeArgumentIndex);
-            }
+
+            int typeArgumentIndex = 0;
+            AppendTypeInstantiation(typeInfo, ref typeArgumentIndex);
         }
 
         return builder.ToStyledString();
