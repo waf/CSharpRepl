@@ -72,6 +72,7 @@ internal sealed partial class PrettyPrinter
     private IEnumerable<(object MemberParentValue, MemberInfo MemberInfo)> EnumerateMembers(object obj, bool includeNonPublic)
     {
         var members = new List<MemberInfo>();
+        var overridenMembers = new HashSet<string>();
 
         var proxy = ObjectFormatterHelpers.GetDebuggerTypeProxy(obj);
         if (proxy != null)
@@ -83,8 +84,23 @@ internal sealed partial class PrettyPrinter
         var type = obj.GetType().GetTypeInfo();
         while (type != null)
         {
-            members.AddRange(type.DeclaredFields.Where(f => !f.IsStatic));
-            members.AddRange(type.DeclaredProperties.Where(p => p.GetMethod != null && !p.GetMethod.IsStatic));
+            var fields = type.DeclaredFields.Where(f => !f.IsStatic);
+            members.AddRange(fields);
+
+            var properties = type.DeclaredProperties.Where(p => p.GetMethod != null && !p.GetMethod.IsStatic);
+            foreach (var property in properties)
+            {
+                var propertyBaseDefinition = property.GetMethod!.GetBaseDefinition();
+                if (!overridenMembers.Contains(property.Name))
+                {
+                    if (propertyBaseDefinition.IsVirtual)
+                    {
+                        overridenMembers.Add(property.Name);
+                    }
+                    members.Add(property);
+                }
+            }
+
             type = type.BaseType?.GetTypeInfo();
         }
 

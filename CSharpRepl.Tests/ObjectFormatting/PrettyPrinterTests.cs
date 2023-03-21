@@ -130,7 +130,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         }
     }
 
-    private sealed class TestClassWithMembers
+    private class TestClassWithMembers
     {
 #pragma warning disable IDE0051, IDE0052 // Remove unread private members
         private readonly object fieldObject = new();
@@ -138,7 +138,24 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
 #pragma warning restore IDE0051, IDE0052 // Remove unread private members
 
         public int FieldInt32 = 2;
-        public bool PropertyBool { get; } = true;
+        public virtual decimal PropertyDecimal1 { get; } = 2;
+        public virtual decimal PropertyDecimal2 { get; } = 3;
+        public virtual decimal PropertyDecimal3 { get; } = 5;
+        public decimal PropertyDecimal4 { get; } = 7;
+    }
+
+    private class TestClassWithMembersDerived : TestClassWithMembers
+    {
+        //https://github.com/waf/CSharpRepl/issues/229
+        public override decimal PropertyDecimal1 => 11;
+        public override sealed decimal PropertyDecimal2 => 13;
+        public new decimal PropertyDecimal4 { get; } = 17;
+    }
+
+    private class TestClassWithMembersDerived2 : TestClassWithMembersDerived
+    {
+        //https://github.com/waf/CSharpRepl/issues/229
+        public override decimal PropertyDecimal1 => 19;
     }
 
     public static IEnumerable<object[]> ObjectMembersFormattingInputs => new[]
@@ -146,8 +163,11 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         new object[] { new(), Level.FirstDetailed, Array.Empty<string>(), false },
         new object[] { new(), Level.FirstDetailed, Array.Empty<string>(), true },
 
-        new object[] { new TestClassWithMembers(), Level.FirstSimple, new[] { "FieldInt32: 2", "PropertyBool: true" }, false },
-        new object[] { new TestClassWithMembers(), Level.FirstDetailed, new[] { "FieldInt32: 2", "fieldObject: object", "PropertyBool: true", "PropertyString: \"abcd\"" }, true },
+        new object[] { new TestClassWithMembers(), Level.FirstSimple, new[] { "FieldInt32: 2", "PropertyDecimal1: 2", "PropertyDecimal2: 3", "PropertyDecimal3: 5", "PropertyDecimal4: 7" }, false },
+        new object[] { new TestClassWithMembers(), Level.FirstDetailed, new[] { "FieldInt32: 2", "fieldObject: object", "PropertyDecimal1: 2", "PropertyDecimal2: 3", "PropertyDecimal3: 5", "PropertyDecimal4: 7", "PropertyString: \"abcd\"" }, true },
+
+        new object[] { new TestClassWithMembersDerived2(), Level.FirstSimple, new[] { "FieldInt32: 2", "PropertyDecimal1: 19", "PropertyDecimal2: 13", "PropertyDecimal3: 5", "PropertyDecimal4: 17", "PropertyDecimal4: 7" }, false },
+        new object[] { new TestClassWithMembersDerived2(), Level.FirstDetailed, new[] { "FieldInt32: 2", "fieldObject: object", "PropertyDecimal1: 19", "PropertyDecimal2: 13", "PropertyDecimal3: 5", "PropertyDecimal4: 17", "PropertyDecimal4: 7", "PropertyString: \"abcd\"" }, true },
     };
 
     private static string ToString(IRenderable renderable)
