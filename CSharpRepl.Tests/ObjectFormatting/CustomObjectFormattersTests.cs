@@ -168,10 +168,11 @@ public class CustomObjectFormattersTests : IClassFixture<RoslynServicesFixture>
     #region KeyValuePair
     [Theory]
     [MemberData(nameof(KeyValuePairData))]
-    public void TestKeyValuePairFormatting(object value, string expectedOutput_0, string expectedOutput_1)
+    public void TestKeyValuePairFormatting(object value, string expectedOutput_0, string expectedOutput_1, string expectedOutput_2)
     {
         Assert.Equal(expectedOutput_0, formatter.Format(KeyValuePairFormatter.Instance, value, Level.FirstDetailed));
         Assert.Equal(expectedOutput_1, formatter.Format(KeyValuePairFormatter.Instance, value, Level.FirstSimple));
+        Assert.Equal(expectedOutput_2, formatter.Format(KeyValuePairFormatter.Instance, value, Level.Second));
     }
 
     public static IEnumerable<object[]> KeyValuePairData
@@ -182,21 +183,24 @@ public class CustomObjectFormattersTests : IClassFixture<RoslynServicesFixture>
             {
                 KeyValuePair.Create(1, 2),
                 "KeyValuePair<int, int> { 1, 2 }",
-                "KeyValuePair<int, int> { 1, 2 }",
+                "{ Key: 1, Value: 2 }",
+                "{ 1, 2 }",
             };
 
             yield return new object[]
             {
                 KeyValuePair.Create(typeof(int), typeof(string)),
                 "KeyValuePair<Type, Type> { System.Int32, System.String }",
-                "KeyValuePair<Type, Type> { int, string }",
+                "{ Key: int, Value: string }",
+                "{ int, string }",
             };
 
             yield return new object[]
             {
                 KeyValuePair.Create(new[] { 1, 2, 3 }, typeof(List<int>)),
                 "KeyValuePair<int[], Type> { int[3] { 1, 2, 3 }, System.Collections.Generic.List<System.Int32> }",
-                "KeyValuePair<int[], Type> { int[3] { 1, 2, 3 }, List<int> }",
+                "{ Key: int[3] { 1, 2, 3 }, Value: List<int> }",
+                "{ int[3] { 1, 2, 3 }, List<int> }",
             };
         }
     }

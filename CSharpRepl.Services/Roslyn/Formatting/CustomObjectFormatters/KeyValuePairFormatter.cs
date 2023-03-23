@@ -23,14 +23,32 @@ internal sealed class KeyValuePairFormatter : CustomObjectFormatter
     {
         var sb = new StyledStringBuilder();
 
-        sb.Append(formatter.FormatTypeName(value.GetType(), showNamespaces: false, useLanguageKeywords: true, hideSystemNamespace: true));
-        sb.Append(" { ");
-
         dynamic kv = value;
-        sb.Append(formatter.FormatObjectToText(kv.Key, level));
-        sb.Append(", ");
-        sb.Append(formatter.FormatObjectToText(kv.Value, level));
-
+        if (level == Level.FirstDetailed)
+        {
+            // KeyValuePair<T1, T2> { key, value }
+            sb.Append(formatter.FormatTypeName(value.GetType(), showNamespaces: false, useLanguageKeywords: true, hideSystemNamespace: true));
+            sb.Append(" { ");
+            sb.Append(formatter.FormatObjectToText(kv.Key, level));
+            sb.Append(", ");
+            sb.Append(formatter.FormatObjectToText(kv.Value, level));
+        }
+        else if (level == Level.FirstSimple)
+        {
+            // { Key: key, Value: value }
+            sb.Append("{ Key: ");
+            sb.Append(formatter.FormatObjectToText(kv.Key, level));
+            sb.Append(", Value: ");
+            sb.Append(formatter.FormatObjectToText(kv.Value, level));
+        }
+        else
+        {
+            // { key, value }
+            sb.Append("{ ");
+            sb.Append(formatter.FormatObjectToText(kv.Key, level));
+            sb.Append(", ");
+            sb.Append(formatter.FormatObjectToText(kv.Value, level));
+        }
         sb.Append(" }");
 
         return sb.ToStyledString();
