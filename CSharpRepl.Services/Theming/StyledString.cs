@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using CSharpRepl.Services.Extensions;
 using PrettyPrompt.Documents;
 using Spectre.Console;
@@ -56,7 +57,7 @@ public readonly struct StyledString
     public char LastChar => parts[^1].Text[0];
 
     /// <summary>
-    /// Retrieves a substring from this instance. The substring starts at a specified character position and has a specified length.
+    /// <inheritdoc cref="string.Substring(int, int)"/>
     /// </summary>
     public StyledString Substring(int startIndex, int length)
     {
@@ -96,4 +97,6 @@ public readonly struct StyledString
 
     public static implicit operator StyledString(string text) => new(new StyledStringSegment(text));
     public static implicit operator StyledString(StyledStringSegment text) => new(text);
+
+    public static StyledString operator +(StyledString a, StyledString b) => new(a.parts.Concat(b.parts));
 }

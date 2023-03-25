@@ -5,24 +5,22 @@
 using System.Runtime.CompilerServices;
 using CSharpRepl.Services.Theming;
 
-namespace CSharpRepl.Services.Roslyn.CustomObjectFormatters;
+namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 
-internal class TupleFormatter : CustomObjectFormatter<ITuple>
+internal sealed class TupleFormatter : CustomObjectFormatter<ITuple>
 {
     public static readonly TupleFormatter Instance = new();
 
-    public override bool IsFormattingExhaustive => true;
-
     private TupleFormatter() { }
 
-    public override StyledString Format(ITuple value, Level level, Formatter formatter)
+    public override StyledString FormatToText(ITuple value, Level level, Formatter formatter)
     {
         var sb = new StyledStringBuilder();
 
         sb.Append('(');
         for (int i = 0; i < value.Length; i++)
         {
-            sb.Append(formatter.FormatObject(value[i], level));
+            sb.Append(formatter.FormatObjectToText(value[i], level));
 
             bool isLast = i == value.Length - 1;
             if (!isLast) sb.Append(", ");

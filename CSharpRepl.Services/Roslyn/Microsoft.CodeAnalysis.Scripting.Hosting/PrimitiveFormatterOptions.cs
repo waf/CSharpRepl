@@ -2,13 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System.Globalization;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
-internal readonly struct CommonPrimitiveFormatterOptions
+internal readonly struct PrimitiveFormatterOptions
 {
     /// <remarks>
     /// Since <see cref="CommonPrimitiveFormatter"/> is an extension point, we don't
@@ -21,7 +19,7 @@ internal readonly struct CommonPrimitiveFormatterOptions
     public bool EscapeNonPrintableCharacters { get; }
     public CultureInfo CultureInfo { get; }
 
-    public CommonPrimitiveFormatterOptions(
+    public PrimitiveFormatterOptions(
         int numberRadix,
         bool includeCodePoints,
         bool quoteStringsAndCharacters,

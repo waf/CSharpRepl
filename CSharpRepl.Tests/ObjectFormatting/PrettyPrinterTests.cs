@@ -1,13 +1,20 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
 using Microsoft.Extensions.Caching.Memory;
+using Spectre.Console;
+using Spectre.Console.Rendering;
+using Spectre.Console.Testing;
 using Xunit;
 using static System.Environment;
 
@@ -24,6 +31,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         console = fixture.ConsoleStub;
         services = fixture.RoslynServices;
         prettyPrinter = new PrettyPrinter(
+            console,
             new SyntaxHighlighter(
                 new MemoryCache(new MemoryCacheOptions()),
                 new Theme(null, null, null, null, Array.Empty<SyntaxHighlightingColor>())),
@@ -39,7 +47,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     {
         var result = await services.EvaluateAsync(input);
         var exception = ((EvaluationResult.Error)result).Exception;
-        var output = prettyPrinter.FormatObject(exception, displayDetails: true).ToString();
+        var output = prettyPrinter.FormatException(exception, Level.FirstDetailed).ToString();
 
         Assert.Equal(expectedOutput.Replace("\n", NewLine), output);
     }
@@ -48,48 +56,129 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     /// https://github.com/waf/CSharpRepl/issues/193
     /// </summary>
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task CompilationErrorException(bool detailedOutput)
+    [InlineData(Level.FirstDetailed)]
+    [InlineData(Level.FirstSimple)]
+    internal async Task CompilationErrorException(Level level)
     {
         var result = await services.EvaluateAsync("+");
         var exception = ((EvaluationResult.Error)result).Exception;
-        var output = prettyPrinter.FormatObject(exception, detailedOutput).ToString();
+        var output = ToString(prettyPrinter.FormatObject(exception, level).Renderable);
         Assert.Equal("(1,2): error CS1733: Expected expression", output);
     }
 
     [Theory]
     [MemberData(nameof(FormatObjectInputs))]
-    public void FormatObject_ObjectInput_PrintsOutput(object obj, bool showDetails, string expectedResult, bool expectedResultIsNotComplete)
+    internal void FormatObject_ObjectInput_PrintsOutput(object? obj, Level level, string expectedResult)
     {
-        var prettyPrinted = prettyPrinter.FormatObject(obj, showDetails).ToString();
-        if (expectedResultIsNotComplete)
+        var output =
+            obj is Array or List<int> ?
+            prettyPrinter.FormatObjectToText(obj, level).ToString() :
+            ToString(prettyPrinter.FormatObject(obj, level).Renderable);
+        Assert.Equal(expectedResult, output);
+    }
+
+    public static IEnumerable<object?[]> FormatObjectInputs => new[]
+    {
+        new object?[] { null, Level.FirstSimple, "null" },
+        new object?[] { null, Level.FirstDetailed, "null" },
+
+        new object[] { @"""hello world""", Level.FirstSimple, @"""\""hello world\"""""  },
+        new object[] { @"""hello world""", Level.FirstDetailed, @"""hello world"""  },
+
+        new object[] { "a\nb", Level.FirstSimple, @"""a\nb""" },
+        new object[] { "a\nb", Level.FirstDetailed, "a\nb" },
+
+        new object[] { new[] { 1, 2, 3 }, Level.FirstSimple, "int[3] { 1, 2, 3 }" },
+        new object[] { new[] { 1, 2, 3 }, Level.FirstDetailed, "int[3] { 1, 2, 3 }" },
+
+        new object[] { new List<int>{ 1, 2, 3 }, Level.FirstSimple, "List<int>(3) { 1, 2, 3 }" },
+        new object[] { new List<int>{ 1, 2, 3 }, Level.FirstDetailed, "List<int>(3) { 1, 2, 3 }" },
+
+        new object[] { typeof(List<int>.Enumerator), Level.FirstSimple, "List<int>.Enumerator" },
+        new object[] { typeof(List<int>.Enumerator), Level.FirstDetailed, "System.Collections.Generic.List<System.Int32>.Enumerator" },
+
+        new object[] { typeof(int), Level.FirstSimple, "int" },
+        new object[] { typeof(int), Level.FirstDetailed, "System.Int32" },
+
+        new object[] { typeof(int[]), Level.FirstSimple, "int[]" },
+        new object[] { typeof(int[]), Level.FirstDetailed, "System.Int32[]" },
+
+        new object[] { typeof(int[,]), Level.FirstSimple, "int[,]" },
+        new object[] { typeof(int[,]), Level.FirstDetailed, "System.Int32[,]" },
+
+        new object[] { typeof(int[][]), Level.FirstSimple, "int[][]" },
+        new object[] { typeof(int[][]), Level.FirstDetailed, "System.Int32[][]" },
+
+        new object[] { typeof((int, int)), Level.FirstSimple, "(int, int)" },
+        new object[] { typeof((int, int)), Level.FirstDetailed, "System.ValueTuple<System.Int32, System.Int32>" },
+
+        new object[] { typeof(int?), Level.FirstSimple, "int?" },
+        new object[] { typeof(int?), Level.FirstDetailed, "System.Nullable<System.Int32>" },
+
+        new object[] { Encoding.UTF8, Level.FirstDetailed, "System.Text.UTF8Encoding.UTF8EncodingSealed" },
+    };
+
+    [Theory]
+    [MemberData(nameof(ObjectMembersFormattingInputs))]
+    public void TestObjectMembersFormatting(object obj, Level level, string[] expectedResults, bool includeNonPublic)
+    {
+        var outputs = prettyPrinter.FormatMembers(obj, level, includeNonPublic).ToArray();
+        Assert.Equal(expectedResults.Length, outputs.Length);
+        foreach (var (output, expectedResult) in outputs.Zip(expectedResults))
         {
-            Assert.StartsWith(expectedResult, prettyPrinted);
-        }
-        else
-        {
-            Assert.Equal(expectedResult, prettyPrinted);
+            Assert.Equal(expectedResult, ToString(output.Renderable)); 
         }
     }
 
-    public static IEnumerable<object[]> FormatObjectInputs => new[]
+    private class TestClassWithMembers
     {
-        new object[] { null, false, "null", false },
-        new object[] { null, true, "null", false },
+#pragma warning disable IDE0051, IDE0052 // Remove unread private members
+        private readonly object fieldObject = new();
+        private string PropertyString => "abcd";
+#pragma warning restore IDE0051, IDE0052 // Remove unread private members
 
-        new object[] { @"""hello world""", false, @"""\""hello world\""""", false  },
-        new object[] { @"""hello world""", true, @"""hello world""", false  },
+        public int FieldInt32 = 2;
+        public virtual decimal PropertyDecimal1 { get; } = 2;
+        public virtual decimal PropertyDecimal2 { get; } = 3;
+        public virtual decimal PropertyDecimal3 { get; } = 5;
+        public decimal PropertyDecimal4 { get; } = 7;
+    }
 
-        new object[] { "a\nb", false, @"""a\nb""", false },
-        new object[] { "a\nb", true, "a\nb", false },
+    private class TestClassWithMembersDerived : TestClassWithMembers
+    {
+        //https://github.com/waf/CSharpRepl/issues/229
+        public override decimal PropertyDecimal1 => 11;
+        public override sealed decimal PropertyDecimal2 => 13;
+        public new decimal PropertyDecimal4 { get; } = 17;
+    }
 
-        new object[] { new[] { 1, 2, 3 }, false, "int[3] { 1, 2, 3 }", false },
-        new object[] { new[] { 1, 2, 3 }, true, $"int[3] {"{"}{NewLine}  1,{NewLine}  2,{NewLine}  3{NewLine}{"}"}{NewLine}", false },
+    private class TestClassWithMembersDerived2 : TestClassWithMembersDerived
+    {
+        //https://github.com/waf/CSharpRepl/issues/229
+        public override decimal PropertyDecimal1 => 19;
+    }
 
-        new object[] { typeof(int), false, "int", false },
-        new object[] { typeof(int), true, "System.Int32", true },
+    public static IEnumerable<object[]> ObjectMembersFormattingInputs => new[]
+    {
+        new object[] { new(), Level.FirstDetailed, Array.Empty<string>(), false },
+        new object[] { new(), Level.FirstDetailed, Array.Empty<string>(), true },
 
-        new object[] { Encoding.UTF8, true, "System.Text.UTF8Encoding+UTF8EncodingSealed", false },
+        new object[] { new TestClassWithMembers(), Level.FirstSimple, new[] { "FieldInt32: 2", "PropertyDecimal1: 2", "PropertyDecimal2: 3", "PropertyDecimal3: 5", "PropertyDecimal4: 7" }, false },
+        new object[] { new TestClassWithMembers(), Level.FirstDetailed, new[] { "FieldInt32: 2", "fieldObject: object", "PropertyDecimal1: 2", "PropertyDecimal2: 3", "PropertyDecimal3: 5", "PropertyDecimal4: 7", "PropertyString: \"abcd\"" }, true },
+
+        new object[] { new TestClassWithMembersDerived2(), Level.FirstSimple, new[] { "FieldInt32: 2", "PropertyDecimal1: 19", "PropertyDecimal2: 13", "PropertyDecimal3: 5", "PropertyDecimal4: 17", "PropertyDecimal4: 7" }, false },
+        new object[] { new TestClassWithMembersDerived2(), Level.FirstDetailed, new[] { "FieldInt32: 2", "fieldObject: object", "PropertyDecimal1: 19", "PropertyDecimal2: 13", "PropertyDecimal3: 5", "PropertyDecimal4: 17", "PropertyDecimal4: 7", "PropertyString: \"abcd\"" }, true },
     };
+
+    private static string ToString(IRenderable renderable)
+    {
+        const int Width = 1000;
+        var options = new RenderOptions(new TestCapabilities(), new Size(Width, 1000));
+        var sb = new StringBuilder();
+        foreach (var segment in renderable.Render(options, Width))
+        {
+            sb.Append(segment.Text);
+        }
+        return sb.ToString();
+    }
 }

@@ -1,17 +1,24 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
+using CSharpRepl.Services.Roslyn.Formatting;
+using CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 using Xunit;
 
 namespace CSharpRepl.Tests.ObjectFormatting;
 
-public class CustomObjectFormattersTests
+public class CustomObjectFormattersTests : IClassFixture<RoslynServicesFixture>
 {
-    private readonly TestFormatter formatter = TestFormatter.Create();
+    private readonly TestFormatter formatter;
+
+    public CustomObjectFormattersTests(RoslynServicesFixture fixture)
+    {
+        formatter = TestFormatter.Create(fixture.ConsoleStub);
+    }
 
     #region TypeFormatter
     [Theory]
@@ -84,6 +91,43 @@ public class CustomObjectFormattersTests
     }
     #endregion
 
+    #region IEnumerableFormatter
+    [Theory]
+    [MemberData(nameof(IEnumerableData))]
+    public void TestIEnumerableFormatting(IEnumerable value, string expectedOutput_0, string expectedOutput_1)
+    {
+        Assert.Equal(expectedOutput_0, formatter.Format(IEnumerableFormatter.Instance, value, Level.FirstDetailed));
+        Assert.Equal(expectedOutput_1, formatter.Format(IEnumerableFormatter.Instance, value, Level.FirstSimple));
+    }
+
+    public static IEnumerable<object[]> IEnumerableData
+    {
+        get
+        {
+            yield return new object[]
+            {
+                new[] { 1, 2, 3 },
+                "int[3] { 1, 2, 3 }",
+                "int[3] { 1, 2, 3 }",
+            };
+
+            yield return new object[]
+            {
+                new[] { typeof(int), typeof(string) },
+                "Type[2] { int, string }",
+                "Type[2] { int, string }",
+            };
+
+            yield return new object[]
+            {
+                new object[] { 2, new[] { 1, 2, 3 }, typeof(List<int>) },
+                "object[3] { 2, int[3] { 1, 2, 3 }, List<int> }",
+                "object[3] { 2, int[3] { 1, 2, 3 }, List<int> }",
+            };
+        }
+    }
+    #endregion
+
     #region TupleFormatter
     [Theory]
     [MemberData(nameof(TupleData))]
@@ -99,11 +143,75 @@ public class CustomObjectFormattersTests
         {
             yield return new object[]
             {
+                (1, 2, 3),
+                "(1, 2, 3)",
+                "(1, 2, 3)",
+            };
+
+            yield return new object[]
+            {
+                (typeof(int), typeof(string)),
+                "(System.Int32, System.String)",
+                "(int, string)",
+            };
+
+            yield return new object[]
+            {
                 (2, new[] { 1, 2, 3 }, typeof(List<int>)),
                 "(2, int[3] { 1, 2, 3 }, System.Collections.Generic.List<System.Int32>)",
                 "(2, int[3] { 1, 2, 3 }, List<int>)",
             };
         }
+    }
+    #endregion
+
+    #region KeyValuePair
+    [Theory]
+    [MemberData(nameof(KeyValuePairData))]
+    public void TestKeyValuePairFormatting(object value, string expectedOutput_0, string expectedOutput_1, string expectedOutput_2)
+    {
+        Assert.Equal(expectedOutput_0, formatter.Format(KeyValuePairFormatter.Instance, value, Level.FirstDetailed));
+        Assert.Equal(expectedOutput_1, formatter.Format(KeyValuePairFormatter.Instance, value, Level.FirstSimple));
+        Assert.Equal(expectedOutput_2, formatter.Format(KeyValuePairFormatter.Instance, value, Level.Second));
+    }
+
+    public static IEnumerable<object[]> KeyValuePairData
+    {
+        get
+        {
+            yield return new object[]
+            {
+                KeyValuePair.Create(1, 2),
+                "KeyValuePair<int, int> { 1, 2 }",
+                "{ Key: 1, Value: 2 }",
+                "{ 1, 2 }",
+            };
+
+            yield return new object[]
+            {
+                KeyValuePair.Create(typeof(int), typeof(string)),
+                "KeyValuePair<Type, Type> { System.Int32, System.String }",
+                "{ Key: int, Value: string }",
+                "{ int, string }",
+            };
+
+            yield return new object[]
+            {
+                KeyValuePair.Create(new[] { 1, 2, 3 }, typeof(List<int>)),
+                "KeyValuePair<int[], Type> { int[3] { 1, 2, 3 }, System.Collections.Generic.List<System.Int32> }",
+                "{ Key: int[3] { 1, 2, 3 }, Value: List<int> }",
+                "{ int[3] { 1, 2, 3 }, List<int> }",
+            };
+        }
+    }
+    #endregion
+
+    #region Guid
+    [Fact]
+    public void TestGuidFormatting()
+    {
+        var guid = Guid.NewGuid();
+        Assert.Equal(guid.ToString(), formatter.Format(GuidFormatter.Instance, guid, Level.FirstDetailed));
     }
     #endregion
 }

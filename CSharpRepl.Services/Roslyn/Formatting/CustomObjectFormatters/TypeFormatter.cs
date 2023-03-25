@@ -5,21 +5,20 @@
 using System;
 using CSharpRepl.Services.Theming;
 
-namespace CSharpRepl.Services.Roslyn.CustomObjectFormatters;
+namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 
-internal class TypeFormatter : CustomObjectFormatter<Type>
+internal sealed class TypeFormatter : CustomObjectFormatter<Type>
 {
     public static readonly TypeFormatter Instance = new();
 
-    public override bool IsFormattingExhaustive => false;
-
     private TypeFormatter() { }
 
-    public override StyledString Format(Type value, Level level, Formatter formatter)
+    public override StyledString FormatToText(Type value, Level level, Formatter formatter)
     {
         return formatter.FormatTypeName(
             value,
             showNamespaces: level == Level.FirstDetailed,
-            useLanguageKeywords: level != Level.FirstDetailed);
+            useLanguageKeywords: level != Level.FirstDetailed,
+            hideSystemNamespace: false);
     }
 }

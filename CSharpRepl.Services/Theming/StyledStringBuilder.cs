@@ -79,4 +79,10 @@ public sealed class StyledStringBuilder
 
     public override string ToString() => string.Join("", parts);
     public StyledString ToStyledString() => new(parts);
+
+    public void Clear()
+    {
+        parts.Clear();
+        length = 0;
+    }
 }

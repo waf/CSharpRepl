@@ -5,7 +5,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace CSharpRepl.Services.Roslyn.CustomObjectFormatters;
+namespace CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 
 internal static class ReflectionHelpers
 {

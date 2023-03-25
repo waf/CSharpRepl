@@ -2,41 +2,38 @@
 
 using System;
 using CSharpRepl.Services;
-using CSharpRepl.Services.Roslyn.CustomObjectFormatters;
+using CSharpRepl.Services.Roslyn.Formatting;
+using CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
 using CSharpRepl.Services.SyntaxHighlighting;
 using CSharpRepl.Services.Theming;
-using Microsoft.CodeAnalysis.CSharp.Scripting.Hosting;
-using Microsoft.CodeAnalysis.Scripting.Hosting;
 using Microsoft.Extensions.Caching.Memory;
+using Spectre.Console;
 using Xunit;
 
 namespace CSharpRepl.Tests.ObjectFormatting;
 
-internal class TestFormatter : CSharpObjectFormatterImpl
+internal class TestFormatter
 {
-    public TestFormatter(SyntaxHighlighter highlighter, Configuration config)
-        : base(highlighter, config)
-    { }
+    private readonly IAnsiConsole console;
+    private readonly SyntaxHighlighter highlighter;
+    private readonly Configuration config;
 
-    public string Format(ICustomObjectFormatter formatter, object value, Level level, PrintOptions? options = null)
+    public TestFormatter(IAnsiConsole console, SyntaxHighlighter highlighter, Configuration config)
     {
-        options ??= new PrintOptions();
-
-        var visitor = new Visitor(
-                    this,
-                    TypeNameFormatter,
-                    GetInternalBuilderOptions(options),
-                    GetPrimitiveOptions(options),
-                    GetTypeNameOptions(options),
-                    options.MemberDisplayFormat,
-                    highlighter,
-                    configuration);
-
-        Assert.True(formatter.IsApplicable(value));
-        return formatter.Format(value, level, new Formatter(visitor)).ToString();
+        this.console = console;
+        this.highlighter = highlighter;
+        this.config = config;
     }
 
-    public static TestFormatter Create() => new(
+    public string Format(ICustomObjectFormatter formatter, object value, Level level)
+    {
+        var prettyPrompt = new PrettyPrinter(console, highlighter, config);
+        Assert.True(formatter.IsApplicable(value));
+        return formatter.FormatToText(value, level, new Formatter(prettyPrompt, highlighter, console.Profile)).ToString();
+    }
+
+    public static TestFormatter Create(IAnsiConsole console) => new(
+        console,
         new SyntaxHighlighter(
             new MemoryCache(new MemoryCacheOptions()),
             new Theme(null, null, null, null, Array.Empty<SyntaxHighlightingColor>())),

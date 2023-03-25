@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using CSharpRepl.PrettyPromptConfig;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
+using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.Roslyn.Scripting;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
@@ -79,7 +80,7 @@ internal sealed class ReadEvalPrintLoop
                     .ConfigureAwait(false);
 
                 var displayDetails = config.SubmitPromptDetailedKeys.Matches(response.SubmitKeyInfo);
-                await PrintAsync(roslyn, console, result, displayDetails);
+                await PrintAsync(roslyn, console, result, displayDetails ? Level.FirstDetailed : Level.FirstSimple);
             }
         }
     }
@@ -99,31 +100,31 @@ internal sealed class ReadEvalPrintLoop
             console.WriteLine("Adding supplied references...");
             var loadReferenceScript = string.Join("\r\n", config.References.Select(reference => $@"#r ""{reference}"""));
             var loadReferenceScriptResult = await roslyn.EvaluateAsync(loadReferenceScript).ConfigureAwait(false);
-            await PrintAsync(roslyn, console, loadReferenceScriptResult, displayDetails: false).ConfigureAwait(false);
+            await PrintAsync(roslyn, console, loadReferenceScriptResult, level: Level.FirstSimple).ConfigureAwait(false);
         }
 
         if (hasLoadScript)
         {
             console.WriteLine("Running supplied CSX file...");
             var loadScriptResult = await roslyn.EvaluateAsync(config.LoadScript!, config.LoadScriptArgs).ConfigureAwait(false);
-            await PrintAsync(roslyn, console, loadScriptResult, displayDetails: false).ConfigureAwait(false);
+            await PrintAsync(roslyn, console, loadScriptResult, level: Level.FirstSimple).ConfigureAwait(false);
         }
     }
 
-    private static async Task PrintAsync(RoslynServices roslyn, IConsoleEx console, EvaluationResult result, bool displayDetails)
+    private static async Task PrintAsync(RoslynServices roslyn, IConsoleEx console, EvaluationResult result, Level level)
     {
         switch (result)
         {
             case EvaluationResult.Success ok:
                 if (ok.ReturnValue.HasValue)
                 {
-                    var formatted = await roslyn.PrettyPrintAsync(ok.ReturnValue.Value, displayDetails);
-                    console.Write(formatted.ToParagraph());
+                    var formatted = await roslyn.PrettyPrintAsync(ok.ReturnValue.Value, level);
+                    console.Write(formatted);
                 }
                 console.WriteLine();
                 break;
             case EvaluationResult.Error err:
-                var formattedError = await roslyn.PrettyPrintAsync(err.Exception, displayDetails);
+                var formattedError = await roslyn.PrettyPrintAsync(err.Exception, level);
 
                 var panel = new Panel(formattedError.ToParagraph())
                 {

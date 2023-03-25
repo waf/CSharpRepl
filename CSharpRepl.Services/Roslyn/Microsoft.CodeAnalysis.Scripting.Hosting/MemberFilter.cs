@@ -3,10 +3,18 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Reflection;
+using Microsoft.CodeAnalysis.CSharp.Symbols;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
-internal class MemberFilter
+internal sealed class MemberFilter
 {
-    public virtual bool Include(MemberInfo member) => true;
+    public bool Include(MemberInfo member)
+        => !IsGeneratedMemberName(member.Name);
+
+    private bool IsGeneratedMemberName(string name)
+    {
+        // Generated fields, e.g. "<property_name>k__BackingField"
+        return GeneratedNames.IsGeneratedMemberName(name);
+    }
 }

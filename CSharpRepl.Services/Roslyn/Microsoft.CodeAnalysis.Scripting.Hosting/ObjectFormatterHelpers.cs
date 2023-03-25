@@ -2,15 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using Microsoft.CodeAnalysis;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Scripting.Hosting;
 
@@ -23,27 +19,28 @@ internal static class ObjectFormatterHelpers
     internal const int NumberRadixDecimal = 10;
     internal const int NumberRadixHexadecimal = 16;
 
-    internal static bool HasOverriddenToString(TypeInfo type)
+    internal static bool HasOverriddenToString(Type type)
     {
         if (type.IsInterface)
         {
             return false;
         }
 
-        while (type.AsType() != typeof(object))
+        var typeInfo = type.GetTypeInfo();
+        while (typeInfo != typeof(object))
         {
-            if (type.GetDeclaredMethod("ToString", Type.EmptyTypes) != null)
+            if (typeInfo.GetDeclaredMethod("ToString", Type.EmptyTypes) != null)
             {
                 return true;
             }
 
-            type = type.BaseType.GetTypeInfo();
+            typeInfo = typeInfo.BaseType?.GetTypeInfo() ?? typeof(object).GetTypeInfo();
         }
 
         return false;
     }
 
-    internal static DebuggerDisplayAttribute GetApplicableDebuggerDisplayAttribute(MemberInfo member)
+    internal static DebuggerDisplayAttribute? GetApplicableDebuggerDisplayAttribute(MemberInfo member)
     {
         // Includes inherited attributes. The debugger uses the first attribute if multiple are applied.
         var result = member.GetCustomAttributes<DebuggerDisplayAttribute>().FirstOrDefault();
@@ -55,8 +52,9 @@ internal static class ObjectFormatterHelpers
         // TODO (tomat): which assembly should we look at for dd attributes?
         if (member is TypeInfo type)
         {
-            foreach (DebuggerDisplayAttribute attr in type.Assembly.GetCustomAttributes<DebuggerDisplayAttribute>())
+            foreach (var attr in type.Assembly.GetCustomAttributes<DebuggerDisplayAttribute>())
             {
+                if (attr.Target is null) continue;
                 if (IsApplicableAttribute(type, attr.Target.GetTypeInfo(), attr.TargetTypeName))
                 {
                     return attr;
@@ -67,7 +65,7 @@ internal static class ObjectFormatterHelpers
         return null;
     }
 
-    private static DebuggerTypeProxyAttribute GetApplicableDebuggerTypeProxyAttribute(TypeInfo type)
+    private static DebuggerTypeProxyAttribute? GetApplicableDebuggerTypeProxyAttribute(TypeInfo type)
     {
         // includes inherited attributes. The debugger uses the first attribute if multiple are applied.
         var result = type.GetCustomAttributes<DebuggerTypeProxyAttribute>().FirstOrDefault();
@@ -77,8 +75,9 @@ internal static class ObjectFormatterHelpers
         }
 
         // TODO (tomat): which assembly should we look at for proxy attributes?
-        foreach (DebuggerTypeProxyAttribute attr in type.Assembly.GetCustomAttributes<DebuggerTypeProxyAttribute>())
+        foreach (var attr in type.Assembly.GetCustomAttributes<DebuggerTypeProxyAttribute>())
         {
+            if (attr.Target is null) continue;
             if (IsApplicableAttribute(type, attr.Target.GetTypeInfo(), attr.TargetTypeName))
             {
                 return attr;
@@ -88,10 +87,10 @@ internal static class ObjectFormatterHelpers
         return null;
     }
 
-    private static bool IsApplicableAttribute(TypeInfo type, TypeInfo targetType, string targetTypeName)
+    private static bool IsApplicableAttribute(TypeInfo? type, TypeInfo targetType, string? targetTypeName)
     {
         return type != null && AreEquivalent(targetType, type)
-            || targetTypeName != null && type.FullName == targetTypeName;
+            || targetTypeName != null && type?.FullName == targetTypeName;
     }
 
     private static bool AreEquivalent(TypeInfo type, TypeInfo other)
@@ -101,7 +100,7 @@ internal static class ObjectFormatterHelpers
         return type.Equals(other);
     }
 
-    internal static object GetDebuggerTypeProxy(object obj)
+    internal static object? GetDebuggerTypeProxy(object obj)
     {
         // use proxy type if defined:
         var type = obj.GetType().GetTypeInfo();
@@ -130,7 +129,7 @@ internal static class ObjectFormatterHelpers
         return null;
     }
 
-    internal static MemberInfo ResolveMember(object obj, string memberName, bool callableOnly)
+    internal static MemberInfo? ResolveMember(object obj, string memberName, bool callableOnly)
     {
         TypeInfo type = obj.GetType().GetTypeInfo();
 
@@ -185,7 +184,7 @@ internal static class ObjectFormatterHelpers
                 members = ((IEnumerable<MemberInfo>)type.DeclaredFields).Concat(type.DeclaredProperties);
             }
 
-            MemberInfo candidate = null;
+            MemberInfo? candidate = null;
             foreach (var member in members)
             {
                 if (StringComparer.OrdinalIgnoreCase.Equals(memberName, member.Name))
@@ -195,8 +194,7 @@ internal static class ObjectFormatterHelpers
                         return null;
                     }
 
-                    MethodInfo method;
-
+                    MethodInfo? method;
                     if (member is FieldInfo)
                     {
                         candidate = member;
@@ -235,14 +233,14 @@ internal static class ObjectFormatterHelpers
         return null;
     }
 
-    internal static object GetMemberValue(MemberInfo member, object obj, out Exception exception)
+    internal static object? GetMemberValue(object obj, MemberInfo member, out Exception? exception)
     {
         exception = null;
 
         try
         {
-            FieldInfo field;
-            MethodInfo method;
+            FieldInfo? field;
+            MethodInfo? method;
 
             if ((field = member as FieldInfo) != null)
             {
@@ -268,6 +266,10 @@ internal static class ObjectFormatterHelpers
         {
             exception = e.InnerException;
         }
+        catch (NotSupportedException e)
+        {
+            exception = e;
+        }
 
         return null;
     }
@@ -276,90 +278,23 @@ internal static class ObjectFormatterHelpers
     {
         Debug.Assert(type != null);
 
-        if (type == typeof(int))
-        {
-            return SpecialType.System_Int32;
-        }
-
-        if (type == typeof(string))
-        {
-            return SpecialType.System_String;
-        }
-
-        if (type == typeof(bool))
-        {
-            return SpecialType.System_Boolean;
-        }
-
-        if (type == typeof(char))
-        {
-            return SpecialType.System_Char;
-        }
-
-        if (type == typeof(long))
-        {
-            return SpecialType.System_Int64;
-        }
-
-        if (type == typeof(double))
-        {
-            return SpecialType.System_Double;
-        }
-
-        if (type == typeof(byte))
-        {
-            return SpecialType.System_Byte;
-        }
-
-        if (type == typeof(decimal))
-        {
-            return SpecialType.System_Decimal;
-        }
-
-        if (type == typeof(uint))
-        {
-            return SpecialType.System_UInt32;
-        }
-
-        if (type == typeof(ulong))
-        {
-            return SpecialType.System_UInt64;
-        }
-
-        if (type == typeof(float))
-        {
-            return SpecialType.System_Single;
-        }
-
-        if (type == typeof(short))
-        {
-            return SpecialType.System_Int16;
-        }
-
-        if (type == typeof(ushort))
-        {
-            return SpecialType.System_UInt16;
-        }
-
-        if (type == typeof(DateTime))
-        {
-            return SpecialType.System_DateTime;
-        }
-
-        if (type == typeof(sbyte))
-        {
-            return SpecialType.System_SByte;
-        }
-
-        if (type == typeof(object))
-        {
-            return SpecialType.System_Object;
-        }
-
-        if (type == typeof(void))
-        {
-            return SpecialType.System_Void;
-        }
+        if (type == typeof(int)) return SpecialType.System_Int32;
+        if (type == typeof(string)) return SpecialType.System_String;
+        if (type == typeof(bool)) return SpecialType.System_Boolean;
+        if (type == typeof(char)) return SpecialType.System_Char;
+        if (type == typeof(long)) return SpecialType.System_Int64;
+        if (type == typeof(double)) return SpecialType.System_Double;
+        if (type == typeof(byte)) return SpecialType.System_Byte;
+        if (type == typeof(decimal)) return SpecialType.System_Decimal;
+        if (type == typeof(uint)) return SpecialType.System_UInt32;
+        if (type == typeof(ulong)) return SpecialType.System_UInt64;
+        if (type == typeof(float)) return SpecialType.System_Single;
+        if (type == typeof(short)) return SpecialType.System_Int16;
+        if (type == typeof(ushort)) return SpecialType.System_UInt16;
+        if (type == typeof(DateTime)) return SpecialType.System_DateTime;
+        if (type == typeof(sbyte)) return SpecialType.System_SByte;
+        if (type == typeof(object)) return SpecialType.System_Object;
+        if (type == typeof(void)) return SpecialType.System_Void;
 
         return SpecialType.None;
     }
@@ -468,12 +403,10 @@ internal static class ObjectFormatterHelpers
         }
     }
 
-    private static MethodInfo GetDeclaredMethod(this TypeInfo typeInfo, string name, params Type[] paramTypes)
-    {
-        return FindItem(typeInfo.GetDeclaredMethods(name), paramTypes);
-    }
+    private static MethodInfo? GetDeclaredMethod(this TypeInfo typeInfo, string name, params Type[] paramTypes)
+        => FindItem(typeInfo.GetDeclaredMethods(name), paramTypes);
 
-    private static T FindItem<T>(IEnumerable<T> collection, params Type[] paramTypes)
+    private static T? FindItem<T>(IEnumerable<T> collection, params Type[] paramTypes)
         where T : MethodBase
     {
         foreach (var current in collection)
