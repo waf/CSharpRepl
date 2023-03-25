@@ -7,10 +7,12 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Completion;
+using CSharpRepl.Services.Completion.OpenAI;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SymbolExploration;
@@ -34,12 +36,14 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
     private readonly IConsoleEx console;
     private readonly RoslynServices roslyn;
     private readonly Configuration configuration;
+    private readonly OpenAICompleteService openAIComplete;
 
-    public CSharpReplPromptCallbacks(IConsoleEx console, RoslynServices roslyn, Configuration configuration)
+    public CSharpReplPromptCallbacks(IConsoleEx console, RoslynServices roslyn, Configuration configuration, HttpMessageHandler? httpMessageHandler = null)
     {
         this.console = console;
         this.roslyn = roslyn;
         this.configuration = configuration;
+        this.openAIComplete = new OpenAICompleteService(configuration.OpenAIConfiguration, httpMessageHandler);
     }
 
     protected override IEnumerable<(KeyPressPattern Pattern, KeyPressCallbackAsync Callback)> GetKeyPressCallbacks()
@@ -65,8 +69,19 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
             async (text, caret, cancellationToken) => LaunchSource(await roslyn.GetSymbolAtIndexAsync(text, caret)));
 
         yield return (
+            new(ConsoleModifiers.Control | ConsoleModifiers.Alt, ConsoleKey.Spacebar),
+            (text, caret, cancellationToken) => OpenAICompleteAsync(text, caret, cancellationToken));
+
+        yield return (
             new(ConsoleModifiers.Control, ConsoleKey.D),
             (text, caret, cancellationToken) => Task.FromResult<KeyPressCallbackResult?>(new ExitApplicationKeyPress()));
+    }
+
+    private async Task<KeyPressCallbackResult?> OpenAICompleteAsync(string text, int caret, CancellationToken cancellationToken)
+    {
+        var submissions = await roslyn.GetPreviousSubmissionsAsync();
+        var completion = openAIComplete.CompleteAsync(submissions, text, caret, cancellationToken);
+        return new StreamingInputCallbackResult(completion);
     }
 
     protected override Task<TextSpan> GetSpanToReplaceByCompletionAsync(string text, int caret, CancellationToken cancellationToken)

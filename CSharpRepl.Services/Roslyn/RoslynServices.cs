@@ -171,6 +171,21 @@ public sealed partial class RoslynServices
         return prettyPrinter.FormatException(obj, level);
     }
 
+    public async Task<IReadOnlyList<string>> GetPreviousSubmissionsAsync()
+    {
+        await Initialization.ConfigureAwait(false);
+        var texts = await Task.WhenAll(
+            workspaceManager
+                .GetPreviousDocuments()
+                .Skip(1) // skip warmup
+                .Select(d => d.GetTextAsync())
+        );
+        return texts
+            .Select(t => t.ToString().Replace("\r\n", "\n"))
+            .Where(text => !string.IsNullOrEmpty(text))
+            .ToList();
+    }
+
     public async Task<IReadOnlyCollection<CompletionItemWithDescription>> CompleteAsync(string text, int caret)
     {
         if (!Initialization.IsCompleted)

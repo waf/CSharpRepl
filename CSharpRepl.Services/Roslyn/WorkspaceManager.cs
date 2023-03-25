@@ -92,6 +92,12 @@ internal sealed class WorkspaceManager
         this.CurrentDocument = document;
     }
 
+    public IReadOnlyList<Document> GetPreviousDocuments()
+    {
+        var documents = workspace.CurrentSolution.Projects.SelectMany(project => project.Documents).ToList();
+        return documents;
+    }
+
     private static Solution EmptyProjectAndDocumentChangeset(
         Solution solution,
         IReadOnlyCollection<MetadataReference> references,

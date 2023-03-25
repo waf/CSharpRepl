@@ -54,6 +54,7 @@ public sealed class Configuration
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
     public FormattedString OutputForEarlyExit { get; }
+    public OpenAIConfiguration OpenAIConfiguration { get; }
     public int TabSize { get; }
 
     public KeyBindings KeyBindings { get; }
@@ -76,7 +77,8 @@ public sealed class Configuration
         string[]? triggerCompletionListKeyPatterns = null,
         string[]? newLineKeyPatterns = null,
         string[]? submitPromptKeyPatterns = null,
-        string[]? submitPromptDetailedKeyPatterns = null)
+        string[]? submitPromptDetailedKeyPatterns = null,
+        OpenAIConfiguration openAIConfiguration = null)
     {
         References = references?.ToHashSet() ?? new HashSet<string>();
         Usings = usings?.ToHashSet() ?? new HashSet<string>();
@@ -131,7 +133,7 @@ public sealed class Configuration
         LoadScript = loadScript;
         LoadScriptArgs = loadScriptArgs ?? Array.Empty<string>();
         OutputForEarlyExit = outputForEarlyExit;
-
+        OpenAIConfiguration = openAIConfiguration;
         var triggerCompletionList =
             triggerCompletionListKeyPatterns?.Any() == true
             ? ParseKeyPressPatterns(triggerCompletionListKeyPatterns)
@@ -228,4 +230,24 @@ public sealed class Configuration
             return false;
         }
     }
+}
+
+public class OpenAIConfiguration
+{
+    public OpenAIConfiguration(string? apiKey, string prompt, string model, int historyCount, double? temperature, double? topProbability)
+    {
+        ApiKey = apiKey;
+        Prompt = prompt;
+        Model = model;
+        HistoryCount = historyCount;
+        Temperature = temperature;
+        TopProbability = topProbability;
+    }
+
+    public string? ApiKey { get; }
+    public string Prompt { get; }
+    public string Model { get; }
+    public int HistoryCount { get; }
+    public double? Temperature { get; }
+    public double? TopProbability { get; }
 }
