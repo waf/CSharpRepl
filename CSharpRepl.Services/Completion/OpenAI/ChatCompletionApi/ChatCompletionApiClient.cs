@@ -1,4 +1,10 @@
-﻿using System.Collections.Generic;
+﻿#region License Header
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#endregion
+
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -16,7 +22,7 @@ internal sealed class ChatCompletionApiClient : IOpenAIClient
     private readonly HttpClient httpClient;
     private readonly JsonSerializerOptions jsonSerializerOptions;
     private readonly OpenAIConfiguration configuration;
-    private const int CharacterToTokenEstimate = 3;
+    private const int CharacterToTokenEstimate = 2;
 
     public bool EmitLeadingNewline => true;
 

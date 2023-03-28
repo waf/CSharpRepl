@@ -62,7 +62,7 @@ public class OpenAICompleteService
         }
 
         var (inputStream, error) = await CallOpenAIAsync(submissions, code, caret, cancellationToken).ConfigureAwait(false);
-        if (error is not null)
+        if (error is not null || inputStream is null)
         {
             yield return $"// Error calling OpenAI:\n {error}";
             yield break;

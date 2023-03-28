@@ -78,7 +78,7 @@ public sealed class Configuration
         string[]? newLineKeyPatterns = null,
         string[]? submitPromptKeyPatterns = null,
         string[]? submitPromptDetailedKeyPatterns = null,
-        OpenAIConfiguration openAIConfiguration = null)
+        OpenAIConfiguration? openAIConfiguration = null)
     {
         References = references?.ToHashSet() ?? new HashSet<string>();
         Usings = usings?.ToHashSet() ?? new HashSet<string>();
