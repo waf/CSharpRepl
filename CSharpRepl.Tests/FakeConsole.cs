@@ -152,7 +152,8 @@ internal static class FakeConsole
                     if (isPlaceholder)
                     {
                         var formatArgument = input.GetArgument(int.Parse(key.Value.Trim('{', '}')));
-                        modifiersPressed = AppendFormatStringArgument(list, key, modifiersPressed, formatArgument);
+                        var modifier = AppendFormatStringArgument(list, key, modifiersPressed, formatArgument);
+                        modifiersPressed = modifier == 0 ? 0 : modifiersPressed | modifier;
                     }
                     else if (isEscapedBrace)
                     {

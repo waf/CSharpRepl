@@ -15,6 +15,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using CSharpRepl.Services;
+using CSharpRepl.Services.Completion.OpenAI;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Theming;
 using PrettyPrompt.Highlighting;
@@ -102,6 +103,36 @@ internal static class CommandLine
         description: "Width of tab character."
     );
 
+    private static readonly Option<string> OpenAIApiKey = new(
+        aliases: new[] { "--openAIApiKey" },
+        description: $"OpenAI API key. Alternatively, set the {OpenAICompleteService.ApiKeyEnvironmentVariableName} environment variable."
+    );
+
+    private static readonly Option<string> OpenAIPrompt = new(
+        aliases: new[] { "--openAIPrompt" },
+        description: "OpenAI prompt to prefix to all code submissions"
+    );
+
+    private static readonly Option<string> OpenAIModel = new(
+        aliases: new[] { "--openAIModel" },
+        description: "OpenAI model configuration"
+    );
+
+    private static readonly Option<double?> OpenAITemperature = new(
+        aliases: new[] { "--openAITemperature" },
+        description: "OpenAI temperature configuration"
+    );
+
+    private static readonly Option<double?> OpenAITopProbability = new(
+        aliases: new[] { "--openAITopProbability" },
+        description: "OpenAI top_p configuration"
+    );
+
+    private static readonly Option<int?> OpenAIHistoryCount = new(
+        aliases: new[] { "--openAIHistoryCount" },
+        description: "Number of REPL history entries to send as OpenAI context. Fewer may be sent if prompt is long."
+    );
+
     private static readonly Option<string[]?> TriggerCompletionListKeyBindings = new(
         aliases: new[] { "--triggerCompletionListKeys" },
         description: "Set up key bindings for trigger completion list. Can be specified multiple times."
@@ -157,6 +188,7 @@ internal static class CommandLine
         var availableCommands = new RootCommand("C# REPL")
         {
             References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, UsePrereleaseNugets, Trace, Version, Help, TabSize,
+            OpenAIApiKey, OpenAIPrompt, OpenAIModel, OpenAIHistoryCount, OpenAITemperature, OpenAITopProbability,
             TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings, Configure
         };
         var commandLine = new CommandLineBuilder(availableCommands)
@@ -200,7 +232,15 @@ internal static class CommandLine
             triggerCompletionListKeyPatterns: commandLine.GetValueForOption(TriggerCompletionListKeyBindings),
             newLineKeyPatterns: commandLine.GetValueForOption(NewLineKeyBindings),
             submitPromptKeyPatterns: commandLine.GetValueForOption(SubmitPromptKeyBindings),
-            submitPromptDetailedKeyPatterns: commandLine.GetValueForOption(SubmitPromptDetailedKeyBindings)
+            submitPromptDetailedKeyPatterns: commandLine.GetValueForOption(SubmitPromptDetailedKeyBindings),
+            openAIConfiguration: new OpenAIConfiguration(
+                apiKey: commandLine.GetValueForOption(OpenAIApiKey) ?? OpenAICompleteService.ApiKey,
+                prompt: commandLine.GetValueForOption(OpenAIPrompt) ?? OpenAICompleteService.DefaultPrompt,
+                model: commandLine.GetValueForOption(OpenAIModel) ?? OpenAICompleteService.DefaultModel,
+                historyCount: commandLine.GetValueForOption(OpenAIHistoryCount) ?? OpenAICompleteService.DefaultHistoryEntryCount,
+                temperature: commandLine.GetValueForOption(OpenAITemperature) ?? OpenAICompleteService.DefaultTemperature,
+                topProbability: commandLine.GetValueForOption(OpenAITopProbability)
+            )
         );
 
         return config;
@@ -315,10 +355,22 @@ internal static class CommandLine
             $"  [green]--useUnicode[/]:                               {UseUnicode.Description}" + NewLine +
             $"  [green]--usePrereleaseNugets[/]:                      {UsePrereleaseNugets.Description}" + NewLine +
             $"  [green]--tabSize[/] [cyan]<width>[/]:                          {TabSize.Description}" + NewLine +
+            NewLine +
+            $"  Key Bindings" + NewLine +
             $"  [green]--triggerCompletionListKeys[/] [cyan]<key-binding>[/]:  {TriggerCompletionListKeyBindings.Description}" + NewLine +
             $"  [green]--newLineKeys[/] [cyan]<key-binding>[/]:                {NewLineKeyBindings.Description}" + NewLine +
             $"  [green]--submitPromptKeys[/] [cyan]<key-binding>[/]:           {SubmitPromptKeyBindings.Description}" + NewLine +
             $"  [green]--submitPromptDetailedKeys[/] [cyan]<key-binding>[/]:   {SubmitPromptDetailedKeyBindings.Description}" + NewLine +
+            NewLine +
+            $"  Open AI" + NewLine +
+            $"  [green]--openAIApiKey[/]:                             {OpenAIApiKey.Description}" + NewLine +
+            $"  [green]--openAIPrompt[/]:                             {OpenAIPrompt.Description}" + NewLine +
+            $"  [green]--openAIModel[/]:                              {OpenAIModel.Description}" + NewLine +
+            $"  [green]--openAITemperature[/]:                        {OpenAITemperature.Description}" + NewLine +
+            $"  [green]--openAITopProbability[/]:                     {OpenAITopProbability.Description}" + NewLine +
+            $"  [green]--openAIHistoryCount[/]:                       {OpenAIHistoryCount.Description}" + NewLine +
+            NewLine +
+            $"  Help and Diagnostics" + NewLine +
             $"  [green]--trace[/]:                                    {Trace.Description}" + NewLine +
             $"  [green]-v[/] or [green]--version[/]:                            {Version.Description}" + NewLine +
             $"  [green]-h[/] or [green]--help[/]:                               {Help.Description}" + NewLine + NewLine +
