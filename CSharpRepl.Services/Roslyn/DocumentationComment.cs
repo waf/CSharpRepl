@@ -407,7 +407,7 @@ internal sealed class DocumentationComment
                         return;
                     }
 
-                    Debug.Fail("unexpected case");
+                    //Debug.Fail("unexpected case");
                     text.Append(reader.ReadInnerXml());
                 }
                 else
