@@ -8,6 +8,7 @@ using System.IO.Abstractions;
 using System.Linq;
 using System.Runtime.InteropServices;
 using CSharpRepl.Services.Logging;
+using Microsoft.Build.Locator;
 
 namespace CSharpRepl.Services.Roslyn.References;
 
@@ -24,14 +25,20 @@ internal sealed class DotNetInstallationLocator
     private readonly string dotnetRuntimePath;
     private readonly string userProfilePath;
 
+    static DotNetInstallationLocator()
+    {
+        if (!MSBuildLocator.IsRegistered)
+        {
+            _ = MSBuildLocator.RegisterDefaults();
+        }
+    }
+
     // used at runtime
     public DotNetInstallationLocator(ITraceLogger logger) : this(
        logger: logger,
        io: new FileSystem(),
-       // a path like C:\Program Files\dotnet
-       dotnetRuntimePath: Path.GetFullPath(Path.Combine(RuntimeEnvironment.GetRuntimeDirectory(), "../../../")),
-       // a path like C:\Users\username
-       userProfilePath: Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
+       dotnetRuntimePath: GetDotNetRuntimePath(),
+       userProfilePath: GetUserProfilePath()
     )
     { }
 
@@ -63,14 +70,8 @@ internal sealed class DotNetInstallationLocator
         var implementationPath = GetGlobalImplementationAssemblyPath(implementationAssemblyRoot, version);
 
         // second, try loading from installed nuget packages, e.g. ~\.nuget\packages\microsoft.netcore.app.*
-        if (referencePath is null)
-        {
-            referencePath = FallbackToNugetReferencePath(framework, version);
-        }
-        if (implementationPath is null)
-        {
-            implementationPath = FallbackToNugetImplementationPath(framework, version);
-        }
+        referencePath ??= FallbackToNugetReferencePath(framework, version);
+        implementationPath ??= FallbackToNugetImplementationPath(framework, version);
 
         if (referencePath is null || implementationPath is null)
         {
@@ -82,6 +83,15 @@ internal sealed class DotNetInstallationLocator
         }
 
         return (referencePath, implementationPath);
+    }
+
+    /// <summary>
+    /// Retrieve the .NET installation directory, e.g. a path like C:\Program Files\dotnet
+    /// </summary>
+    private static string GetDotNetRuntimePath()
+    {
+        var msBuildPath = MSBuildLocator.QueryVisualStudioInstances().First().MSBuildPath;
+        return Path.GetFullPath(Path.Combine(msBuildPath, "../.."));
     }
 
     /// <summary>
@@ -170,4 +180,10 @@ internal sealed class DotNetInstallationLocator
         io.Directory.Exists(referenceAssemblyRoot)
         ? io.Directory.GetDirectories(referenceAssemblyRoot)
         : Array.Empty<string>();
+
+    /// <summary>
+    /// Retrieve a path like C:\Users\username
+    /// </summary>
+    private static string GetUserProfilePath() =>
+        Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 }
