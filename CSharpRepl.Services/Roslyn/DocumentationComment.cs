@@ -429,13 +429,8 @@ internal sealed class DocumentationComment
             var symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId(cref, semanticModel.Compilation);
             if (symbol is null)
             {
-                if (cref.StartsWith("!:")) //invalid
-                {
-                    text.Append(cref[2..]);
-                    return true;
-                }
-
-                return false;
+                text.Append(cref[2..]);
+                return true;
             }
 
             var displayFormat = SymbolDisplayFormat.MinimallyQualifiedFormat
