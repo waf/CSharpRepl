@@ -136,10 +136,10 @@ internal sealed class NugetPackageInstaller
         Dictionary<PackageIdentity, List<PortableExecutableReference>> aggregatedReferences,
         CancellationToken cancellationToken)
     {
-        var installedPath = Path.GetFullPath(nuGetProject.GetInstalledPath(packageIdentity));
+        var installedPath = nuGetProject.GetInstalledPath(packageIdentity);
         if (!Directory.Exists(installedPath))
         {
-            logger.LogError($"'{installedPath}' not found");
+            logger.LogError($"'{installedPath}' not found for package {packageIdentity}");
             return;
         }
 
