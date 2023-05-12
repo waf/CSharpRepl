@@ -77,7 +77,8 @@ internal sealed class DotNetInstallationLocator
             throw new InvalidOperationException(
                 "Could not determine the .NET SDK to use. Please install the latest .NET SDK installer from https://dotnet.microsoft.com/download" + Environment.NewLine
                 + $@"Tried to find {version} with reference assemblies in ""{referenceAssemblyRoot}"" and implementation assemblies in ""{implementationAssemblyRoot}""." + Environment.NewLine
-                + $@"Also tried falling back to ""{referencePath}"" and ""{implementationPath}"""
+                + $@"Also tried falling back to ""{referencePath}"" and ""{implementationPath}""" + Environment.NewLine
+                + "If you've installed .NET in a different directory, please set it in the DOTNET_ROOT environment variable."
             );
         }
 
