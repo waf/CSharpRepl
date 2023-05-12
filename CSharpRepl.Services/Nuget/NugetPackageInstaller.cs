@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -135,10 +136,10 @@ internal sealed class NugetPackageInstaller
         Dictionary<PackageIdentity, List<PortableExecutableReference>> aggregatedReferences,
         CancellationToken cancellationToken)
     {
-        var installedPath = new DirectoryInfo(Path.Combine(nuGetProject.Root, packageIdentity.ToString()));
-        if (!installedPath.Exists)
+        var installedPath = nuGetProject.GetInstalledPath(packageIdentity);
+        if (!Directory.Exists(installedPath))
         {
-            logger.LogError($"'{installedPath}' not found");
+            logger.LogError($"'{installedPath}' not found for package {packageIdentity}");
             return;
         }
 
@@ -178,7 +179,7 @@ internal sealed class NugetPackageInstaller
         }
 
         var dlls = FindDlls(selectedFramework)
-                .Select(path => MetadataReference.CreateFromFile(Path.GetFullPath(Path.Combine(nuGetProject.Root, packageIdentity.ToString(), path)))) //GetFullPath will normalize separators
+                .Select(path => MetadataReference.CreateFromFile(Path.GetFullPath(Path.Combine(installedPath, path)))) //GetFullPath will normalize separators
                 .ToList();
         if (!dlls.Any())
         {
@@ -189,7 +190,7 @@ internal sealed class NugetPackageInstaller
             aggregatedReferences[packageIdentity] = dlls;
         }
 
-        CheckAndFixMultipleNuspecFilesExistance(installedPath.FullName);
+        CheckAndFixMultipleNuspecFilesExistance(installedPath);
         var dependencyGroup =
             (await reader.GetPackageDependenciesAsync(cancellationToken))
             .FirstOrDefault(g => g.TargetFramework == selectedFramework);
