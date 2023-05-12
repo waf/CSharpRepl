@@ -81,7 +81,8 @@ public sealed partial class RoslynServices
             this.compilationOptions = new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 usings: referenceService.Usings.Select(u => u.Name.ToString()),
-                allowUnsafe: true
+                allowUnsafe: true,
+                sourceReferenceResolver: new SourceFileResolver(new[] { Environment.CurrentDirectory}, Environment.CurrentDirectory)
             );
 
             // the script runner is used to actually execute the scripts, and the workspace manager
