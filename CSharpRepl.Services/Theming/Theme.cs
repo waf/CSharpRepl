@@ -5,8 +5,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using Microsoft.CodeAnalysis.Classification;
-using Newtonsoft.Json;
 using PrettyPrompt.Highlighting;
 using Spectre.Console;
 
