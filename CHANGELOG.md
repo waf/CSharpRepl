@@ -1,3 +1,15 @@
+## Release 0.6.0
+
+- Much improved output formatting. Supports a much more graphical dump of a wide range of objects, as well as syntax highlighting. Uses the excellent Spectre.Console library.
+- Better exception formatting, featuring both a compact default format and a syntax highlighted verbose format.
+- OpenAI autocompletions (requires an API key, which is pay-as-you-go)
+- Intellisense support when files are executed via `#load`
+- Better error message when .NET is installed to non-standard location but DOTNET_ROOT is not set
+- Bugfix for nuget loading issue when referencing csproj and sln files
+- Bugfix for nuget package installation when the package has implicit minor/patch versions
+- Fix crash in the disassembler feature
+- Fix crash in item completion logic (e.g. in `System.Threading.Mutex(`)
+
 ## Release 0.5.1
 
 - Update Nuget package libraries to work on .NET 7

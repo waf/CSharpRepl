@@ -19,6 +19,7 @@ Thanks to everyone who contributes! The following contributors have helped out w
 - José Javier Rodríguez Zas (JJ) ([jjavierdguezas](https://github.com/jjavierdguezas))
 - Marlon Regenhardt ([Regenhardt](https://github.com/Regenhardt))
 - Luiz-Ossinho ([Luiz-Ossinho](https://github.com/Luiz-Ossinho))
+- Vinod Pal ([VNDPAL](https://github.com/VNDPAL))
 
 ## PrettyPrompt Contributors
 
