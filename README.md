@@ -16,13 +16,15 @@ C# REPL provides the following features:
 - Automatic formatting of typed input
 - Nuget package installation
 - Reference local assemblies, solutions, and projects
+- Dump and explore objects with syntax highlighting and rich Spectre.Console formatting
+- OpenAI integration (bring your own API key)
 - Navigate to source via Source Link
 - IL disassembly (both Debug and Release mode)
 - Fast and flicker-free rendering. A "diff" algorithm is used to only render what's changed.
 
 ## Installation
 
-C# REPL is a .NET 7 global tool, and runs on Windows 10, Mac OS, and Linux. It can be installed via:
+C# REPL is a .NET 7 global tool, and runs on Windows, Mac OS, and Linux. It can be installed via:
 
 ```console
 dotnet tool install -g csharprepl
