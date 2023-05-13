@@ -18,9 +18,9 @@
     <PackageReference Include="Microsoft.Build.Locator" Version="1.5.5" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="7.0.0" />
-    <PackageReference Include="PrettyPrompt" Version="4.0.6" />
+    <PackageReference Include="PrettyPrompt" Version="4.0.7" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.46.0" />
-    <PackageReference Include="System.IO.Abstractions" Version="19.2.1" />
+    <PackageReference Include="System.IO.Abstractions" Version="19.2.26" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
     <!-- when upgrading nuget, make sure you check the SkipCopyOfHostDlls in CSharpRepl and test '#load' for solutions -->
     <PackageReference Include="NuGet.PackageManagement" Version="6.5.0" />
