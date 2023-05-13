@@ -1,3 +1,7 @@
+## Release 0.6.1
+
+- Nuget package upgrade of underlying PrettyPrompt library
+
 ## Release 0.6.0
 
 - Much improved output formatting. Supports a much more graphical dump of a wide range of objects, as well as syntax highlighting. Uses the excellent Spectre.Console library.
