@@ -16,9 +16,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
     <PackageReference Include="NSubstitute" Version="5.0.0" />
-    <PackageReference Include="PrettyPrompt" Version="4.0.6" />
+    <PackageReference Include="PrettyPrompt" Version="4.0.7" />
     <PackageReference Include="Spectre.Console.Testing" Version="0.46.0" />
-    <PackageReference Include="System.IO.Abstractions.TestingHelpers" Version="19.2.1" />
+    <PackageReference Include="System.IO.Abstractions.TestingHelpers" Version="19.2.26" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
