@@ -18,6 +18,7 @@
     <PackageReference Include="Microsoft.Build.Locator" Version="1.5.5" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="7.0.0" />
+    <PackageReference Include="Microsoft.SymbolStore" Version="1.0.431901" />
     <PackageReference Include="PrettyPrompt" Version="4.0.8" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.47.0" />
     <PackageReference Include="System.IO.Abstractions" Version="19.2.29" />
@@ -30,15 +31,6 @@
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
     <_Parameter1>CSharpRepl.Tests</_Parameter1>
     </AssemblyAttribute>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Microsoft.FileFormats">
-      <HintPath>lib\Microsoft.FileFormats.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SymbolStore">
-      <HintPath>lib\Microsoft.SymbolStore.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
