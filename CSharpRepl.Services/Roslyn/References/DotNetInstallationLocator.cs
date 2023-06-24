@@ -8,6 +8,7 @@ using System.IO.Abstractions;
 using System.Linq;
 using System.Runtime.InteropServices;
 using CSharpRepl.Services.Logging;
+using Microsoft.Build.Locator;
 
 namespace CSharpRepl.Services.Roslyn.References;
 
@@ -42,6 +43,7 @@ internal sealed class DotNetInstallationLocator
         this.io = io;
         this.dotnetRuntimePath = dotnetRuntimePath;
         this.userProfilePath = userProfilePath;
+        _ = LocateMsBuild(logger);
     }
 
     /// <summary>
@@ -83,6 +85,21 @@ internal sealed class DotNetInstallationLocator
         }
 
         return (referencePath, implementationPath);
+    }
+
+    private static VisualStudioInstance? LocateMsBuild(ITraceLogger logger)
+    {
+        try
+        {
+            var msbuild = MSBuildLocator.RegisterDefaults();
+            logger.Log($"Discovered dotnet version {msbuild.Name} {msbuild.Version} at {msbuild.MSBuildPath}.");
+            return msbuild;
+        }
+        catch (InvalidOperationException ex)
+        {
+            logger.Log($"ERROR: {ex.Message}");
+            return null;
+        }
     }
 
     /// <summary>

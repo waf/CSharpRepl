@@ -77,13 +77,14 @@ public sealed partial class RoslynServices
         this.Initialization = Task.Run(() =>
         {
             logger.Log("Starting background initialization");
+
             this.referenceService = new AssemblyReferenceService(config, logger);
 
             this.compilationOptions = new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 usings: referenceService.Usings.Select(u => u.Name?.ToString()).WhereNotNull(),
                 allowUnsafe: true,
-                sourceReferenceResolver: new SourceFileResolver(new[] { Environment.CurrentDirectory}, Environment.CurrentDirectory)
+                sourceReferenceResolver: new SourceFileResolver(new[] { Environment.CurrentDirectory }, Environment.CurrentDirectory)
             );
 
             // the script runner is used to actually execute the scripts, and the workspace manager
