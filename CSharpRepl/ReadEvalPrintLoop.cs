@@ -38,7 +38,7 @@ internal sealed class ReadEvalPrintLoop
     {
         console.WriteLine("Welcome to the C# REPL (Read Eval Print Loop)!");
         console.WriteLine("Type C# expressions and statements at the prompt and press Enter to evaluate them.");
-        console.WriteLine($"Type {Help} to learn more, and type {Exit} to quit.");
+        console.WriteLine($"Type {Help} to learn more, {Exit} to quit, and {Clear} to clear your terminal.");
         console.WriteLine(string.Empty);
 
         await Preload(roslyn, console, config).ConfigureAwait(false);
@@ -213,4 +213,9 @@ Run --help at the command line to view these options
         PromptConfiguration.HasUserOptedOutFromColor
         ? @"""exit"""
         : AnsiColor.BrightRed.GetEscapeSequence() + "exit" + AnsiEscapeCodes.Reset;
+
+    private static string Clear =>
+        PromptConfiguration.HasUserOptedOutFromColor
+        ? @"""clear"""
+        : AnsiColor.BrightBlue.GetEscapeSequence() + "clear" + AnsiEscapeCodes.Reset;
 }
