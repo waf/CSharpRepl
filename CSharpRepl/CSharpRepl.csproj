@@ -47,16 +47,16 @@
   -->
   <Target AfterTargets="AfterResolveReferences" Name="SkipCopyOfHostDlls">
     <ItemGroup>
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.common\6.5.0\lib\netstandard2.0\NuGet.Common.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.configuration\6.5.0\lib\netstandard2.0\NuGet.Configuration.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.dependencyresolver.core\6.5.0\lib\net5.0\NuGet.DependencyResolver.Core.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.frameworks\6.5.0\lib\netstandard2.0\NuGet.Frameworks.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.librarymodel\6.5.0\lib\netstandard2.0\NuGet.LibraryModel.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.packaging.core\6.5.0\lib\net5.0\NuGet.Packaging.Core.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.packaging\6.5.0\lib\net5.0\NuGet.Packaging.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.projectmodel\6.5.0\lib\net5.0\NuGet.ProjectModel.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.protocol\6.5.0\lib\net5.0\NuGet.Protocol.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.versioning\6.5.0\lib\netstandard2.0\NuGet.Versioning.dll" />
+      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.common\6.6.1\lib\netstandard2.0\NuGet.Common.dll" />
+      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.configuration\6.6.1\lib\netstandard2.0\NuGet.Configuration.dll" />
+      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.dependencyresolver.core\6.6.1\lib\net5.0\NuGet.DependencyResolver.Core.dll" />
+      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.frameworks\6.6.1\lib\netstandard2.0\NuGet.Frameworks.dll" />
+      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.librarymodel\6.6.1\lib\netstandard2.0\NuGet.LibraryModel.dll" />
+      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.packaging.core\6.6.1\lib\net5.0\NuGet.Packaging.Core.dll" />
+      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.packaging\6.6.1\lib\net5.0\NuGet.Packaging.dll" />
+      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.projectmodel\6.6.1\lib\net5.0\NuGet.ProjectModel.dll" />
+      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.protocol\6.6.1\lib\net5.0\NuGet.Protocol.dll" />
+      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.versioning\6.6.1\lib\netstandard2.0\NuGet.Versioning.dll" />
     </ItemGroup>
   </Target>
 
