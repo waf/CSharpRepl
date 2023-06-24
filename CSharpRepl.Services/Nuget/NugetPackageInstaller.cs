@@ -149,6 +149,7 @@ internal sealed class NugetPackageInstaller
                 return;
         }
 
+        CheckAndFixMultipleNuspecFilesExistance(installedPath);
         var reader = new PackageFolderReader(installedPath);
         var collection = new ContentItemCollection();
         collection.Load(await reader.GetFilesAsync(cancellationToken));
@@ -190,7 +191,6 @@ internal sealed class NugetPackageInstaller
             aggregatedReferences[packageIdentity] = dlls;
         }
 
-        CheckAndFixMultipleNuspecFilesExistance(installedPath);
         var dependencyGroup =
             (await reader.GetPackageDependenciesAsync(cancellationToken))
             .FirstOrDefault(g => g.TargetFramework == selectedFramework);
