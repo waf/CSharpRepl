@@ -1,3 +1,8 @@
+## Release 0.6.3
+
+- If msbuild cannot be located, still allow basic REPL usage.
+- Nuget installation - Handle multiple nuspecs that differ only by case.
+
 ## Release 0.6.2
 
 - Fix handling of AltGr characters (e.g. typing `{` on AZERTY keyboards)
