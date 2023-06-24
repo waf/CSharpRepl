@@ -32,7 +32,7 @@ public class OpenAICompleteService
 
     private readonly IOpenAIClient? client; // null if no Open AI API key is available.
 
-    public OpenAICompleteService(OpenAIConfiguration configuration, HttpMessageHandler? httpMessageHandler = null)
+    public OpenAICompleteService(OpenAIConfiguration? configuration, HttpMessageHandler? httpMessageHandler = null)
     {
         if (configuration is null || string.IsNullOrEmpty(configuration.ApiKey))
         {
