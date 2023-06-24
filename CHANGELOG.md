@@ -1,3 +1,9 @@
+## Release 0.6.2
+
+- Fix handling of AltGr characters (e.g. typing `{` on AZERTY keyboards)
+- Dependency updates and nullable reference warning cleanup
+- Improve help text on smaller terminal widths
+
 ## Release 0.6.1
 
 - Nuget package upgrade of underlying PrettyPrompt library
