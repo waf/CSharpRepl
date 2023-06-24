@@ -82,7 +82,7 @@ internal static class FakeConsole
     public static ConfiguredCall StubInput(this IConsoleEx consoleStub, params FormattableString[] inputs)
     {
         var keys = inputs
-            .SelectMany(line => MapToConsoleKeyPresses(line))
+            .SelectMany(MapToConsoleKeyPresses)
             .ToList();
 
         return consoleStub.StubInput(keys);
@@ -157,7 +157,7 @@ internal static class FakeConsole
                     }
                     else if (isEscapedBrace)
                     {
-                        modifiersPressed = AppendLiteralKey(list, key.Value.First(), modifiersPressed);
+                        modifiersPressed = AppendLiteralKey(list, key.Value.First(), modifiersPressed | ConsoleModifiers.Shift);
                     }
                     else
                     {
@@ -194,6 +194,8 @@ internal static class FakeConsole
             '*' => ConsoleKey.D8,
             '(' => ConsoleKey.D9,
             ')' => ConsoleKey.D0,
+            '{' => ConsoleKey.Oem4,
+            '}' => ConsoleKey.Oem6,
             <= (char)255 => (ConsoleKey)char.ToUpper(keyChar),
             _ => ConsoleKey.Oem1
         };
