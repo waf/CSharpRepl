@@ -6,11 +6,9 @@ using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Runtime.Loader;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Dotnet;
-using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 
@@ -20,14 +18,6 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
 {
     private readonly DotnetBuilder builder;
     private readonly IConsoleEx console;
-
-    static SolutionFileMetadataResolver()
-    {
-        if (!MSBuildLocator.IsRegistered)
-        {
-            _ = MSBuildLocator.RegisterDefaults();
-        }
-    }
 
     public SolutionFileMetadataResolver(DotnetBuilder builder, IConsoleEx console)
     {
