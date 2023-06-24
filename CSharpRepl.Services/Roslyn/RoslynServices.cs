@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Completion;
 using CSharpRepl.Services.Disassembly;
+using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Logging;
 using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.Roslyn.References;
@@ -80,7 +81,7 @@ public sealed partial class RoslynServices
 
             this.compilationOptions = new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                usings: referenceService.Usings.Select(u => u.Name.ToString()),
+                usings: referenceService.Usings.Select(u => u.Name?.ToString()).WhereNotNull(),
                 allowUnsafe: true,
                 sourceReferenceResolver: new SourceFileResolver(new[] { Environment.CurrentDirectory}, Environment.CurrentDirectory)
             );

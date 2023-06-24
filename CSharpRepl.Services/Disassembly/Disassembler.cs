@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Threading;
+using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Roslyn.Scripting;
 using ICSharpCode.Decompiler;
@@ -157,7 +158,7 @@ internal class Disassembler
             compilationOptions
                 .WithOutputKind(outputKind)
                 .WithOptimizationLevel(optimizationLevel)
-                .WithUsings(referenceService.Usings.Select(u => u.Name.ToString()))
+                .WithUsings(referenceService.Usings.Select(u => u.Name?.ToString()).WhereNotNull())
         );
         return compilation;
     }

@@ -54,7 +54,7 @@ public sealed class Configuration
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
     public FormattedString OutputForEarlyExit { get; }
-    public OpenAIConfiguration OpenAIConfiguration { get; }
+    public OpenAIConfiguration? OpenAIConfiguration { get; }
     public int TabSize { get; }
 
     public KeyBindings KeyBindings { get; }
