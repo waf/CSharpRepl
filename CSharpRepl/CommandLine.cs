@@ -63,7 +63,7 @@ internal static class CommandLine
 
     private static readonly Option<bool> UseTerminalPaletteTheme = new(
         aliases: new[] { "--useTerminalPaletteTheme" },
-        description: "Ignores theme loaded from file and uses default theme with terminal palette colors. Respects the NO_COLOR standard."
+        description: "Uses terminal palette colors for syntax highlighting. Respects the NO_COLOR standard."
     );
 
     private static readonly Option<string> Prompt = new(
@@ -74,12 +74,12 @@ internal static class CommandLine
 
     private static readonly Option<bool> UseUnicode = new(
         aliases: new[] { "--useUnicode" },
-        description: "UTF8 output encoding will be enabled and unicode character decorations will be used (requires terminal support)."
+        description: "Use UTF8 output encoding and unicode character decorations (requires terminal support)."
     );
 
     private static readonly Option<bool> UsePrereleaseNugets = new(
         aliases: new[] { "--usePrereleaseNugets" },
-        description: "Determines whether prerelease NuGet versions should be taken into account when searching for the latest package version."
+        description: "Allows prerelease NuGet versions when searching for the latest package version."
     );
 
     private static readonly Option<bool> Trace = new(
@@ -130,12 +130,12 @@ internal static class CommandLine
 
     private static readonly Option<int?> OpenAIHistoryCount = new(
         aliases: new[] { "--openAIHistoryCount" },
-        description: "Number of REPL history entries to send as OpenAI context. Fewer may be sent if prompt is long."
+        description: "Maximum number of previous REPL entries to send to OpenAI as context."
     );
 
     private static readonly Option<string[]?> TriggerCompletionListKeyBindings = new(
         aliases: new[] { "--triggerCompletionListKeys" },
-        description: "Set up key bindings for trigger completion list. Can be specified multiple times."
+        description: "Key binding to trigger the completion list. Can be specified multiple times."
     )
     {
         AllowMultipleArgumentsPerToken = true,
@@ -143,7 +143,7 @@ internal static class CommandLine
 
     private static readonly Option<string[]?> NewLineKeyBindings = new(
         aliases: new[] { "--newLineKeys" },
-        description: "Set up key bindings for new line character insertion. Can be specified multiple times."
+        description: "Key binding to insert a newline character. Can be specified multiple times."
     )
     {
         AllowMultipleArgumentsPerToken = true,
@@ -151,7 +151,7 @@ internal static class CommandLine
 
     private static readonly Option<string[]?> SubmitPromptKeyBindings = new(
         aliases: new[] { "--submitPromptKeys" },
-        description: "Set up key bindings for the submit of current prompt. Can be specified multiple times."
+        description: "Key binding to submit the prompt. Can be specified multiple times."
     )
     {
         AllowMultipleArgumentsPerToken = true,
@@ -159,7 +159,7 @@ internal static class CommandLine
 
     private static readonly Option<string[]?> SubmitPromptDetailedKeyBindings = new(
         aliases: new[] { "--submitPromptDetailedKeys" },
-        description: "Set up key bindings for the submit of current prompt with detailed output. Can be specified multiple times."
+        description: "Key binding to submit the prompt with detailed output. Can be specified multiple times."
     )
     {
         AllowMultipleArgumentsPerToken = true,
