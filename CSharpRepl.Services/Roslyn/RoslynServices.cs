@@ -84,7 +84,6 @@ public sealed partial class RoslynServices
                 OutputKind.DynamicallyLinkedLibrary,
                 usings: referenceService.Usings.Select(u => u.Name?.ToString()).WhereNotNull(),
                 allowUnsafe: true,
-                optimizationLevel: OptimizationLevel.Release,
                 sourceReferenceResolver: new SourceFileResolver(new[] { Environment.CurrentDirectory }, Environment.CurrentDirectory)
             );
 
