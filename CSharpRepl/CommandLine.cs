@@ -82,6 +82,11 @@ internal static class CommandLine
         description: "Allows prerelease NuGet versions when searching for the latest package version."
     );
 
+    private static readonly Option<bool> StreamPipedInput = new(
+        aliases: new[] { "--streamPipedInput" },
+        description: "If input is piped via stdin, evaluate it line by line instead of in one batch."
+    );
+
     private static readonly Option<bool> Trace = new(
         aliases: new[] { "--trace" },
         description: "Produce a trace file in the current directory, for CSharpRepl bug reports."
@@ -187,7 +192,8 @@ internal static class CommandLine
 
         var availableCommands = new RootCommand("C# REPL")
         {
-            References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, UsePrereleaseNugets, Trace, Version, Help, TabSize,
+            References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, UsePrereleaseNugets,
+            StreamPipedInput, Trace, Version, Help, TabSize,
             OpenAIApiKey, OpenAIPrompt, OpenAIModel, OpenAIHistoryCount, OpenAITemperature, OpenAITopProbability,
             TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings, Configure
         };
@@ -227,6 +233,7 @@ internal static class CommandLine
             promptMarkup: commandLine.GetValueForOption(Prompt) ?? Configuration.PromptDefault,
             useUnicode: commandLine.GetValueForOption(UseUnicode),
             usePrereleaseNugets: commandLine.GetValueForOption(UsePrereleaseNugets),
+            streamPipedInput: commandLine.GetValueForOption(StreamPipedInput),
             tabSize: commandLine.GetValueForOption(TabSize),
             trace: commandLine.GetValueForOption(Trace),
             triggerCompletionListKeyPatterns: commandLine.GetValueForOption(TriggerCompletionListKeyBindings),
@@ -354,6 +361,7 @@ internal static class CommandLine
             $"  [green]--prompt[/]:                                   {Prompt.Description}" + NewLine +
             $"  [green]--useUnicode[/]:                               {UseUnicode.Description}" + NewLine +
             $"  [green]--usePrereleaseNugets[/]:                      {UsePrereleaseNugets.Description}" + NewLine +
+            $"  [green]--streamPipedInput[/]:                         {StreamPipedInput.Description}" + NewLine +
             $"  [green]--tabSize[/] [cyan]<width>[/]:                          {TabSize.Description}" + NewLine +
             NewLine +
             $"  Key Bindings" + NewLine +
