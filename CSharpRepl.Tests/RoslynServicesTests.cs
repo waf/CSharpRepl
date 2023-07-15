@@ -334,7 +334,7 @@ public partial class RoslynServices_REPL_Tests : IAsyncLifetime, IClassFixture<R
         configuration ??= new Configuration();
 
         var prompt = new Prompt(console: console.PrettyPromptConsole, callbacks: new CSharpReplPromptCallbacks(console, services, configuration), configuration: new PromptConfiguration(keyBindings: configuration.KeyBindings));
-        var repl = new ReadEvalPrintLoop(services, prompt, console);
+        var repl = new ReadEvalPrintLoop(console, services, prompt);
         await services.WarmUpAsync(Array.Empty<string>());
         return (console, repl, configuration, stdout, stderr);
     }

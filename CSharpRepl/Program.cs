@@ -27,6 +27,7 @@ internal static class Program
         Console.InputEncoding = Encoding.UTF8;
         Console.OutputEncoding = Encoding.UTF8;
 
+        // parse command line input
         IConsoleEx console = new SystemConsoleEx();
         var appStorage = CreateApplicationStorageDirectory();
         var configFile = Path.Combine(appStorage, "config.rsp");
@@ -40,15 +41,31 @@ internal static class Program
             return ExitCodes.Success;
         }
 
+        // initialize roslyn
         var logger = InitializeLogging(config.Trace);
         var roslyn = new RoslynServices(console, config, logger);
-        var (prompt, exitCode) = InitializePrompt(console, appStorage, roslyn, config);
 
+        // we're getting piped input, just evaluate the input and exit.
+        if(Console.IsInputRedirected)
+        {
+            var evaluator = new PipedInputEvaluator(console, roslyn);
+            return config.StreamPipedInput
+                ? await evaluator.EvaluateStreamingPipeInputAsync()
+                : await evaluator.EvaluateCollectedPipeInputAsync();
+        }
+        else if(config.StreamPipedInput)
+        {
+            console.WriteErrorLine("--streamPipedInput specified but no redirected input received. This configuration option should be used with redirected standard input.");
+            return ExitCodes.ErrorParseArguments;
+        }
+
+        // we're being run interactively, start the prompt
+        var (prompt, exitCode) = InitializePrompt(console, appStorage, roslyn, config);
         if (prompt is not null)
         {
             try
             {
-                await new ReadEvalPrintLoop(roslyn, prompt, console)
+                await new ReadEvalPrintLoop(console, roslyn, prompt)
                     .RunAsync(config)
                     .ConfigureAwait(false);
             }
@@ -145,4 +162,5 @@ internal static class ExitCodes
     public const int ErrorParseArguments = 1;
     public const int ErrorAnsiEscapeSequencesNotSupported = 2;
     public const int ErrorInvalidConsoleHandle = 3;
+    public const int ErrorCancelled = 3;
 }

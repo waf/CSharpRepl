@@ -23,15 +23,15 @@ namespace CSharpRepl;
 /// </summary>
 internal sealed class ReadEvalPrintLoop
 {
+    private readonly IConsoleEx console;
     private readonly RoslynServices roslyn;
     private readonly IPrompt prompt;
-    private readonly IConsoleEx console;
 
-    public ReadEvalPrintLoop(RoslynServices roslyn, IPrompt prompt, IConsoleEx console)
+    public ReadEvalPrintLoop(IConsoleEx console, RoslynServices roslyn, IPrompt prompt)
     {
+        this.console = console;
         this.roslyn = roslyn;
         this.prompt = prompt;
-        this.console = console;
     }
 
     public async Task RunAsync(Configuration config)

@@ -28,7 +28,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
         this.capturedError = fixture.CapturedConsoleError;
         this.prompt = fixture.PromptStub;
         this.services = fixture.RoslynServices;
-        this.repl = new ReadEvalPrintLoop(services, prompt, console);
+        this.repl = new ReadEvalPrintLoop(console, services, prompt);
     }
 
     [Theory]

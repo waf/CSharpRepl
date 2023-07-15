@@ -5,6 +5,7 @@
 using PrettyPrompt.Consoles;
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using System;
 
 namespace CSharpRepl.Services;
 
@@ -20,5 +21,8 @@ public sealed class SystemConsoleEx : IConsoleEx
     public IExclusivityMode ExclusivityMode => ansiConsole.ExclusivityMode;
     public RenderPipeline Pipeline => ansiConsole.Pipeline;
     public void Clear(bool home) => ansiConsole.Clear(home);
+
     public void Write(IRenderable renderable) => ansiConsole.Write(renderable);
+
+    public string? ReadLine() => Console.ReadLine();
 }

@@ -76,4 +76,6 @@ public interface IConsoleEx : IAnsiConsole
             WriteLine(text);
         }
     }
+
+    string? ReadLine();
 }

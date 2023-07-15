@@ -271,6 +271,8 @@ public abstract class FakeConsoleAbstract : IConsoleEx
 
     public void Clear(bool home) => AnsiConsole.Clear(home);
     public void Write(IRenderable renderable) => AnsiConsole.Write(renderable);
+
+    public virtual string? ReadLine() => string.Empty;
 }
 
 public abstract class FakePrettyPromptConsoleAbstract : IConsole
