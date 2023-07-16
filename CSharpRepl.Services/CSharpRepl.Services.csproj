@@ -19,7 +19,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="7.0.0" />
     <PackageReference Include="Microsoft.SymbolStore" Version="1.0.431901" />
-    <PackageReference Include="PrettyPrompt" Version="4.0.8" />
+    <PackageReference Include="PrettyPrompt" Version="4.0.9" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.47.0" />
     <PackageReference Include="System.IO.Abstractions" Version="19.2.29" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
