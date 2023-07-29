@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -17,7 +18,6 @@ using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SymbolExploration;
 using CSharpRepl.Services.SyntaxHighlighting;
-using Microsoft.CodeAnalysis;
 using PrettyPrompt;
 using PrettyPrompt.Completion;
 using PrettyPrompt.Consoles;
@@ -50,7 +50,7 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
     {
         yield return (
             new(ConsoleKey.F1),
-            async (text, caret, cancellationToken) => LaunchDocumentation(await roslyn.GetSymbolAtIndexAsync(text, caret)));
+            async (text, caret, cancellationToken) => LaunchDocumentation(await roslyn.GetSymbolAtIndexAsync(text, caret), configuration.Culture));
 
         yield return (
             new(ConsoleModifiers.Control, ConsoleKey.F1),
@@ -219,13 +219,13 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         }
     }
 
-    private static KeyPressCallbackResult? LaunchDocumentation(SymbolResult type)
+    private static KeyPressCallbackResult? LaunchDocumentation(SymbolResult type, CultureInfo culture)
     {
         if (type != SymbolResult.Unknown && type.SymbolDisplay is not null)
         {
-            var culture = System.Globalization.CultureInfo.CurrentCulture.Name;
-            LaunchBrowser($"https://docs.microsoft.com/{culture}/dotnet/api/{type.SymbolDisplay}");
+            LaunchBrowser($"https://docs.microsoft.com/{culture.Name}/dotnet/api/{type.SymbolDisplay}");
         }
+
         return null;
     }
 
