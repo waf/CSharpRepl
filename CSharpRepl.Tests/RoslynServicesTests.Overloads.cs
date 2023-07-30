@@ -271,7 +271,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
         Assert.True(result.Overloads.Count == 1);
         Assert.Equal(0, result.ArgumentIndex);
         Assert.Contains("List", result.Overloads[0].Signature.Text);
-        Assert.Equal(1, result.Overloads[0].Parameters.Count);
+        Assert.Single(result.Overloads[0].Parameters);
         Assert.Equal("T", result.Overloads[0].Parameters[0].Name);
     }
 
@@ -301,7 +301,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
         Assert.Equal(0, result.ArgumentIndex);
         var overload = result.Overloads[0];
         Assert.Contains("M", overload.Signature.Text);
-        Assert.Equal(1, overload.Parameters.Count);
+        Assert.Single(overload.Parameters);
         Assert.Equal("i", overload.Parameters[0].Name);
     }
 
