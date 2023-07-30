@@ -50,6 +50,28 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
         Assert.Contains("Type C# at the prompt", console.AnsiConsole.Output);
     }
 
+    [Theory]
+    [InlineData("Control+Tab", "Control+Enter", "Control+Shift+Enter")]
+    [InlineData("Enter", "Control+A", "Control+Shift+A")]
+    [InlineData("º", "¶", "ç")]
+    public async Task RunAsync_HelpCommand_ShowsPassedKeyBindings(string submitKeyPattern, string submitDetailedKeyPattern, string newLineKeyPattern)
+    {
+        prompt
+            .ReadLineAsync()
+            .Returns(
+                new PromptResult(true, "help", default),
+                new PromptResult(true, "exit", default)
+            );
+        
+        await repl.RunAsync(new Configuration(submitPromptKeyPatterns: new[] {submitKeyPattern},
+            submitPromptDetailedKeyPatterns: new[] {submitDetailedKeyPattern}, newLineKeyPatterns:  new[] {newLineKeyPattern}));
+
+        Assert.Contains(submitKeyPattern, console.AnsiConsole.Output);
+        Assert.Contains(submitDetailedKeyPattern, console.AnsiConsole.Output);
+        Assert.Contains(newLineKeyPattern, console.AnsiConsole.Output);
+    }
+
+
     [Fact]
     public async Task RunAsync_ClearCommand_ClearsScreen()
     {
@@ -62,7 +84,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
 
         await repl.RunAsync(new Configuration());
 
-        ((IConsoleEx)console.Received()).Clear(true);
+        ((IConsoleEx) console.Received()).Clear(true);
     }
 
     [Fact]
@@ -108,7 +130,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
             );
 
         await repl.RunAsync(new Configuration(
-            references: new[] { "Data/DemoLibrary.dll" }
+            references: new[] {"Data/DemoLibrary.dll"}
         ));
 
         Assert.Contains("30", console.AnsiConsole.Output);

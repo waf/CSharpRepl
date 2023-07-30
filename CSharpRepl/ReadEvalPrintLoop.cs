@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CSharpRepl.PrettyPromptConfig;
 using CSharpRepl.Services;
+using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.Roslyn.Scripting;
@@ -61,7 +62,7 @@ internal sealed class ReadEvalPrintLoop
                 if (commandText == "clear") { console.Clear(); continue; }
                 if (new[] { "help", "#help", "?" }.Contains(commandText))
                 {
-                    PrintHelp();
+                    PrintHelp(config.KeyBindings, config.SubmitPromptDetailedKeys);
                     continue;
                 }
 
@@ -142,18 +143,23 @@ internal sealed class ReadEvalPrintLoop
         }
     }
 
-    private void PrintHelp()
+
+    private void PrintHelp(KeyBindings keyBindings, KeyPressPatterns submitPromptDetailedKeys)
     {
+        var newLineBindingName = keyBindings.NewLine.GetStringValue();
+        var submitPromptName = keyBindings.SubmitPrompt.GetStringValue();
+        var submitPromptDetailedName = submitPromptDetailedKeys.GetStringValue();
+        
         console.WriteLine(
-$@"
+            $@"
 More details and screenshots are available at
 https://github.com/waf/CSharpRepl/blob/main/README.md
 
 Evaluating Code
 ===============
-Type C# at the prompt and press {Underline("Enter")} to run it. The result will be printed.
-{Underline("Ctrl+Enter")} will also run the code, but show detailed member info / stack traces.
-{Underline("Shift+Enter")} will insert a newline, to support multiple lines of input.
+Type C# at the prompt and press {Underline(submitPromptName)} to run it. The result will be printed.
+{Underline(submitPromptDetailedName)} will also run the code, but show detailed member info / stack traces.
+{Underline(newLineBindingName)} will insert a newline, to support multiple lines of input.
 If the code isn't a complete statement, pressing Enter will insert a newline.
 
 Adding References
