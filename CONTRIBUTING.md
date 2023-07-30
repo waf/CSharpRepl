@@ -20,6 +20,7 @@ Thanks to everyone who contributes! The following contributors have helped out w
 - Marlon Regenhardt ([Regenhardt](https://github.com/Regenhardt))
 - Luiz-Ossinho ([Luiz-Ossinho](https://github.com/Luiz-Ossinho))
 - Vinod Pal ([VNDPAL](https://github.com/VNDPAL))
+- Rasim Keita ([Keyros](https://github.com/Keyros))
 
 ## PrettyPrompt Contributors
 
