@@ -1,10 +1,14 @@
+## Release 0.6.5
+
+- Upgrade PrettyPrompt library to get the following fixes:
+    - Handle invalid history entries / history log corruption ([#267](https://github.com/waf/PrettyPrompt/pull/267)).
+
 ## Release 0.6.4
 
 - Make help command show dynamic keybindings ([#289](https://github.com/waf/CSharpRepl/pull/289))
 - Fix annoying completion commit triggers for dynamic variables and C# Range syntax ([#290](https://github.com/waf/CSharpRepl/pull/290))
 - Minor NuGet upgrades and code cleanup ([#285](https://github.com/waf/CSharpRepl/pull/285) and [#291](https://github.com/waf/CSharpRepl/pull/291))
 - Upgrade PrettyPrompt library to get the following fixes:
-    - Handle invalid history entries / history log corruption ([#267](https://github.com/waf/PrettyPrompt/pull/267)).
     - Better error messages on Linux when xsel is not installed ([#264](https://github.com/waf/PrettyPrompt/pull/264)).
     - Fix crash when Shift-Delete is pressed under certain conditions ([#263](https://github.com/waf/PrettyPrompt/pull/263)).
     - Add workaround for garbled utf-8 characters on Linux ([#261](https://github.com/waf/PrettyPrompt/pull/261)).
