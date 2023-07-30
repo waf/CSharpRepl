@@ -325,6 +325,28 @@ public partial class RoslynServices_REPL_Tests : IAsyncLifetime, IClassFixture<R
                     @"new int[] { 1, 2, 3 }.Select((i,v)=>i).Count()",
                     "3"
                 );
+
+            // https://github.com/waf/CSharpRepl/issues/231 - dynamic variable declaration
+            yield return
+                (
+                    $@"dynamic d{Spacebar} = 1; d{Enter}{Enter}exit{Enter}",
+                    @"dynamic d = 1; d",
+                    "1"
+                );
+
+            // https://github.com/waf/CSharpRepl/issues/279 - range syntax
+            yield return
+                (
+                    $@"int[] a = {{ 1, 2, 3, 4 }}; a[1..2][0]{Enter}exit{Enter}",
+                    @"int[] a = { 1, 2, 3, 4 }; a[1..2][0]",
+                    "2"
+                );
+            yield return
+                (
+                    $@"int[] a = {{ 1, 2, 3, 4 }}; a[(2-1)..(3-1)][0]{Enter}exit{Enter}",
+                    @"int[] a = { 1, 2, 3, 4 }; a[(2-1)..(3-1)][0]",
+                    "2"
+                );
         }
     }
 
