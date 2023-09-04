@@ -279,11 +279,23 @@ public sealed partial class RoslynServices
         {
             var node = await GetNode().ConfigureAwait(false);
             if (node is
-                ArgumentSyntax or //https://github.com/waf/CSharpRepl/issues/145
-                ArgumentListSyntax or //https://github.com/waf/CSharpRepl/issues/200
-                AnonymousObjectMemberDeclaratorSyntax) //https://github.com/waf/CSharpRepl/issues/157
+                ArgumentSyntax //https://github.com/waf/CSharpRepl/issues/145
+                or ArgumentListSyntax //https://github.com/waf/CSharpRepl/issues/200
+                or AnonymousObjectMemberDeclaratorSyntax //https://github.com/waf/CSharpRepl/issues/157
+                or VariableDeclaratorSyntax) // dynamic declarator https://github.com/waf/CSharpRepl/issues/231
             {
 
+                return false;
+            }
+        }
+
+        if (keyChar is '.')
+        {
+            var node = await GetNode().ConfigureAwait(false);
+            // entering range syntax arr[1..2] https://github.com/waf/CSharpRepl/issues/279
+            if (node is ArgumentSyntax { Parent: BracketedArgumentListSyntax, Expression: MemberAccessExpressionSyntax }
+                or BracketedArgumentListSyntax { Parent: ElementAccessExpressionSyntax })
+            {
                 return false;
             }
         }

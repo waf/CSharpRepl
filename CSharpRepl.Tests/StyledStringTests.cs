@@ -20,27 +20,27 @@ public class StyledStringTests
 
             var subtext = text.Substring(0, 4);
             Assert.Equal("abcd", subtext.ToString());
-            Assert.Equal(1, subtext.Parts.Count);
+            Assert.Single(subtext.Parts);
             Assert.Equal(style, subtext.Parts[0].Style);
 
             subtext = text.Substring(0, 2);
             Assert.Equal("ab", subtext.ToString());
-            Assert.Equal(1, subtext.Parts.Count);
+            Assert.Single(subtext.Parts);
             Assert.Equal(style, subtext.Parts[0].Style);
 
             subtext = text.Substring(1, 2);
             Assert.Equal("bc", subtext.ToString());
-            Assert.Equal(1, subtext.Parts.Count);
+            Assert.Single(subtext.Parts);
             Assert.Equal(style, subtext.Parts[0].Style);
 
             subtext = text.Substring(2, 2);
             Assert.Equal("cd", subtext.ToString());
-            Assert.Equal(1, subtext.Parts.Count);
+            Assert.Single(subtext.Parts);
             Assert.Equal(style, subtext.Parts[0].Style);
 
             subtext = text.Substring(2, 0);
             Assert.Equal("", subtext.ToString());
-            Assert.Equal(0, subtext.Parts.Count);
+            Assert.Empty(subtext.Parts);
         }
     }
 
@@ -79,12 +79,12 @@ public class StyledStringTests
 
         subtext = text.Substring(0, 2);
         Assert.Equal("ab", subtext.ToString());
-        Assert.Equal(1, subtext.Parts.Count);
+        Assert.Single(subtext.Parts);
         Assert.Equal(redStyle, subtext.Parts[0].Style);
 
         subtext = text.Substring(0, 1);
         Assert.Equal("a", subtext.ToString());
-        Assert.Equal(1, subtext.Parts.Count);
+        Assert.Single(subtext.Parts);
         Assert.Equal(redStyle, subtext.Parts[0].Style);
 
         ///////////////////////////////////////////////////////////////////////
@@ -110,12 +110,12 @@ public class StyledStringTests
 
         subtext = text.Substring(4, 2);
         Assert.Equal("ef", subtext.ToString());
-        Assert.Equal(1, subtext.Parts.Count);
+        Assert.Single(subtext.Parts);
         Assert.Equal(blueStyle, subtext.Parts[0].Style);
 
         subtext = text.Substring(5, 1);
         Assert.Equal("f", subtext.ToString());
-        Assert.Equal(1, subtext.Parts.Count);
+        Assert.Single(subtext.Parts);
         Assert.Equal(blueStyle, subtext.Parts[0].Style);
 
         ///////////////////////////////////////////////////////////////////////
