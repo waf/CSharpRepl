@@ -370,6 +370,7 @@ internal static class CommandLine
             $"  [green]--usePrereleaseNugets[/]:                      {UsePrereleaseNugets.Description}" + NewLine +
             $"  [green]--streamPipedInput[/]:                         {StreamPipedInput.Description}" + NewLine +
             $"  [green]--tabSize[/] [cyan]<width>[/]:                          {TabSize.Description}" + NewLine +
+            $"  [green]--culture[/] [cyan]<culture name>[/]:                   {Culture.Description}" + NewLine +
             NewLine +
             $"  Key Bindings" + NewLine +
             $"  [green]--triggerCompletionListKeys[/] [cyan]<key-binding>[/]:  {TriggerCompletionListKeyBindings.Description}" + NewLine +
