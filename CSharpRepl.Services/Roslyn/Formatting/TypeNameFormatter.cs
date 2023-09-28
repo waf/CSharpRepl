@@ -126,13 +126,13 @@ internal sealed partial class TypeNameFormatter
         void AppendNameWithoutGenericPart(TypeInfo typeInfo, StyledStringBuilder builder)
         {
             var typeStyle = GetTypeStyle(typeInfo, highlighter);
-            var name = typeInfo.Name;
 
-            if (SubmissionRegex().IsMatch(name)) //https://github.com/waf/CSharpRepl/issues/194)
+            if (IsSubmissionType(typeInfo)) //https://github.com/waf/CSharpRepl/issues/194)
             {
                 return;
             }
 
+            var name = typeInfo.Name;
             int backtick = name.IndexOf('`');
             if (backtick > 0)
             {
@@ -203,6 +203,7 @@ internal sealed partial class TypeNameFormatter
             var nestedTypes = ArrayBuilder<TypeInfo>.GetInstance();
             do
             {
+                if (IsSubmissionType(typeInfo)) break; //https://github.com/waf/CSharpRepl/issues/305
                 nestedTypes.Add(typeInfo);
                 typeInfo = typeInfo.DeclaringType?.GetTypeInfo();
             }
@@ -321,6 +322,9 @@ internal sealed partial class TypeNameFormatter
             _ => null,
         };
     }
+
+    private static bool IsSubmissionType(TypeInfo typeInfo)
+        => SubmissionRegex().IsMatch(typeInfo.Name);
 
     [GeneratedRegex("Submission#[0-9]+")]
     private static partial Regex SubmissionRegex();
