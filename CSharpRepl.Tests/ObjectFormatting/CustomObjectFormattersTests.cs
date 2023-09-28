@@ -5,8 +5,11 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;
+using CSharpRepl.Services.Roslyn.Scripting;
 using Xunit;
 
 namespace CSharpRepl.Tests.ObjectFormatting;
@@ -14,10 +17,12 @@ namespace CSharpRepl.Tests.ObjectFormatting;
 public class CustomObjectFormattersTests : IClassFixture<RoslynServicesFixture>
 {
     private readonly TestFormatter formatter;
+    private readonly RoslynServices services;
 
     public CustomObjectFormattersTests(RoslynServicesFixture fixture)
     {
         formatter = TestFormatter.Create(fixture.ConsoleStub);
+        services = fixture.RoslynServices;
     }
 
     #region TypeFormatter
@@ -29,6 +34,22 @@ public class CustomObjectFormattersTests : IClassFixture<RoslynServicesFixture>
     {
         Assert.Equal(expectedOutput_0, formatter.Format(TypeFormatter.Instance, value, Level.FirstDetailed));
         Assert.Equal(expectedOutput_1, formatter.Format(TypeFormatter.Instance, value, Level.FirstSimple));
+    }
+
+    [Theory]
+    [InlineData("class Class1 { } new Class1()", "Class1")] //https://github.com/waf/CSharpRepl/issues/287
+    [InlineData("class Class2<T> { } new Class2<int>()", "Class2<int>")] //https://github.com/waf/CSharpRepl/issues/305
+    public async Task TypeDefinedInsideReplFormattingBug(string input, string expectedOutput)
+    {
+        var eval = await services.EvaluateAsync(input);
+        if (eval is EvaluationResult.Success { ReturnValue.Value: object obj })
+        {
+            Assert.Equal(expectedOutput, formatter.Format(TypeFormatter.Instance, obj.GetType(), Level.FirstSimple));
+        }
+        else
+        {
+            Assert.Fail();
+        }
     }
     #endregion
 
