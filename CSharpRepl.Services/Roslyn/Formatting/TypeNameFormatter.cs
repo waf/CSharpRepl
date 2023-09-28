@@ -118,7 +118,7 @@ internal sealed partial class TypeNameFormatter
         else
         {
             sb.Append(FormatTypeName(typeInfo.DeclaringType, options));
-            sb.Append('.');
+            if (sb.Length > 0) sb.Append('.');
             AppendNameWithoutGenericPart(typeInfo, sb);
         }
         return sb.ToStyledString();
