@@ -15,30 +15,38 @@ public class TraceLoggerTests
     [Fact]
     public void Create_ThenLog_WritesToFile()
     {
-        var path = Path.GetTempFileName();
-        var logger = TraceLogger.Create(path);
+        //TraceLogger writes to console and we need to eliminate collision between threads (https://github.com/waf/CSharpRepl/issues/307).
+        using (OutputCollector.Capture(out _))
+        {
+            var path = Path.GetTempFileName();
+            var logger = TraceLogger.Create(path);
 
-        logger.Log("Hello World, I'm a hopeful and optimistic REPL.");
-        logger.Log(() => "Arrgghh an error");
+            logger.Log("Hello World, I'm a hopeful and optimistic REPL.");
+            logger.Log(() => "Arrgghh an error");
 
-        var loggedLines = File.ReadAllLines(path);
-        Assert.Contains("Trace session starting", loggedLines[0]);
-        Assert.Contains("Hello World, I'm a hopeful and optimistic REPL.", loggedLines[1]);
-        Assert.Contains("Arrgghh an error", loggedLines[2]);
+            var loggedLines = File.ReadAllLines(path);
+            Assert.Contains("Trace session starting", loggedLines[0]);
+            Assert.Contains("Hello World, I'm a hopeful and optimistic REPL.", loggedLines[1]);
+            Assert.Contains("Arrgghh an error", loggedLines[2]);
+        }
     }
 
     [Fact]
     public void LogPaths_GivenPaths_GroupsByPrefix()
     {
-        var path = Path.GetTempFileName();
-        var logger = TraceLogger.Create(path);
+        //TraceLogger writes to console and we need to eliminate collision between threads (https://github.com/waf/CSharpRepl/issues/307).
+        using (OutputCollector.Capture(out _))
+        {
+            var path = Path.GetTempFileName();
+            var logger = TraceLogger.Create(path);
 
-        logger.LogPaths("Some Files", () => new[] { @"/Foo/Bar.txt", @"/Foo/Baz.txt" });
+            logger.LogPaths("Some Files", () => new[] { @"/Foo/Bar.txt", @"/Foo/Baz.txt" });
 
-        var loggedLines = File.ReadAllLines(path);
-        Assert.Contains("Trace session starting", loggedLines[0]);
-        Assert.Contains(@"Some Files: ", loggedLines[1]);
-        Assert.EndsWith(@"[""Bar.txt"", ""Baz.txt""]", loggedLines[1]);
+            var loggedLines = File.ReadAllLines(path);
+            Assert.Contains("Trace session starting", loggedLines[0]);
+            Assert.Contains(@"Some Files: ", loggedLines[1]);
+            Assert.EndsWith(@"[""Bar.txt"", ""Baz.txt""]", loggedLines[1]);
+        }
     }
 }
 
