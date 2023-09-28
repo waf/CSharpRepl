@@ -56,11 +56,12 @@ public class ProgramTests
 /// </summary>
 public sealed class OutputCollector : IDisposable
 {
+    private static readonly Semaphore semaphore = new(1, 1);
+
     private readonly TextWriter normalStandardOutput;
     private readonly TextWriter normalStandardError;
     private readonly StringWriter fakeConsoleOutput;
     private readonly StringWriter fakeConsoleError;
-    private static readonly Semaphore semaphore = new(1, 1);
 
     private OutputCollector()
     {
