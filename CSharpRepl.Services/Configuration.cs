@@ -10,7 +10,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
-using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Completion;
@@ -171,7 +170,7 @@ public sealed class Configuration
             submitPrompt,
             triggerOverloadList: new(new KeyPressPattern('('), new KeyPressPattern('['), new KeyPressPattern(','), new KeyPressPattern('<')));
 
-        Culture = CultureExtensions.CultureInfoByName(cultureName) ?? CultureInfo.CurrentCulture;
+        Culture = string.IsNullOrWhiteSpace(cultureName) ? CultureInfo.CurrentCulture : CultureInfo.GetCultureInfo(cultureName, true);
     }
 
     public CultureInfo Culture { get; }

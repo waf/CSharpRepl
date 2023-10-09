@@ -88,13 +88,19 @@ public class CommandLineTests
     [Theory]
     [InlineData("--culture", "en-gb")]
     [InlineData("--culture", "en-GB")]
-    [InlineData("--culture", "qwe", true)]
-    public void ParseArguments_CultureArguments_ProduceCulture(string flag, string cultureName,
-        bool shouldUseDefaultCulture = false)
+    public void ParseArguments_CultureArguments_ProduceCulture(string flag, string cultureName)
     {
         var result = Parse($"{flag} {cultureName}");
         Assert.NotNull(result);
-        Assert.Equal(shouldUseDefaultCulture ? CultureInfo.CurrentCulture : new CultureInfo(cultureName), result.Culture);
+        Assert.Equal(new CultureInfo(cultureName), result.Culture);
+    }
+
+    [Theory]
+    [InlineData("--culture", "en-qwe")]
+    [InlineData("--culture", "asdf-GB")]
+    public void ParseArguments_CultureArguments_ShouldThrow(string flag, string cultureName)
+    {
+        Assert.Throws<CultureNotFoundException>(() => { Parse($"{flag} {cultureName}"); });
     }
 
     [Fact]
