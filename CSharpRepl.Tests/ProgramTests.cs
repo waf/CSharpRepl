@@ -29,8 +29,8 @@ public class ProgramTests
         await Program.Main(new[] { "-v" });
 
         var output = capturedOutput.ToString();
-        output = output.RemoveFormatting();
-        Assert.Contains("C# REPL", output);
+        output = output.RemoveFormatting().Split("+")[0]; // remove formatting and trailing git SHA
+        Assert.StartsWith("C# REPL", output);
         var version = new Version(output.Trim("C# REPL-rc-alpha-beta\r\n".ToCharArray()));
         Assert.True(version.Major + version.Minor > 0);
     }
