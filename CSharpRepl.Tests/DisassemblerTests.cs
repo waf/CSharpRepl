@@ -33,7 +33,7 @@ public class DisassemblerTests : IAsyncLifetime
     public async Task Disassemble_InputCSharp_OutputILAsync(OptimizationLevel optimizationLevel, string testCase)
     {
         var input = File.ReadAllText($"./Data/Disassembly/{testCase}.Input.txt").Replace("\r\n", "\n");
-        var expectedOutput = File.ReadAllText($"./Data/Disassembly/{testCase}.Output.{optimizationLevel}.il").Replace("\r\n", "\n");
+        var expectedOutput = File.ReadAllText($"./Data/Disassembly/{testCase}.Output.{optimizationLevel}.il").Replace("\r\n", "\n").Trim();
 
         var result = await services.ConvertToIntermediateLanguage(input, debugMode: optimizationLevel == OptimizationLevel.Debug);
         var actualOutput = Assert

@@ -20,9 +20,9 @@ public static class KeyExtensions
 
     private static string GetStringValue(this ConsoleModifiers modifiers)
     {
-        var values = Enum.GetValues<ConsoleModifiers>()
+        var values = new[] { ConsoleModifiers.Control, ConsoleModifiers.Alt, ConsoleModifiers.Shift }
             .Where(x => modifiers.HasFlag(x))
-            .OrderByDescending(x => x)
+            .OrderDescending()
             .Select(x => x.ToString());
         return string.Join("+", values);
     }

@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Ben.Demystifier" Version="0.4.1" />
-    <PackageReference Include="ICSharpCode.Decompiler" Version="8.1.1.7464" />
+    <PackageReference Include="ICSharpCode.Decompiler" Version="8.2.0.7535" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -16,18 +16,39 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.7.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.7.0" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.6.10" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0" />
     <PackageReference Include="Microsoft.SymbolStore" Version="1.0.431901" />
-    <PackageReference Include="PrettyPrompt" Version="4.1.0" />
+    <PackageReference Include="PrettyPrompt" Version="4.1.1" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.47.0" />
     <PackageReference Include="System.IO.Abstractions" Version="19.2.69" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
-    <!-- when upgrading nuget, make sure you check the SkipCopyOfHostDlls in CSharpRepl.csproj and test '#load' for solutions -->
-    <PackageReference Include="NuGet.PackageManagement" Version="6.7.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
   </ItemGroup>
 
+  <!--
+	Use PrivateAssets for nuget dependencies, so we load the nuget dlls that are
+	bundled from the host runtime instead.
+	https://github.com/microsoft/qsharp-compiler/issues/1470
+	https://github.com/OmniSharp/omnisharp-roslyn/commit/efeafeca33abe1d19659ed8c7ebab1d7c3481188
+	-->
   <ItemGroup>
+		<PackageReference Include="NuGet.PackageManagement" Version="6.7.0" />
+		<PackageReference Include="NuGet.Common" Version="6.7.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Commands" Version="6.7.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Credentials" Version="6.7.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Configuration" Version="6.7.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.DependencyResolver.Core" Version="6.7.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Frameworks" Version="6.7.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.LibraryModel" Version="6.7.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Packaging.Core" Version="6.7.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Packaging" Version="6.7.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.ProjectModel" Version="6.7.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Protocol" Version="6.7.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Versioning" Version="6.7.0" PrivateAssets="all" />
+	</ItemGroup>
+
+
+	<ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
     <_Parameter1>CSharpRepl.Tests</_Parameter1>
     </AssemblyAttribute>
