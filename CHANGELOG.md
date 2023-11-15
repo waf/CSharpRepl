@@ -1,3 +1,10 @@
+## Release 0.6.6
+
+- Upgrade to .NET 8
+- Add a new `--culture` command line flag for launching CSharpRepl with a specific culture
+- Improved pretty printing of generic types defined inside the CSharpRepl
+- Dependency upgrades
+
 ## Release 0.6.5
 
 - Upgrade PrettyPrompt library to get the following fixes:
