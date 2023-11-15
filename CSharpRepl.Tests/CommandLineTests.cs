@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Globalization;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn.References;
 using Xunit;
@@ -82,6 +83,24 @@ public class CommandLineTests
         var result = Parse(flag);
         Assert.NotNull(result);
         Assert.Contains("Usage: ", result.OutputForEarlyExit.Text);
+    }
+    
+    [Theory]
+    [InlineData("--culture", "en-gb")]
+    [InlineData("--culture", "en-GB")]
+    public void ParseArguments_CultureArguments_ProduceCulture(string flag, string cultureName)
+    {
+        var result = Parse($"{flag} {cultureName}");
+        Assert.NotNull(result);
+        Assert.Equal(new CultureInfo(cultureName), result.Culture);
+    }
+
+    [Theory]
+    [InlineData("--culture", "en-qwe")]
+    [InlineData("--culture", "asdf-GB")]
+    public void ParseArguments_CultureArguments_ShouldThrow(string flag, string cultureName)
+    {
+        Assert.Throws<CultureNotFoundException>(() => { Parse($"{flag} {cultureName}"); });
     }
 
     [Fact]

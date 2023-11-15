@@ -175,6 +175,11 @@ internal static class CommandLine
         description: "Launches an editor to edit the CSharpRepl configuration file. Reads the EDITOR environment variable."
     );
 
+    private static readonly Option<string> Culture = new(
+        aliases: new[] {"--culture"},
+        description: "Culture to use for access to the MSDN documentation. Defaults to the current culture."
+    );
+
     public static Configuration Parse(string[] args, string configFilePath)
     {
         var parseArgs = PreProcessArguments(args, configFilePath).ToArray();
@@ -195,7 +200,8 @@ internal static class CommandLine
             References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, UsePrereleaseNugets,
             StreamPipedInput, Trace, Version, Help, TabSize,
             OpenAIApiKey, OpenAIPrompt, OpenAIModel, OpenAIHistoryCount, OpenAITemperature, OpenAITopProbability,
-            TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings, Configure
+            TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings,
+            Configure, Culture,
         };
         var commandLine = new CommandLineBuilder(availableCommands)
             .EnableLegacyDoubleDashBehavior() // for passing tokens after "--" as load script arguments
@@ -247,7 +253,8 @@ internal static class CommandLine
                 historyCount: commandLine.GetValueForOption(OpenAIHistoryCount) ?? OpenAICompleteService.DefaultHistoryEntryCount,
                 temperature: commandLine.GetValueForOption(OpenAITemperature) ?? OpenAICompleteService.DefaultTemperature,
                 topProbability: commandLine.GetValueForOption(OpenAITopProbability)
-            )
+            ),
+            cultureName: commandLine.GetValueForOption(Culture)
         );
 
         return config;
@@ -363,6 +370,7 @@ internal static class CommandLine
             $"  [green]--usePrereleaseNugets[/]:                      {UsePrereleaseNugets.Description}" + NewLine +
             $"  [green]--streamPipedInput[/]:                         {StreamPipedInput.Description}" + NewLine +
             $"  [green]--tabSize[/] [cyan]<width>[/]:                          {TabSize.Description}" + NewLine +
+            $"  [green]--culture[/] [cyan]<culture name>[/]:                   {Culture.Description}" + NewLine +
             NewLine +
             $"  Key Bindings" + NewLine +
             $"  [green]--triggerCompletionListKeys[/] [cyan]<key-binding>[/]:  {TriggerCompletionListKeyBindings.Description}" + NewLine +

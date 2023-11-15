@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -80,7 +81,8 @@ public sealed class Configuration
         string[]? newLineKeyPatterns = null,
         string[]? submitPromptKeyPatterns = null,
         string[]? submitPromptDetailedKeyPatterns = null,
-        OpenAIConfiguration? openAIConfiguration = null)
+        OpenAIConfiguration? openAIConfiguration = null,
+        string? cultureName = null)
     {
         References = references?.ToHashSet() ?? new HashSet<string>();
         Usings = usings?.ToHashSet() ?? new HashSet<string>();
@@ -167,7 +169,11 @@ public sealed class Configuration
             newLine,
             submitPrompt,
             triggerOverloadList: new(new KeyPressPattern('('), new KeyPressPattern('['), new KeyPressPattern(','), new KeyPressPattern('<')));
+
+        Culture = string.IsNullOrWhiteSpace(cultureName) ? CultureInfo.CurrentCulture : CultureInfo.GetCultureInfo(cultureName, true);
     }
+
+    public CultureInfo Culture { get; }
 
     private static KeyPressPatterns ParseKeyPressPatterns(string[] keyPatterns)
         => keyPatterns.Select(ParseKeyPressPattern).ToArray();
