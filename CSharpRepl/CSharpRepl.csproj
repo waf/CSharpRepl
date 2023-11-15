@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.6.5</Version>
+    <Version>0.6.6</Version>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RollForward>LatestMajor</RollForward>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
@@ -25,9 +25,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PrettyPrompt" Version="4.1.0" />
+    <PackageReference Include="PrettyPrompt" Version="4.1.1" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="7.0.0" />
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,26 +39,6 @@
     <_Parameter1>CSharpRepl.Tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
-
-  <!--
-    We shouldn't package the Nuget.* DLLs, but should instead have them loaded from the runtime sdk.
-    https://github.com/microsoft/qsharp-compiler/issues/1470
-    https://github.com/OmniSharp/omnisharp-roslyn/commit/efeafeca33abe1d19659ed8c7ebab1d7c3481188#diff-50e91c82311ea26f2a73202525dfdf2b0a89c178ee666b2bf3ad4c84ac4c06dc
-  -->
-  <Target AfterTargets="AfterResolveReferences" Name="SkipCopyOfHostDlls">
-    <ItemGroup>
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.common\6.6.1\lib\netstandard2.0\NuGet.Common.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.configuration\6.6.1\lib\netstandard2.0\NuGet.Configuration.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.dependencyresolver.core\6.6.1\lib\net5.0\NuGet.DependencyResolver.Core.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.frameworks\6.6.1\lib\netstandard2.0\NuGet.Frameworks.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.librarymodel\6.6.1\lib\netstandard2.0\NuGet.LibraryModel.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.packaging.core\6.6.1\lib\net5.0\NuGet.Packaging.Core.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.packaging\6.6.1\lib\net5.0\NuGet.Packaging.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.projectmodel\6.6.1\lib\net5.0\NuGet.ProjectModel.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.protocol\6.6.1\lib\net5.0\NuGet.Protocol.dll" />
-      <RuntimeCopyLocalItems Remove="$(NuGetPackageRoot)nuget.versioning\6.6.1\lib\netstandard2.0\NuGet.Versioning.dll" />
-    </ItemGroup>
-  </Target>
 
   <ItemGroup>
     <!-- Include README here so it shows up in the nuget.org page -->
