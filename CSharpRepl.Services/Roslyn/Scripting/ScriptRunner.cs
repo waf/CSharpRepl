@@ -61,6 +61,7 @@ internal sealed class ScriptRunner
         );
         this.scriptOptions = ScriptOptions.Default
             .WithMetadataResolver(metadataResolver)
+            .WithSourceResolver(compilationOptions.SourceReferenceResolver)
             .WithReferences(referenceAssemblyService.LoadedImplementationAssemblies)
             .WithAllowUnsafe(compilationOptions.AllowUnsafe)
             .WithLanguageVersion(LanguageVersion.Preview)
