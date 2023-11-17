@@ -26,6 +26,7 @@ internal sealed class ConsoleNugetLogger : ILogger
     private readonly string successPrefix;
     private readonly string errorPrefix;
     private readonly List<Line> lines = new();
+    private readonly object linesLock = new(); // Lock for the lines list
     private int linesRendered;
 
     public ConsoleNugetLogger(IConsoleEx console, Configuration configuration)
@@ -58,15 +59,18 @@ internal sealed class ConsoleNugetLogger : ILogger
         var line = CreateLine(data, isError: false);
         if (line.IsEmpty) return;
 
-        lines.Add(line);
-        if (lines.Count(l => !l.IsError) > NumberOfMessagesToShow)
+        lock (linesLock)
         {
-            for (int i = 0; i < lines.Count; i++)
+            lines.Add(line);
+            if (lines.Count(l => !l.IsError) > NumberOfMessagesToShow)
             {
-                if (!lines[i].IsError)
+                for (int i = 0; i < lines.Count; i++)
                 {
-                    lines.RemoveAt(i);
-                    break;
+                    if (!lines[i].IsError)
+                    {
+                        lines.RemoveAt(i);
+                        break;
+                    }
                 }
             }
         }
@@ -79,13 +83,19 @@ internal sealed class ConsoleNugetLogger : ILogger
 
     public void LogError(string data)
     {
-        lines.Add(CreateLine(data, isError: true));
+        lock(linesLock)
+        {
+            lines.Add(CreateLine(data, isError: true));
+        }
         RenderLines();
     }
 
     public void Reset()
     {
-        lines.Clear();
+        lock (linesLock)
+        {
+            lines.Clear();
+        }
         linesRendered = 0;
     }
 
@@ -99,14 +109,13 @@ internal sealed class ConsoleNugetLogger : ILogger
         }
         linesRendered = 0;
 
-        //keep only errors
-        for (int i = lines.Count - 1; i >= 0; i--)
+        lock (linesLock)
         {
-            if (!lines[i].IsError) lines.RemoveAt(i);
+            //keep only errors
+            lines.RemoveAll(line => !line.IsError);
+            //add final summary
+            lines.Add(CreateLine(text, isError: !success));
         }
-
-        //add final summary
-        lines.Add(CreateLine(text, isError: !success));
 
         //render summary + potential errors
         RenderLines();
@@ -132,21 +141,24 @@ internal sealed class ConsoleNugetLogger : ILogger
                 console.Write(AnsiEscapeCodes.ClearLine);
             }
 
-            linesRendered = 0;
-            foreach (var line in lines)
+            lock (linesLock)
             {
-                if (line.IsError)
+                linesRendered = 0;
+                foreach (var line in lines)
                 {
-                    console.Write(AnsiColor.Red.GetEscapeSequence());
-                    console.WriteLine(line.Text.Text ?? "");
-                    console.Write(AnsiEscapeCodes.Reset);
-                }
-                else
-                {
-                    console.WriteLine(line.Text);
-                }
+                    if (line.IsError)
+                    {
+                        console.Write(AnsiColor.Red.GetEscapeSequence());
+                        console.WriteLine(line.Text.Text ?? "");
+                        console.Write(AnsiEscapeCodes.Reset);
+                    }
+                    else
+                    {
+                        console.WriteLine(line.Text);
+                    }
 
-                linesRendered += Math.DivRem(line.Text.Length, console.PrettyPromptConsole.BufferWidth, out var remainder) + (remainder == 0 ? 0 : 1);
+                    linesRendered += Math.DivRem(line.Text.Length, console.PrettyPromptConsole.BufferWidth, out var remainder) + (remainder == 0 ? 0 : 1);
+                }
             }
         }
         finally
@@ -167,7 +179,7 @@ internal sealed class ConsoleNugetLogger : ILogger
         {
             data = Truncate(data);
             IsEmpty = data.Length == 0;
-            Text = Format(data, prefix, configuration);
+            Text = IsEmpty ? prefix : Format(data, prefix, configuration);
             IsError = isError;
         }
 
