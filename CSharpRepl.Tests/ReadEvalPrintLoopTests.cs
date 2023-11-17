@@ -129,7 +129,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
             );
 
         await repl.RunAsync(new Configuration(
-            loadScript: "#load \"Data\\LoadScript.csx\""
+            loadScript: "#load \"Data/LoadScript.csx\""
         ));
 
         Assert.DoesNotContain("Exception", console.AnsiConsole.Output);
