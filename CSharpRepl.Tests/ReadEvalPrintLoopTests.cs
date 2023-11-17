@@ -120,6 +120,24 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
     }
 
     [Fact]
+    public async Task RunAsync_LoadScriptByFilePath_RunsScript()
+    {
+        prompt
+            .ReadLineAsync()
+            .Returns(
+                new PromptResult(true, "exit", default)
+            );
+
+        await repl.RunAsync(new Configuration(
+            loadScript: "#load \"Data\\LoadScript.csx\""
+        ));
+
+        Assert.DoesNotContain("Exception", console.AnsiConsole.Output);
+        Assert.DoesNotContain("CS1504", console.AnsiConsole.Output);
+        Assert.DoesNotContain("Could not find file", console.AnsiConsole.Output);
+    }
+
+    [Fact]
     public async Task RunAsync_Reference_AddsReference()
     {
         prompt
