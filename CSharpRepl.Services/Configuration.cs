@@ -170,7 +170,7 @@ public sealed class Configuration
             submitPrompt,
             triggerOverloadList: new(new KeyPressPattern('('), new KeyPressPattern('['), new KeyPressPattern(','), new KeyPressPattern('<')));
 
-        Culture = string.IsNullOrWhiteSpace(cultureName) ? CultureInfo.CurrentCulture : CultureInfo.GetCultureInfo(cultureName, true);
+        Culture = string.IsNullOrWhiteSpace(cultureName) ? CultureInfo.CurrentUICulture : CultureInfo.GetCultureInfo(cultureName, true);
     }
 
     public CultureInfo Culture { get; }
