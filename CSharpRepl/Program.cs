@@ -4,6 +4,7 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -35,6 +36,8 @@ internal static class Program
         if (!TryParseArguments(args, configFile, out var config))
             return ExitCodes.ErrorParseArguments;
 
+        SetDefaultCulture(config);
+
         if (config.OutputForEarlyExit.Text is not null)
         {
             console.WriteLine(config.OutputForEarlyExit);
@@ -46,14 +49,14 @@ internal static class Program
         var roslyn = new RoslynServices(console, config, logger);
 
         // we're getting piped input, just evaluate the input and exit.
-        if(Console.IsInputRedirected)
+        if (Console.IsInputRedirected)
         {
             var evaluator = new PipedInputEvaluator(console, roslyn);
             return config.StreamPipedInput
-                ? await evaluator.EvaluateStreamingPipeInputAsync()
-                : await evaluator.EvaluateCollectedPipeInputAsync();
+                ? await evaluator.EvaluateStreamingPipeInputAsync().ConfigureAwait(false)
+                : await evaluator.EvaluateCollectedPipeInputAsync().ConfigureAwait(false);
         }
-        else if(config.StreamPipedInput)
+        else if (config.StreamPipedInput)
         {
             console.WriteErrorLine("--streamPipedInput specified but no redirected input received. This configuration option should be used with redirected standard input.");
             return ExitCodes.ErrorParseArguments;
@@ -107,18 +110,19 @@ internal static class Program
         return appStorage;
     }
 
+    private static void SetDefaultCulture(Configuration config)
+    {
+        CultureInfo.DefaultThreadCurrentUICulture = config.Culture;
+        // theoretically we shouldn't need to do the following, but in practice we need it in order to
+        // get compiler errors emitted by CSharpScript in the right language (see https://github.com/waf/CSharpRepl/issues/312)
+        CultureInfo.DefaultThreadCurrentCulture = config.Culture;
+    }
+
     /// <summary>
     /// Initialize logging. It's off by default, unless the user passes the --trace flag.
     /// </summary>
-    private static ITraceLogger InitializeLogging(bool trace)
-    {
-        if (!trace)
-        {
-            return new NullLogger();
-        }
-
-        return TraceLogger.Create($"csharprepl-tracelog-{DateTime.UtcNow:yyyy-MM-dd}.txt");
-    }
+    private static ITraceLogger InitializeLogging(bool trace) =>
+        !trace ? new NullLogger() : TraceLogger.Create($"csharprepl-tracelog-{DateTime.UtcNow:yyyy-MM-dd}.txt");
 
     private static (Prompt? prompt, int exitCode) InitializePrompt(IConsoleEx console, string appStorage, RoslynServices roslyn, Configuration config)
     {
