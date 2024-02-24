@@ -42,20 +42,27 @@ internal sealed class AutoCompleteService
             return cached;
 
         var completionService = CompletionService.GetService(document);
-        if (completionService is null) return Array.Empty<CompletionItemWithDescription>();
+        if (completionService is null) return [];
 
-        var completions = await completionService
-            .GetCompletionsAsync(document, caret)
-            .ConfigureAwait(false);
+        try
+        {
+            var completions = await completionService
+                .GetCompletionsAsync(document, caret)
+                .ConfigureAwait(false);
 
-        var completionsWithDescriptions = completions?.ItemsList
-            .Where(item => !(item.IsComplexTextEdit && item.InlineDescription.Length > 0)) //TODO https://github.com/waf/CSharpRepl/issues/236
-            .Select(item => new CompletionItemWithDescription(item, GetDisplayText(item), cancellationToken => GetExtendedDescriptionAsync(completionService, document, item, highlighter)))
-            .ToArray() ?? Array.Empty<CompletionItemWithDescription>();
+            var completionsWithDescriptions = completions?.ItemsList
+                .Where(item => !(item.IsComplexTextEdit && item.InlineDescription.Length > 0)) //TODO https://github.com/waf/CSharpRepl/issues/236
+                .Select(item => new CompletionItemWithDescription(item, GetDisplayText(item), cancellationToken => GetExtendedDescriptionAsync(completionService, document, item, highlighter)))
+                .ToArray() ?? [];
 
-        cache.Set(cacheKey, completionsWithDescriptions, DateTimeOffset.Now.AddMinutes(1));
+            cache.Set(cacheKey, completionsWithDescriptions, DateTimeOffset.Now.AddMinutes(1));
 
-        return completionsWithDescriptions;
+            return completionsWithDescriptions;
+        }
+        catch (InvalidOperationException) // handle crashes from roslyn completion API
+        {
+            return [];
+        }
 
         FormattedString GetDisplayText(CompletionItem item)
         {
