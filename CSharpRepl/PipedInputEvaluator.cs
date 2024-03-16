@@ -33,7 +33,7 @@ internal sealed class PipedInputEvaluator
 
         var statement = new StringBuilder();
         string? inputLine;
-        while((inputLine = console.ReadLine()) is not null)
+        while ((inputLine = console.ReadLine()) is not null)
         {
             // batch input into a complete statement
             statement.AppendLine(inputLine);

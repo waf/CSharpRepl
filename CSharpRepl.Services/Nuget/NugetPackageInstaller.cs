@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -51,8 +50,12 @@ internal sealed class NugetPackageInstaller
 
         try
         {
-            ISettings settings = ReadSettings();
-            var targetFramework = NugetHelper.GetCurrentFramework();
+            if (!NugetHelper.TryGetCurrentFramework(out var targetFramework))
+            {
+                logger.LogFinish($"Unable to get current target framework.", success: false);
+                return [];
+            }
+
             var nuGetProject = CreateFolderProject(targetFramework, Path.Combine(Configuration.ApplicationDirectory, "packages"));
             var sourceRepositoryProvider = new SourceRepositoryProvider(new PackageSourceProvider(settings), Repository.Provider.GetCoreV3());
             var packageManager = CreatePackageManager(settings, nuGetProject, sourceRepositoryProvider);
@@ -74,7 +77,7 @@ internal sealed class NugetPackageInstaller
             if (!packageIdentity.HasVersion)
             {
                 logger.LogFinish($"Could not find package '{packageIdentity}'", success: false);
-                return ImmutableArray<PortableExecutableReference>.Empty;
+                return [];
             }
 
             var skipInstall = nuGetProject.PackageExists(packageIdentity);
@@ -100,7 +103,7 @@ internal sealed class NugetPackageInstaller
         catch (Exception ex)
         {
             logger.LogFinish($"Could not find package '{packageId}'. Error: {ex}", success: false);
-            return ImmutableArray<PortableExecutableReference>.Empty;
+            return [];
         }
     }
 
@@ -161,7 +164,7 @@ internal sealed class NugetPackageInstaller
             .Select(i => i.Path)
             .Where(p => p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
             .ToArray()
-            ?? Array.Empty<string>();
+            ?? [];
 
         var supportedFrameworks = (await reader.GetSupportedFrameworksAsync(cancellationToken))
             .Where(f => FindDlls(f).Any()) //Not all supported frameworks contains dlls. E.g. Microsoft.CSharp.4.7.0\lib\netcoreapp2.0 contains only empty file '_._'.
@@ -230,7 +233,7 @@ internal sealed class NugetPackageInstaller
 
         await packageManager.InstallPackageAsync(packageManager.PackagesFolderNuGetProject,
             packageIdentity, resolutionContext, projectContext,
-            primarySourceRepositories, Array.Empty<SourceRepository>(), cancellationToken);
+            primarySourceRepositories, [], cancellationToken);
     }
 
     private async Task<PackageIdentity> QueryLatestPackageVersion(

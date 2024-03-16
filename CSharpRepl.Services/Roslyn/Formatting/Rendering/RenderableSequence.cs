@@ -13,7 +13,7 @@ internal sealed class RenderableSequence : Renderable
 
     public RenderableSequence(IRenderable r1, IRenderable r2, bool separateByLineBreak)
     {
-        items = new Wrap[] { new(r1, separateByLineBreak), new(r2, false) };
+        items = [new(r1, separateByLineBreak), new(r2, false)];
     }
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)

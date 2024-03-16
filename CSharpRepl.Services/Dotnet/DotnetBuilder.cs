@@ -36,7 +36,7 @@ internal class DotnetBuilder
 
     private Process StartBuild(string path, out List<string> output)
     {
-        output = new List<string>();
+        output = [];
         var process = new Process
         {
             StartInfo =

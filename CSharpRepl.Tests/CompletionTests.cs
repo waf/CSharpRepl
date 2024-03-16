@@ -26,7 +26,7 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
         promptCallbacks = new CSharpReplPromptCallbacks(console, services, new Configuration());
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
+    public Task InitializeAsync() => services.WarmUpAsync([]);
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]

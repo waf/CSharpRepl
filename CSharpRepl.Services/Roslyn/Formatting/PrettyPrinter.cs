@@ -22,15 +22,15 @@ internal sealed partial class PrettyPrinter
 {
     private const int NumberRadix = 10;
 
-    private static readonly ICustomObjectFormatter[] customObjectFormatters = new ICustomObjectFormatter[]
-    {
+    private static readonly ICustomObjectFormatter[] customObjectFormatters =
+    [
         IEnumerableFormatter.Instance,
         TypeFormatter.Instance,
         MethodInfoFormatter.Instance,
         TupleFormatter.Instance,
         KeyValuePairFormatter.Instance,
         GuidFormatter.Instance
-    };
+    ];
 
     private readonly TypeNameFormatter typeNameFormatter;
     private readonly PrimitiveFormatter primitiveFormatter;

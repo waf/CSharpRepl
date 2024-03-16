@@ -26,9 +26,9 @@ internal sealed class DocumentationComment
 {
     private static readonly ThreadLocal<StringBuilder> stringBuilder = new(() => new());
 
-    private readonly Dictionary<string, FormattedString> _parameterTexts = new();
-    private readonly Dictionary<string, FormattedString> _typeParameterTexts = new();
-    private readonly Dictionary<string, ImmutableArray<FormattedString>> _exceptionTexts = new();
+    private readonly Dictionary<string, FormattedString> _parameterTexts = [];
+    private readonly Dictionary<string, FormattedString> _typeParameterTexts = [];
+    private readonly Dictionary<string, ImmutableArray<FormattedString>> _exceptionTexts = [];
 
     /// <summary>
     /// True if an error occurred when parsing.
@@ -68,17 +68,17 @@ internal sealed class DocumentationComment
     /// <summary>
     /// The names of items in &lt;param&gt; tags.
     /// </summary>
-    public ImmutableArray<string> ParameterNames { get; private set; } = ImmutableArray<string>.Empty;
+    public ImmutableArray<string> ParameterNames { get; private set; } = [];
 
     /// <summary>
     /// The names of items in &lt;typeparam&gt; tags.
     /// </summary>
-    public ImmutableArray<string> TypeParameterNames { get; private set; } = ImmutableArray<string>.Empty;
+    public ImmutableArray<string> TypeParameterNames { get; private set; } = [];
 
     /// <summary>
     /// The types of items in &lt;exception&gt; tags.
     /// </summary>
-    public ImmutableArray<string> ExceptionTypes { get; private set; } = ImmutableArray<string>.Empty;
+    public ImmutableArray<string> ExceptionTypes { get; private set; } = [];
 
     /// <summary>
     /// The item named in the &lt;completionlist&gt; tag's cref attribute.
@@ -89,7 +89,7 @@ internal sealed class DocumentationComment
     /// <summary>
     /// Used for <see cref="CommentBuilder.TrimEachLine"/> method, to prevent new allocation of string
     /// </summary>
-    private static readonly string[] s_NewLineAsStringArray = new string[] { "\n" };
+    private static readonly string[] s_NewLineAsStringArray = ["\n"];
 
     private DocumentationComment(string fullXmlFragment)
     {
@@ -175,9 +175,9 @@ internal sealed class DocumentationComment
                 }
             }
 
-            _comment.ParameterNames = _parameterNamesBuilder == null ? ImmutableArray<string>.Empty : _parameterNamesBuilder.ToImmutable();
-            _comment.TypeParameterNames = _typeParameterNamesBuilder == null ? ImmutableArray<string>.Empty : _typeParameterNamesBuilder.ToImmutable();
-            _comment.ExceptionTypes = _exceptionTypesBuilder == null ? ImmutableArray<string>.Empty : _exceptionTypesBuilder.ToImmutable();
+            _comment.ParameterNames = _parameterNamesBuilder == null ? [] : _parameterNamesBuilder.ToImmutable();
+            _comment.TypeParameterNames = _typeParameterNamesBuilder == null ? [] : _typeParameterNamesBuilder.ToImmutable();
+            _comment.ExceptionTypes = _exceptionTypesBuilder == null ? [] : _exceptionTypesBuilder.ToImmutable();
 
             return _comment;
         }
@@ -314,7 +314,7 @@ internal sealed class DocumentationComment
                         if (_exceptionTextBuilders == null || !_exceptionTextBuilders.ContainsKey(type))
                         {
                             (_exceptionTypesBuilder ??= ImmutableArray.CreateBuilder<string>()).Add(type);
-                            (_exceptionTextBuilders ??= new Dictionary<string, ImmutableArray<FormattedString>.Builder>()).Add(type, ImmutableArray.CreateBuilder<FormattedString>());
+                            (_exceptionTextBuilders ??= []).Add(type, ImmutableArray.CreateBuilder<FormattedString>());
                         }
 
                         _exceptionTextBuilders[type].Add(exceptionText);

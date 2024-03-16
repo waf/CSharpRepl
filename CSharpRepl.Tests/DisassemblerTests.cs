@@ -22,7 +22,7 @@ public class DisassemblerTests : IAsyncLifetime
         this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
+    public Task InitializeAsync() => services.WarmUpAsync([]);
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Theory]

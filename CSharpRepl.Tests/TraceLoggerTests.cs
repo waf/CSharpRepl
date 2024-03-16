@@ -40,7 +40,7 @@ public class TraceLoggerTests
             var path = Path.GetTempFileName();
             var logger = TraceLogger.Create(path);
 
-            logger.LogPaths("Some Files", () => new[] { @"/Foo/Bar.txt", @"/Foo/Baz.txt" });
+            logger.LogPaths("Some Files", () => [@"/Foo/Bar.txt", @"/Foo/Baz.txt"]);
 
             var loggedLines = File.ReadAllLines(path);
             Assert.Contains("Trace session starting", loggedLines[0]);

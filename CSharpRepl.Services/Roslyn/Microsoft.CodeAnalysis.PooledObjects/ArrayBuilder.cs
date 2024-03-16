@@ -77,7 +77,7 @@ internal sealed partial class ArrayBuilder<T> : IReadOnlyCollection<T>, IReadOnl
         ImmutableArray<T> result;
         if (Count == 0)
         {
-            result = ImmutableArray<T>.Empty;
+            result = [];
         }
         else if (_builder.Capacity == Count)
         {
@@ -306,7 +306,7 @@ internal sealed partial class ArrayBuilder<T> : IReadOnlyCollection<T>, IReadOnl
     {
         if (Count == 0)
         {
-            return ImmutableArray<U>.Empty;
+            return [];
         }
 
         var tmp = ArrayBuilder<U>.GetInstance(Count);
@@ -328,7 +328,7 @@ internal sealed partial class ArrayBuilder<T> : IReadOnlyCollection<T>, IReadOnl
         ImmutableArray<T> result;
         if (Count == 0)
         {
-            result = ImmutableArray<T>.Empty;
+            result = [];
         }
         else if (_builder.Capacity == Count)
         {

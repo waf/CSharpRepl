@@ -166,6 +166,6 @@ internal sealed class ScriptRunner
 
     private ScriptGlobals CreateGlobalsObject(string[]? args)
     {
-        return new ScriptGlobals(console, args ?? Array.Empty<string>());
+        return new ScriptGlobals(console, args ?? []);
     }
 }

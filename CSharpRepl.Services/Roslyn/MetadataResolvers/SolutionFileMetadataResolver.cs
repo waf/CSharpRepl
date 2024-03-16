@@ -42,7 +42,7 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
         if (exitCode != 0)
         {
             console.WriteErrorLine("Reference not added: build failed.");
-            return ImmutableArray<PortableExecutableReference>.Empty;
+            return [];
         }
 
         console.WriteLine("Adding references from built project...");
@@ -56,7 +56,7 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
 
         var projects = Path.GetExtension(solutionOrProject) switch
         {
-            ".csproj" => new[] { await workspace.OpenProjectAsync(solutionOrProject, cancellationToken: cancellationToken) },
+            ".csproj" => [await workspace.OpenProjectAsync(solutionOrProject, cancellationToken: cancellationToken)],
             ".sln" => (await workspace.OpenSolutionAsync(solutionOrProject, cancellationToken: cancellationToken)).Projects,
             _ => throw new ArgumentException("Unexpected filetype for file " + solutionOrProject)
         };
@@ -71,7 +71,7 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
                 p.MetadataReferences
                 .OfType<PortableExecutableReference>()
                 .Concat(p.OutputFilePath is not null
-                    ? new[] { MetadataReference.CreateFromFile(p.OutputFilePath) }
+                    ? [MetadataReference.CreateFromFile(p.OutputFilePath)]
                     : Array.Empty<PortableExecutableReference>()
                 )
             )

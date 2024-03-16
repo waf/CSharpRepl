@@ -63,8 +63,8 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
                 new PromptResult(true, "exit", default)
             );
 
-        await repl.RunAsync(new Configuration(submitPromptKeyPatterns: new[] { submitKeyPattern },
-            submitPromptDetailedKeyPatterns: new[] { submitDetailedKeyPattern }, newLineKeyPatterns: new[] { newLineKeyPattern }));
+        await repl.RunAsync(new Configuration(submitPromptKeyPatterns: [submitKeyPattern],
+            submitPromptDetailedKeyPatterns: [submitDetailedKeyPattern], newLineKeyPatterns: [newLineKeyPattern]));
 
         var helpOutput = capturedOutput.ToString();
         Assert.Contains(submitKeyPattern, helpOutput);
@@ -149,7 +149,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
             );
 
         await repl.RunAsync(new Configuration(
-            references: new[] { "Data/DemoLibrary.dll" }
+            references: ["Data/DemoLibrary.dll"]
         ));
 
         Assert.Contains("30", console.AnsiConsole.Output);

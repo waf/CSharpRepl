@@ -25,7 +25,7 @@ internal sealed class ConsoleNugetLogger : ILogger
     private readonly Configuration configuration;
     private readonly string successPrefix;
     private readonly string errorPrefix;
-    private readonly List<Line> lines = new();
+    private readonly List<Line> lines = [];
     private readonly object linesLock = new(); // Lock for the lines list
     private int linesRendered;
 
@@ -83,7 +83,7 @@ internal sealed class ConsoleNugetLogger : ILogger
 
     public void LogError(string data)
     {
-        lock(linesLock)
+        lock (linesLock)
         {
             lines.Add(CreateLine(data, isError: true));
         }

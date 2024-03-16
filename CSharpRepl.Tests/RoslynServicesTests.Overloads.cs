@@ -23,7 +23,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
         this.services = fixture.RoslynServices;
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
+    public Task InitializeAsync() => services.WarmUpAsync([]);
     public Task DisposeAsync() => Task.CompletedTask;
 
     //Method invocation overloads.

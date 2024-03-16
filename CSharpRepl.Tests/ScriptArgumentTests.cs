@@ -34,7 +34,7 @@ public class ScriptArgumentTests
         var (console, stdOut) = FakeConsole.CreateStubbedOutput();
         var services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
 
-        await services.WarmUpAsync(Array.Empty<string>());
+        await services.WarmUpAsync([]);
         _ = await services.EvaluateAsync("using System.Globalization;");
         _ = await services.EvaluateAsync("CultureInfo.DefaultThreadCurrentCulture = new System.Globalization.CultureInfo(\"en-US\");");
         var printStatement = await services.EvaluateAsync("Print(DateTime.MinValue)");

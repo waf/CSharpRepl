@@ -25,12 +25,12 @@ public readonly struct StyledString
     {
         if (part.Length > 0)
         {
-            parts = new List<StyledStringSegment>(1) { part };
+            parts = [part];
             Length = part.Length;
         }
         else
         {
-            parts = Empty.parts ?? new(0);
+            parts = Empty.parts ?? [];
         }
     }
 
@@ -40,7 +40,7 @@ public readonly struct StyledString
 
     public StyledString(IEnumerable<StyledStringSegment> parts)
     {
-        this.parts = new List<StyledStringSegment>();
+        this.parts = [];
         int len = 0;
         foreach (var part in parts)
         {

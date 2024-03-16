@@ -187,5 +187,5 @@ internal sealed class DotNetInstallationLocator
     private string[] ListDirectoriesIfExists(string referenceAssemblyRoot) =>
         io.Directory.Exists(referenceAssemblyRoot)
         ? io.Directory.GetDirectories(referenceAssemblyRoot)
-        : Array.Empty<string>();
+        : [];
 }

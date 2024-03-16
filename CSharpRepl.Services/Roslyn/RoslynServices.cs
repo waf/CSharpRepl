@@ -192,7 +192,7 @@ public sealed partial class RoslynServices
     public async Task<IReadOnlyCollection<CompletionItemWithDescription>> CompleteAsync(string text, int caret)
     {
         if (!Initialization.IsCompleted)
-            return Array.Empty<CompletionItemWithDescription>();
+            return [];
 
         var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
         return await autocompleteService.Complete(document, text, caret).ConfigureAwait(false);
@@ -210,7 +210,7 @@ public sealed partial class RoslynServices
     public async Task<IReadOnlyCollection<HighlightedSpan>> SyntaxHighlightAsync(string text)
     {
         if (!Initialization.IsCompleted)
-            return Array.Empty<HighlightedSpan>();
+            return [];
 
         var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
         var highlighted = await highlighter.HighlightAsync(document);

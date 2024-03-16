@@ -32,7 +32,7 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
     private readonly AssemblyLoadContext loadContext;
     private readonly DependencyContextJsonReader dependencyContextJsonReader = new();
     private readonly IConsoleEx console;
-    private readonly Dictionary<string, DependenciesInfo> dependencyContextsPerAssemblyName = new();
+    private readonly Dictionary<string, DependenciesInfo> dependencyContextsPerAssemblyName = [];
 
     public AssemblyReferenceMetadataResolver(IConsoleEx console, AssemblyReferenceService referenceAssemblyService)
     {

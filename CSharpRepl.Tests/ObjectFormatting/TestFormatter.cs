@@ -36,6 +36,6 @@ internal class TestFormatter
         console,
         new SyntaxHighlighter(
             new MemoryCache(new MemoryCacheOptions()),
-            new Theme(null, null, null, null, Array.Empty<SyntaxHighlightingColor>())),
+            new Theme(null, null, null, null, [])),
         new Configuration());
 }

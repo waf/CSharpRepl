@@ -105,7 +105,7 @@ internal sealed partial class TypeNameFormatter
                     namespaceParts = typeInfo.Namespace.Split('.', StringSplitOptions.RemoveEmptyEntries);
                 }
             }
-            namespaceParts ??= Array.Empty<string>();
+            namespaceParts ??= [];
 
             var namespaceStyle = highlighter.GetStyle(ClassificationTypeNames.NamespaceName);
             for (int i = 0; i < namespaceParts.Length; i++)

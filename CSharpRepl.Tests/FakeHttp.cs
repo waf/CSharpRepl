@@ -20,7 +20,7 @@ using RequestMatcher = Func<string, bool>;
 
 internal class FakeHttp : HttpMessageHandler, IEnumerable<(RequestMatcher, (HttpStatusCode, string))>
 {
-    private List<(RequestMatcher requestMatcher, (HttpStatusCode status, string content) response)> mockResponses = new();
+    private List<(RequestMatcher requestMatcher, (HttpStatusCode status, string content) response)> mockResponses = [];
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {

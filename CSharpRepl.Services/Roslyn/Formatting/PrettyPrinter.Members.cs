@@ -66,7 +66,7 @@ internal sealed partial class PrettyPrinter
         var classification = RoslynExtensions.MemberTypeToClassificationTypeName(member.MemberType);
         var prefix = AutoCompleteService.GetCompletionItemSymbolPrefix(classification, config.UseUnicode);
         var style = syntaxHighlighter.GetStyle(classification);
-        return new StyledString(new StyledStringSegment[] { prefix, new StyledStringSegment(member.Name, style) });
+        return new StyledString([prefix, new StyledStringSegment(member.Name, style)]);
     }
 
     private IEnumerable<(object MemberParentValue, MemberInfo MemberInfo)> EnumerateMembers(object obj, bool includeNonPublic)
