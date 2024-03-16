@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Versioning;
@@ -31,7 +32,7 @@ internal static class NugetHelper
         return new RuntimeGraph();
     }
 
-    public static NuGetFramework GetCurrentFramework()
+    public static bool TryGetCurrentFramework([NotNullWhen(true)] out NuGetFramework? result)
     {
         var assembly = Assembly.GetEntryAssembly();
         if (assembly is null ||
@@ -41,6 +42,13 @@ internal static class NugetHelper
         }
 
         var targetFrameworkAttribute = assembly.GetCustomAttribute<TargetFrameworkAttribute>();
-        return NuGetFramework.Parse(targetFrameworkAttribute?.FrameworkName);
+        if (targetFrameworkAttribute is null)
+        {
+            result = null;
+            return false;
+        }
+
+        result = NuGetFramework.Parse(targetFrameworkAttribute.FrameworkName);
+        return true;
     }
 }

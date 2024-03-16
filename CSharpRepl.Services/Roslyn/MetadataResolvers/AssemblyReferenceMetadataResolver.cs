@@ -134,7 +134,7 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
                 {
                     foreach (var assemblyGroup in runtimeLib.RuntimeAssemblyGroups)
                     {
-                        if (runtimeGraph.AreCompatible(RuntimeInformation.RuntimeIdentifier, assemblyGroup.Runtime))
+                        if (runtimeGraph.AreCompatible(RuntimeInformation.RuntimeIdentifier, assemblyGroup.Runtime ?? ""))
                         {
                             foreach (var runtimeFile in assemblyGroup.RuntimeFiles)
                             {

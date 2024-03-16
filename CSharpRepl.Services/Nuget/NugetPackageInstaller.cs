@@ -57,6 +57,7 @@ internal sealed class NugetPackageInstaller
             }
 
             var nuGetProject = CreateFolderProject(targetFramework, Path.Combine(Configuration.ApplicationDirectory, "packages"));
+            var settings = ReadSettings();
             var sourceRepositoryProvider = new SourceRepositoryProvider(new PackageSourceProvider(settings), Repository.Provider.GetCoreV3());
             var packageManager = CreatePackageManager(settings, nuGetProject, sourceRepositoryProvider);
 
