@@ -27,10 +27,12 @@ internal class Disassembler
 {
     private readonly AssemblyReferenceService referenceService;
     private readonly (string name, CompileDelegate compile)[] compilers;
+    private readonly CSharpParseOptions parseOptions;
     private readonly CSharpCompilationOptions compilationOptions;
 
-    public Disassembler(CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceService, ScriptRunner scriptRunner)
+    public Disassembler(CSharpParseOptions parseOptions, CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceService, ScriptRunner scriptRunner)
     {
+        this.parseOptions = parseOptions.WithKind(SourceCodeKind.Regular);
         this.compilationOptions = compilationOptions;
         this.referenceService = referenceService;
 
@@ -45,7 +47,7 @@ internal class Disassembler
              compile: (code, optimizationLevel) => Compile(code, optimizationLevel, OutputKind.DynamicallyLinkedLibrary)),
             // Compiling as a script will work for most other cases, but it's quite verbose so we use it as a last resort.
             (name: "Scripting session (will be overly verbose)",
-             compile: (code, optimizationLevel) => scriptRunner.CompileTransient(code, optimizationLevel))
+             compile: scriptRunner.CompileTransient)
         ];
     }
 
@@ -151,7 +153,7 @@ internal class Disassembler
 
     private Compilation Compile(string code, OptimizationLevel optimizationLevel, OutputKind outputKind)
     {
-        var ast = CSharpSyntaxTree.ParseText(code, new CSharpParseOptions(LanguageVersion.Latest));
+        var ast = CSharpSyntaxTree.ParseText(code, parseOptions);
         var compilation = CSharpCompilation.Create("CompilationForDisassembly",
             [ast],
             referenceService.LoadedReferenceAssemblies,

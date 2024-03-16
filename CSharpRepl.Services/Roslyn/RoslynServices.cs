@@ -47,6 +47,7 @@ public sealed partial class RoslynServices
     private readonly SemaphoreSlim semaphore = new(1);
     private readonly IPromptCallbacks defaultPromptCallbacks = new PromptCallbacks();
     private readonly ThreadLocal<OverloadItemGenerator> overloadItemGenerator;
+    private readonly CSharpParseOptions parseOptions = CSharpParseOptions.Default.WithKind(SourceCodeKind.Script).WithLanguageVersion(LanguageVersion.Latest);
     private ScriptRunner? scriptRunner;
     private WorkspaceManager? workspaceManager;
     private Disassembler? disassembler;
@@ -78,7 +79,7 @@ public sealed partial class RoslynServices
         {
             logger.Log("Starting background initialization");
 
-            this.referenceService = new AssemblyReferenceService(config, logger);
+            this.referenceService = new AssemblyReferenceService(config, parseOptions, logger);
 
             this.compilationOptions = new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
@@ -91,9 +92,9 @@ public sealed partial class RoslynServices
             // is updated alongside. The workspace is a datamodel used in "editor services" like
             // syntax highlighting, autocompletion, and roslyn symbol queries.
             this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger);
-            this.scriptRunner = new ScriptRunner(workspaceManager, compilationOptions, referenceService, console, config);
+            this.scriptRunner = new ScriptRunner(workspaceManager, parseOptions, compilationOptions, referenceService, console, config);
 
-            this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
+            this.disassembler = new Disassembler(parseOptions, compilationOptions, referenceService, scriptRunner);
             this.prettyPrinter = new PrettyPrinter(console, highlighter, config);
             this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
             this.autocompleteService = new AutoCompleteService(highlighter, cache, config);
