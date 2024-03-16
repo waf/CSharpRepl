@@ -131,7 +131,7 @@ internal sealed class ReadEvalPrintLoop
 
                 var panel = new Panel(formattedError.ToParagraph())
                 {
-                    Header = new PanelHeader(" Exception ", Justify.Center),
+                    Header = new PanelHeader(err.Exception.GetType().Name, Justify.Center),
                     BorderStyle = new Style(foreground: Color.Red)
                 };
                 console.WriteError(panel, formattedError.ToString());
