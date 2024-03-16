@@ -17,7 +17,7 @@ internal readonly struct FormattedObject
 
     public IEnumerable<FormattedObject> FormatMembers(PrettyPrinter prettyPrinter, Level level, bool includeNonPublic)
     {
-        if (Value is null) return Array.Empty<FormattedObject>();
+        if (Value is null) return [];
 
         return prettyPrinter.FormatMembers(Value, level.Increment(), includeNonPublic);
     }

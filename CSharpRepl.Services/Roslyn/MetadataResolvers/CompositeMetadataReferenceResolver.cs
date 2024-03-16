@@ -43,7 +43,7 @@ internal sealed class CompositeMetadataReferenceResolver : MetadataReferenceReso
             }
         }
 
-        return ImmutableArray<PortableExecutableReference>.Empty;
+        return [];
     }
 
     public override bool Equals(object? other) =>

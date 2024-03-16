@@ -28,7 +28,7 @@ public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynS
         this.services = fixture.RoslynServices;
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
+    public Task InitializeAsync() => services.WarmUpAsync([]);
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Theory]
@@ -122,7 +122,7 @@ public partial class RoslynServices_REPL_Tests : IAsyncLifetime, IClassFixture<R
         this.services = fixture.RoslynServices;
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
+    public Task InitializeAsync() => services.WarmUpAsync([]);
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
@@ -357,14 +357,14 @@ public partial class RoslynServices_REPL_Tests : IAsyncLifetime, IClassFixture<R
 
         var prompt = new Prompt(console: console.PrettyPromptConsole, callbacks: new CSharpReplPromptCallbacks(console, services, configuration), configuration: new PromptConfiguration(keyBindings: configuration.KeyBindings));
         var repl = new ReadEvalPrintLoop(console, services, prompt);
-        await services.WarmUpAsync(Array.Empty<string>());
+        await services.WarmUpAsync([]);
         return (console, repl, configuration, stdout, stderr);
     }
 
     private static Configuration GetCustomKeyBindingsConfiguration()
     {
         return new Configuration(
-            newLineKeyPatterns: new[] { "Enter" },
-            submitPromptKeyPatterns: new[] { "Ctrl+Enter" });
+            newLineKeyPatterns: ["Enter"],
+            submitPromptKeyPatterns: ["Ctrl+Enter"]);
     }
 }

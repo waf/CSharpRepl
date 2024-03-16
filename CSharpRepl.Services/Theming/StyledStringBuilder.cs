@@ -10,7 +10,7 @@ namespace CSharpRepl.Services.Theming;
 
 public sealed class StyledStringBuilder
 {
-    private readonly List<StyledStringSegment> parts = new();
+    private readonly List<StyledStringSegment> parts = [];
 
     private int length;
     public int Length => length;

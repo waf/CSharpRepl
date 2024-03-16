@@ -117,7 +117,7 @@ internal static class ObjectFormatterHelpers
                         proxyType = proxyType.MakeGenericType(type.GenericTypeArguments);
                     }
 
-                    return Activator.CreateInstance(proxyType, new object[] { obj });
+                    return Activator.CreateInstance(proxyType, [obj]);
                 }
             }
             catch (Exception)
@@ -251,7 +251,7 @@ internal static class ObjectFormatterHelpers
             {
                 return (method.ReturnType == typeof(void))
                     ? VoidValue
-                    : method.Invoke(obj, Array.Empty<object>());
+                    : method.Invoke(obj, []);
             }
 
             var property = (PropertyInfo)member;
@@ -260,7 +260,7 @@ internal static class ObjectFormatterHelpers
                 return null;
             }
 
-            return property.GetValue(obj, Array.Empty<object>());
+            return property.GetValue(obj, []);
         }
         catch (TargetInvocationException e)
         {

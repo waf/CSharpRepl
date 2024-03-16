@@ -12,7 +12,7 @@ public class ProgramTests
     public async Task MainMethod_Help_ShowsHelp()
     {
         using var outputCollector = OutputCollector.Capture(out var capturedOutput);
-        await Program.Main(new[] { "-h" });
+        await Program.Main(["-h"]);
         var output = capturedOutput.ToString();
         output = output.RemoveFormatting();
 
@@ -26,7 +26,7 @@ public class ProgramTests
     {
         using var outputCollector = OutputCollector.Capture(out var capturedOutput);
 
-        await Program.Main(new[] { "-v" });
+        await Program.Main(["-v"]);
 
         var output = capturedOutput.ToString();
         output = output.RemoveFormatting().Split("+")[0]; // remove formatting and trailing git SHA
@@ -40,7 +40,7 @@ public class ProgramTests
     {
         using var outputCollector = OutputCollector.Capture(out _, out var capturedError);
 
-        await Program.Main(new[] { "bonk" });
+        await Program.Main(["bonk"]);
 
         var error = capturedError.ToString();
         Assert.Equal(

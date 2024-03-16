@@ -84,7 +84,7 @@ public class CommandLineTests
         Assert.NotNull(result);
         Assert.Contains("Usage: ", result.OutputForEarlyExit.Text);
     }
-    
+
     [Theory]
     [InlineData("--culture", "en-gb")]
     [InlineData("--culture", "en-GB")]
@@ -147,7 +147,7 @@ public class CommandLineTests
     public void ParseArguments_ResponseFileFromCommandLineAndConfigFile_ReadsBothFiles()
     {
         var result = CommandLine.Parse(
-            new[] { "--useTerminalPaletteTheme", "@Data/ResponseFile.rsp" },
+            ["--useTerminalPaletteTheme", "@Data/ResponseFile.rsp"],
             "Data/Config.rsp" // includes using System.Text
         );
 
@@ -178,7 +178,7 @@ public class CommandLineTests
     }
 
     private static Configuration Parse(string commandline) =>
-        Parse(commandline?.Split(' ') ?? Array.Empty<string>());
+        Parse(commandline?.Split(' ') ?? []);
 
     private static Configuration Parse(string[] commands) =>
         CommandLine.Parse(commands, ".csharprepl");

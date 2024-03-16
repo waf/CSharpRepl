@@ -32,7 +32,7 @@ internal static class CommandLine
     private const string DisableFurtherOptionParsing = "--";
 
     private static readonly Option<string[]?> References = new(
-        aliases: new[] { "--reference", "-r", "/r" },
+        aliases: ["--reference", "-r", "/r"],
         description: "Reference assemblies, nuget packages, and csproj files. Can be specified multiple times."
     )
     {
@@ -40,7 +40,7 @@ internal static class CommandLine
     };
 
     private static readonly Option<string[]?> Usings = new Option<string[]?>(
-        aliases: new[] { "--using", "-u", "/u" },
+        aliases: ["--using", "-u", "/u"],
         description: "Add using statement. Can be specified multiple times."
     )
     {
@@ -49,97 +49,97 @@ internal static class CommandLine
     .AddCompletions(GetAvailableUsings);
 
     private static readonly Option<string> Framework = new Option<string>(
-        aliases: new[] { "--framework", "-f", "/f" },
+        aliases: ["--framework", "-f", "/f"],
         description: "Reference a shared framework.",
         getDefaultValue: () => Configuration.FrameworkDefault
     )
     .AddCompletions(SharedFramework.SupportedFrameworks);
 
     private static readonly Option<string> Theme = new(
-        aliases: new[] { "--theme", "-t", "/t" },
+        aliases: ["--theme", "-t", "/t"],
         description: "Read a theme file for syntax highlighting. Respects the NO_COLOR standard.",
         getDefaultValue: () => Configuration.DefaultThemeRelativePath
     );
 
     private static readonly Option<bool> UseTerminalPaletteTheme = new(
-        aliases: new[] { "--useTerminalPaletteTheme" },
+        aliases: ["--useTerminalPaletteTheme"],
         description: "Uses terminal palette colors for syntax highlighting. Respects the NO_COLOR standard."
     );
 
     private static readonly Option<string> Prompt = new(
-        aliases: new[] { "--prompt" },
+        aliases: ["--prompt"],
         description: "Formatted prompt string.",
         getDefaultValue: () => Configuration.PromptDefault
     );
 
     private static readonly Option<bool> UseUnicode = new(
-        aliases: new[] { "--useUnicode" },
+        aliases: ["--useUnicode"],
         description: "Use UTF8 output encoding and unicode character decorations (requires terminal support)."
     );
 
     private static readonly Option<bool> UsePrereleaseNugets = new(
-        aliases: new[] { "--usePrereleaseNugets" },
+        aliases: ["--usePrereleaseNugets"],
         description: "Allows prerelease NuGet versions when searching for the latest package version."
     );
 
     private static readonly Option<bool> StreamPipedInput = new(
-        aliases: new[] { "--streamPipedInput" },
+        aliases: ["--streamPipedInput"],
         description: "If input is piped via stdin, evaluate it line by line instead of in one batch."
     );
 
     private static readonly Option<bool> Trace = new(
-        aliases: new[] { "--trace" },
+        aliases: ["--trace"],
         description: "Produce a trace file in the current directory, for CSharpRepl bug reports."
     );
 
     private static readonly Option<bool> Version = new(
-        aliases: new[] { "--version", "-v", "/v" },
+        aliases: ["--version", "-v", "/v"],
         description: "Show version number and exit."
     );
 
     private static readonly Option<bool> Help = new(
-        aliases: new[] { "--help", "-h", "-?", "/h", "/?" },
+        aliases: ["--help", "-h", "-?", "/h", "/?"],
         description: "Show this help and exit."
     );
 
     private static readonly Option<int> TabSize = new(
-        aliases: new[] { "--tabSize" },
+        aliases: ["--tabSize"],
         getDefaultValue: () => 4,
         description: "Width of tab character."
     );
 
     private static readonly Option<string> OpenAIApiKey = new(
-        aliases: new[] { "--openAIApiKey" },
+        aliases: ["--openAIApiKey"],
         description: $"OpenAI API key. Alternatively, set the {OpenAICompleteService.ApiKeyEnvironmentVariableName} environment variable."
     );
 
     private static readonly Option<string> OpenAIPrompt = new(
-        aliases: new[] { "--openAIPrompt" },
+        aliases: ["--openAIPrompt"],
         description: "OpenAI prompt to prefix to all code submissions"
     );
 
     private static readonly Option<string> OpenAIModel = new(
-        aliases: new[] { "--openAIModel" },
+        aliases: ["--openAIModel"],
         description: "OpenAI model configuration"
     );
 
     private static readonly Option<double?> OpenAITemperature = new(
-        aliases: new[] { "--openAITemperature" },
+        aliases: ["--openAITemperature"],
         description: "OpenAI temperature configuration"
     );
 
     private static readonly Option<double?> OpenAITopProbability = new(
-        aliases: new[] { "--openAITopProbability" },
+        aliases: ["--openAITopProbability"],
         description: "OpenAI top_p configuration"
     );
 
     private static readonly Option<int?> OpenAIHistoryCount = new(
-        aliases: new[] { "--openAIHistoryCount" },
+        aliases: ["--openAIHistoryCount"],
         description: "Maximum number of previous REPL entries to send to OpenAI as context."
     );
 
     private static readonly Option<string[]?> TriggerCompletionListKeyBindings = new(
-        aliases: new[] { "--triggerCompletionListKeys" },
+        aliases: ["--triggerCompletionListKeys"],
         description: "Key binding to trigger the completion list. Can be specified multiple times."
     )
     {
@@ -147,7 +147,7 @@ internal static class CommandLine
     };
 
     private static readonly Option<string[]?> NewLineKeyBindings = new(
-        aliases: new[] { "--newLineKeys" },
+        aliases: ["--newLineKeys"],
         description: "Key binding to insert a newline character. Can be specified multiple times."
     )
     {
@@ -155,7 +155,7 @@ internal static class CommandLine
     };
 
     private static readonly Option<string[]?> SubmitPromptKeyBindings = new(
-        aliases: new[] { "--submitPromptKeys" },
+        aliases: ["--submitPromptKeys"],
         description: "Key binding to submit the prompt. Can be specified multiple times."
     )
     {
@@ -163,7 +163,7 @@ internal static class CommandLine
     };
 
     private static readonly Option<string[]?> SubmitPromptDetailedKeyBindings = new(
-        aliases: new[] { "--submitPromptDetailedKeys" },
+        aliases: ["--submitPromptDetailedKeys"],
         description: "Key binding to submit the prompt with detailed output. Can be specified multiple times."
     )
     {
@@ -171,12 +171,12 @@ internal static class CommandLine
     };
 
     private static readonly Option<bool> Configure = new(
-        aliases: new[] { "--configure" },
+        aliases: ["--configure"],
         description: "Launches an editor to edit the CSharpRepl configuration file. Reads the EDITOR environment variable."
     );
 
     private static readonly Option<string> Culture = new(
-        aliases: new[] {"--culture"},
+        aliases: ["--culture"],
         description: "Culture to use for access to the MSDN documentation. Defaults to the current culture."
     );
 
@@ -447,10 +447,10 @@ internal static class CommandLine
         string wordToComplete = context.WordToComplete;
 
         if (string.IsNullOrEmpty(wordToComplete) || "Syste".StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
-            return new[] { "System" };
+            return ["System"];
 
         if (!wordToComplete.StartsWith("System", StringComparison.OrdinalIgnoreCase))
-            return Array.Empty<string>();
+            return [];
 
         var runtimeAssemblyPaths = Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll");
         using var mlc = new MetadataLoadContext(new PathAssemblyResolver(runtimeAssemblyPaths));
@@ -468,7 +468,7 @@ internal static class CommandLine
         IEnumerable<Type> GetTypes(string assemblyPath)
         {
             try { return mlc.LoadFromAssemblyPath(assemblyPath).GetTypes(); }
-            catch (BadImageFormatException) { return Array.Empty<Type>(); } // handle native DLLs that have no managed metadata.
+            catch (BadImageFormatException) { return []; } // handle native DLLs that have no managed metadata.
         }
     }
 }

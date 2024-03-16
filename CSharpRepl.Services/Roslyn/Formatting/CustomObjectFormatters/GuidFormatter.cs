@@ -20,8 +20,7 @@ internal sealed class GuidFormatter : CustomObjectFormatter<Guid>
         var parts = value.ToString().Split('-');
         var style = formatter.GetStyle(ClassificationTypeNames.NumericLiteral);
         return new StyledString(
-            new StyledStringSegment[]
-            {
+            [
                 new(parts[0], style),
                 new("-"),
                 new(parts[1], style),
@@ -31,6 +30,6 @@ internal sealed class GuidFormatter : CustomObjectFormatter<Guid>
                 new(parts[3], style),
                 new("-"),
                 new(parts[4], style)
-            });
+            ]);
     }
 }

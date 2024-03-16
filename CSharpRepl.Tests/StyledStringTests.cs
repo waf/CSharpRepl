@@ -49,7 +49,7 @@ public class StyledStringTests
     {
         var redStyle = new Style(foreground: Color.Red);
         var blueStyle = new Style(foreground: Color.Blue);
-        var text = new StyledString(new[] { new StyledStringSegment("ab", redStyle), new StyledStringSegment("cd", null), new StyledStringSegment("ef", blueStyle) });
+        var text = new StyledString([new StyledStringSegment("ab", redStyle), new StyledStringSegment("cd", null), new StyledStringSegment("ef", blueStyle)]);
 
         var subtext = text.Substring(0, 6);
         Assert.Equal("abcdef", subtext.ToString());

@@ -25,7 +25,7 @@ public class SyntaxHighlightingTests : IAsyncLifetime
         ), new TestTraceLogger());
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
+    public Task InitializeAsync() => services.WarmUpAsync([]);
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]

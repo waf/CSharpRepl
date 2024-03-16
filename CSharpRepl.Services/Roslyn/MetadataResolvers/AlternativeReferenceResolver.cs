@@ -21,7 +21,7 @@ public abstract class AlternativeReferenceResolver : IIndividualMetadataReferenc
         if (CanResolve(reference))
             return ImmutableArray.Create(DummyReference);
 
-        return ImmutableArray<PortableExecutableReference>.Empty;
+        return [];
     }
 
     public abstract bool CanResolve(string reference);
@@ -30,6 +30,6 @@ public abstract class AlternativeReferenceResolver : IIndividualMetadataReferenc
         => Task.FromResult(Resolve(reference));
 
     public virtual ImmutableArray<PortableExecutableReference> Resolve(string reference)
-        => ImmutableArray<PortableExecutableReference>.Empty;
+        => [];
 
 }

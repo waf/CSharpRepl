@@ -246,7 +246,7 @@ public sealed partial class RoslynServices
                         var baseType = method.ContainingType.BaseType;
                         return
                             baseType is null ?
-                            new List<IMethodSymbol>(0) :
+                            [] :
                             baseType.InstanceConstructors.Where(c => semanticModel.IsAccessible(node.SpanStart, c)).ToList();
                     }
                     else
@@ -291,7 +291,7 @@ public sealed partial class RoslynServices
             {
                 Debug.Fail("unexpected case");
             }
-            return ImmutableArray<object>.Empty;
+            return [];
         }
 
         static IReadOnlyList<object> GetMemberGroupGeneric(SemanticModel semanticModel, GenericNameSyntax genericNameSyntax, CancellationToken cancellationToken)
@@ -336,7 +336,7 @@ public sealed partial class RoslynServices
                 if (type is null)
                 {
                     Debug.Fail("unexpected case");
-                    return ImmutableArray<object>.Empty;
+                    return [];
                 }
 
                 return semanticModel.LookupNamespacesAndTypes(node.SpanStart, name: type.Identifier.ValueText)

@@ -6,7 +6,7 @@ namespace CSharpRepl.Services.Extensions;
 
 public static class KeyExtensions
 {
-    private static string GetStringValue(this KeyPressPattern pattern)
+    public static string GetStringValue(this KeyPressPattern pattern)
     {
         if (pattern.Key != default)
         {
@@ -14,7 +14,6 @@ public static class KeyExtensions
                 ? $"{pattern.Key}"
                 : $"{pattern.Modifiers.GetStringValue()}+{pattern.Key}";
         }
-
         return $"{pattern.Character}";
     }
 
@@ -26,7 +25,4 @@ public static class KeyExtensions
             .Select(x => x.ToString());
         return string.Join("+", values);
     }
-
-    public static string GetStringValue(this KeyPressPatterns patterns)
-        => patterns.DefinedPatterns!.First().GetStringValue();
 }

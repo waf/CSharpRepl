@@ -29,10 +29,10 @@ public class OpenAICompletionTests : IAsyncLifetime, IClassFixture<RoslynService
         var (console, _) = FakeConsole.CreateStubbedOutput();
         this.console = console;
         this.services = fixture.RoslynServices;
-        this.http = new FakeHttp();
+        this.http = [];
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync(Array.Empty<string>());
+    public Task InitializeAsync() => services.WarmUpAsync([]);
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]

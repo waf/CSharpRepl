@@ -47,7 +47,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
         await repl.RunAsync(new Configuration());
 
         Assert.Contains("Welcome to the C# REPL", console.AnsiConsole.Output);
-        Assert.Contains("Type C# at the prompt", console.AnsiConsole.Output);
+        Assert.Contains("Type C# code at the prompt", capturedOutput.ToString());
     }
 
     [Theory]
@@ -62,13 +62,14 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
                 new PromptResult(true, "help", default),
                 new PromptResult(true, "exit", default)
             );
-        
-        await repl.RunAsync(new Configuration(submitPromptKeyPatterns: new[] {submitKeyPattern},
-            submitPromptDetailedKeyPatterns: new[] {submitDetailedKeyPattern}, newLineKeyPatterns:  new[] {newLineKeyPattern}));
 
-        Assert.Contains(submitKeyPattern, console.AnsiConsole.Output);
-        Assert.Contains(submitDetailedKeyPattern, console.AnsiConsole.Output);
-        Assert.Contains(newLineKeyPattern, console.AnsiConsole.Output);
+        await repl.RunAsync(new Configuration(submitPromptKeyPatterns: [submitKeyPattern],
+            submitPromptDetailedKeyPatterns: [submitDetailedKeyPattern], newLineKeyPatterns: [newLineKeyPattern]));
+
+        var helpOutput = capturedOutput.ToString();
+        Assert.Contains(submitKeyPattern, helpOutput);
+        Assert.Contains(submitDetailedKeyPattern, helpOutput);
+        Assert.Contains(newLineKeyPattern, helpOutput);
     }
 
 
@@ -84,7 +85,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
 
         await repl.RunAsync(new Configuration());
 
-        ((IConsoleEx) console.Received()).Clear(true);
+        ((IConsoleEx)console.Received()).Clear(true);
     }
 
     [Fact]
@@ -148,7 +149,7 @@ public class ReadEvalPrintLoopTests : IClassFixture<RoslynServicesFixture>
             );
 
         await repl.RunAsync(new Configuration(
-            references: new[] {"Data/DemoLibrary.dll"}
+            references: ["Data/DemoLibrary.dll"]
         ));
 
         Assert.Contains("30", console.AnsiConsole.Output);

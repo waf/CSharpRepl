@@ -35,8 +35,8 @@ internal class Disassembler
         this.referenceService = referenceService;
 
         // we will try to compile the user's code several different ways. The first one that succeeds will be used.
-        this.compilers = new (string name, CompileDelegate compile)[]
-        {
+        this.compilers =
+        [
             // "console application" will work for standalone statements, due to C#'s top-level statement feature.
             (name: "Console Application (with top-level statements)",
              compile: (code, optimizationLevel) => Compile(code, optimizationLevel, OutputKind.ConsoleApplication)),
@@ -46,7 +46,7 @@ internal class Disassembler
             // Compiling as a script will work for most other cases, but it's quite verbose so we use it as a last resort.
             (name: "Scripting session (will be overly verbose)",
              compile: (code, optimizationLevel) => scriptRunner.CompileTransient(code, optimizationLevel))
-        };
+        ];
     }
 
     public EvaluationResult Disassemble(string code, bool debugMode)
@@ -88,7 +88,7 @@ internal class Disassembler
                         .Select(line => line.TrimEnd()) // output has trailing spaces on some lines, clean those up
                     )
                     + string.Join('\n', commentFooter);
-                return new EvaluationResult.Success(code, ilCode, Array.Empty<MetadataReference>());
+                return new EvaluationResult.Success(code, ilCode, []);
             }
 
             // failure, we couldn't compile it, move on to the next compiler configuration.
@@ -118,7 +118,7 @@ internal class Disassembler
         var asmReader = asm.GetMetadataReader();
         var definedTypes = asmReader.TypeDefinitions.ToArray();
         var definedTypeNames = definedTypes.Select(t => asmReader.GetString(asmReader.GetTypeDefinition(t).Name)).ToArray();
-        if (definedTypeNames.Except(new[] { "<Module>", "Program", "RefSafetyRulesAttribute", "EmbeddedAttribute" }).Any())
+        if (definedTypeNames.Except(["<Module>", "Program", "RefSafetyRulesAttribute", "EmbeddedAttribute"]).Any())
         {
             new ReflectionDisassembler(ilCodeOutput, CancellationToken.None).WriteModuleContents(file); // writes to the "ilCodeOutput" variable
             return ilCodeOutput;
@@ -133,7 +133,7 @@ internal class Disassembler
         var programType = asmReader.GetTypeDefinition(definedTypes[programTypeIndex]);
         var methods = programType.GetMethods().ToArray();
         var methodNames = methods.Select(m => asmReader.GetString(asmReader.GetMethodDefinition(m).Name)).ToArray();
-        if (methodNames.Except(new[] { "<Main>$", ".ctor" }).Any())
+        if (methodNames.Except(["<Main>$", ".ctor"]).Any())
         {
             return DisassembleAll(file, ilCodeOutput);
         }
@@ -153,7 +153,7 @@ internal class Disassembler
     {
         var ast = CSharpSyntaxTree.ParseText(code, new CSharpParseOptions(LanguageVersion.Latest));
         var compilation = CSharpCompilation.Create("CompilationForDisassembly",
-            new[] { ast },
+            [ast],
             referenceService.LoadedReferenceAssemblies,
             compilationOptions
                 .WithOutputKind(outputKind)

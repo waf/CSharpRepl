@@ -113,7 +113,7 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
 
     private static CharacterSetModificationRule CreateCommitRuleForUserKeybinding(in KeyPressPatterns commitCompletion)
     {
-        var alwaysCommitCharacters = commitCompletion.DefinedPatterns?.Select(key => key.Character).ToArray() ?? Array.Empty<char>();
+        var alwaysCommitCharacters = commitCompletion.DefinedPatterns?.Select(key => key.Character).ToArray() ?? [];
         return new CharacterSetModificationRule(CharacterSetModificationKind.Add, ImmutableArray.Create(alwaysCommitCharacters));
     }
 
@@ -209,7 +209,7 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         {
             case EvaluationResult.Success success:
                 var ilCode = success.ReturnValue.ToString();
-                var output = Prompt.RenderAnsiOutput(ilCode, Array.Empty<FormatSpan>(), console.PrettyPromptConsole.BufferWidth);
+                var output = Prompt.RenderAnsiOutput(ilCode, [], console.PrettyPromptConsole.BufferWidth);
                 return new KeyPressCallbackResult(text, output);
             case EvaluationResult.Error err:
                 return new KeyPressCallbackResult(text, AnsiColor.Red.GetEscapeSequence() + err.Exception.Message + AnsiEscapeCodes.Reset);

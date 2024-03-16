@@ -1,6 +1,6 @@
-﻿using CSharpRepl.Services.Roslyn;
+﻿using System.Threading.Tasks;
+using CSharpRepl.Services.Roslyn;
 using NSubstitute;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace CSharpRepl.Tests;

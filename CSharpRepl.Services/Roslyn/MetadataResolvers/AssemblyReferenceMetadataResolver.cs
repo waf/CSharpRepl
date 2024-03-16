@@ -32,7 +32,7 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
     private readonly AssemblyLoadContext loadContext;
     private readonly DependencyContextJsonReader dependencyContextJsonReader = new();
     private readonly IConsoleEx console;
-    private readonly Dictionary<string, DependenciesInfo> dependencyContextsPerAssemblyName = new();
+    private readonly Dictionary<string, DependenciesInfo> dependencyContextsPerAssemblyName = [];
 
     public AssemblyReferenceMetadataResolver(IConsoleEx console, AssemblyReferenceService referenceAssemblyService)
     {
@@ -134,7 +134,7 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
                 {
                     foreach (var assemblyGroup in runtimeLib.RuntimeAssemblyGroups)
                     {
-                        if (runtimeGraph.AreCompatible(RuntimeInformation.RuntimeIdentifier, assemblyGroup.Runtime))
+                        if (runtimeGraph.AreCompatible(RuntimeInformation.RuntimeIdentifier, assemblyGroup.Runtime ?? ""))
                         {
                             foreach (var runtimeFile in assemblyGroup.RuntimeFiles)
                             {

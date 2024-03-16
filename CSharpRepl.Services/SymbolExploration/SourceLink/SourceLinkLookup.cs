@@ -29,7 +29,7 @@ internal sealed class SourceLinkLookup
     public SourceLinkLookup()
     {
         // if a host is not in this list, we pass back the link unmodified.
-        this.sourceLinkHosts = new[] { new GitHubSourceLinkHost() };
+        this.sourceLinkHosts = [new GitHubSourceLinkHost()];
     }
 
     public bool TryGetSourceLinkUrl(MetadataReader symbolReader, SequencePointRange sequencePointRange, out string? url)

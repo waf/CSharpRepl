@@ -3,11 +3,9 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
-using System.Reflection;
+using PrettyPrompt;
 using PrettyPrompt.Highlighting;
 using Spectre.Console;
 
@@ -15,12 +13,6 @@ namespace CSharpRepl.Services.Theming;
 
 public readonly struct ThemeColor
 {
-    private static readonly Dictionary<string, AnsiColor> ansiColorNames =
-        typeof(AnsiColor)
-        .GetFields(BindingFlags.Static | BindingFlags.Public)
-        .Where(f => f.FieldType == typeof(AnsiColor))
-        .ToDictionary(f => f.Name, f => (AnsiColor)f.GetValue(null)!, StringComparer.OrdinalIgnoreCase);
-
     public ThemeColor(string color)
     {
         Debug.Assert(!string.IsNullOrEmpty(color));
@@ -52,6 +44,12 @@ public readonly struct ThemeColor
 
     public static bool TryParseAnsiColor(string input, out AnsiColor result)
     {
+        if (PromptConfiguration.HasUserOptedOutFromColor)
+        {
+            result = AnsiColor.White;
+            return true;
+        }
+
         var span = input.AsSpan();
         if (input.StartsWith('#') && span.Length == 7 &&
             byte.TryParse(span.Slice(1, 2), NumberStyles.AllowHexSpecifier, null, out byte r) &&
@@ -62,7 +60,7 @@ public readonly struct ThemeColor
             return true;
         }
 
-        if (ansiColorNames.TryGetValue(input, out var color))
+        if (AnsiColor.TryParse(input, out var color))
         {
             result = color;
             return true;
@@ -74,6 +72,12 @@ public readonly struct ThemeColor
 
     public static bool TryParseSpectreColor(string input, out Color result)
     {
+        if (PromptConfiguration.HasUserOptedOutFromColor)
+        {
+            result = Color.White;
+            return true;
+        }
+
         var span = input.AsSpan();
         if (input.StartsWith('#') && span.Length == 7 &&
             byte.TryParse(span.Slice(1, 2), NumberStyles.AllowHexSpecifier, null, out byte r) &&

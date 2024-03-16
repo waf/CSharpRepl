@@ -37,11 +37,11 @@ public sealed class Configuration
         Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ??
         Environment.CurrentDirectory;
 
-    public static readonly IReadOnlyCollection<string> SymbolServers = new[]
-    {
+    public static readonly IReadOnlyCollection<string> SymbolServers =
+    [
         "https://symbols.nuget.org/download/symbols/",
         "http://msdl.microsoft.com/download/symbols/"
-    };
+    ];
 
     public HashSet<string> References { get; }
     public HashSet<string> Usings { get; }
@@ -84,8 +84,8 @@ public sealed class Configuration
         OpenAIConfiguration? openAIConfiguration = null,
         string? cultureName = null)
     {
-        References = references?.ToHashSet() ?? new HashSet<string>();
-        Usings = usings?.ToHashSet() ?? new HashSet<string>();
+        References = references?.ToHashSet() ?? [];
+        Usings = usings?.ToHashSet() ?? [];
         Framework = framework ?? FrameworkDefault;
         Trace = trace;
         UseTerminalPaletteTheme = useTerminalPaletteTheme;
@@ -136,7 +136,7 @@ public sealed class Configuration
         StreamPipedInput = streamPipedInput;
         TabSize = tabSize;
         LoadScript = loadScript;
-        LoadScriptArgs = loadScriptArgs ?? Array.Empty<string>();
+        LoadScriptArgs = loadScriptArgs ?? [];
         OutputForEarlyExit = outputForEarlyExit;
         OpenAIConfiguration = openAIConfiguration;
         var triggerCompletionList =
@@ -148,11 +148,11 @@ public sealed class Configuration
 
         if (submitPromptKeyPatterns?.Any() != true)
         {
-            submitPromptKeyPatterns = new[] { "Enter" };
+            submitPromptKeyPatterns = ["Enter"];
         }
         if (submitPromptDetailedKeyPatterns?.Any() != true)
         {
-            submitPromptDetailedKeyPatterns = new[] { "Ctrl+Enter", "Ctrl+Alt+Enter" };
+            submitPromptDetailedKeyPatterns = ["Ctrl+Enter", "Ctrl+Alt+Enter"];
         }
 
         var submitPrompt = ParseKeyPressPatterns(submitPromptKeyPatterns.Concat(submitPromptDetailedKeyPatterns).ToArray());
@@ -160,7 +160,7 @@ public sealed class Configuration
 
         var commitCompletion = new KeyPressPatterns(
             CompletionRules.Default.DefaultCommitCharacters.Select(c => new KeyPressPattern(c))
-            .Concat(new KeyPressPattern[] { new(ConsoleKey.Enter), new(ConsoleKey.Tab) })
+            .Concat([new(ConsoleKey.Enter), new(ConsoleKey.Tab)])
             .ToArray());
 
         KeyBindings = new(

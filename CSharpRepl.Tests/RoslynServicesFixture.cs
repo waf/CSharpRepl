@@ -26,5 +26,5 @@ public sealed class RoslynServicesFixture : IAsyncLifetime
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    public Task InitializeAsync() => RoslynServices.WarmUpAsync(Array.Empty<string>());
+    public Task InitializeAsync() => RoslynServices.WarmUpAsync([]);
 }

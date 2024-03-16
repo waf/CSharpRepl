@@ -34,7 +34,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
             console,
             new SyntaxHighlighter(
                 new MemoryCache(new MemoryCacheOptions()),
-                new Theme(null, null, null, null, Array.Empty<SyntaxHighlightingColor>())),
+                new Theme(null, null, null, null, [])),
             new Configuration());
     }
 
@@ -77,46 +77,46 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         Assert.Equal(expectedResult, output);
     }
 
-    public static IEnumerable<object?[]> FormatObjectInputs => new[]
-    {
+    public static IEnumerable<object?[]> FormatObjectInputs =>
+    [
         new object?[] { null, Level.FirstSimple, "null" },
-        new object?[] { null, Level.FirstDetailed, "null" },
+        [null, Level.FirstDetailed, "null"],
 
-        new object[] { @"""hello world""", Level.FirstSimple, @"""\""hello world\"""""  },
-        new object[] { @"""hello world""", Level.FirstDetailed, @"""hello world"""  },
+        [@"""hello world""", Level.FirstSimple, @"""\""hello world\"""""],
+        [@"""hello world""", Level.FirstDetailed, @"""hello world"""],
 
-        new object[] { "a\nb", Level.FirstSimple, @"""a\nb""" },
-        new object[] { "a\nb", Level.FirstDetailed, "a\nb" },
+        ["a\nb", Level.FirstSimple, @"""a\nb"""],
+        ["a\nb", Level.FirstDetailed, "a\nb"],
 
-        new object[] { new[] { 1, 2, 3 }, Level.FirstSimple, "int[3] { 1, 2, 3 }" },
-        new object[] { new[] { 1, 2, 3 }, Level.FirstDetailed, "int[3] { 1, 2, 3 }" },
+        [new[] { 1, 2, 3 }, Level.FirstSimple, "int[3] { 1, 2, 3 }"],
+        [new[] { 1, 2, 3 }, Level.FirstDetailed, "int[3] { 1, 2, 3 }"],
 
-        new object[] { new List<int>{ 1, 2, 3 }, Level.FirstSimple, "List<int>(3) { 1, 2, 3 }" },
-        new object[] { new List<int>{ 1, 2, 3 }, Level.FirstDetailed, "List<int>(3) { 1, 2, 3 }" },
+        [new List<int>{ 1, 2, 3 }, Level.FirstSimple, "List<int>(3) { 1, 2, 3 }"],
+        [new List<int>{ 1, 2, 3 }, Level.FirstDetailed, "List<int>(3) { 1, 2, 3 }"],
 
-        new object[] { typeof(List<int>.Enumerator), Level.FirstSimple, "List<int>.Enumerator" },
-        new object[] { typeof(List<int>.Enumerator), Level.FirstDetailed, "System.Collections.Generic.List<System.Int32>.Enumerator" },
+        [typeof(List<int>.Enumerator), Level.FirstSimple, "List<int>.Enumerator"],
+        [typeof(List<int>.Enumerator), Level.FirstDetailed, "System.Collections.Generic.List<System.Int32>.Enumerator"],
 
-        new object[] { typeof(int), Level.FirstSimple, "int" },
-        new object[] { typeof(int), Level.FirstDetailed, "System.Int32" },
+        [typeof(int), Level.FirstSimple, "int"],
+        [typeof(int), Level.FirstDetailed, "System.Int32"],
 
-        new object[] { typeof(int[]), Level.FirstSimple, "int[]" },
-        new object[] { typeof(int[]), Level.FirstDetailed, "System.Int32[]" },
+        [typeof(int[]), Level.FirstSimple, "int[]"],
+        [typeof(int[]), Level.FirstDetailed, "System.Int32[]"],
 
-        new object[] { typeof(int[,]), Level.FirstSimple, "int[,]" },
-        new object[] { typeof(int[,]), Level.FirstDetailed, "System.Int32[,]" },
+        [typeof(int[,]), Level.FirstSimple, "int[,]"],
+        [typeof(int[,]), Level.FirstDetailed, "System.Int32[,]"],
 
-        new object[] { typeof(int[][]), Level.FirstSimple, "int[][]" },
-        new object[] { typeof(int[][]), Level.FirstDetailed, "System.Int32[][]" },
+        [typeof(int[][]), Level.FirstSimple, "int[][]"],
+        [typeof(int[][]), Level.FirstDetailed, "System.Int32[][]"],
 
-        new object[] { typeof((int, int)), Level.FirstSimple, "(int, int)" },
-        new object[] { typeof((int, int)), Level.FirstDetailed, "System.ValueTuple<System.Int32, System.Int32>" },
+        [typeof((int, int)), Level.FirstSimple, "(int, int)"],
+        [typeof((int, int)), Level.FirstDetailed, "System.ValueTuple<System.Int32, System.Int32>"],
 
-        new object[] { typeof(int?), Level.FirstSimple, "int?" },
-        new object[] { typeof(int?), Level.FirstDetailed, "System.Nullable<System.Int32>" },
+        [typeof(int?), Level.FirstSimple, "int?"],
+        [typeof(int?), Level.FirstDetailed, "System.Nullable<System.Int32>"],
 
-        new object[] { Encoding.UTF8, Level.FirstDetailed, "System.Text.UTF8Encoding.UTF8EncodingSealed" },
-    };
+        [Encoding.UTF8, Level.FirstDetailed, "System.Text.UTF8Encoding.UTF8EncodingSealed"],
+    ];
 
     [Theory]
     [MemberData(nameof(ObjectMembersFormattingInputs))]
@@ -126,7 +126,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         Assert.Equal(expectedResults.Length, outputs.Length);
         foreach (var (output, expectedResult) in outputs.Zip(expectedResults))
         {
-            Assert.Equal(expectedResult, ToString(output.Renderable)); 
+            Assert.Equal(expectedResult, ToString(output.Renderable));
         }
     }
 
@@ -158,17 +158,17 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         public override decimal PropertyDecimal1 => 19;
     }
 
-    public static IEnumerable<object[]> ObjectMembersFormattingInputs => new[]
-    {
+    public static IEnumerable<object[]> ObjectMembersFormattingInputs =>
+    [
         new object[] { new(), Level.FirstDetailed, Array.Empty<string>(), false },
-        new object[] { new(), Level.FirstDetailed, Array.Empty<string>(), true },
+        [new(), Level.FirstDetailed, Array.Empty<string>(), true],
 
-        new object[] { new TestClassWithMembers(), Level.FirstSimple, new[] { "FieldInt32: 2", "PropertyDecimal1: 2", "PropertyDecimal2: 3", "PropertyDecimal3: 5", "PropertyDecimal4: 7" }, false },
-        new object[] { new TestClassWithMembers(), Level.FirstDetailed, new[] { "FieldInt32: 2", "fieldObject: object", "PropertyDecimal1: 2", "PropertyDecimal2: 3", "PropertyDecimal3: 5", "PropertyDecimal4: 7", "PropertyString: \"abcd\"" }, true },
+        [new TestClassWithMembers(), Level.FirstSimple, new[] { "FieldInt32: 2", "PropertyDecimal1: 2", "PropertyDecimal2: 3", "PropertyDecimal3: 5", "PropertyDecimal4: 7" }, false],
+        [new TestClassWithMembers(), Level.FirstDetailed, new[] { "FieldInt32: 2", "fieldObject: object", "PropertyDecimal1: 2", "PropertyDecimal2: 3", "PropertyDecimal3: 5", "PropertyDecimal4: 7", "PropertyString: \"abcd\"" }, true],
 
-        new object[] { new TestClassWithMembersDerived2(), Level.FirstSimple, new[] { "FieldInt32: 2", "PropertyDecimal1: 19", "PropertyDecimal2: 13", "PropertyDecimal3: 5", "PropertyDecimal4: 17", "PropertyDecimal4: 7" }, false },
-        new object[] { new TestClassWithMembersDerived2(), Level.FirstDetailed, new[] { "FieldInt32: 2", "fieldObject: object", "PropertyDecimal1: 19", "PropertyDecimal2: 13", "PropertyDecimal3: 5", "PropertyDecimal4: 17", "PropertyDecimal4: 7", "PropertyString: \"abcd\"" }, true },
-    };
+        [new TestClassWithMembersDerived2(), Level.FirstSimple, new[] { "FieldInt32: 2", "PropertyDecimal1: 19", "PropertyDecimal2: 13", "PropertyDecimal3: 5", "PropertyDecimal4: 17", "PropertyDecimal4: 7" }, false],
+        [new TestClassWithMembersDerived2(), Level.FirstDetailed, new[] { "FieldInt32: 2", "fieldObject: object", "PropertyDecimal1: 19", "PropertyDecimal2: 13", "PropertyDecimal3: 5", "PropertyDecimal4: 17", "PropertyDecimal4: 7", "PropertyString: \"abcd\"" }, true],
+    ];
 
     private static string ToString(IRenderable renderable)
     {

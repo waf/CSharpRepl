@@ -21,8 +21,8 @@ public sealed class Theme
             completionBoxBorderColor: null,
             completionItemDescriptionPaneBackground: null,
             selectedTextBackground: null,
-            syntaxHighlightingColors: new[]
-            {
+            syntaxHighlightingColors:
+            [
                 new SyntaxHighlightingColor(name: ClassificationTypeNames.ClassName, foreground: "BrightCyan"),
                 new SyntaxHighlightingColor(name: ClassificationTypeNames.StructName, foreground: "BrightCyan"),
                 new SyntaxHighlightingColor(name: ClassificationTypeNames.DelegateName, foreground: "BrightCyan"),
@@ -64,7 +64,7 @@ public sealed class Theme
                 new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentName, foreground: "Cyan"),
                 new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentProcessingInstruction, foreground: "Cyan"),
                 new SyntaxHighlightingColor(name: ClassificationTypeNames.XmlDocCommentText, foreground: "Cyan")
-            }));
+            ]));
 
     public static Theme DefaultTheme => defaultTheme.Value;
 

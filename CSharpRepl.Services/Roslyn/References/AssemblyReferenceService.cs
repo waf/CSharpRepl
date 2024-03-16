@@ -43,9 +43,9 @@ internal sealed class AssemblyReferenceService
     public AssemblyReferenceService(Configuration config, ITraceLogger logger)
     {
         this.dotnetInstallationLocator = new DotNetInstallationLocator(logger);
-        this.referenceAssemblyPaths = new();
-        this.implementationAssemblyPaths = new();
-        this.sharedFrameworkImplementationAssemblyPaths = new();
+        this.referenceAssemblyPaths = [];
+        this.implementationAssemblyPaths = [];
+        this.sharedFrameworkImplementationAssemblyPaths = [];
         this.cachedMetadataReferences = new();
         this.loadedReferenceAssemblies = new(new AssemblyReferenceComparer());
         this.loadedImplementationAssemblies = new(new AssemblyReferenceComparer());
@@ -96,9 +96,9 @@ internal sealed class AssemblyReferenceService
         // e.g. if we're loading Microsoft.AspNetCore.App, load it alongside Microsoft.NETCore.App.
         return framework switch
         {
-            SharedFramework.NetCoreApp => new[] {
+            SharedFramework.NetCoreApp => [
                     new SharedFramework(referencePath, referenceDlls, implementationPath, implementationDlls)
-                },
+                ],
             _ => GetSharedFrameworkConfiguration(SharedFramework.NetCoreApp, version)
                 .Append(new SharedFramework(referencePath, referenceDlls, implementationPath, implementationDlls))
                 .ToArray()
