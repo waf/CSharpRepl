@@ -204,8 +204,8 @@ public sealed partial class RoslynServices
         return await symbolExplorer.LookupSymbolAtPosition(text, caret);
     }
 
-    public AnsiColor ToColor(string keyword) =>
-        highlighter.GetAnsiColor(keyword);
+    public AnsiColor ToColor(string classification) =>
+        highlighter.GetAnsiColor(classification);
 
     public async Task<IReadOnlyCollection<HighlightedSpan>> SyntaxHighlightAsync(string text)
     {

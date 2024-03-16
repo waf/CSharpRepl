@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CSharpRepl.PrettyPromptConfig;
@@ -11,6 +12,7 @@ using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.Roslyn.Scripting;
+using CSharpRepl.Services.Theming;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
 using PrettyPrompt.Highlighting;
@@ -146,69 +148,61 @@ internal sealed class ReadEvalPrintLoop
 
     private void PrintHelp(KeyBindings keyBindings, KeyPressPatterns submitPromptDetailedKeys)
     {
-        var newLineBindingName = keyBindings.NewLine.GetStringValue();
-        var submitPromptName = keyBindings.SubmitPrompt.GetStringValue();
-        var submitPromptDetailedName = submitPromptDetailedKeys.GetStringValue();
-        
-        console.WriteLine(
-            $@"
+        var newLineBindingName = KeyPressPatternToString(keyBindings.NewLine.DefinedPatterns ?? []);
+        var submitPromptName = KeyPressPatternToString((keyBindings.SubmitPrompt.DefinedPatterns ?? []).Except(submitPromptDetailedKeys.DefinedPatterns ?? []));
+        var submitPromptDetailedName = KeyPressPatternToString(submitPromptDetailedKeys.DefinedPatterns ?? []);
+
+        console.WriteLine(FormattedStringParser.Parse($"""
 More details and screenshots are available at
-https://github.com/waf/CSharpRepl/blob/main/README.md
+[blue]https://github.com/waf/CSharpRepl/blob/main/README.md [/]
 
-Evaluating Code
-===============
-Type C# at the prompt and press {Underline(submitPromptName)} to run it. The result will be printed.
-{Underline(submitPromptDetailedName)} will also run the code, but show detailed member info / stack traces.
-{Underline(newLineBindingName)} will insert a newline, to support multiple lines of input.
-If the code isn't a complete statement, pressing Enter will insert a newline.
+[underline]Evaluating Code[/]
+Type C# code at the prompt and press:
+  - {submitPromptName} to run it and get result printed,
+  - {submitPromptDetailedName} to run it and get result printed with more details (member info, stack traces, etc.),
+  - {newLineBindingName} to insert a newline (to support multiple lines of input).
+If the code isn't a complete statement, pressing [green]Enter[/] will insert a newline.
 
-Adding References
-=================
-Use the {Reference()} command to add assembly or nuget references.
-For assembly references, run {Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}
-For nuget packages, run {Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}
-For project references, run {Reference("path/to/my.csproj")} or {Reference("path/to/my.sln")} 
+[underline]Adding References[/]
+Use the {Reference()} command to add reference to:
+  - assembly ({Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}),
+  - NuGet package ({Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}),
+  - project ({Reference("path/to/my.csproj")} or {Reference("path/to/my.sln")}).
 
 Use {Preprocessor("#load", "path-to-file")} to evaluate C# stored in files (e.g. csx files). This can
-be useful, for example, to build a "".profile.csx"" that includes libraries you want
+be useful, for example, to build a [{ToColor("string")}].profile.csx[/] that includes libraries you want
 to load.
 
-Exploring Code
-==============
-{Underline("F1")}: when the caret is in a type or member, open the corresponding MSDN documentation.
-{Underline("F9")}: show the IL (intermediate language) for the current statement.
-{Underline("F12")}: open the type's source code in the browser, if the assembly supports Source Link.
+[underline]Exploring Code[/]
+  - [green]{"F1"}[/]:  when the caret is in a type or member, open the corresponding MSDN documentation.
+  - [green]{"F9"}[/]:  show the IL (intermediate language) for the current statement.
+  - [green]{"F12"}[/]: open the type's source code in the browser, if the assembly supports Source Link.
 
-Configuration Options
-=====================
+[underline]Configuration Options[/]
 All configuration, including theming, is done at startup via command line flags.
-Run --help at the command line to view these options
-"
-        );
+Run [green]--help[/] at the command line to view these options.
+"""
+        ));
+
+        string Reference(string? argument = null) => Preprocessor("#r", argument);
+
+        string Preprocessor(string keyword, string? argument = null)
+        {
+            var highlightedKeyword = $"[{ToColor("preprocessor keyword")}]{keyword}[/]";
+            var highlightedArgument = argument is null ? "" : $" [{ToColor("string")}]\"{argument}\"[/]";
+            return highlightedKeyword + highlightedArgument;
+        }
+
+        string ToColor(string classification) => roslyn!.ToColor(classification).ToString();
+
+        static string KeyPressPatternToString(IEnumerable<KeyPressPattern> patterns)
+        {
+            var values = patterns.ToList();
+            return values.Count > 0 ?
+                string.Join(" or ", values.Select(pattern => $"[green]{pattern.GetStringValue()}[/]")) :
+               "[red]<undefined>[/]";
+        }
     }
-
-    private string Reference(string? argument = null) =>
-        Preprocessor("#r", argument);
-
-    /// <summary>
-    /// Produce syntax-highlighted strings like "#r reference" for the provided <paramref name="argument"/> string.
-    /// </summary>
-    private string Preprocessor(string keyword, string? argument = null)
-    {
-        var highlightedKeyword = Colorize("preprocessor keyword") + keyword + AnsiEscapeCodes.Reset;
-        var highlightedArgument = argument is null ? "" : Colorize("string") + @" """ + argument + @"""" + AnsiEscapeCodes.Reset;
-
-        return highlightedKeyword + highlightedArgument;
-    }
-
-    private string Colorize(string reference) =>
-        PromptConfiguration.HasUserOptedOutFromColor
-        ? string.Empty
-        : AnsiEscapeCodes.ToAnsiEscapeSequenceSlow(new ConsoleFormat(roslyn!.ToColor(reference)));
-
-    private static string Underline(string word) =>
-        AnsiEscapeCodes.ToAnsiEscapeSequenceSlow(new ConsoleFormat(Underline: true))
-        + word + AnsiEscapeCodes.Reset;
 
     private static string Help =>
         PromptConfiguration.HasUserOptedOutFromColor
