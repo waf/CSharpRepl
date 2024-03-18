@@ -22,45 +22,46 @@ internal sealed class IEnumerableFormatter : CustomObjectFormatter<IEnumerable>
         var sb = new StyledStringBuilder();
 
         //header
-        AppendHeader(sb, value, formatter);
-
-        //items
-        sb.Append(" { ");
-        var enumerator = value.GetEnumerator();
-        try
+        if (AppendHeader(sb, value, formatter))
         {
-            var maxParagraphLength = LengthLimiting.GetMaxParagraphLength(level, formatter.ConsoleProfile);
-            bool any = false;
-            while (enumerator.MoveNext())
+            //items
+            sb.Append(" { ");
+            var enumerator = value.GetEnumerator();
+            try
             {
-                if (any)
+                var maxParagraphLength = LengthLimiting.GetMaxParagraphLength(level, formatter.ConsoleProfile);
+                bool any = false;
+                while (enumerator.MoveNext())
                 {
-                    sb.Append(", ");
-
-                    if (maxParagraphLength > sb.Length &&
-                        sb.Length > formatter.ConsoleProfile.Width / 2) //just heuristic
+                    if (any)
                     {
-                        sb.Append(", ...");
-                        break;
+                        sb.Append(", ");
+
+                        if (maxParagraphLength > sb.Length &&
+                            sb.Length > formatter.ConsoleProfile.Width / 2) //just heuristic
+                        {
+                            sb.Append(", ...");
+                            break;
+                        }
                     }
+                    var formattedItem = formatter.FormatObjectToText(enumerator.Current, level.Increment());
+                    sb.Append(formattedItem);
+                    any = true;
                 }
-                var formattedItem = formatter.FormatObjectToText(enumerator.Current, level.Increment());
-                sb.Append(formattedItem);
-                any = true;
             }
-        }
-        catch (Exception ex)
-        {
-            sb.Append(formatter.GetValueRetrievalExceptionText(ex, level.Increment()));
-        }
-        finally
-        {
-            if (enumerator is IDisposable disposable)
+            catch (Exception ex)
             {
-                disposable.Dispose();
+                sb.Append(formatter.GetValueRetrievalExceptionText(ex, level.Increment()));
             }
+            finally
+            {
+                if (enumerator is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+            sb.Append(" }");
         }
-        sb.Append(" }");
 
         return sb.ToStyledString();
     }
@@ -73,79 +74,113 @@ internal sealed class IEnumerableFormatter : CustomObjectFormatter<IEnumerable>
         }
 
         var sb = new StyledStringBuilder();
-
-        AppendHeader(sb, value, formatter);
-        var header = sb.ToStyledString().ToParagraph();
-
-        var table = new Table().AddColumns("Name", "Value", "Type");
-
-        var enumerator = value.GetEnumerator();
-        try
+        if (AppendHeader(sb, value, formatter))
         {
-            var maxItems = LengthLimiting.GetTableMaxItems(level, formatter.ConsoleProfile);
-            int counter = 0;
-            while (enumerator.MoveNext())
+            var header = sb.ToStyledString().ToParagraph();
+            var table = new Table().AddColumns("Name", "Value", "Type");
+
+            var enumerator = value.GetEnumerator();
+            try
             {
-                if (counter > maxItems)
+                var maxItems = LengthLimiting.GetTableMaxItems(level, formatter.ConsoleProfile);
+                int counter = 0;
+                while (enumerator.MoveNext())
                 {
-                    table.AddRow("...", "...", "...");
-                    break;
+                    if (counter > maxItems)
+                    {
+                        table.AddRow("...", "...", "...");
+                        break;
+                    }
+
+                    sb.Clear();
+                    sb.Append('[').Append(formatter.FormatObjectToText(counter, Level.FirstSimple)).Append(']');
+
+                    var name = sb.ToStyledString();
+
+                    var itemValue = formatter.FormatObjectToRenderable(enumerator.Current, level.Increment());
+
+                    var itemType =
+                        enumerator.Current is null ?
+                        new Paragraph("") :
+                        formatter.FormatObjectToText(enumerator.Current.GetType(), level.Increment()).ToParagraph();
+
+                    table.AddRow(name.ToParagraph(), itemValue, itemType);
+
+                    counter++;
                 }
 
-                sb.Clear();
-                sb.Append('[').Append(formatter.FormatObjectToText(counter, Level.FirstSimple)).Append(']');
-
-                var name = sb.ToStyledString();
-
-                var itemValue = formatter.FormatObjectToRenderable(enumerator.Current, level.Increment());
-
-                var itemType =
-                    enumerator.Current is null ?
-                    new Paragraph("") :
-                    formatter.FormatObjectToText(enumerator.Current.GetType(), level.Increment()).ToParagraph();
-
-                table.AddRow(name.ToParagraph(), itemValue, itemType);
-
-                counter++;
+                if (counter == 0)
+                {
+                    return new FormattedObjectRenderable(header, renderOnNewLine: false);
+                }
             }
-
-            if (counter == 0)
+            catch (Exception ex)
             {
-                return new FormattedObjectRenderable(header, renderOnNewLine: false);
+                table.AddRow(new Paragraph(""), formatter.GetValueRetrievalExceptionText(ex, level.Increment()).ToParagraph(), new Paragraph(""));
             }
-        }
-        catch (Exception ex)
-        {
-            table.AddRow(new Paragraph(""), formatter.GetValueRetrievalExceptionText(ex, level.Increment()).ToParagraph(), new Paragraph(""));
-        }
-        finally
-        {
-            if (enumerator is IDisposable disposable)
+            finally
             {
-                disposable.Dispose();
+                if (enumerator is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
             }
-        }
 
-        return new FormattedObjectRenderable(
-            new RenderableSequence(header, table, separateByLineBreak: true),
-            renderOnNewLine: false);
+            return new FormattedObjectRenderable(
+                new RenderableSequence(header, table, separateByLineBreak: true),
+                renderOnNewLine: false);
+        }
+        else
+        {
+            return new FormattedObjectRenderable(sb.ToStyledString().ToParagraph(), renderOnNewLine: false);
+        }
     }
 
-    private static void AppendHeader(StyledStringBuilder sb, IEnumerable value, Formatter formatter)
+    private static bool AppendHeader(StyledStringBuilder sb, IEnumerable value, Formatter formatter)
     {
-        var isArray = value is Array;
-        sb.Append(
-            formatter.FormatTypeName(
-                isArray ? (value.GetType().GetElementType() ?? value.GetType()) : value.GetType(),
-                showNamespaces: false,
-                useLanguageKeywords: true,
-                hideSystemNamespace: true));
+        var type = value.GetType();
 
-        if (TryGetCount(value, formatter, out var count))
+        if (type.FullName?.EndsWith(typeof(__CSharpRepl_RuntimeHelper.CharSpanOutput).FullName!) == true)
         {
-            sb.Append(isArray ? '[' : '(');
-            sb.Append(count);
-            sb.Append(isArray ? ']' : ')');
+            if (type.GetField(nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput.Text))?.GetValue(value) is string text &&
+                type.GetField(nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput.SpanWasReadOnly))?.GetValue(value) is bool readOnly)
+            {
+                type = readOnly ? typeof(ReadOnlySpan<char>) : typeof(Span<char>);
+
+                AppendTypeName(isArray: false);
+                sb.Append(Environment.NewLine);
+                sb.Append(formatter.FormatObjectToText(text, Level.FirstDetailed));
+                return false; 
+            }
+        }
+        else if (type.FullName?.EndsWith(typeof(__CSharpRepl_RuntimeHelper.SpanOutput).FullName!) == true)
+        {
+            if (type.GetField(nameof(__CSharpRepl_RuntimeHelper.SpanOutput.Array))?.GetValue(value)  is Array array &&
+                type.GetField(nameof(__CSharpRepl_RuntimeHelper.SpanOutput.SpanWasReadOnly))?.GetValue(value) is bool readOnly)
+            {
+                type = (readOnly ? typeof(ReadOnlySpan<>) : typeof(Span<>)).MakeGenericType(array.GetType().GetElementType() ?? array.GetType());
+            }
+        }
+
+        var isArray = value is Array;
+        AppendTypeName(isArray);
+        return true;
+
+        void AppendTypeName(bool isArray)
+        {
+            sb.Append(
+                formatter.FormatTypeName(
+                    isArray ? (type.GetElementType() ?? type) : type,
+                    showNamespaces: false,
+                    useLanguageKeywords: true,
+                    hideSystemNamespace: true));
+
+            if (TryGetCount(value, formatter, out var count))
+            {
+                sb.Append(isArray ? '[' : '(');
+                sb.Append(count);
+                sb.Append(isArray ? ']' : ')');
+            }
         }
     }
 

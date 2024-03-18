@@ -197,4 +197,30 @@ public class EvaluationTests : IAsyncLifetime
         var isWin = Environment.OSVersion.Platform == PlatformID.Win32NT;
         Assert.Equal(isWin, winRuntimeSelected);
     }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/318
+    /// </summary>
+    [Fact]
+    public async Task Evaluate_SpanResult()
+    {
+
+        var eval1 = await services.EvaluateAsync(@"new[]{1,2,3}.AsSpan()");
+        dynamic r1 = Assert.IsType<EvaluationResult.Success>(eval1).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r1.GetType().FullName);
+        Assert.Equal(3, r1.Count);
+        Assert.Equal(false, r1.SpanWasReadOnly);
+
+        var eval2 = await services.EvaluateAsync(@"(ReadOnlySpan<int>)[1,2,3]");
+        dynamic r2 = Assert.IsType<EvaluationResult.Success>(eval2).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r2.GetType().FullName);
+        Assert.Equal(3, r2.Count);
+        Assert.Equal(true, r2.SpanWasReadOnly);
+
+        var eval3 = await services.EvaluateAsync(@"""Hello World"".AsSpan()");
+        dynamic r3 = Assert.IsType<EvaluationResult.Success>(eval3).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput)}", r3.GetType().FullName);
+        Assert.Equal(11, r3.Count);
+        Assert.Equal(true, r3.SpanWasReadOnly);
+    }
 }

@@ -6,7 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Completion;
@@ -113,7 +115,7 @@ public sealed partial class RoslynServices
             //each RunCompilation (modifies script state) and UpdateCurrentDocument (changes CurrentDocument) cannot be run concurrently
             await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-            input = input.Trim();
+            input = await InterceptInputWhenRefStructReturnNeedsToBeHandled(input.Trim(), cancellationToken).ConfigureAwait(false);
             EvaluatingInput?.Invoke(input);
 
             var result = await scriptRunner
@@ -427,7 +429,22 @@ public sealed partial class RoslynServices
 
             logger.Log("Warm-up Starting");
 
-            var evaluationTask = EvaluateAsync(@"_ = ""REPL Warmup""", args);
+            const string RuntimeHelperName = "CSharpRepl.Services.RuntimeHelper.cs";
+            Task evaluationTask;
+            using (var runtimeHelperStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(RuntimeHelperName))
+            {
+                if (runtimeHelperStream != null)
+                {
+                    var runtimeHelperText = new StreamReader(runtimeHelperStream).ReadToEnd();
+                    evaluationTask = EvaluateAsync(runtimeHelperText, args);
+                }
+                else
+                {
+                    evaluationTask = Task.CompletedTask;
+                    console.WriteErrorLine($"Unable to load '{RuntimeHelperName}'");
+                }
+            }
+
             var highlightTask = SyntaxHighlightAsync(@"_ = ""REPL Warmup""");
             var formattingTask = FormatInput(@"_=""REPL Warmup"";", caret: 16, formatParentNodeOnly: false, default);
             var completionTask = Task.WhenAny(
@@ -440,4 +457,32 @@ public sealed partial class RoslynServices
             await Task.WhenAll(evaluationTask, highlightTask, formattingTask, completionTask).ConfigureAwait(false);
             logger.Log("Warm-up Complete");
         });
+
+    private async Task<string> InterceptInputWhenRefStructReturnNeedsToBeHandled(string input, CancellationToken cancellationToken)
+    {
+        await Initialization.ConfigureAwait(false);
+
+        if ((await scriptRunner.HasValueReturningStatement(input, cancellationToken).ConfigureAwait(false)).TryGet(out var result) &&
+            result.Type.IsRefLikeType)
+        {
+            if (result.Type is { Name: "Span" or "ReadOnlySpan", ContainingNamespace.Name: "System" })
+            {
+                var root = result.Expression.SyntaxTree.GetRoot(cancellationToken);
+                var wrappedExpression =
+                SyntaxFactory.InvocationExpression(
+                        SyntaxFactory.MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            SyntaxFactory.IdentifierName(nameof(__CSharpRepl_RuntimeHelper)),
+                            SyntaxFactory.IdentifierName(nameof(__CSharpRepl_RuntimeHelper.HandleSpanOutput))))
+                    .WithArgumentList(
+                        SyntaxFactory.ArgumentList(
+                            SyntaxFactory.SingletonSeparatedList(
+                                SyntaxFactory.Argument(
+                                    result.Expression))));
+                root = root.ReplaceNode(result.Expression, wrappedExpression);
+                return root.GetText().ToString();
+            }
+        }
+        return input;
+    }
 }
