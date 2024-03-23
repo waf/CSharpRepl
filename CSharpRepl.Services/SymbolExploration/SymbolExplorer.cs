@@ -77,7 +77,7 @@ internal sealed class SymbolExplorer
             .Select(t => assemblyReader.GetTypeDefinition(t))
             .FirstOrDefault(t =>
                 assemblyReader.GetString(t.Namespace) == symbolAtPosition.ContainingNamespace.ToDisplayString()
-                && assemblyReader.GetString(t.Name) == (symbolAtPosition.ContainingType?.Name ?? symbolAtPosition.Name)
+                && assemblyReader.GetString(t.Name) == (symbolAtPosition.ContainingType?.Name ?? symbolAtPosition.MetadataName)
             );
 
         using var debugSymbolLoader = new DebugSymbolLoader(assemblyFilePath);
@@ -155,6 +155,15 @@ internal sealed class SymbolExplorer
         );
 
     private static SequencePointRange? FindMethod(MetadataReader symbolReader, MetadataReader assemblyReader, TypeDefinition type, IMethodSymbol method) =>
+        FindSequencePoint(
+            symbolReader,
+            type.GetMethods(),
+            m => assemblyReader.GetMethodDefinition(m),
+            m => assemblyReader.GetString(m.Name) == method.Name,
+            m => m
+        );
+
+    private static SequencePointRange? FindConstructor(MetadataReader symbolReader, MetadataReader assemblyReader, TypeDefinition type, IMethodSymbol method) =>
         FindSequencePoint(
             symbolReader,
             type.GetMethods(),
