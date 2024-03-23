@@ -163,15 +163,6 @@ internal sealed class SymbolExplorer
             m => m
         );
 
-    private static SequencePointRange? FindConstructor(MetadataReader symbolReader, MetadataReader assemblyReader, TypeDefinition type, IMethodSymbol method) =>
-        FindSequencePoint(
-            symbolReader,
-            type.GetMethods(),
-            m => assemblyReader.GetMethodDefinition(m),
-            m => assemblyReader.GetString(m.Name) == method.Name,
-            m => m
-        );
-
     private static SequencePointRange? FindProperty(MetadataReader symbolReader, MetadataReader assemblyReader, TypeDefinition type, IPropertySymbol method) =>
         FindSequencePoint(
             symbolReader,
