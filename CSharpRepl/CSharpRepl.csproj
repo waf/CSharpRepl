@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.6.6</Version>
+    <Version>0.6.7</Version>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <RollForward>LatestMajor</RollForward>

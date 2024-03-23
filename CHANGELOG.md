@@ -1,3 +1,11 @@
+## Release 0.6.7
+
+- Add exception type name in error output panel ([#339](https://github.com/waf/CSharpRepl/pull/339)).
+- Improved and colorized help output ([#338](https://github.com/waf/CSharpRepl/pull/338)).
+- Fix navigate-to-source for generic types ([#342](https://github.com/waf/CSharpRepl/pull/342)).
+- Handle exceptions from roslyn completion API ([#334](https://github.com/waf/CSharpRepl/pull/334)).
+- Dependency upgrades ([#330](https://github.com/waf/CSharpRepl/pull/330), [#333](https://github.com/waf/CSharpRepl/pull/333), and [#349](https://github.com/waf/CSharpRepl/pull/349)).
+
 ## Release 0.6.6
 
 - Upgrade to .NET 8
