@@ -1,3 +1,5 @@
+<div align="center" style="text-align:center"><a href="https://www.nuget.org/packages/CSharpRepl"><img alt="NuGet Version" src="https://img.shields.io/nuget/v/CSharpRepl"></a></div>
+
 # C# REPL
 
 A cross-platform command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> for the rapid experimentation and exploration of C#. It supports intellisense, installing NuGet packages, and referencing local .NET projects and assemblies.
@@ -24,7 +26,7 @@ C# REPL provides the following features:
 
 ## Installation
 
-C# REPL is a .NET 8 global tool, and runs on Windows, Mac OS, and Linux. It can be installed via:
+C# REPL is a .NET 8 global tool, and runs on Windows, Mac OS, and Linux. It can be installed [from NuGet](https://www.nuget.org/packages/CSharpRepl) via:
 
 ```console
 dotnet tool install -g csharprepl
