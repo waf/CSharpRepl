@@ -43,6 +43,16 @@ public class SymbolExplorerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetSymbolAtIndex_GenericTypeInSourceLinkedAssembly_ReturnsSourceLinkUrl()
+    {
+        // should return a string like https://www.github.com/dotnet/runtime/blob/1381d5ebd2ab1f292848d5b19b80cf71ac332508/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/List.cs
+        var symbol = await services.GetSymbolAtIndexAsync(@"List<string>", "Li".Length);
+
+        Assert.StartsWith("https://www.github.com/dotnet/runtime/", symbol.Url);
+        Assert.EndsWith("List.cs", symbol.Url);
+    }
+
+    [Fact]
     public async Task GetSymbolAtIndex_MethodInSourceLinkedAssembly_ReturnsSourceLinkUrl()
     {
         // should return a string like https://www.github.com/dotnet/runtime/blob/208e377a5329ad6eb1db5e5fb9d4590fa50beadd/src/libraries/System.Console/src/System/Console.cs#L635-L636

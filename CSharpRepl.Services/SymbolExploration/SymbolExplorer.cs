@@ -77,7 +77,7 @@ internal sealed class SymbolExplorer
             .Select(t => assemblyReader.GetTypeDefinition(t))
             .FirstOrDefault(t =>
                 assemblyReader.GetString(t.Namespace) == symbolAtPosition.ContainingNamespace.ToDisplayString()
-                && assemblyReader.GetString(t.Name) == (symbolAtPosition.ContainingType?.Name ?? symbolAtPosition.Name)
+                && assemblyReader.GetString(t.Name) == (symbolAtPosition.ContainingType?.Name ?? symbolAtPosition.MetadataName)
             );
 
         using var debugSymbolLoader = new DebugSymbolLoader(assemblyFilePath);
