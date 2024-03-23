@@ -6,3 +6,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      dotnet-dependencies:
+        patterns:
+          - "*"
