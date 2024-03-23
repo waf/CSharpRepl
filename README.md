@@ -199,6 +199,14 @@ wt -w 0 nt csharprepl
 
 This will allow you to launch C# REPL by running `csr` from anywhere that accepts Windows commands, like the Window Run dialog.
 
+### Linux terminal)
+
+You may wish to add a shorter alias for C# REPL, which can be done by adding the following to your `~/.bashrc`:
+
+```shell
+alias cs=csharprepl
+```
+
 ## Comparison with other REPLs
 
 This project is far from being the first REPL for C#. Here are some other projects; if this project doesn't suit you, another one might!
