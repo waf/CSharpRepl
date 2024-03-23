@@ -21,6 +21,8 @@ Thanks to everyone who contributes! The following contributors have helped out w
 - Luiz-Ossinho ([Luiz-Ossinho](https://github.com/Luiz-Ossinho))
 - Vinod Pal ([VNDPAL](https://github.com/VNDPAL))
 - Rasim Keita ([Keyros](https://github.com/Keyros))
+- [lonix1](https://github.com/lonix1)
+- Weihan Li ([WeihanLi](https://github.com/WeihanLi))
 
 ## PrettyPrompt Contributors
 
