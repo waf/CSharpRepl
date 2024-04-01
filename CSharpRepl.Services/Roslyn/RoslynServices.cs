@@ -465,24 +465,54 @@ public sealed partial class RoslynServices
         if ((await scriptRunner.HasValueReturningStatement(input, cancellationToken).ConfigureAwait(false)).TryGet(out var result) &&
             result.Type.IsRefLikeType)
         {
+            var root = result.Expression.SyntaxTree.GetRoot(cancellationToken);
+            var expressionToBeWrapped = result.Expression;
+            ExpressionSyntax wrappedExpression;
             if (result.Type is { Name: "Span" or "ReadOnlySpan", ContainingNamespace.Name: "System" })
             {
-                var root = result.Expression.SyntaxTree.GetRoot(cancellationToken);
-                var wrappedExpression =
-                SyntaxFactory.InvocationExpression(
-                        SyntaxFactory.MemberAccessExpression(
-                            SyntaxKind.SimpleMemberAccessExpression,
-                            SyntaxFactory.IdentifierName(nameof(__CSharpRepl_RuntimeHelper)),
-                            SyntaxFactory.IdentifierName(nameof(__CSharpRepl_RuntimeHelper.HandleSpanOutput))))
-                    .WithArgumentList(
-                        SyntaxFactory.ArgumentList(
-                            SyntaxFactory.SingletonSeparatedList(
-                                SyntaxFactory.Argument(
-                                    result.Expression))));
-                root = root.ReplaceNode(result.Expression, wrappedExpression);
-                return root.GetText().ToString();
+                wrappedExpression = Wrap(nameof(__CSharpRepl_RuntimeHelper.HandleSpanOutput), result.Expression);
             }
+            else
+            {
+                var toStringMethod = result.Type
+                    .GetMembers(nameof(ToString))
+                    .OfType<IMethodSymbol>()
+                    .Where(m => m.ReturnType.SpecialType == SpecialType.System_String && m.Parameters.Length == 0 && m.IsOverride)
+                    .FirstOrDefault();
+
+                if (toStringMethod != null)
+                {
+                    expressionToBeWrapped = SyntaxFactory.InvocationExpression(
+                        SyntaxFactory.MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression, 
+                            expressionToBeWrapped, 
+                            SyntaxFactory.IdentifierName(nameof(ToString))));
+                }
+                else
+                {
+                    expressionToBeWrapped = SyntaxFactory.LiteralExpression(
+                        SyntaxKind.StringLiteralExpression, 
+                        SyntaxFactory.Literal($"Cannot output a value of '{result.Type.Name}' because it's a ref-struct. It has to override ToString() to see its value."));
+                }
+                wrappedExpression = Wrap(
+                    nameof(__CSharpRepl_RuntimeHelper.HandleRefStructOutput),
+                    expressionToBeWrapped);
+            }
+            root = root.ReplaceNode(result.Expression, wrappedExpression);
+            return root.GetText().ToString();
         }
         return input;
+
+        static ExpressionSyntax Wrap(string runtimeHelperMethod, ExpressionSyntax expressionToBeWrapped) =>
+             SyntaxFactory.InvocationExpression(
+                            SyntaxFactory.MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                SyntaxFactory.IdentifierName(nameof(__CSharpRepl_RuntimeHelper)),
+                                SyntaxFactory.IdentifierName(runtimeHelperMethod)))
+                        .WithArgumentList(
+                            SyntaxFactory.ArgumentList(
+                                SyntaxFactory.SingletonSeparatedList(
+                                    SyntaxFactory.Argument(
+                                        expressionToBeWrapped))));
     }
 }

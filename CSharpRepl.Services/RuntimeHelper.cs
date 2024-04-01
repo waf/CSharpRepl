@@ -12,6 +12,8 @@ public static class __CSharpRepl_RuntimeHelper
     public static CharSpanOutput HandleSpanOutput(System.Span<char> span) => CharSpanOutput.Create(span, false);
     public static CharSpanOutput HandleSpanOutput(System.ReadOnlySpan<char> span) => CharSpanOutput.Create(span, true);
 
+    public static RefStructOutput HandleRefStructOutput(string text) => new(text);
+
     public abstract class SpanOutputBase(int originalLength, bool spanWasReadOnly) 
         : System.Collections.IEnumerable
     {
@@ -61,5 +63,11 @@ public static class __CSharpRepl_RuntimeHelper
             }
             return new(buffer.ToString(), span.Length, spanWasReadOnly);
         }
+    }
+
+    public class RefStructOutput(string text)
+    {
+        private readonly string text = text;
+        public override string ToString() => text;
     }
 }

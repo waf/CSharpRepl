@@ -12,6 +12,7 @@ using CSharpRepl.Services.Dotnet;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using Xunit;
+using static PrettyPrompt.Highlighting.FormattedString.TextElementsEnumerator;
 
 namespace CSharpRepl.Tests;
 
@@ -222,5 +223,22 @@ public class EvaluationTests : IAsyncLifetime
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput)}", r3.GetType().FullName);
         Assert.Equal(11, r3.Count);
         Assert.Equal(true, r3.SpanWasReadOnly);
+    }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/318
+    /// </summary>
+    [Fact]
+    public async Task Evaluate_RefStructResult()
+    {
+        var e1 = await services.EvaluateAsync(@"ref struct S; default(S)");
+        var r1 = Assert.IsType<EvaluationResult.Success>(e1).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.RefStructOutput)}", r1.GetType().FullName);
+        Assert.Equal($"Cannot output a value of 'S' because it's a ref-struct. It has to override ToString() to see its value.", r1.ToString());
+
+        var e2 = await services.EvaluateAsync(@"ref struct S{public override string ToString()=>""custom result"";} default(S)");
+        var r2 = Assert.IsType<EvaluationResult.Success>(e2).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.RefStructOutput)}", r2.GetType().FullName);
+        Assert.Equal("custom result", r2.ToString());
     }
 }
