@@ -18,7 +18,7 @@
     <PackageReference Include="Microsoft.Build.Locator" Version="1.7.8" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0" />
-    <PackageReference Include="Microsoft.SymbolStore" Version="1.0.517001" />
+    <PackageReference Include="Microsoft.SymbolStore" Version="1.0.517501" />
     <PackageReference Include="PrettyPrompt" Version="4.1.1" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.48.0" />
     <PackageReference Include="System.IO.Abstractions" Version="21.0.2" />
