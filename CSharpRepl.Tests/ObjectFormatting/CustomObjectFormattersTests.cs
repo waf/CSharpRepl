@@ -149,6 +149,33 @@ public class CustomObjectFormattersTests : IClassFixture<RoslynServicesFixture>
     }
     #endregion
 
+    #region SpanFormatter
+    [Fact]
+    public void TestSpanFormatting()
+    {
+        Assert.Equal(
+            "Span<int>(3) { 1, 2, 3 }",
+            formatter.Format(
+                IEnumerableFormatter.Instance,
+                __CSharpRepl_RuntimeHelper.HandleSpanOutput(new[] { 1, 2, 3 }.AsSpan()),
+                Level.FirstSimple));
+
+        Assert.Equal(
+            "ReadOnlySpan<int>(3) { 1, 2, 3 }",
+            formatter.Format(
+                IEnumerableFormatter.Instance,
+                __CSharpRepl_RuntimeHelper.HandleSpanOutput([1, 2, 3]),
+                Level.FirstSimple));
+
+        Assert.Equal(
+            $"ReadOnlySpan<char>(5){Environment.NewLine}\"hello\"",
+            formatter.Format(
+                IEnumerableFormatter.Instance,
+                __CSharpRepl_RuntimeHelper.HandleSpanOutput("hello"),
+                Level.FirstSimple));
+    }
+    #endregion
+
     #region TupleFormatter
     [Theory]
     [MemberData(nameof(TupleData))]

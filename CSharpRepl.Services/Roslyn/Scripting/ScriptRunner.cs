@@ -29,12 +29,14 @@ internal sealed class ScriptRunner
     private readonly CompositeAlternativeReferenceResolver alternativeReferenceResolver;
     private readonly MetadataReferenceResolver metadataResolver;
     private readonly WorkspaceManager workspaceManager;
+    private readonly CSharpParseOptions parseOptions;
     private readonly AssemblyReferenceService referenceAssemblyService;
     private ScriptOptions scriptOptions;
     private ScriptState<object>? state;
 
     public ScriptRunner(
         WorkspaceManager workspaceManager,
+        CSharpParseOptions parseOptions,
         CSharpCompilationOptions compilationOptions,
         AssemblyReferenceService referenceAssemblyService,
         IConsoleEx console,
@@ -42,6 +44,7 @@ internal sealed class ScriptRunner
     {
         this.console = console;
         this.workspaceManager = workspaceManager;
+        this.parseOptions = parseOptions;
         this.referenceAssemblyService = referenceAssemblyService;
         this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
 
@@ -110,7 +113,7 @@ internal sealed class ScriptRunner
     {
         return CSharpCompilation.CreateScriptCompilation(
             "CompilationTransient",
-            CSharpSyntaxTree.ParseText(code, CSharpParseOptions.Default.WithKind(SourceCodeKind.Script).WithLanguageVersion(LanguageVersion.Latest)),
+            CSharpSyntaxTree.ParseText(code, parseOptions),
             scriptOptions.MetadataReferences,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, usings: scriptOptions.Imports, optimizationLevel: optimizationLevel, allowUnsafe: scriptOptions.AllowUnsafe, metadataReferenceResolver: metadataResolver),
             previousScriptCompilation: state?.Script.GetCompilation() is CSharpCompilation previous ? previous : null,
@@ -120,7 +123,7 @@ internal sealed class ScriptRunner
 
     private async Task<EvaluationResult.Success> CreateSuccessfulResult(string text, ScriptState<object> state, CancellationToken cancellationToken)
     {
-        var hasValueReturningStatement = await HasValueReturningStatement(text, cancellationToken).ConfigureAwait(false);
+        var hasValueReturningStatement = (await HasValueReturningStatement(text, cancellationToken).ConfigureAwait(false)).HasValue;
 
         referenceAssemblyService.AddImplementationAssemblyReferences(state.Script.GetCompilation().References);
         var frameworkReferenceAssemblies = referenceAssemblyService.LoadedReferenceAssemblies;
@@ -142,7 +145,7 @@ internal sealed class ScriptRunner
         return await scriptTask.ConfigureAwait(false);
     }
 
-    private async Task<bool> HasValueReturningStatement(string text, CancellationToken cancellationToken)
+    internal async Task<(ExpressionSyntax Expression, ITypeSymbol Type)?> HasValueReturningStatement(string text, CancellationToken cancellationToken)
     {
         var sourceText = SourceText.From(text);
         var document = workspaceManager.CurrentDocument.WithText(sourceText);
@@ -157,15 +160,16 @@ internal sealed class ScriptRunner
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
             if (semanticModel != null)
             {
-                var typeInfo = semanticModel.GetTypeInfo(possiblyValueReturningStatement.Expression, cancellationToken);
-                return typeInfo.ConvertedType?.SpecialType != SpecialType.System_Void;
+                var returnType = semanticModel.GetTypeInfo(possiblyValueReturningStatement.Expression, cancellationToken).ConvertedType;
+                if (returnType?.SpecialType is not (null or SpecialType.System_Void))
+                {
+                    return (possiblyValueReturningStatement.Expression, returnType);
+                }
             }
         }
-        return false;
+        return null;
     }
 
     private ScriptGlobals CreateGlobalsObject(string[]? args)
-    {
-        return new ScriptGlobals(console, args ?? []);
-    }
+        => new(console, args ?? []);
 }

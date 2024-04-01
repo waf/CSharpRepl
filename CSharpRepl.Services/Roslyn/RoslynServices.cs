@@ -6,7 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Completion;
@@ -47,6 +49,7 @@ public sealed partial class RoslynServices
     private readonly SemaphoreSlim semaphore = new(1);
     private readonly IPromptCallbacks defaultPromptCallbacks = new PromptCallbacks();
     private readonly ThreadLocal<OverloadItemGenerator> overloadItemGenerator;
+    private readonly CSharpParseOptions parseOptions = CSharpParseOptions.Default.WithKind(SourceCodeKind.Script).WithLanguageVersion(LanguageVersion.Latest);
     private ScriptRunner? scriptRunner;
     private WorkspaceManager? workspaceManager;
     private Disassembler? disassembler;
@@ -78,7 +81,7 @@ public sealed partial class RoslynServices
         {
             logger.Log("Starting background initialization");
 
-            this.referenceService = new AssemblyReferenceService(config, logger);
+            this.referenceService = new AssemblyReferenceService(config, parseOptions, logger);
 
             this.compilationOptions = new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
@@ -91,9 +94,9 @@ public sealed partial class RoslynServices
             // is updated alongside. The workspace is a datamodel used in "editor services" like
             // syntax highlighting, autocompletion, and roslyn symbol queries.
             this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger);
-            this.scriptRunner = new ScriptRunner(workspaceManager, compilationOptions, referenceService, console, config);
+            this.scriptRunner = new ScriptRunner(workspaceManager, parseOptions, compilationOptions, referenceService, console, config);
 
-            this.disassembler = new Disassembler(compilationOptions, referenceService, scriptRunner);
+            this.disassembler = new Disassembler(parseOptions, compilationOptions, referenceService, scriptRunner);
             this.prettyPrinter = new PrettyPrinter(console, highlighter, config);
             this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
             this.autocompleteService = new AutoCompleteService(highlighter, cache, config);
@@ -112,7 +115,7 @@ public sealed partial class RoslynServices
             //each RunCompilation (modifies script state) and UpdateCurrentDocument (changes CurrentDocument) cannot be run concurrently
             await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-            input = input.Trim();
+            input = await InterceptInputWhenRefStructReturnNeedsToBeHandled(input.Trim(), cancellationToken).ConfigureAwait(false);
             EvaluatingInput?.Invoke(input);
 
             var result = await scriptRunner
@@ -426,7 +429,22 @@ public sealed partial class RoslynServices
 
             logger.Log("Warm-up Starting");
 
-            var evaluationTask = EvaluateAsync(@"_ = ""REPL Warmup""", args);
+            const string RuntimeHelperName = "CSharpRepl.Services.RuntimeHelper.cs";
+            Task evaluationTask;
+            using (var runtimeHelperStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(RuntimeHelperName))
+            {
+                if (runtimeHelperStream != null)
+                {
+                    var runtimeHelperText = new StreamReader(runtimeHelperStream).ReadToEnd();
+                    evaluationTask = EvaluateAsync(runtimeHelperText, args);
+                }
+                else
+                {
+                    evaluationTask = Task.CompletedTask;
+                    console.WriteErrorLine($"Unable to load '{RuntimeHelperName}'");
+                }
+            }
+
             var highlightTask = SyntaxHighlightAsync(@"_ = ""REPL Warmup""");
             var formattingTask = FormatInput(@"_=""REPL Warmup"";", caret: 16, formatParentNodeOnly: false, default);
             var completionTask = Task.WhenAny(
@@ -439,4 +457,69 @@ public sealed partial class RoslynServices
             await Task.WhenAll(evaluationTask, highlightTask, formattingTask, completionTask).ConfigureAwait(false);
             logger.Log("Warm-up Complete");
         });
+
+    private async Task<string> InterceptInputWhenRefStructReturnNeedsToBeHandled(string input, CancellationToken cancellationToken)
+    {
+        await Initialization.ConfigureAwait(false);
+
+        if ((await scriptRunner.HasValueReturningStatement(input, cancellationToken).ConfigureAwait(false)).TryGet(out var result))
+        {
+            var root = result.Expression.SyntaxTree.GetRoot(cancellationToken);
+            var expressionToBeWrapped = result.Expression;
+            var wrappedExpression = expressionToBeWrapped;
+            if (result.Type is { Name: "Span" or "ReadOnlySpan", ContainingNamespace.Name: "System" })
+            {
+                wrappedExpression = Wrap(nameof(__CSharpRepl_RuntimeHelper.HandleSpanOutput), result.Expression);
+            }
+            else if (result.Type is { Name: "Memory" or "ReadOnlyMemory", ContainingNamespace.Name: "System" })
+            {
+                wrappedExpression = Wrap(nameof(__CSharpRepl_RuntimeHelper.HandleMemoryOutput), result.Expression);
+            }
+            else if (result.Type.IsRefLikeType)
+            {
+                var toStringMethod = result.Type
+                    .GetMembers(nameof(ToString))
+                    .OfType<IMethodSymbol>()
+                    .Where(m => m.ReturnType.SpecialType == SpecialType.System_String && m.Parameters.Length == 0 && m.IsOverride)
+                    .FirstOrDefault();
+
+                if (toStringMethod != null)
+                {
+                    expressionToBeWrapped = SyntaxFactory.InvocationExpression(
+                        SyntaxFactory.MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            expressionToBeWrapped,
+                            SyntaxFactory.IdentifierName(nameof(ToString))));
+                }
+                else
+                {
+                    expressionToBeWrapped = SyntaxFactory.LiteralExpression(
+                        SyntaxKind.StringLiteralExpression,
+                        SyntaxFactory.Literal($"Cannot output a value of '{result.Type.Name}' because it's a ref-struct. It has to override ToString() to see its value."));
+                }
+                wrappedExpression = Wrap(
+                    nameof(__CSharpRepl_RuntimeHelper.HandleRefStructOutput),
+                    expressionToBeWrapped);
+            }
+
+            if (result.Expression != wrappedExpression)
+            {
+                root = root.ReplaceNode(result.Expression, wrappedExpression);
+                return root.GetText().ToString();
+            }
+        }
+        return input;
+
+        static ExpressionSyntax Wrap(string runtimeHelperMethod, ExpressionSyntax expressionToBeWrapped) =>
+             SyntaxFactory.InvocationExpression(
+                            SyntaxFactory.MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                SyntaxFactory.IdentifierName(nameof(__CSharpRepl_RuntimeHelper)),
+                                SyntaxFactory.IdentifierName(runtimeHelperMethod)))
+                        .WithArgumentList(
+                            SyntaxFactory.ArgumentList(
+                                SyntaxFactory.SingletonSeparatedList(
+                                    SyntaxFactory.Argument(
+                                        expressionToBeWrapped))));
+    }
 }

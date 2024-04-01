@@ -34,14 +34,16 @@ internal sealed class AssemblyReferenceService
     private readonly HashSet<string> implementationAssemblyPaths;
     private readonly HashSet<string> sharedFrameworkImplementationAssemblyPaths;
     private readonly HashSet<UsingDirectiveSyntax> usings;
+    private readonly CSharpParseOptions parseOptions;
 
     public IReadOnlySet<string> ImplementationAssemblyPaths => implementationAssemblyPaths;
     public IReadOnlySet<MetadataReference> LoadedImplementationAssemblies => loadedImplementationAssemblies;
     public IReadOnlySet<MetadataReference> LoadedReferenceAssemblies => loadedReferenceAssemblies;
     public IReadOnlyCollection<UsingDirectiveSyntax> Usings => usings;
 
-    public AssemblyReferenceService(Configuration config, ITraceLogger logger)
+    public AssemblyReferenceService(Configuration config, CSharpParseOptions parseOptions, ITraceLogger logger)
     {
+        this.parseOptions = parseOptions;
         this.dotnetInstallationLocator = new DotNetInstallationLocator(logger);
         this.referenceAssemblyPaths = [];
         this.implementationAssemblyPaths = [];
@@ -201,7 +203,7 @@ internal sealed class AssemblyReferenceService
     }
 
     internal IReadOnlyCollection<UsingDirectiveSyntax> GetUsings(string code) =>
-        CSharpSyntaxTree.ParseText(code)
+        CSharpSyntaxTree.ParseText(code, parseOptions)
             .GetRoot()
             .DescendantNodes()
             .OfType<UsingDirectiveSyntax>()
@@ -210,7 +212,7 @@ internal sealed class AssemblyReferenceService
     internal void TrackUsings(IReadOnlyCollection<UsingDirectiveSyntax> usingsToAdd) =>
         usings.UnionWith(usingsToAdd);
 
-    private IReadOnlyCollection<MetadataReference> CreateDefaultReferences(string assemblyPath, IReadOnlyCollection<string> assemblies)
+    private List<PortableExecutableReference> CreateDefaultReferences(string assemblyPath, IReadOnlyCollection<string> assemblies)
     {
         return assemblies
             .AsParallel()

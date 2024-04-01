@@ -54,6 +54,11 @@
     </AssemblyAttribute>
   </ItemGroup>
 
+
+	<ItemGroup>
+	  <EmbeddedResource Include="RuntimeHelper.cs" />
+	</ItemGroup>
+
   <ItemGroup>
     <None Update="runtime.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

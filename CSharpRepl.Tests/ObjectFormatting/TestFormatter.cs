@@ -1,6 +1,5 @@
 ﻿#nullable enable
 
-using System;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.Roslyn.Formatting.CustomObjectFormatters;

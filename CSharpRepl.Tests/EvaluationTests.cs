@@ -197,4 +197,73 @@ public class EvaluationTests : IAsyncLifetime
         var isWin = Environment.OSVersion.Platform == PlatformID.Win32NT;
         Assert.Equal(isWin, winRuntimeSelected);
     }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/318
+    /// </summary>
+    [Fact]
+    public async Task Evaluate_SpanResult()
+    {
+
+        var eval1 = await services.EvaluateAsync(@"new[]{1,2,3}.AsSpan()");
+        dynamic r1 = Assert.IsType<EvaluationResult.Success>(eval1).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r1.GetType().FullName);
+        Assert.Equal(3, r1.Count);
+        Assert.Equal(typeof(Span<int>), r1.OriginalType);
+
+        var eval2 = await services.EvaluateAsync(@"(ReadOnlySpan<int>)[1,2,3]");
+        dynamic r2 = Assert.IsType<EvaluationResult.Success>(eval2).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r2.GetType().FullName);
+        Assert.Equal(3, r2.Count);
+        Assert.Equal(typeof(ReadOnlySpan<int>), r2.OriginalType);
+
+        var eval3 = await services.EvaluateAsync(@"""Hello World"".AsSpan()");
+        dynamic r3 = Assert.IsType<EvaluationResult.Success>(eval3).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput)}", r3.GetType().FullName);
+        Assert.Equal(11, r3.Count);
+        Assert.Equal(typeof(ReadOnlySpan<char>), r3.OriginalType);
+    }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/317
+    /// </summary>
+    [Fact]
+    public async Task Evaluate_MemoryResult()
+    {
+
+        var eval1 = await services.EvaluateAsync(@"new[]{1,2,3}.AsMemory()");
+        dynamic r1 = Assert.IsType<EvaluationResult.Success>(eval1).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r1.GetType().FullName);
+        Assert.Equal(3, r1.Count);
+        Assert.Equal(typeof(Memory<int>), r1.OriginalType);
+
+        var eval2 = await services.EvaluateAsync(@"(ReadOnlyMemory<int>)new[] { 1, 2, 3 }.AsMemory()");
+        dynamic r2 = Assert.IsType<EvaluationResult.Success>(eval2).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r2.GetType().FullName);
+        Assert.Equal(3, r2.Count);
+        Assert.Equal(typeof(ReadOnlyMemory<int>), r2.OriginalType);
+
+        var eval3 = await services.EvaluateAsync(@"""Hello World"".AsMemory()");
+        dynamic r3 = Assert.IsType<EvaluationResult.Success>(eval3).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput)}", r3.GetType().FullName);
+        Assert.Equal(11, r3.Count);
+        Assert.Equal(typeof(ReadOnlyMemory<char>), r3.OriginalType);
+    }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/318
+    /// </summary>
+    [Fact]
+    public async Task Evaluate_RefStructResult()
+    {
+        var e1 = await services.EvaluateAsync(@"ref struct S; default(S)");
+        var r1 = Assert.IsType<EvaluationResult.Success>(e1).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.RefStructOutput)}", r1.GetType().FullName);
+        Assert.Equal($"Cannot output a value of 'S' because it's a ref-struct. It has to override ToString() to see its value.", r1.ToString());
+
+        var e2 = await services.EvaluateAsync(@"ref struct S{public override string ToString()=>""custom result"";} default(S)");
+        var r2 = Assert.IsType<EvaluationResult.Success>(e2).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.RefStructOutput)}", r2.GetType().FullName);
+        Assert.Equal("custom result", r2.ToString());
+    }
 }
