@@ -6,19 +6,25 @@
 
 public static class __CSharpRepl_RuntimeHelper
 {
-    public static SpanOutput HandleSpanOutput<T>(System.Span<T> span) => SpanOutput.Create<T>(span, false);
-    public static SpanOutput HandleSpanOutput<T>(System.ReadOnlySpan<T> span) => SpanOutput.Create(span, true);
+    public static SpanOutput HandleSpanOutput<T>(System.Span<T> span) => SpanOutput.Create<T>(span, typeof(System.Span<T>));
+    public static SpanOutput HandleSpanOutput<T>(System.ReadOnlySpan<T> span) => SpanOutput.Create(span, typeof(System.ReadOnlySpan<T>));
 
-    public static CharSpanOutput HandleSpanOutput(System.Span<char> span) => CharSpanOutput.Create(span, false);
-    public static CharSpanOutput HandleSpanOutput(System.ReadOnlySpan<char> span) => CharSpanOutput.Create(span, true);
+    public static CharSpanOutput HandleSpanOutput(System.Span<char> span) => CharSpanOutput.Create(span, typeof(System.Span<char>));
+    public static CharSpanOutput HandleSpanOutput(System.ReadOnlySpan<char> span) => CharSpanOutput.Create(span, typeof(System.ReadOnlySpan<char>));
+
+    public static SpanOutput HandleMemoryOutput<T>(System.Memory<T> memory) => SpanOutput.Create<T>(memory.Span, typeof(System.Memory<T>));
+    public static SpanOutput HandleMemoryOutput<T>(System.ReadOnlyMemory<T> memory) => SpanOutput.Create(memory.Span, typeof(System.ReadOnlyMemory<T>));
+
+    public static CharSpanOutput HandleMemoryOutput(System.Memory<char> memory) => CharSpanOutput.Create(memory.Span, typeof(System.Memory<char>));
+    public static CharSpanOutput HandleMemoryOutput(System.ReadOnlyMemory<char> memory) => CharSpanOutput.Create(memory.Span, typeof(System.ReadOnlyMemory<char>));
 
     public static RefStructOutput HandleRefStructOutput(string text) => new(text);
 
-    public abstract class SpanOutputBase(int originalLength, bool spanWasReadOnly) 
+    public abstract class SpanOutputBase(int originalLength, System.Type originalType)
         : System.Collections.IEnumerable
     {
         public readonly int OriginalLength = originalLength;
-        public readonly bool SpanWasReadOnly = spanWasReadOnly;
+        public readonly System.Type OriginalType = originalType;
 
         //Necessary for correct output formatting.
         public int Count => OriginalLength;
@@ -26,23 +32,23 @@ public static class __CSharpRepl_RuntimeHelper
         public abstract System.Collections.IEnumerator GetEnumerator();
     }
 
-    public sealed class SpanOutput(System.Array array, int originalLength, bool spanWasReadOnly) 
-        : SpanOutputBase(originalLength, spanWasReadOnly)
+    public sealed class SpanOutput(System.Array array, int originalLength, System.Type originalType)
+        : SpanOutputBase(originalLength, originalType)
     {
         private const int MaxLength = 1024;
 
-        public readonly System.Array Array = array;
+        private readonly System.Array array = array;
 
-        public override System.Collections.IEnumerator GetEnumerator() => Array.GetEnumerator();
+        public override System.Collections.IEnumerator GetEnumerator() => array.GetEnumerator();
 
-        public static SpanOutput Create<T>(System.ReadOnlySpan<T> span, bool spanWasReadOnly) => new(
+        public static SpanOutput Create<T>(System.ReadOnlySpan<T> span, System.Type originalType) => new(
             span[..System.Math.Min(MaxLength, span.Length)].ToArray(),
             span.Length,
-            spanWasReadOnly);
+            originalType);
     }
 
-    public sealed class CharSpanOutput(string text, int originalLength, bool spanWasReadOnly) 
-        : SpanOutputBase(originalLength, spanWasReadOnly)
+    public sealed class CharSpanOutput(string text, int originalLength, System.Type originalType)
+        : SpanOutputBase(originalLength, originalType)
     {
         private const int MaxLength = 10_000;
 
@@ -50,7 +56,7 @@ public static class __CSharpRepl_RuntimeHelper
 
         public override System.Collections.IEnumerator GetEnumerator() => Text.GetEnumerator();
 
-        public static CharSpanOutput Create(System.ReadOnlySpan<char> span, bool spanWasReadOnly)
+        public static CharSpanOutput Create(System.ReadOnlySpan<char> span, System.Type originalType)
         {
             var len = System.Math.Min(MaxLength, span.Length);
             System.Span<char> buffer = stackalloc char[len];
@@ -61,7 +67,7 @@ public static class __CSharpRepl_RuntimeHelper
                 buffer[^2] = '.';
                 buffer[^3] = '.';
             }
-            return new(buffer.ToString(), span.Length, spanWasReadOnly);
+            return new(buffer.ToString(), span.Length, originalType);
         }
     }
 

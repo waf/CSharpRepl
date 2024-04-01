@@ -143,30 +143,27 @@ internal sealed class IEnumerableFormatter : CustomObjectFormatter<IEnumerable>
         if (type.FullName?.EndsWith(typeof(__CSharpRepl_RuntimeHelper.CharSpanOutput).FullName!) == true)
         {
             if (type.GetField(nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput.Text))?.GetValue(value) is string text &&
-                type.GetField(nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput.SpanWasReadOnly))?.GetValue(value) is bool readOnly)
+                type.GetField(nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput.OriginalType))?.GetValue(value) is Type originalType)
             {
-                type = readOnly ? typeof(ReadOnlySpan<char>) : typeof(Span<char>);
-
-                AppendTypeName(isArray: false);
+                AppendTypeName(originalType, isArray: false);
                 sb.Append(Environment.NewLine);
                 sb.Append(formatter.FormatObjectToText(text, Level.FirstDetailed));
-                return false; 
+                return false;
             }
         }
         else if (type.FullName?.EndsWith(typeof(__CSharpRepl_RuntimeHelper.SpanOutput).FullName!) == true)
         {
-            if (type.GetField(nameof(__CSharpRepl_RuntimeHelper.SpanOutput.Array))?.GetValue(value)  is Array array &&
-                type.GetField(nameof(__CSharpRepl_RuntimeHelper.SpanOutput.SpanWasReadOnly))?.GetValue(value) is bool readOnly)
+            if (type.GetField(nameof(__CSharpRepl_RuntimeHelper.SpanOutput.OriginalType))?.GetValue(value) is Type originalType)
             {
-                type = (readOnly ? typeof(ReadOnlySpan<>) : typeof(Span<>)).MakeGenericType(array.GetType().GetElementType() ?? array.GetType());
+                type = originalType;
             }
         }
 
         var isArray = value is Array;
-        AppendTypeName(isArray);
+        AppendTypeName(type, isArray);
         return true;
 
-        void AppendTypeName(bool isArray)
+        void AppendTypeName(Type type, bool isArray)
         {
             sb.Append(
                 formatter.FormatTypeName(

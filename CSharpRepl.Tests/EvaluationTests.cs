@@ -12,7 +12,6 @@ using CSharpRepl.Services.Dotnet;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using Xunit;
-using static PrettyPrompt.Highlighting.FormattedString.TextElementsEnumerator;
 
 namespace CSharpRepl.Tests;
 
@@ -210,19 +209,45 @@ public class EvaluationTests : IAsyncLifetime
         dynamic r1 = Assert.IsType<EvaluationResult.Success>(eval1).ReturnValue.Value;
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r1.GetType().FullName);
         Assert.Equal(3, r1.Count);
-        Assert.Equal(false, r1.SpanWasReadOnly);
+        Assert.Equal(typeof(Span<int>), r1.OriginalType);
 
         var eval2 = await services.EvaluateAsync(@"(ReadOnlySpan<int>)[1,2,3]");
         dynamic r2 = Assert.IsType<EvaluationResult.Success>(eval2).ReturnValue.Value;
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r2.GetType().FullName);
         Assert.Equal(3, r2.Count);
-        Assert.Equal(true, r2.SpanWasReadOnly);
+        Assert.Equal(typeof(ReadOnlySpan<int>), r2.OriginalType);
 
         var eval3 = await services.EvaluateAsync(@"""Hello World"".AsSpan()");
         dynamic r3 = Assert.IsType<EvaluationResult.Success>(eval3).ReturnValue.Value;
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput)}", r3.GetType().FullName);
         Assert.Equal(11, r3.Count);
-        Assert.Equal(true, r3.SpanWasReadOnly);
+        Assert.Equal(typeof(ReadOnlySpan<char>), r3.OriginalType);
+    }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/317
+    /// </summary>
+    [Fact]
+    public async Task Evaluate_MemoryResult()
+    {
+
+        var eval1 = await services.EvaluateAsync(@"new[]{1,2,3}.AsMemory()");
+        dynamic r1 = Assert.IsType<EvaluationResult.Success>(eval1).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r1.GetType().FullName);
+        Assert.Equal(3, r1.Count);
+        Assert.Equal(typeof(Memory<int>), r1.OriginalType);
+
+        var eval2 = await services.EvaluateAsync(@"(ReadOnlyMemory<int>)new[] { 1, 2, 3 }.AsMemory()");
+        dynamic r2 = Assert.IsType<EvaluationResult.Success>(eval2).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r2.GetType().FullName);
+        Assert.Equal(3, r2.Count);
+        Assert.Equal(typeof(ReadOnlyMemory<int>), r2.OriginalType);
+
+        var eval3 = await services.EvaluateAsync(@"""Hello World"".AsMemory()");
+        dynamic r3 = Assert.IsType<EvaluationResult.Success>(eval3).ReturnValue.Value;
+        Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput)}", r3.GetType().FullName);
+        Assert.Equal(11, r3.Count);
+        Assert.Equal(typeof(ReadOnlyMemory<char>), r3.OriginalType);
     }
 
     /// <summary>
