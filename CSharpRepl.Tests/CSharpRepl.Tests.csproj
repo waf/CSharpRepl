@@ -14,13 +14,13 @@
   </ItemGroup>
 
   <ItemGroup>
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageReference Include="NSubstitute" Version="5.1.0" />
     <PackageReference Include="PrettyPrompt" Version="4.1.1" />
-    <PackageReference Include="Spectre.Console.Testing" Version="0.48.0" />
+    <PackageReference Include="Spectre.Console.Testing" Version="0.49.1" />
     <PackageReference Include="System.IO.Abstractions.TestingHelpers" Version="21.0.2" />
-    <PackageReference Include="xunit" Version="2.7.1" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.8">
+    <PackageReference Include="xunit" Version="2.8.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

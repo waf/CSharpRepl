@@ -18,9 +18,9 @@
     <PackageReference Include="Microsoft.Build.Locator" Version="1.7.8" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0" />
-    <PackageReference Include="Microsoft.SymbolStore" Version="1.0.517501" />
+    <PackageReference Include="Microsoft.SymbolStore" Version="1.0.527403" />
     <PackageReference Include="PrettyPrompt" Version="4.1.1" />
-    <PackageReference Include="Spectre.Console.Cli" Version="0.48.0" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.49.1" />
     <PackageReference Include="System.IO.Abstractions" Version="21.0.2" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
   </ItemGroup>
@@ -32,19 +32,19 @@
 	https://github.com/OmniSharp/omnisharp-roslyn/commit/efeafeca33abe1d19659ed8c7ebab1d7c3481188
 	-->
   <ItemGroup>
-		<PackageReference Include="NuGet.PackageManagement" Version="6.9.1" />
-		<PackageReference Include="NuGet.Common" Version="6.9.1" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Commands" Version="6.9.1" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Credentials" Version="6.9.1" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Configuration" Version="6.9.1" PrivateAssets="all" />
-		<PackageReference Include="NuGet.DependencyResolver.Core" Version="6.9.1" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Frameworks" Version="6.9.1" PrivateAssets="all" />
-		<PackageReference Include="NuGet.LibraryModel" Version="6.9.1" PrivateAssets="all" />
+		<PackageReference Include="NuGet.PackageManagement" Version="6.10.0" />
+		<PackageReference Include="NuGet.Common" Version="6.10.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Commands" Version="6.10.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Credentials" Version="6.10.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Configuration" Version="6.10.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.DependencyResolver.Core" Version="6.10.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Frameworks" Version="6.10.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.LibraryModel" Version="6.10.0" PrivateAssets="all" />
 		<PackageReference Include="NuGet.Packaging.Core" Version="6.9.1" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Packaging" Version="6.9.1" PrivateAssets="all" />
-		<PackageReference Include="NuGet.ProjectModel" Version="6.9.1" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Protocol" Version="6.9.1" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Versioning" Version="6.9.1" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Packaging" Version="6.10.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.ProjectModel" Version="6.10.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Protocol" Version="6.10.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Versioning" Version="6.10.0" PrivateAssets="all" />
 	</ItemGroup>
 
 
