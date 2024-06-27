@@ -35,9 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-    <_Parameter1>CSharpRepl.Tests</_Parameter1>
-    </AssemblyAttribute>
+    <InternalsVisibleTo Include="CSharpRepl.Tests" />
   </ItemGroup>
 
   <ItemGroup>
