@@ -1,6 +1,4 @@
-<div align="center" style="text-align:center"><a href="https://www.nuget.org/packages/CSharpRepl"><img alt="NuGet Version" src="https://img.shields.io/nuget/v/CSharpRepl"></a></div>
-
-# C# REPL
+# C# REPL <a href="https://www.nuget.org/packages/CSharpRepl" align="right"><img alt="NuGet Version" src="https://img.shields.io/nuget/v/CSharpRepl?color=004880&style=for-the-badge" align="right" /></a>
 
 A cross-platform command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> for the rapid experimentation and exploration of C#. It supports intellisense, installing NuGet packages, and referencing local .NET projects and assemblies.
 
