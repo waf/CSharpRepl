@@ -52,7 +52,7 @@ internal sealed class DebugSymbolLoader : IDisposable
 
         foreach (var server in Configuration.SymbolServers)
         {
-            store = new HttpSymbolStore(logger, store, new Uri(server), null);
+            store = new HttpSymbolStore(logger, store, new Uri(server), accessToken: null);
         }
 
         var cacheDirectory = Path.Combine(Configuration.ApplicationDirectory, "symbols");

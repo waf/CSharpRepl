@@ -40,7 +40,7 @@ public sealed class Configuration
     public static readonly IReadOnlyCollection<string> SymbolServers =
     [
         "https://symbols.nuget.org/download/symbols/",
-        "http://msdl.microsoft.com/download/symbols/"
+        "https://msdl.microsoft.com/download/symbols/"
     ];
 
     public HashSet<string> References { get; }
