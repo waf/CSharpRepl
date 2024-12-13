@@ -4,7 +4,7 @@
 
 //This file loaded from resources and injected into CSharpRepl session in the warm-up phase.
 
-public static class __CSharpRepl_RuntimeHelper
+internal static class __CSharpRepl_RuntimeHelper
 {
     public static SpanOutput HandleSpanOutput<T>(System.Span<T> span) => SpanOutput.Create<T>(span, typeof(System.Span<T>));
     public static SpanOutput HandleSpanOutput<T>(System.ReadOnlySpan<T> span) => SpanOutput.Create(span, typeof(System.ReadOnlySpan<T>));

@@ -15,7 +15,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using CSharpRepl.Services;
-using CSharpRepl.Services.Completion.OpenAI;
+using CSharpRepl.Services.Completion;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Theming;
 using PrettyPrompt.Highlighting;
@@ -123,16 +123,6 @@ internal static class CommandLine
         description: "OpenAI model configuration"
     );
 
-    private static readonly Option<double?> OpenAITemperature = new(
-        aliases: ["--openAITemperature"],
-        description: "OpenAI temperature configuration"
-    );
-
-    private static readonly Option<double?> OpenAITopProbability = new(
-        aliases: ["--openAITopProbability"],
-        description: "OpenAI top_p configuration"
-    );
-
     private static readonly Option<int?> OpenAIHistoryCount = new(
         aliases: ["--openAIHistoryCount"],
         description: "Maximum number of previous REPL entries to send to OpenAI as context."
@@ -199,7 +189,7 @@ internal static class CommandLine
         {
             References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, UsePrereleaseNugets,
             StreamPipedInput, Trace, Version, Help, TabSize,
-            OpenAIApiKey, OpenAIPrompt, OpenAIModel, OpenAIHistoryCount, OpenAITemperature, OpenAITopProbability,
+            OpenAIApiKey, OpenAIPrompt, OpenAIModel, OpenAIHistoryCount,
             TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings,
             Configure, Culture,
         };
@@ -250,9 +240,7 @@ internal static class CommandLine
                 apiKey: commandLine.GetValueForOption(OpenAIApiKey) ?? OpenAICompleteService.ApiKey,
                 prompt: commandLine.GetValueForOption(OpenAIPrompt) ?? OpenAICompleteService.DefaultPrompt,
                 model: commandLine.GetValueForOption(OpenAIModel) ?? OpenAICompleteService.DefaultModel,
-                historyCount: commandLine.GetValueForOption(OpenAIHistoryCount) ?? OpenAICompleteService.DefaultHistoryEntryCount,
-                temperature: commandLine.GetValueForOption(OpenAITemperature) ?? OpenAICompleteService.DefaultTemperature,
-                topProbability: commandLine.GetValueForOption(OpenAITopProbability)
+                historyCount: commandLine.GetValueForOption(OpenAIHistoryCount) ?? OpenAICompleteService.DefaultHistoryEntryCount
             ),
             cultureName: commandLine.GetValueForOption(Culture)
         );
@@ -382,8 +370,6 @@ internal static class CommandLine
             $"  [green]--openAIApiKey[/]:                             {OpenAIApiKey.Description}" + NewLine +
             $"  [green]--openAIPrompt[/]:                             {OpenAIPrompt.Description}" + NewLine +
             $"  [green]--openAIModel[/]:                              {OpenAIModel.Description}" + NewLine +
-            $"  [green]--openAITemperature[/]:                        {OpenAITemperature.Description}" + NewLine +
-            $"  [green]--openAITopProbability[/]:                     {OpenAITopProbability.Description}" + NewLine +
             $"  [green]--openAIHistoryCount[/]:                       {OpenAIHistoryCount.Description}" + NewLine +
             NewLine +
             $"  Help and Diagnostics" + NewLine +

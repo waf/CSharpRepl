@@ -51,7 +51,7 @@ internal sealed class AutoCompleteService
                 .ConfigureAwait(false);
 
             var completionsWithDescriptions = completions?.ItemsList
-                .Where(item => !(item.IsComplexTextEdit && item.InlineDescription.Length > 0)) //TODO https://github.com/waf/CSharpRepl/issues/236
+                .Where(item => item.DisplayText != nameof(__CSharpRepl_RuntimeHelper) && !(item.IsComplexTextEdit && item.InlineDescription.Length > 0)) //TODO https://github.com/waf/CSharpRepl/issues/236
                 .Select(item => new CompletionItemWithDescription(item, GetDisplayText(item), cancellationToken => GetExtendedDescriptionAsync(completionService, document, item, highlighter)))
                 .ToArray() ?? [];
 
