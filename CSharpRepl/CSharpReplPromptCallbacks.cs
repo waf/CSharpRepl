@@ -8,12 +8,10 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Completion;
-using CSharpRepl.Services.Completion.OpenAI;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SymbolExploration;
@@ -38,12 +36,12 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
     private readonly Configuration configuration;
     private readonly OpenAICompleteService openAIComplete;
 
-    public CSharpReplPromptCallbacks(IConsoleEx console, RoslynServices roslyn, Configuration configuration, HttpMessageHandler? httpMessageHandler = null)
+    public CSharpReplPromptCallbacks(IConsoleEx console, RoslynServices roslyn, Configuration configuration)
     {
         this.console = console;
         this.roslyn = roslyn;
         this.configuration = configuration;
-        this.openAIComplete = new OpenAICompleteService(configuration.OpenAIConfiguration, httpMessageHandler);
+        this.openAIComplete = new OpenAICompleteService(configuration.OpenAIConfiguration);
     }
 
     protected override IEnumerable<(KeyPressPattern Pattern, KeyPressCallbackAsync Callback)> GetKeyPressCallbacks()

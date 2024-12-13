@@ -243,20 +243,16 @@ public sealed class Configuration
 
 public class OpenAIConfiguration
 {
-    public OpenAIConfiguration(string? apiKey, string prompt, string model, int historyCount, double? temperature, double? topProbability)
+    public OpenAIConfiguration(string? apiKey, string prompt, string model, int historyCount)
     {
         ApiKey = apiKey;
         Prompt = prompt;
         Model = model;
         HistoryCount = historyCount;
-        Temperature = temperature;
-        TopProbability = topProbability;
     }
 
     public string? ApiKey { get; }
     public string Prompt { get; }
     public string Model { get; }
     public int HistoryCount { get; }
-    public double? Temperature { get; }
-    public double? TopProbability { get; }
 }
