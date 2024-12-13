@@ -84,6 +84,11 @@ internal sealed class SymbolExplorer
 
         foreach (var key in debugSymbolLoader.GetSymbolFileNames()) // we'll choose the first pdb we can successfully load. This will skip over e.g. Windows pdb files.
         {
+            if (key.FullPathName.Contains(".ni.pdb"))
+            {
+                continue;
+            }
+
             using SymbolStoreFile symbolFile = await debugSymbolLoader.DownloadSymbolFile(key, CancellationToken.None);
 
             var symbolReader = debugSymbolLoader.ReadPortablePdb(symbolFile);
