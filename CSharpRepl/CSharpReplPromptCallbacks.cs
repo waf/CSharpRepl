@@ -132,8 +132,38 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
 
     protected override async Task<IReadOnlyCollection<FormatSpan>> HighlightCallbackAsync(string text, CancellationToken cancellationToken)
     {
+        var replKeywordSpan = HighlightReplKeyword(text);
+        if (replKeywordSpan is not null)
+        {
+            return [replKeywordSpan.Value];
+        }
+
         var classifications = await roslyn.SyntaxHighlightAsync(text).ConfigureAwait(false);
         return classifications.ToFormatSpans();
+    }
+
+    private static FormatSpan? HighlightReplKeyword(string text)
+    {
+        var trimmed = text.Trim().ToLowerInvariant();
+        switch (trimmed)
+        {
+            case ReadEvalPrintLoop.Keywords.HelpText:
+            case "#help":
+                return FullSpanWithColor(ReadEvalPrintLoop.Keywords.HelpInfo.Color);
+
+            case ReadEvalPrintLoop.Keywords.ExitText:
+                return FullSpanWithColor(ReadEvalPrintLoop.Keywords.ExitInfo.Color);
+
+            case ReadEvalPrintLoop.Keywords.ClearText:
+                return FullSpanWithColor(ReadEvalPrintLoop.Keywords.ClearInfo.Color);
+        }
+
+        return null;
+
+        FormatSpan? FullSpanWithColor(AnsiColor color)
+        {
+            return new(0, text.Length, color);
+        }
     }
 
     protected override async Task<KeyPress> TransformKeyPressAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)

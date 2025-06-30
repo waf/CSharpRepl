@@ -204,18 +204,36 @@ Run [green]--help[/] at the command line to view these options.
         }
     }
 
-    private static string Help =>
-        PromptConfiguration.HasUserOptedOutFromColor
-        ? @"""help"""
-        : AnsiColor.Green.GetEscapeSequence() + "help" + AnsiEscapeCodes.Reset;
+    public static string Help => Keywords.Help;
+    public static string Exit => Keywords.Exit;
+    public static string Clear => Keywords.Clear;
 
-    private static string Exit =>
-        PromptConfiguration.HasUserOptedOutFromColor
-        ? @"""exit"""
-        : AnsiColor.BrightRed.GetEscapeSequence() + "exit" + AnsiEscapeCodes.Reset;
+    public static class Keywords
+    {
+        public const string HelpText = "help";
+        public const string ExitText = "exit";
+        public const string ClearText = "clear";
 
-    private static string Clear =>
-        PromptConfiguration.HasUserOptedOutFromColor
-        ? @"""clear"""
-        : AnsiColor.BrightBlue.GetEscapeSequence() + "clear" + AnsiEscapeCodes.Reset;
+        public static readonly KeywordInfo HelpInfo = new(HelpText, AnsiColor.Green);
+        public static readonly KeywordInfo ExitInfo = new(ExitText, AnsiColor.BrightRed);
+        public static readonly KeywordInfo ClearInfo = new(ClearText, AnsiColor.BrightBlue);
+
+        public static string Help => GetColoredText(HelpInfo);
+        public static string Exit => GetColoredText(ExitInfo);
+        public static string Clear => GetColoredText(ClearInfo);
+
+        private static string GetColoredText(KeywordInfo keywordInfo)
+        {
+            return GetColoredText(keywordInfo.Text, keywordInfo.Color);
+        }
+
+        private static string GetColoredText(string text, AnsiColor color)
+        {
+            return PromptConfiguration.HasUserOptedOutFromColor
+                ? $@"""{text}"""
+                : color.GetEscapeSequence() + text + AnsiEscapeCodes.Reset;
+        }
+
+        public sealed record KeywordInfo(string Text, AnsiColor Color);
+    }
 }
