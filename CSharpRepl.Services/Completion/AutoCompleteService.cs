@@ -5,6 +5,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.SyntaxHighlighting;
@@ -35,7 +36,7 @@ internal sealed class AutoCompleteService
         this.configuration = configuration;
     }
 
-    public async Task<CompletionItemWithDescription[]> Complete(Document document, string text, int caret)
+    public async Task<CompletionItemWithDescription[]> Complete(Document document, string text, int caret, CancellationToken cancellationToken)
     {
         var cacheKey = CacheKeyPrefix + document.Name + text + caret;
         if (text != string.Empty && cache.Get<CompletionItemWithDescription[]>(cacheKey) is CompletionItemWithDescription[] cached)
@@ -47,7 +48,7 @@ internal sealed class AutoCompleteService
         try
         {
             var completions = await completionService
-                .GetCompletionsAsync(document, caret)
+                .GetCompletionsAsync(document, caret, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
             var completionsWithDescriptions = completions?.ItemsList

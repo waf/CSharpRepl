@@ -94,9 +94,15 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
 
     protected override async Task<IReadOnlyList<CompletionItem>> GetCompletionItemsAsync(string text, int caret, TextSpan spanToBeReplaced, CancellationToken cancellationToken)
     {
+        return await GetCompletionItemsCoreAsync(text, caret, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Made internal for testing
+    internal async Task<IReadOnlyList<CompletionItem>> GetCompletionItemsCoreAsync(string text, int caret, CancellationToken cancellationToken = default)
+    {
         var replKeywordCompletions = GetReplKeywordCompletions();
 
-        var completions = await roslyn.CompleteAsync(text, caret).ConfigureAwait(false);
+        var completions = await roslyn.CompleteAsync(text, caret, cancellationToken).ConfigureAwait(false);
         return replKeywordCompletions
             .Concat(completions
                 .OrderByDescending(i => i.Item.Rules.MatchPriority)
