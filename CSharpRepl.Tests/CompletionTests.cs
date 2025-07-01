@@ -126,4 +126,15 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
             Assert.Equal(expectedItems[i], completions.ElementAt(i).Item.DisplayText);
         }
     }
+
+    [Theory]
+    [InlineData("he", "help")]
+    [InlineData("ex", "exit")]
+    [InlineData("cl", "clear")]
+    public async Task Complete_ReplKeywords(string source, string item)
+    {
+        var completions = await promptCallbacks.GetCompletionItemsCoreAsync(source, source.Length);
+        var completion = completions.SingleOrDefault(c => c.DisplayText == item);
+        Assert.NotNull(completion);
+    }
 }
