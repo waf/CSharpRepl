@@ -26,8 +26,8 @@
 
   <ItemGroup>
     <PackageReference Include="PrettyPrompt" Version="4.1.1" />
-    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.0" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta6.25358.103" />
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.7" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,6 +44,8 @@
   </ItemGroup>
 
   <ItemGroup>
+
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.14.0" />
     <None Update="themes\dracula.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
