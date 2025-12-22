@@ -35,10 +35,10 @@ public class ScriptArgumentTests
 
         await services.WarmUpAsync([]);
         _ = await services.EvaluateAsync("using System.Globalization;");
-        _ = await services.EvaluateAsync("CultureInfo.DefaultThreadCurrentCulture = new System.Globalization.CultureInfo(\"en-US\");");
+        _ = await services.EvaluateAsync("CultureInfo.DefaultThreadCurrentCulture = new System.Globalization.CultureInfo(System.Globalization.CultureInfo.InvariantCulture.Name);");
         var printStatement = await services.EvaluateAsync("Print(DateTime.MinValue)");
 
         Assert.IsType<EvaluationResult.Success>(printStatement);
-        Assert.Equal("[1/1/0001 12:00:00 AM]\n", console.AnsiConsole.Output);
+        Assert.Equal("[01/01/0001 00:00:00]\n", console.AnsiConsole.Output);
     }
 }
