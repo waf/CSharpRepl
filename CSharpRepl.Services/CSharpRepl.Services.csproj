@@ -16,14 +16,14 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.0.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.0.0" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.7.8" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.0" />
-    <PackageReference Include="Microsoft.SymbolStore" Version="1.0.555801" />
-    <PackageReference Include="OpenAI" Version="2.7.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.1" />
+    <PackageReference Include="Microsoft.SymbolStore" Version="1.0.662001" />
+    <PackageReference Include="OpenAI" Version="2.8.0" />
     <PackageReference Include="PrettyPrompt" Version="4.1.1" />
-    <PackageReference Include="Spectre.Console.Cli" Version="0.53.0" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.53.1" />
     <PackageReference Include="System.IO.Abstractions" Version="22.1.0" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.1" />
   </ItemGroup>
 
   <!--
@@ -33,19 +33,19 @@
 	https://github.com/OmniSharp/omnisharp-roslyn/commit/efeafeca33abe1d19659ed8c7ebab1d7c3481188
 	-->
   <ItemGroup>
-		<PackageReference Include="NuGet.PackageManagement" Version="7.0.0" />
-		<PackageReference Include="NuGet.Common" Version="7.0.0" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Commands" Version="7.0.0" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Credentials" Version="7.0.0" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Configuration" Version="7.0.0" PrivateAssets="all" />
-		<PackageReference Include="NuGet.DependencyResolver.Core" Version="7.0.0" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Frameworks" Version="7.0.0" PrivateAssets="all" />
-		<PackageReference Include="NuGet.LibraryModel" Version="7.0.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.PackageManagement" Version="7.0.1" />
+		<PackageReference Include="NuGet.Common" Version="7.0.1" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Commands" Version="7.0.1" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Credentials" Version="7.0.1" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Configuration" Version="7.0.1" PrivateAssets="all" />
+		<PackageReference Include="NuGet.DependencyResolver.Core" Version="7.0.1" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Frameworks" Version="7.0.1" PrivateAssets="all" />
+		<PackageReference Include="NuGet.LibraryModel" Version="7.0.1" PrivateAssets="all" />
 		<PackageReference Include="NuGet.Packaging.Core" Version="6.9.1" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Packaging" Version="7.0.0" PrivateAssets="all" />
-		<PackageReference Include="NuGet.ProjectModel" Version="7.0.0" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Protocol" Version="7.0.0" PrivateAssets="all" />
-		<PackageReference Include="NuGet.Versioning" Version="7.0.0" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Packaging" Version="7.0.1" PrivateAssets="all" />
+		<PackageReference Include="NuGet.ProjectModel" Version="7.0.1" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Protocol" Version="7.0.1" PrivateAssets="all" />
+		<PackageReference Include="NuGet.Versioning" Version="7.0.1" PrivateAssets="all" />
 	</ItemGroup>
 
 
