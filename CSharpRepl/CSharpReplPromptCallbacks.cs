@@ -159,14 +159,47 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         static int GetSmartIndentationLevel(string text, int caret)
         {
             int openBraces = 0;
-            var end = Math.Min(text.Length, caret);
-            for (int i = 0; i < end; i++)
+            bool inSingleLineComment = false;
+            bool inMultiLineComment = false;
+            bool inString = false;
+            bool inChar = false;
+            bool escape = false;
+
+            for (int i = 0; i < Math.Min(text.Length, caret); i++)
             {
-                var c = text[i];
-                if (c == '{') ++openBraces;
-                if (c == '}') --openBraces;
+                char c = text[i];
+                char prev = i > 0 ? text[i - 1] : '\0';
+
+                if (inSingleLineComment)
+                {
+                    if (c == '\n') inSingleLineComment = false;
+                }
+                else if (inMultiLineComment)
+                {
+                    if (prev == '*' && c == '/') inMultiLineComment = false;
+                }
+                else if (inString)
+                {
+                    if (!escape && c == '"') inString = false;
+                    escape = c == '\\' && !escape;
+                }
+                else if (inChar)
+                {
+                    if (!escape && c == '\'') inChar = false;
+                    escape = c == '\\' && !escape;
+                }
+                else
+                {
+                    if (prev == '/' && c == '/') inSingleLineComment = true;
+                    else if (prev == '/' && c == '*') inMultiLineComment = true;
+                    else if (c == '"') inString = true;
+                    else if (c == '\'') inChar = true;
+                    else if (c == '{') openBraces++;
+                    else if (c == '}') openBraces--;
+                }
             }
-            return openBraces;
+
+            return Math.Max(0, openBraces);
         }
 
         static KeyPress NewLineWithIndentation(int indentation) =>
