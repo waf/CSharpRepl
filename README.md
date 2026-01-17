@@ -3,9 +3,7 @@
 A cross-platform command line <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" target="_blank"><abbr title="Read Eval Print Loop">REPL</abbr></a> for the rapid experimentation and exploration of C#. It supports intellisense, installing NuGet packages, and referencing local .NET projects and assemblies.
 
 <div align="center">
-  <a href="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.mp4">
-    <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.png" alt="C# REPL screenshot" style="max-width:80%;">
-  </a>
+  <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/csharprepl.gif" alt="C# REPL Animated GIF" style="max-width:80%;">
   <p align="center"><i>(click to view animation)</i></p>
 </div>
 
