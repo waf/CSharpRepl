@@ -5,7 +5,7 @@ coverage:
   status:
     project:
       default:
-        target: 70% # require new commits to have at least 70% coverage
+        target: 65% # require new commits to have at least 65% coverage
         threshold: 2% # more than 2% coverage drop, fail.
     patch:
       default:

@@ -1,3 +1,9 @@
+## Release 0.6.8
+
+- .NET 10 upgrade ([#424](https://github.com/waf/CSharpRepl/pull/424)).
+- Better experience for built-in commands like help, exit, and clear ([#403](https://github.com/waf/CSharpRepl/pull/403)).
+- Autoindentation fixes ([#389](https://github.com/waf/CSharpRepl/pull/389)).
+
 ## Release 0.6.7
 
 - Add exception type name in error output panel ([#339](https://github.com/waf/CSharpRepl/pull/339)).
