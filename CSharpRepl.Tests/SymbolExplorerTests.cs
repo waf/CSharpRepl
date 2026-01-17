@@ -34,27 +34,27 @@ public class SymbolExplorerTests : IAsyncLifetime
     [Fact]
     public async Task GetSymbolAtIndex_ClassInSourceLinkedAssembly_ReturnsSourceLinkUrl()
     {
-        // should return a string like https://www.github.com/dotnet/runtime/blob/208e377a5329ad6eb1db5e5fb9d4590fa50beadd/src/libraries/System.Console/src/System/Console.cs
+        // should return a string like https://www.github.com/dotnet/dotnet/blob/b0f34d51fccc69fd334253924abd8d6853fad7aa/src/runtime/src/libraries/System.Console/src/System/Console.cs
         var symbol = await services.GetSymbolAtIndexAsync(@"Console.WriteLine(""howdy"")", "Conso".Length);
 
-        Assert.StartsWith("https://www.github.com/dotnet/runtime/", symbol.Url);
+        Assert.StartsWith("https://www.github.com/dotnet/dotnet/", symbol.Url);
         Assert.EndsWith("Console.cs", symbol.Url);
     }
 
     [Fact]
     public async Task GetSymbolAtIndex_GenericTypeInSourceLinkedAssembly_ReturnsSourceLinkUrl()
     {
-        // should return a string like https://www.github.com/dotnet/runtime/blob/1381d5ebd2ab1f292848d5b19b80cf71ac332508/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/List.cs
+        // should return a string like https://www.github.com/dotnet/dotnet/blob/b0f34d51fccc69fd334253924abd8d6853fad7aa/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/List.cs
         var symbol = await services.GetSymbolAtIndexAsync(@"List<string>", "Li".Length);
 
-        Assert.StartsWith("https://www.github.com/dotnet/runtime/", symbol.Url);
+        Assert.StartsWith("https://www.github.com/dotnet/dotnet/", symbol.Url);
         Assert.EndsWith("List.cs", symbol.Url);
     }
 
     [Fact]
     public async Task GetSymbolAtIndex_MethodInSourceLinkedAssembly_ReturnsSourceLinkUrl()
     {
-        // should return a string like https://www.github.com/dotnet/runtime/blob/208e377a5329ad6eb1db5e5fb9d4590fa50beadd/src/libraries/System.Console/src/System/Console.cs#L635-L636
+        // should return a string like https://www.github.com/dotnet/dotnet/blob/b0f34d51fccc69fd334253924abd8d6853fad7aa/src/runtime/src/libraries/System.Console/src/System/Console.cs#L733-L734
         var symbol = await services.GetSymbolAtIndexAsync(@"Console.WriteLine(""howdy"")", "Console.Wri".Length);
 
         AssertLinkWithLineNumber(symbol);
@@ -63,7 +63,7 @@ public class SymbolExplorerTests : IAsyncLifetime
     [Fact]
     public async Task GetSymbolAtIndex_PropertyInSourceLinkedAssembly_ReturnsSourceLinkUrl()
     {
-        // should return a string like https://www.github.com/dotnet/runtime/blob/208e377a5329ad6eb1db5e5fb9d4590fa50beadd/src/libraries/System.Console/src/System/Console.cs
+        // should return a string like https://www.github.com/dotnet/dotnet/blob/b0f34d51fccc69fd334253924abd8d6853fad7aa/src/runtime/src/libraries/System.Console/src/System/Console.cs
         var symbol = await services.GetSymbolAtIndexAsync(@"Console.Out", "Console.Ou".Length);
 
         AssertLinkWithLineNumber(symbol);
@@ -72,7 +72,7 @@ public class SymbolExplorerTests : IAsyncLifetime
     [Fact]
     public async Task GetSymbolAtIndex_EventInSourceLinkedAssembly_ReturnsSourceLinkUrl()
     {
-        // should return a string like https://www.github.com/dotnet/runtime/blob/208e377a5329ad6eb1db5e5fb9d4590fa50beadd/src/libraries/System.Console/src/System/Console.cs
+        // should return a string like https://www.github.com/dotnet/dotnet/blob/b0f34d51fccc69fd334253924abd8d6853fad7aa/src/runtime/src/libraries/System.Console/src/System/Console.cs
         var symbol = await services.GetSymbolAtIndexAsync(@"Console.CancelKeyPress", "Console.CancelKe".Length);
 
         AssertLinkWithLineNumber(symbol);
@@ -103,7 +103,7 @@ public class SymbolExplorerTests : IAsyncLifetime
         Assert.Equal(2, urlParts.Length);
 
         var url = urlParts[0];
-        Assert.StartsWith("https://www.github.com/dotnet/runtime/", url);
+        Assert.StartsWith("https://www.github.com/dotnet/dotnet/", url);
 
         var lineHash = urlParts[1];
         const string LinePattern = "L[0-9]+";
