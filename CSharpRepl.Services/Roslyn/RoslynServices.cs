@@ -192,13 +192,13 @@ public sealed partial class RoslynServices
             .ToList();
     }
 
-    public async Task<IReadOnlyCollection<CompletionItemWithDescription>> CompleteAsync(string text, int caret)
+    public async Task<IReadOnlyCollection<CompletionItemWithDescription>> CompleteAsync(string text, int caret, CancellationToken cancellationToken = default)
     {
         if (!Initialization.IsCompleted)
             return [];
 
         var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
-        return await autocompleteService.Complete(document, text, caret).ConfigureAwait(false);
+        return await autocompleteService.Complete(document, text, caret, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<SymbolResult> GetSymbolAtIndexAsync(string text, int caret)

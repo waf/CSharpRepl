@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -31,6 +32,9 @@ namespace CSharpRepl.PrettyPromptConfig;
 /// </summary>
 internal class CSharpReplPromptCallbacks : PromptCallbacks
 {
+    private const string lowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
+    private static SearchValues<char> lowercaseSearchValues = SearchValues.Create(lowercaseLetters);
+
     private readonly IConsoleEx console;
     private readonly RoslynServices roslyn;
     private readonly Configuration configuration;
@@ -90,12 +94,41 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
 
     protected override async Task<IReadOnlyList<CompletionItem>> GetCompletionItemsAsync(string text, int caret, TextSpan spanToBeReplaced, CancellationToken cancellationToken)
     {
-        var completions = await roslyn.CompleteAsync(text, caret).ConfigureAwait(false);
-        return completions
-            .OrderByDescending(i => i.Item.Rules.MatchPriority)
-            .ThenBy(i => i.Item.SortText)
-            .Select(CreatePrettyPromptCompletionItem)
+        return await GetCompletionItemsCoreAsync(text, caret, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Made internal for testing
+    internal async Task<IReadOnlyList<CompletionItem>> GetCompletionItemsCoreAsync(string text, int caret, CancellationToken cancellationToken = default)
+    {
+        var replKeywordCompletions = GetReplKeywordCompletions();
+
+        var completions = await roslyn.CompleteAsync(text, caret, cancellationToken).ConfigureAwait(false);
+        return replKeywordCompletions
+            .Concat(completions
+                .OrderByDescending(i => i.Item.Rules.MatchPriority)
+                .ThenBy(i => i.Item.SortText)
+                .Select(CreatePrettyPromptCompletionItem))
             .ToArray();
+
+        IEnumerable<CompletionItem> GetReplKeywordCompletions()
+        {
+            var trimmed = text.AsSpan().Trim();
+            const int largestKeywordLength = 5;
+            if (trimmed.Length > largestKeywordLength)
+            {
+                return [];
+            }
+
+            Span<char> lowercaseBuffer = stackalloc char[largestKeywordLength];
+            trimmed.ToLowerInvariant(lowercaseBuffer);
+            var lowercaseTrimmed = lowercaseBuffer.TrimEnd('\0');
+            if (lowercaseTrimmed.ContainsAnyExcept(lowercaseSearchValues))
+            {
+                return [];
+            }
+
+            return ReplKeywordCompletionItems.AllItems;
+        }
     }
 
     internal CompletionItem CreatePrettyPromptCompletionItem(CompletionItemWithDescription r)
@@ -132,8 +165,38 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
 
     protected override async Task<IReadOnlyCollection<FormatSpan>> HighlightCallbackAsync(string text, CancellationToken cancellationToken)
     {
+        var replKeywordSpan = HighlightReplKeyword(text);
+        if (replKeywordSpan is not null)
+        {
+            return [replKeywordSpan.Value];
+        }
+
         var classifications = await roslyn.SyntaxHighlightAsync(text).ConfigureAwait(false);
         return classifications.ToFormatSpans();
+    }
+
+    private static FormatSpan? HighlightReplKeyword(string text)
+    {
+        var trimmed = text.Trim().ToLowerInvariant();
+        switch (trimmed)
+        {
+            case ReadEvalPrintLoop.Keywords.HelpText:
+            case "#help":
+                return FullSpanWithColor(ReadEvalPrintLoop.Keywords.HelpInfo.Color);
+
+            case ReadEvalPrintLoop.Keywords.ExitText:
+                return FullSpanWithColor(ReadEvalPrintLoop.Keywords.ExitInfo.Color);
+
+            case ReadEvalPrintLoop.Keywords.ClearText:
+                return FullSpanWithColor(ReadEvalPrintLoop.Keywords.ClearInfo.Color);
+        }
+
+        return null;
+
+        FormatSpan FullSpanWithColor(AnsiColor color)
+        {
+            return EntireWordFormatSpan(text, color);
+        }
     }
 
     protected override async Task<KeyPress> TransformKeyPressAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
@@ -285,6 +348,42 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         browser?.WaitForExit(); // wait for exit seems to make this work better on WSL2.
 
         return null;
+    }
+
+    private static FormatSpan EntireWordFormatSpan(ReadOnlySpan<char> word, AnsiColor color)
+    {
+        return new(0, word.Length, color);
+    }
+
+    private static FormattedString EntireWordFormatString(string word, AnsiColor color)
+    {
+        return new(word, EntireWordFormatSpan(word, color));
+    }
+
+    private static FormattedString EntireWordFormatString(ReadEvalPrintLoop.Keywords.KeywordInfo keywordInfo)
+    {
+        return EntireWordFormatString(keywordInfo.Text, keywordInfo.Color);
+    }
+
+    private static class ReplKeywordCompletionItems
+    {
+        private static readonly FormattedString helpFormattedString = EntireWordFormatString(ReadEvalPrintLoop.Keywords.HelpInfo);
+        private static readonly FormattedString exitFormattedString = EntireWordFormatString(ReadEvalPrintLoop.Keywords.ExitInfo);
+        private static readonly FormattedString clearFormattedString = EntireWordFormatString(ReadEvalPrintLoop.Keywords.ClearInfo);
+
+        public static CompletionItem Help { get; } = new(
+            ReadEvalPrintLoop.Keywords.HelpText,
+            displayText: helpFormattedString);
+
+        public static CompletionItem Exit { get; } = new(
+            ReadEvalPrintLoop.Keywords.ExitText,
+            displayText: exitFormattedString);
+
+        public static CompletionItem Clear { get; } = new(
+            ReadEvalPrintLoop.Keywords.ClearText,
+            displayText: clearFormattedString);
+
+        public static IReadOnlyList<CompletionItem> AllItems = [Help, Exit, Clear];
     }
 }
 
