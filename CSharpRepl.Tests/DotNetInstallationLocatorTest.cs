@@ -1,8 +1,9 @@
-﻿using System;
+﻿using CSharpRepl.Services.Roslyn.References;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Abstractions.TestingHelpers;
-using CSharpRepl.Services.Roslyn.References;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace CSharpRepl.Tests;
@@ -37,6 +38,82 @@ public class DotNetInstallationLocatorTest
         );
         Assert.Equal(
             CrossPlatform(@"/Program Files/dotnet/shared/Microsoft.NETCore.App/5.0.10"),
+            CrossPlatform(implPath)
+        );
+    }
+
+    [Fact]
+    public void GetSharedFrameworkConfiguration_Net10Installation_IsLocated()
+    {
+        var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/9.0.0/data/FrameworkList.xml", string.Empty },
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/9.0.0/ref/net9.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.0/data/FrameworkList.xml", string.Empty },
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.0/ref/net10.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.1/data/FrameworkList.xml", string.Empty },
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.1/ref/net10.0/Microsoft.CSharp.dll", string.Empty },
+
+                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/9.0.2/Microsoft.CSharp.dll", string.Empty },
+                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/10.0.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/10.0.1/Microsoft.CSharp.dll", string.Empty }
+            });
+
+        var locator = new DotNetInstallationLocator(
+            logger: new TestTraceLogger(), io: fileSystem,
+            dotnetRuntimePath: @"/Program Files/dotnet/",
+            userProfilePath: @"/Users/bob/"
+        );
+
+        var (refPath, implPath) = locator.FindInstallation("Microsoft.NETCore.App", new Version(10, 0, 1));
+
+        Assert.Equal(
+            CrossPlatform(@"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.1/ref/net10.0"),
+            CrossPlatform(refPath)
+        );
+        Assert.Equal(
+            CrossPlatform(@"/Program Files/dotnet/shared/Microsoft.NETCore.App/10.0.1"),
+            CrossPlatform(implPath)
+        );
+    }
+
+    [Fact]
+    public void GetSharedFrameworkConfiguration_Net10UsesNuGetWhenNotInstalledGlobally()
+    {
+        string platform = OperatingSystem.IsWindows() ? "win"
+            : OperatingSystem.IsLinux() ? "linux"
+            : OperatingSystem.IsMacOS() ? "osx"
+            : null;
+
+        var architecture = RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
+
+        var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                // existing global runtimes but none for net10
+                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/9.0.0/Microsoft.CSharp.dll", string.Empty },
+
+                // reference assemblies in .nuget installation
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/10.0.0/data/FrameworkList.xml", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/10.0.0/ref/net10.0/Microsoft.CSharp.dll", string.Empty },
+
+                // implementation assemblies in .nuget installation
+                { @$"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.{platform}-{architecture}/10.0.0/runtimes/{platform}-{architecture}/lib/net10.0/Microsoft.CSharp.dll", string.Empty },
+            });
+
+        var locator = new DotNetInstallationLocator(
+            logger: new TestTraceLogger(), io: fileSystem,
+            dotnetRuntimePath: @"/Program Files/dotnet/",
+            userProfilePath: @"/Users/bob/"
+        );
+
+        var (refPath, implPath) = locator.FindInstallation("Microsoft.NETCore.App", new Version(10, 0, 0));
+
+        Assert.Equal(
+            CrossPlatform(@"/Users/bob/.nuget/packages/microsoft.netcore.app.ref/10.0.0/ref/net10.0"),
+            CrossPlatform(refPath)
+        );
+        Assert.Equal(
+            CrossPlatform(@$"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.{platform}-{architecture}/10.0.0/runtimes/{platform}-{architecture}/lib/net10.0"),
             CrossPlatform(implPath)
         );
     }
