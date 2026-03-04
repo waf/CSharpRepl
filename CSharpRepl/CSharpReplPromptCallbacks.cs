@@ -373,15 +373,18 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
 
         public static CompletionItem Help { get; } = new(
             ReadEvalPrintLoop.Keywords.HelpText,
-            displayText: helpFormattedString);
+            displayText: helpFormattedString,
+            getExtendedDescription: _ => Task.FromResult(new FormattedString("Show help and usage information for the C# REPL.")));
 
         public static CompletionItem Exit { get; } = new(
             ReadEvalPrintLoop.Keywords.ExitText,
-            displayText: exitFormattedString);
+            displayText: exitFormattedString,
+            getExtendedDescription: _ => Task.FromResult(new FormattedString("Exit the REPL. You can also press Ctrl + d.")));
 
         public static CompletionItem Clear { get; } = new(
             ReadEvalPrintLoop.Keywords.ClearText,
-            displayText: clearFormattedString);
+            displayText: clearFormattedString,
+            getExtendedDescription: _ => Task.FromResult(new FormattedString("Clear the terminal screen.")));
 
         public static IReadOnlyList<CompletionItem> AllItems = [Help, Exit, Clear];
     }
