@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="DemoSolution.DemoProject1/DemoSolution.DemoProject1.csproj" />
+  <Project Path="DemoSolution.DemoProject2/DemoSolution.DemoProject2.csproj" />
+</Solution>

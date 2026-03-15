@@ -28,6 +28,8 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
     public override bool CanResolve(string reference) =>
         reference.EndsWith(".sln", StringComparison.OrdinalIgnoreCase) ||
         reference.EndsWith(".sln\"", StringComparison.OrdinalIgnoreCase) ||
+        reference.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase) ||
+        reference.EndsWith(".slnx\"", StringComparison.OrdinalIgnoreCase) ||
         reference.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) ||
         reference.EndsWith(".csproj\"", StringComparison.OrdinalIgnoreCase);
 
@@ -57,7 +59,7 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
         var projects = Path.GetExtension(solutionOrProject) switch
         {
             ".csproj" => [await workspace.OpenProjectAsync(solutionOrProject, cancellationToken: cancellationToken)],
-            ".sln" => (await workspace.OpenSolutionAsync(solutionOrProject, cancellationToken: cancellationToken)).Projects,
+            ".sln" or ".slnx" => (await workspace.OpenSolutionAsync(solutionOrProject, cancellationToken: cancellationToken)).Projects,
             _ => throw new ArgumentException("Unexpected filetype for file " + solutionOrProject)
         };
 

@@ -167,7 +167,7 @@ If the code isn't a complete statement, pressing [green]Enter[/] will insert a n
 Use the {Reference()} command to add reference to:
   - assembly ({Reference("AssemblyName")} or {Reference("path/to/assembly.dll")}),
   - NuGet package ({Reference("nuget: PackageName")} or {Reference("nuget: PackageName, version")}),
-  - project ({Reference("path/to/my.csproj")} or {Reference("path/to/my.sln")}).
+  - project ({Reference("path/to/my.csproj")}, {Reference("path/to/my.sln")}, or {Reference("path/to/my.slnx")}).
 
 Use {Preprocessor("#load", "path-to-file")} to evaluate C# stored in files (e.g. csx files). This can
 be useful, for example, to build a [{ToColor("string")}].profile.csx[/] that includes libraries you want
