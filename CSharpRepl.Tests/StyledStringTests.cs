@@ -14,7 +14,7 @@ public class StyledStringTests
     public void SubstringSimple()
     {
         var redStyle = new Style(foreground: Color.Red);
-        foreach (var style in new[] { null, redStyle })
+        foreach (var style in new Style?[] { null, redStyle })
         {
             var text = new StyledString("abcd", style);
 

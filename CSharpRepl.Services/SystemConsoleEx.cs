@@ -24,5 +24,7 @@ public sealed class SystemConsoleEx : IConsoleEx
 
     public void Write(IRenderable renderable) => ansiConsole.Write(renderable);
 
+    public void WriteAnsi(Action<AnsiWriter> action) => ansiConsole.WriteAnsi(action);
+
     public string? ReadLine() => Console.ReadLine();
 }
