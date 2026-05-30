@@ -26,6 +26,7 @@ Thanks to everyone who contributes! The following contributors have helped out w
 - Weihan Li ([WeihanLi](https://github.com/WeihanLi))
 - Alex ([Rekkonnect](https://github.com/Rekkonnect))
 - Sakamoto ([hikarisakamoto](https://github.com/hikarisakamoto))
+- [sugiiianaaa](https://github.com/sugiiianaaa)
 
 ## PrettyPrompt Contributors
 
