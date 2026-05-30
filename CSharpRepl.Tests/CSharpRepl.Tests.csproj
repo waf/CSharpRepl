@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <!-- Applies test.runsettings automatically to `dotnet test` (disables MSBuild build server /
+         node reuse to avoid intermittent hangs in the solution-reference tests). -->
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)test.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
