@@ -44,7 +44,7 @@ namespace CSharpRepl.Services.Roslyn;
 public sealed partial class RoslynServices
 {
     private readonly SyntaxHighlighter highlighter;
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
     private readonly ITraceLogger logger;
     private readonly SemaphoreSlim semaphore = new(1);
     private readonly IPromptCallbacks defaultPromptCallbacks = new PromptCallbacks();
@@ -68,7 +68,7 @@ public sealed partial class RoslynServices
 
     internal event Action<string>? EvaluatingInput;
 
-    public RoslynServices(IConsoleEx console, Configuration config, ITraceLogger logger)
+    public RoslynServices(IConsoleService console, Configuration config, ITraceLogger logger)
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
         this.console = console;

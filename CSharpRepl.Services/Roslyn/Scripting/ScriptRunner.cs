@@ -24,7 +24,7 @@ namespace CSharpRepl.Services.Roslyn.Scripting;
 /// </summary>
 internal sealed class ScriptRunner
 {
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
     private readonly InteractiveAssemblyLoader assemblyLoader;
     private readonly CompositeAlternativeReferenceResolver alternativeReferenceResolver;
     private readonly MetadataReferenceResolver metadataResolver;
@@ -39,7 +39,7 @@ internal sealed class ScriptRunner
         CSharpParseOptions parseOptions,
         CSharpCompilationOptions compilationOptions,
         AssemblyReferenceService referenceAssemblyService,
-        IConsoleEx console,
+        IConsoleService console,
         Configuration configuration)
     {
         this.console = console;

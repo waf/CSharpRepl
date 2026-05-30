@@ -20,7 +20,7 @@ internal sealed class NugetPackageMetadataResolver : AlternativeReferenceResolve
     private const string NugetPrefixWithHashR = "#r \"" + NugetPrefix;
     private readonly NugetPackageInstaller nugetInstaller;
 
-    public NugetPackageMetadataResolver(IConsoleEx console, Configuration configuration)
+    public NugetPackageMetadataResolver(IConsoleService console, Configuration configuration)
     {
         this.nugetInstaller = new NugetPackageInstaller(console, configuration);
     }

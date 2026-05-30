@@ -27,23 +27,23 @@ internal static class Program
 
     /// <summary>
     /// Core entry point. The <paramref name="console"/> and <paramref name="inputRedirectedOverride"/>
-    /// parameters are testing seams: production calls supply neither, so a real <see cref="SystemConsoleEx"/>
+    /// parameters are testing seams: production calls supply neither, so a real <see cref="ConsoleService"/>
     /// is constructed and the ambient <see cref="Console.IsInputRedirected"/> is used. Tests inject a fake
     /// console and an explicit redirected-input flag, which lets the piped-input path be exercised
     /// deterministically without reading from (or blocking on) the real standard input handle.
     /// </summary>
-    internal static async Task<int> RunAsync(string[] args, IConsoleEx? console = null, bool? inputRedirectedOverride = null)
+    internal static async Task<int> RunAsync(string[] args, IConsoleService? console = null, bool? inputRedirectedOverride = null)
     {
         // Tracked as the concrete type for the interactive-prompt path, which hands the raw
         // PrettyPromptConsole (protected on IConsoleEx) to the PrettyPrompt library.
-        var systemConsole = console as SystemConsoleEx;
+        var systemConsole = console as ConsoleService;
         if (console is null)
         {
             // Only mutate the process-wide console encoding for real runs. Setting Console.InputEncoding
             // resets Console.In, which would discard any reader a test injected (e.g. via Console.SetIn).
             Console.InputEncoding = Encoding.UTF8;
             Console.OutputEncoding = Encoding.UTF8;
-            systemConsole = new SystemConsoleEx();
+            systemConsole = new ConsoleService();
             console = systemConsole;
         }
 
@@ -113,7 +113,7 @@ internal static class Program
         return exitCode;
     }
 
-    private static bool TryParseArguments(string[] args, string configFilePath, IConsoleEx console, [NotNullWhen(true)] out Configuration? configuration)
+    private static bool TryParseArguments(string[] args, string configFilePath, IConsoleService console, [NotNullWhen(true)] out Configuration? configuration)
     {
         try
         {
@@ -153,7 +153,7 @@ internal static class Program
     private static ITraceLogger InitializeLogging(bool trace) =>
         !trace ? new NullLogger() : TraceLogger.Create($"csharprepl-tracelog-{DateTime.UtcNow:yyyy-MM-dd}.txt");
 
-    private static (Prompt? prompt, int exitCode) InitializePrompt(SystemConsoleEx console, string appStorage, RoslynServices roslyn, Configuration config)
+    private static (Prompt? prompt, int exitCode) InitializePrompt(ConsoleService console, string appStorage, RoslynServices roslyn, Configuration config)
     {
         try
         {

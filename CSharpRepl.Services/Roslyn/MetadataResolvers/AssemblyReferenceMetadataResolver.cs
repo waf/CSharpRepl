@@ -31,10 +31,10 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
     private readonly AssemblyReferenceService referenceAssemblyService;
     private readonly AssemblyLoadContext loadContext;
     private readonly DependencyContextJsonReader dependencyContextJsonReader = new();
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
     private readonly Dictionary<string, DependenciesInfo> dependencyContextsPerAssemblyName = [];
 
-    public AssemblyReferenceMetadataResolver(IConsoleEx console, AssemblyReferenceService referenceAssemblyService)
+    public AssemblyReferenceMetadataResolver(IConsoleService console, AssemblyReferenceService referenceAssemblyService)
     {
         this.console = console;
         this.referenceAssemblyService = referenceAssemblyService;

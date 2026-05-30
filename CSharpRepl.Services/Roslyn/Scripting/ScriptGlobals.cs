@@ -13,9 +13,9 @@ namespace CSharpRepl.Services.Roslyn.Scripting;
 /// <remarks>Must be public so it can be referenced by the script</remarks>
 public sealed class ScriptGlobals
 {
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
 
-    public ScriptGlobals(IConsoleEx console, string[] args)
+    public ScriptGlobals(IConsoleService console, string[] args)
     {
         this.console = console;
         this.args = args;

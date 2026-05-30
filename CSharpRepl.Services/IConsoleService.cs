@@ -12,7 +12,7 @@ namespace CSharpRepl.Services;
 /// <summary>
 /// CSharpRepl's console abstraction. Wraps the Spectre and PrettyPrompt consoles.
 /// </summary>
-public interface IConsoleEx
+public interface IConsoleService
 {
     // The underlying PrettyPrompt console that's used for the interactive prompt input.
     protected IConsole PrettyPromptConsole { get; }
@@ -42,16 +42,13 @@ public interface IConsoleEx
 
     /// <summary>
     /// Writes a line of plain, unwrapped text to standard output. Use this for non-interactive output (e.g. --eval / piped results,
-    /// redirected output) rather than <see cref="WriteLine(string)"/>; that writes via Spectre's AnsiConsole, which word-wraps to
+    /// redirected output). Different from <see cref="WriteLine(string)"/> which writes via Spectre's AnsiConsole and word-wraps to
     /// the console width (corrupting a value meant for piping).
     /// </summary>
     void WriteStandardOutputLine(string text) => PrettyPromptConsole.WriteLine(text);
 
     /// <summary>
-    /// Writes a line of plain text to standard error (always the error stream), for startup /
-    /// argument-parsing diagnostics. Unlike <see cref="WriteErrorLine(string)"/> it never falls back to
-    /// stdout, so the message stays separable and is captured through the console abstraction (rather
-    /// than needing the process-wide Console.Error to be swapped).
+    /// Similar to <see cref="WriteStandardOutputLine(string)"/> but for standard error.
     /// </summary>
     void WriteStandardErrorLine(string text) => PrettyPromptConsole.WriteErrorLine(text);
 

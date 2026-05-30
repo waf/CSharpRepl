@@ -8,13 +8,12 @@ using Spectre.Console;
 
 namespace CSharpRepl.Services;
 
-public sealed class SystemConsoleEx : IConsoleEx
+public sealed class ConsoleService : IConsoleService
 {
-    private readonly IAnsiConsole ansiConsole = AnsiConsole.Console;
-
     public IConsole PrettyPromptConsole { get; } = new SystemConsole();
-    IConsole IConsoleEx.PrettyPromptConsole => PrettyPromptConsole;
-    IAnsiConsole IConsoleEx.Ansi => ansiConsole;
+    IConsole IConsoleService.PrettyPromptConsole => PrettyPromptConsole;
+    
+    IAnsiConsole IConsoleService.Ansi => AnsiConsole.Console;
 
     public string? ReadLine() => Console.ReadLine();
 }

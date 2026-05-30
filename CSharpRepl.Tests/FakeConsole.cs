@@ -56,7 +56,7 @@ internal static class FakeConsole
         return console;
     }
 
-    public static IReadOnlyList<string> GetAllOutput(this IConsoleEx consoleStub) =>
+    public static IReadOnlyList<string> GetAllOutput(this IConsoleService consoleStub) =>
         consoleStub.ReceivedCalls()
             .Where(call => call.GetMethodInfo().Name == nameof(Console.Write))
             .Select(call =>
@@ -67,7 +67,7 @@ internal static class FakeConsole
             })
             .ToArray();
 
-    public static string GetFinalOutput(this IConsoleEx consoleStub)
+    public static string GetFinalOutput(this IConsoleService consoleStub)
     {
         return consoleStub.GetAllOutput()[^2]; // second to last. The last is always the newline drawn after the prompt is submitted
     }
@@ -256,14 +256,14 @@ internal static class FakeConsole
     }
 }
 
-public abstract class FakeConsoleAbstract : IConsoleEx
+public abstract class FakeConsoleAbstract : IConsoleService
 {
     public readonly TestConsole AnsiConsole = new();
 
-    IConsole IConsoleEx.PrettyPromptConsole => PrettyPromptConsole;
+    IConsole IConsoleService.PrettyPromptConsole => PrettyPromptConsole;
     public FakePrettyPromptConsoleAbstract PrettyPromptConsole { get; } = Substitute.For<FakePrettyPromptConsoleAbstract>();
 
-    IAnsiConsole IConsoleEx.Ansi => AnsiConsole;
+    IAnsiConsole IConsoleService.Ansi => AnsiConsole;
 
     // Substitutable (not routed to the TestConsole) so tests can verify the screen was cleared via
     // console.Received().Clear().

@@ -20,7 +20,7 @@ public class EvaluationTests : IAsyncLifetime
 {
     private readonly RoslynServices services;
     private readonly StringBuilder stdout;
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
 
     public EvaluationTests()
     {

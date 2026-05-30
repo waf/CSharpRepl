@@ -26,11 +26,11 @@ namespace CSharpRepl;
 /// </summary>
 internal sealed class ReadEvalPrintLoop
 {
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
     private readonly RoslynServices roslyn;
     private readonly IPrompt prompt;
 
-    public ReadEvalPrintLoop(IConsoleEx console, RoslynServices roslyn, IPrompt prompt)
+    public ReadEvalPrintLoop(IConsoleService console, RoslynServices roslyn, IPrompt prompt)
     {
         this.console = console;
         this.roslyn = roslyn;
@@ -88,7 +88,7 @@ internal sealed class ReadEvalPrintLoop
         }
     }
 
-    private static async Task Preload(RoslynServices roslyn, IConsoleEx console, Configuration config)
+    private static async Task Preload(RoslynServices roslyn, IConsoleService console, Configuration config)
     {
         bool hasReferences = config.References.Count > 0;
         bool hasLoadScript = config.LoadScript is not null;
@@ -114,7 +114,7 @@ internal sealed class ReadEvalPrintLoop
         }
     }
 
-    private static async Task PrintAsync(RoslynServices roslyn, IConsoleEx console, EvaluationResult result, Level level)
+    private static async Task PrintAsync(RoslynServices roslyn, IConsoleService console, EvaluationResult result, Level level)
     {
         switch (result)
         {

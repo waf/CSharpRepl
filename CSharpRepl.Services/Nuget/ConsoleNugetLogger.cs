@@ -21,7 +21,7 @@ internal sealed class ConsoleNugetLogger : ILogger
 {
     private const int NumberOfMessagesToShow = 6;
 
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
     private readonly Configuration configuration;
     private readonly string successPrefix;
     private readonly string errorPrefix;
@@ -35,7 +35,7 @@ internal sealed class ConsoleNugetLogger : ILogger
     // just write plain text.
     private readonly bool interactive;
 
-    public ConsoleNugetLogger(IConsoleEx console, Configuration configuration)
+    public ConsoleNugetLogger(IConsoleService console, Configuration configuration)
     {
         this.console = console;
         this.configuration = configuration;

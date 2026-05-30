@@ -18,11 +18,11 @@ namespace CSharpRepl;
 /// </summary>
 internal sealed class PipedInputEvaluator
 {
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
     private readonly RoslynServices roslyn;
     private readonly Configuration configuration;
 
-    public PipedInputEvaluator(IConsoleEx console, RoslynServices roslyn, Configuration configuration)
+    public PipedInputEvaluator(IConsoleService console, RoslynServices roslyn, Configuration configuration)
     {
         this.console = console;
         this.roslyn = roslyn;

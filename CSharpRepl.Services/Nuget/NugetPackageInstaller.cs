@@ -35,7 +35,7 @@ internal sealed class NugetPackageInstaller
     private readonly ConsoleNugetLogger logger;
     private readonly bool usePrereleaseNugets;
 
-    public NugetPackageInstaller(IConsoleEx console, Configuration configuration)
+    public NugetPackageInstaller(IConsoleService console, Configuration configuration)
     {
         this.logger = new ConsoleNugetLogger(console, configuration);
         this.usePrereleaseNugets = configuration.UsePrereleaseNugets;
