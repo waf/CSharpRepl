@@ -70,7 +70,7 @@ internal sealed class NugetPackageInstaller
                 new GatherCache(),
                 sourceCacheContext);
 
-            var primarySourceRepositories = sourceRepositoryProvider.GetRepositories();
+            var primarySourceRepositories = GetSourceRepositoriesForPackage(sourceRepositoryProvider, settings, packageId);
             var packageIdentity = string.IsNullOrEmpty(version)
                 ? await QueryLatestPackageVersion(packageId, nuGetProject, resolutionContext, primarySourceRepositories, cancellationToken)
                 : new PackageIdentity(packageId, new NuGetVersion(version));
@@ -262,6 +262,31 @@ internal sealed class NugetPackageInstaller
             PackagesFolderNuGetProject = nuGetProject
         };
         return packageManager;
+    }
+
+    /// <summary>
+    /// Returns the source repositories that should be queried for <paramref name="packageId"/>,
+    /// honoring any packageSourceMapping configured in NuGet.config.
+    /// </summary>
+    private static IReadOnlyList<SourceRepository> GetSourceRepositoriesForPackage(
+        SourceRepositoryProvider sourceRepositoryProvider,
+        ISettings settings,
+        string packageId)
+    {
+        var allRepositories = sourceRepositoryProvider.GetRepositories().ToList();
+
+        var sourceMapping = PackageSourceMapping.GetPackageSourceMapping(settings);
+        if (!sourceMapping.IsEnabled)
+        {
+            return allRepositories;
+        }
+
+        var mappedSourceNames = sourceMapping.GetConfiguredPackageSources(packageId);
+        var mappedRepositories = allRepositories
+            .Where(repo => mappedSourceNames.Contains(repo.PackageSource.Name, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        return mappedRepositories.Count > 0 ? mappedRepositories : allRepositories;
     }
 
     private static FolderNuGetProject CreateFolderProject(NuGetFramework targetFramework, string directory)
