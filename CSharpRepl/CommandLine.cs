@@ -1,13 +1,11 @@
-﻿// This Source Code Form is subject to the terms of the Mozilla Public
+// This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Builder;
 using System.CommandLine.Completions;
-using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
@@ -31,180 +29,189 @@ internal static class CommandLine
 {
     private const string DisableFurtherOptionParsing = "--";
 
-    private static readonly Option<string[]?> References = new(
-        aliases: ["--reference", "-r", "/r"],
-        description: "Reference assemblies, nuget packages, and csproj files. Can be specified multiple times."
-    )
+    private static readonly Option<string[]?> References = new("--reference", "-r", "/r")
     {
+        Description = "Reference assemblies, nuget packages, and csproj files. Can be specified multiple times.",
         AllowMultipleArgumentsPerToken = true
     };
 
-    private static readonly Option<string[]?> Usings = new Option<string[]?>(
-        aliases: ["--using", "-u", "/u"],
-        description: "Add using statement. Can be specified multiple times."
-    )
+    private static readonly Option<string[]?> Usings = BuildUsingsOption();
+
+    private static readonly Option<string> Framework = BuildFrameworkOption();
+
+    private static readonly Option<string> Theme = new("--theme", "-t", "/t")
     {
-        AllowMultipleArgumentsPerToken = true
+        Description = "Read a theme file for syntax highlighting. Respects the NO_COLOR standard.",
+        DefaultValueFactory = _ => Configuration.DefaultThemeRelativePath
+    };
+
+    private static readonly Option<bool> UseTerminalPaletteTheme = new("--useTerminalPaletteTheme")
+    {
+        Description = "Uses terminal palette colors for syntax highlighting. Respects the NO_COLOR standard."
+    };
+
+    private static readonly Option<string> Prompt = new("--prompt")
+    {
+        Description = "Formatted prompt string.",
+        DefaultValueFactory = _ => Configuration.PromptDefault
+    };
+
+    private static readonly Option<bool> UseUnicode = new("--useUnicode")
+    {
+        Description = "Use UTF8 output encoding and unicode character decorations (requires terminal support)."
+    };
+
+    private static readonly Option<bool> UsePrereleaseNugets = new("--usePrereleaseNugets")
+    {
+        Description = "Allows prerelease NuGet versions when searching for the latest package version."
+    };
+
+    private static readonly Option<bool> StreamPipedInput = new("--streamPipedInput")
+    {
+        Description = "If input is piped via stdin, evaluate it line by line instead of in one batch."
+    };
+
+    private static readonly Option<bool> Trace = new("--trace")
+    {
+        Description = "Produce a trace file in the current directory, for CSharpRepl bug reports."
+    };
+
+    private static readonly Option<bool> Version = new("--version", "-v", "/v")
+    {
+        Description = "Show version number and exit."
+    };
+
+    private static readonly Option<bool> Help = new("--help", "-h", "-?", "/h", "/?")
+    {
+        Description = "Show this help and exit."
+    };
+
+    private static readonly Option<int> TabSize = new("--tabSize")
+    {
+        Description = "Width of tab character.",
+        DefaultValueFactory = _ => 4
+    };
+
+    private static readonly Option<string> OpenAIApiKey = new("--openAIApiKey")
+    {
+        Description = $"OpenAI API key. Alternatively, set the {OpenAICompleteService.ApiKeyEnvironmentVariableName} environment variable."
+    };
+
+    private static readonly Option<string> OpenAIPrompt = new("--openAIPrompt")
+    {
+        Description = "OpenAI prompt to prefix to all code submissions"
+    };
+
+    private static readonly Option<string> OpenAIModel = new("--openAIModel")
+    {
+        Description = "OpenAI model configuration"
+    };
+
+    private static readonly Option<int?> OpenAIHistoryCount = new("--openAIHistoryCount")
+    {
+        Description = "Maximum number of previous REPL entries to send to OpenAI as context."
+    };
+
+    private static readonly Option<string[]?> TriggerCompletionListKeyBindings = new("--triggerCompletionListKeys")
+    {
+        Description = "Key binding to trigger the completion list. Can be specified multiple times.",
+        AllowMultipleArgumentsPerToken = true,
+    };
+
+    private static readonly Option<string[]?> NewLineKeyBindings = new("--newLineKeys")
+    {
+        Description = "Key binding to insert a newline character. Can be specified multiple times.",
+        AllowMultipleArgumentsPerToken = true,
+    };
+
+    private static readonly Option<string[]?> SubmitPromptKeyBindings = new("--submitPromptKeys")
+    {
+        Description = "Key binding to submit the prompt. Can be specified multiple times.",
+        AllowMultipleArgumentsPerToken = true,
+    };
+
+    private static readonly Option<string[]?> SubmitPromptDetailedKeyBindings = new("--submitPromptDetailedKeys")
+    {
+        Description = "Key binding to submit the prompt with detailed output. Can be specified multiple times.",
+        AllowMultipleArgumentsPerToken = true,
+    };
+
+    private static readonly Option<bool> Configure = new("--configure")
+    {
+        Description = "Launches an editor to edit the CSharpRepl configuration file. Reads the EDITOR environment variable."
+    };
+
+    private static readonly Option<string> Culture = new("--culture")
+    {
+        Description = "Culture to use for access to the MSDN documentation. Defaults to the current culture."
+    };
+
+    private static Option<string[]?> BuildUsingsOption()
+    {
+        var option = new Option<string[]?>("--using", "-u", "/u")
+        {
+            Description = "Add using statement. Can be specified multiple times.",
+            AllowMultipleArgumentsPerToken = true
+        };
+        option.CompletionSources.Add(GetAvailableUsings);
+        return option;
     }
-    .AddCompletions(GetAvailableUsings);
 
-    private static readonly Option<string> Framework = new Option<string>(
-        aliases: ["--framework", "-f", "/f"],
-        description: "Reference a shared framework.",
-        getDefaultValue: () => Configuration.FrameworkDefault
-    )
-    .AddCompletions(SharedFramework.SupportedFrameworks);
-
-    private static readonly Option<string> Theme = new(
-        aliases: ["--theme", "-t", "/t"],
-        description: "Read a theme file for syntax highlighting. Respects the NO_COLOR standard.",
-        getDefaultValue: () => Configuration.DefaultThemeRelativePath
-    );
-
-    private static readonly Option<bool> UseTerminalPaletteTheme = new(
-        aliases: ["--useTerminalPaletteTheme"],
-        description: "Uses terminal palette colors for syntax highlighting. Respects the NO_COLOR standard."
-    );
-
-    private static readonly Option<string> Prompt = new(
-        aliases: ["--prompt"],
-        description: "Formatted prompt string.",
-        getDefaultValue: () => Configuration.PromptDefault
-    );
-
-    private static readonly Option<bool> UseUnicode = new(
-        aliases: ["--useUnicode"],
-        description: "Use UTF8 output encoding and unicode character decorations (requires terminal support)."
-    );
-
-    private static readonly Option<bool> UsePrereleaseNugets = new(
-        aliases: ["--usePrereleaseNugets"],
-        description: "Allows prerelease NuGet versions when searching for the latest package version."
-    );
-
-    private static readonly Option<bool> StreamPipedInput = new(
-        aliases: ["--streamPipedInput"],
-        description: "If input is piped via stdin, evaluate it line by line instead of in one batch."
-    );
-
-    private static readonly Option<bool> Trace = new(
-        aliases: ["--trace"],
-        description: "Produce a trace file in the current directory, for CSharpRepl bug reports."
-    );
-
-    private static readonly Option<bool> Version = new(
-        aliases: ["--version", "-v", "/v"],
-        description: "Show version number and exit."
-    );
-
-    private static readonly Option<bool> Help = new(
-        aliases: ["--help", "-h", "-?", "/h", "/?"],
-        description: "Show this help and exit."
-    );
-
-    private static readonly Option<int> TabSize = new(
-        aliases: ["--tabSize"],
-        getDefaultValue: () => 4,
-        description: "Width of tab character."
-    );
-
-    private static readonly Option<string> OpenAIApiKey = new(
-        aliases: ["--openAIApiKey"],
-        description: $"OpenAI API key. Alternatively, set the {OpenAICompleteService.ApiKeyEnvironmentVariableName} environment variable."
-    );
-
-    private static readonly Option<string> OpenAIPrompt = new(
-        aliases: ["--openAIPrompt"],
-        description: "OpenAI prompt to prefix to all code submissions"
-    );
-
-    private static readonly Option<string> OpenAIModel = new(
-        aliases: ["--openAIModel"],
-        description: "OpenAI model configuration"
-    );
-
-    private static readonly Option<int?> OpenAIHistoryCount = new(
-        aliases: ["--openAIHistoryCount"],
-        description: "Maximum number of previous REPL entries to send to OpenAI as context."
-    );
-
-    private static readonly Option<string[]?> TriggerCompletionListKeyBindings = new(
-        aliases: ["--triggerCompletionListKeys"],
-        description: "Key binding to trigger the completion list. Can be specified multiple times."
-    )
+    private static Option<string> BuildFrameworkOption()
     {
-        AllowMultipleArgumentsPerToken = true,
-    };
+        var option = new Option<string>("--framework", "-f", "/f")
+        {
+            Description = "Reference a shared framework.",
+            DefaultValueFactory = _ => Configuration.FrameworkDefault
+        };
+        option.CompletionSources.Add(SharedFramework.SupportedFrameworks);
+        option.Validators.Add(result =>
+        {
+            // when the option isn't specified on the command line its value comes from the
+            // default value factory, which is always a supported framework, so skip validation.
+            if (result.Implicit) return;
 
-    private static readonly Option<string[]?> NewLineKeyBindings = new(
-        aliases: ["--newLineKeys"],
-        description: "Key binding to insert a newline character. Can be specified multiple times."
-    )
-    {
-        AllowMultipleArgumentsPerToken = true,
-    };
-
-    private static readonly Option<string[]?> SubmitPromptKeyBindings = new(
-        aliases: ["--submitPromptKeys"],
-        description: "Key binding to submit the prompt. Can be specified multiple times."
-    )
-    {
-        AllowMultipleArgumentsPerToken = true,
-    };
-
-    private static readonly Option<string[]?> SubmitPromptDetailedKeyBindings = new(
-        aliases: ["--submitPromptDetailedKeys"],
-        description: "Key binding to submit the prompt with detailed output. Can be specified multiple times."
-    )
-    {
-        AllowMultipleArgumentsPerToken = true,
-    };
-
-    private static readonly Option<bool> Configure = new(
-        aliases: ["--configure"],
-        description: "Launches an editor to edit the CSharpRepl configuration file. Reads the EDITOR environment variable."
-    );
-
-    private static readonly Option<string> Culture = new(
-        aliases: ["--culture"],
-        description: "Culture to use for access to the MSDN documentation. Defaults to the current culture."
-    );
+            string frameworkValue = result.GetValueOrDefault<string>() ?? string.Empty;
+            if (!SharedFramework.SupportedFrameworks.Any(f => frameworkValue.StartsWith(f, StringComparison.OrdinalIgnoreCase)))
+            {
+                result.AddError("Unrecognized --framework value");
+            }
+        });
+        return option;
+    }
 
     public static Configuration Parse(string[] args, string configFilePath)
     {
         var parseArgs = PreProcessArguments(args, configFilePath).ToArray();
 
-        Framework.AddValidator(r =>
-        {
-            if (!r.Children.Any()) return;
+        var availableCommands = new RootCommand("C# REPL");
 
-            string frameworkValue = r.GetValueOrDefault<string>() ?? string.Empty;
-            if (!SharedFramework.SupportedFrameworks.Any(f => frameworkValue.StartsWith(f, StringComparison.OrdinalIgnoreCase)))
-            {
-                r.ErrorMessage = "Unrecognized --framework value";
-            }
-        });
+        // RootCommand adds built-in --help and --version options by default. We render our own
+        // formatted help/version output, so remove the defaults to avoid duplicate-alias conflicts
+        // with our Help and Version options below. The default dotnet-suggest directive added by
+        // RootCommand is left in place (response files are also supported by default).
+        availableCommands.Options.Clear();
 
-        var availableCommands = new RootCommand("C# REPL")
+        foreach (var option in new Option[]
         {
             References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, UsePrereleaseNugets,
             StreamPipedInput, Trace, Version, Help, TabSize,
             OpenAIApiKey, OpenAIPrompt, OpenAIModel, OpenAIHistoryCount,
             TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings,
             Configure, Culture,
-        };
-        var commandLine = new CommandLineBuilder(availableCommands)
-            .EnableLegacyDoubleDashBehavior() // for passing tokens after "--" as load script arguments
-            .UseSuggestDirective() // support autocompletion via dotnet-suggest
-            .Build()
-            .Parse(parseArgs);
+        })
+        {
+            availableCommands.Options.Add(option);
+        }
+
+        var commandLine = availableCommands.Parse(parseArgs);
 
         if (!File.Exists(configFilePath))
         {
             ConfigurationFile.CreateDefaultConfigurationFile(configFilePath, availableCommands, ignoreCommands: new[] { Help, Version, Configure });
         }
 
-        if (commandLine.GetValueForOption(Configure))
+        if (commandLine.GetValue(Configure))
         {
             ConfigurationFile.LaunchEditor(configFilePath);
             return new Configuration(outputForEarlyExit: "Launching editor for " + configFilePath);
@@ -215,34 +222,34 @@ internal static class CommandLine
         }
         if (commandLine.Errors.Count > 0)
         {
-            throw new InvalidOperationException(string.Join(NewLine, commandLine.Errors));
+            throw new InvalidOperationException(string.Join(NewLine, commandLine.Errors.Select(e => e.Message)));
         }
 
         var config = new Configuration(
-            references: commandLine.GetValueForOption(References),
-            usings: commandLine.GetValueForOption(Usings),
-            framework: commandLine.GetValueForOption(Framework),
+            references: commandLine.GetValue(References),
+            usings: commandLine.GetValue(Usings),
+            framework: commandLine.GetValue(Framework),
             loadScript: ProcessScriptArguments(args),
-            loadScriptArgs: commandLine.UnparsedTokens.ToArray(),
-            theme: commandLine.GetValueForOption(Theme),
-            useTerminalPaletteTheme: commandLine.GetValueForOption(UseTerminalPaletteTheme),
-            promptMarkup: commandLine.GetValueForOption(Prompt) ?? Configuration.PromptDefault,
-            useUnicode: commandLine.GetValueForOption(UseUnicode),
-            usePrereleaseNugets: commandLine.GetValueForOption(UsePrereleaseNugets),
-            streamPipedInput: commandLine.GetValueForOption(StreamPipedInput),
-            tabSize: commandLine.GetValueForOption(TabSize),
-            trace: commandLine.GetValueForOption(Trace),
-            triggerCompletionListKeyPatterns: commandLine.GetValueForOption(TriggerCompletionListKeyBindings),
-            newLineKeyPatterns: commandLine.GetValueForOption(NewLineKeyBindings),
-            submitPromptKeyPatterns: commandLine.GetValueForOption(SubmitPromptKeyBindings),
-            submitPromptDetailedKeyPatterns: commandLine.GetValueForOption(SubmitPromptDetailedKeyBindings),
+            loadScriptArgs: GetLoadScriptArgs(args),
+            theme: commandLine.GetValue(Theme),
+            useTerminalPaletteTheme: commandLine.GetValue(UseTerminalPaletteTheme),
+            promptMarkup: commandLine.GetValue(Prompt) ?? Configuration.PromptDefault,
+            useUnicode: commandLine.GetValue(UseUnicode),
+            usePrereleaseNugets: commandLine.GetValue(UsePrereleaseNugets),
+            streamPipedInput: commandLine.GetValue(StreamPipedInput),
+            tabSize: commandLine.GetValue(TabSize),
+            trace: commandLine.GetValue(Trace),
+            triggerCompletionListKeyPatterns: commandLine.GetValue(TriggerCompletionListKeyBindings),
+            newLineKeyPatterns: commandLine.GetValue(NewLineKeyBindings),
+            submitPromptKeyPatterns: commandLine.GetValue(SubmitPromptKeyBindings),
+            submitPromptDetailedKeyPatterns: commandLine.GetValue(SubmitPromptDetailedKeyBindings),
             openAIConfiguration: new OpenAIConfiguration(
-                apiKey: commandLine.GetValueForOption(OpenAIApiKey) ?? OpenAICompleteService.ApiKey,
-                prompt: commandLine.GetValueForOption(OpenAIPrompt) ?? OpenAICompleteService.DefaultPrompt,
-                model: commandLine.GetValueForOption(OpenAIModel) ?? OpenAICompleteService.DefaultModel,
-                historyCount: commandLine.GetValueForOption(OpenAIHistoryCount) ?? OpenAICompleteService.DefaultHistoryEntryCount
+                apiKey: commandLine.GetValue(OpenAIApiKey) ?? OpenAICompleteService.ApiKey,
+                prompt: commandLine.GetValue(OpenAIPrompt) ?? OpenAICompleteService.DefaultPrompt,
+                model: commandLine.GetValue(OpenAIModel) ?? OpenAICompleteService.DefaultModel,
+                historyCount: commandLine.GetValue(OpenAIHistoryCount) ?? OpenAICompleteService.DefaultHistoryEntryCount
             ),
-            cultureName: commandLine.GetValueForOption(Culture)
+            cultureName: commandLine.GetValue(Culture)
         );
 
         return config;
@@ -250,21 +257,21 @@ internal static class CommandLine
 
     private static bool ShouldExitEarly(ParseResult commandLine, string configFilePath, out FormattedString text)
     {
-        if (commandLine.Directives.Any())
+        if (commandLine.Tokens.Any(token => token.Type == TokenType.Directive))
         {
             // this is just for dotnet-suggest directive processing. Invoking should write to stdout
             // and should not start the REPL. It's a feature of System.CommandLine.
-            var console = new TestConsole();
-            commandLine.Invoke(console);
-            text = console.Out.ToString() ?? string.Empty;
+            var output = new StringWriter();
+            commandLine.Invoke(new InvocationConfiguration { Output = output });
+            text = output.ToString();
             return true;
         }
-        if (commandLine.GetValueForOption(Help))
+        if (commandLine.GetValue(Help))
         {
             text = GetHelp(configFilePath);
             return true;
         }
-        if (commandLine.GetValueForOption(Version))
+        if (commandLine.GetValue(Version))
         {
             text = GetVersion();
             return true;
@@ -297,18 +304,32 @@ internal static class CommandLine
             yield return "@" + configFilePath;
         }
 
-        // We allow csx files to be specified, sometimes in ambiguous scenarios that
-        // System.CommandLine can't figure out. So we remove it from processing here,
-        // and process it manually in ProcessScriptArguments
-        bool foundIgnore = false;
         foreach (var arg in args)
         {
-            foundIgnore |= arg == DisableFurtherOptionParsing;
-            if (foundIgnore || !arg.EndsWith(".csx"))
+            // Everything after "--" is forwarded to the load script as arguments (see
+            // GetLoadScriptArgs), so stop handing tokens to the parser here. System.CommandLine v3
+            // no longer has a dedicated "unparsed tokens" bucket for these and would otherwise
+            // report them as unrecognized arguments.
+            if (arg == DisableFurtherOptionParsing) yield break;
+
+            // We allow csx files to be specified, sometimes in ambiguous scenarios that
+            // System.CommandLine can't figure out. So we remove it from processing here,
+            // and process it manually in ProcessScriptArguments
+            if (!arg.EndsWith(".csx"))
             {
                 yield return arg;
             }
         }
+    }
+
+    /// <summary>
+    /// Arguments after the "--" token are not parsed as options; they're forwarded to the
+    /// load script and made available via a global `args` variable.
+    /// </summary>
+    private static string[] GetLoadScriptArgs(string[] args)
+    {
+        var doubleDashIndex = Array.IndexOf(args, DisableFurtherOptionParsing);
+        return doubleDashIndex >= 0 ? args[(doubleDashIndex + 1)..] : [];
     }
 
     /// <summary>

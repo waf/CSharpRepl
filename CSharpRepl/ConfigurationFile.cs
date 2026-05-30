@@ -24,7 +24,8 @@ internal static class ConfigurationFile
         {
             var availableOptions = commandLine.Options
                 .Where(option => !ignoreCommands.Contains(option))
-                .Select(option => $"{NewLine}# {option.Description}{NewLine}# --{option.Name} <{option.ValueType.Name.ToLower()}>");
+                // In System.CommandLine v3 Option.Name includes the leading "--" prefix.
+                .Select(option => $"{NewLine}# {option.Description}{NewLine}# {option.Name} <{option.ValueType.Name.ToLower()}>");
             File.WriteAllText(
                 configFilePath,
                 "# Add csharprepl command line options to this file to configure csharprepl." + NewLine +

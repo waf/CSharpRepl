@@ -8,6 +8,13 @@ on:
 
 jobs:
   build:
+    # Disable the MSBuild build server and node reuse for every dotnet invocation in CI. The
+    # solution-reference tests spawn `dotnet build` and an out-of-process MSBuildWorkspace BuildHost;
+    # sharing persistent MSBuild nodes across these intermittently deadlocks and hangs the test run.
+    env:
+      DOTNET_CLI_USE_MSBUILD_SERVER: 0
+      MSBUILDDISABLENODEREUSE: 1
+
     strategy:
       matrix:
         platform: [ubuntu-latest, windows-latest]
