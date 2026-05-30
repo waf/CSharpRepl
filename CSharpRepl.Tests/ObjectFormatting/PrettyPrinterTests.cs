@@ -45,7 +45,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     [InlineData(@"void M((int A, int B) tuple) => throw null; M(default)", $"NullReferenceException: Object reference not set to an instance of an object.\n    at void M((int A, int B) tuple)")]
     public async Task ExceptionCallstack(string input, string expectedOutput)
     {
-        var result = await services.EvaluateAsync(input);
+        var result = await services.EvaluateAsync(input, cancellationToken: TestContext.Current.CancellationToken);
         var exception = ((EvaluationResult.Error)result).Exception;
         var output = prettyPrinter.FormatException(exception, Level.FirstDetailed).ToString();
 
@@ -60,7 +60,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     [InlineData(Level.FirstSimple)]
     internal async Task CompilationErrorException(Level level)
     {
-        var result = await services.EvaluateAsync("+");
+        var result = await services.EvaluateAsync("+", cancellationToken: TestContext.Current.CancellationToken);
         var exception = ((EvaluationResult.Error)result).Exception;
         var output = ToString(prettyPrinter.FormatObject(exception, level).Renderable);
         Assert.Equal("(1,2): error CS1733: Expected expression", output);

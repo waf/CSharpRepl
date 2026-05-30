@@ -25,13 +25,13 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
         promptCallbacks = new CSharpReplPromptCallbacks(console, services, new Configuration());
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync([]);
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => new(services.WarmUpAsync([]));
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     [Fact]
     public async Task Complete_GivenCode_ReturnsCompletions()
     {
-        var completions = await this.services.CompleteAsync("Console.Writ", 12);
+        var completions = await this.services.CompleteAsync("Console.Writ", 12, TestContext.Current.CancellationToken);
         var writelines = completions
             .Where(c => c.Item.DisplayText.StartsWith("Write"))
             .ToList();
@@ -39,9 +39,9 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
         Assert.Equal("Write", writelines[0].Item.DisplayText);
         Assert.Equal("WriteLine", writelines[1].Item.DisplayText);
 
-        var writeDescription = await writelines[0].GetDescriptionAsync(cancellationToken: default);
+        var writeDescription = await writelines[0].GetDescriptionAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Contains("Writes the text representation of the specified", writeDescription.Text);
-        var writeLineDescription = await writelines[1].GetDescriptionAsync(cancellationToken: default);
+        var writeLineDescription = await writelines[1].GetDescriptionAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Contains("Writes the current line terminator to the standard output", writeLineDescription.Text);
     }
 
@@ -49,14 +49,14 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     public async Task Complete_GivenLinq_ReturnsCompletions()
     {
         // LINQ tends to be a good canary for whether or not our reference / implementation assemblies are correct.
-        var completions = await this.services.CompleteAsync("new[] { 1, 2, 3 }.Wher", 21);
+        var completions = await this.services.CompleteAsync("new[] { 1, 2, 3 }.Wher", 21, TestContext.Current.CancellationToken);
 
         var whereCompletion = completions.SingleOrDefault(c => c.Item.DisplayText.StartsWith("Where"));
 
         Assert.NotNull(whereCompletion);
         Assert.Equal("Where", whereCompletion.Item.DisplayText);
 
-        var whereDescription = await whereCompletion.GetDescriptionAsync(cancellationToken: default);
+        var whereDescription = await whereCompletion.GetDescriptionAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Contains("Filters a sequence of values based on a predicate", whereDescription.Text);
     }
 
@@ -67,7 +67,7 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     public async Task Complete_SyntaxHighlight_CachesAreIsolated()
     {
         // type "c" which triggers completion at index 1, and is cached
-        var completions = await this.services.CompleteAsync("c", 1);
+        var completions = await this.services.CompleteAsync("c", 1, TestContext.Current.CancellationToken);
 
         // next, type the number 1, which could collide with the previous cached value if the caches
         // aren't isolated, resulting in an exception
@@ -83,10 +83,10 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     [Fact]
     public async Task Complete_GetDescriptionForShorterCompletion()
     {
-        var completions = await this.services.CompleteAsync("datetime", 8);
+        var completions = await this.services.CompleteAsync("datetime", 8, TestContext.Current.CancellationToken);
         var arrayCompletion = completions.SingleOrDefault(c => c.Item.DisplayText == "Array");
         Assert.NotNull(arrayCompletion);
-        var arrayDescription = await arrayCompletion.GetDescriptionAsync(cancellationToken: default);
+        var arrayDescription = await arrayCompletion.GetDescriptionAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Contains("Provides methods for creating, manipulating, searching, and sorting arrays", arrayDescription.Text);
     }
 
@@ -96,10 +96,10 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     [Fact]
     public async Task Complete_GetDescriptionAfterDot()
     {
-        var completions = await this.services.CompleteAsync("\"\".Where()", 3);
+        var completions = await this.services.CompleteAsync("\"\".Where()", 3, TestContext.Current.CancellationToken);
         var whereCompletion = completions.SingleOrDefault(c => c.Item.DisplayText == "Where");
         Assert.NotNull(whereCompletion);
-        var whereDescription = await whereCompletion.GetDescriptionAsync(cancellationToken: default);
+        var whereDescription = await whereCompletion.GetDescriptionAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Contains("Filters a sequence of values based on a predicate", whereDescription.Text);
     }
 
@@ -118,7 +118,7 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     {
         var caret = text.Length;
         var span = new TextSpan(0, text.Length);
-        var completions = (await this.services.CompleteAsync(text, caret))
+        var completions = (await this.services.CompleteAsync(text, caret, TestContext.Current.CancellationToken))
             .OrderByDescending(i => promptCallbacks.CreatePrettyPromptCompletionItem(i).GetCompletionItemPriority(text, caret, span));
 
         for (int i = 0; i < expectedItems.Length; i++)
@@ -133,7 +133,7 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     [InlineData("cl", "clear")]
     public async Task Complete_ReplKeywords(string source, string item)
     {
-        var completions = await promptCallbacks.GetCompletionItemsCoreAsync(source, source.Length);
+        var completions = await promptCallbacks.GetCompletionItemsCoreAsync(source, source.Length, TestContext.Current.CancellationToken);
         var completion = completions.SingleOrDefault(c => c.DisplayText == item);
         Assert.NotNull(completion);
     }
@@ -144,10 +144,10 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     [InlineData("cl", "clear", "Clear the terminal")]
     public async Task Complete_ReplKeywords_HaveDescription(string source, string item, string expectedDescriptionFragment)
     {
-        var completions = await promptCallbacks.GetCompletionItemsCoreAsync(source, source.Length);
+        var completions = await promptCallbacks.GetCompletionItemsCoreAsync(source, source.Length, TestContext.Current.CancellationToken);
         var completion = completions.SingleOrDefault(c => c.DisplayText == item);
         Assert.NotNull(completion);
-        var description = await completion.GetExtendedDescriptionAsync(default);
+        var description = await completion.GetExtendedDescriptionAsync(TestContext.Current.CancellationToken);
         Assert.Contains(expectedDescriptionFragment, description.Text);
     }
 }

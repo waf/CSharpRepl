@@ -21,8 +21,8 @@ public class DisassemblerTests : IAsyncLifetime
         this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync([]);
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => new(services.WarmUpAsync([]));
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     [Theory]
     [InlineData(OptimizationLevel.Debug, "TopLevelProgram")]
@@ -47,7 +47,7 @@ public class DisassemblerTests : IAsyncLifetime
     public async Task Disassemble_ImportsAcrossMultipleReplLines_CanDisassemble()
     {
         // import a namespace
-        await services.EvaluateAsync("using System.Globalization;");
+        await services.EvaluateAsync("using System.Globalization;", cancellationToken: TestContext.Current.CancellationToken);
 
         // disassemble code that uses the above imported namespace.
         var result = await services.ConvertToIntermediateLanguage("var x = CultureInfo.CurrentCulture;", debugMode: false);
@@ -60,7 +60,7 @@ public class DisassemblerTests : IAsyncLifetime
     public async Task Disassemble_InputAcrossMultipleReplLines_CanDisassemble()
     {
         // define a variable
-        await services.EvaluateAsync("var x = 5;");
+        await services.EvaluateAsync("var x = 5;", cancellationToken: TestContext.Current.CancellationToken);
 
         // disassemble code that uses the above variable. This is an interesting case as the roslyn scripting will convert
         // the above local variable into a field, so it can be referenced by a subsequent script.
@@ -77,7 +77,7 @@ public class DisassemblerTests : IAsyncLifetime
     public async Task Disassemble_Empty()
     {
         // import a namespace
-        await services.EvaluateAsync("using System;");
+        await services.EvaluateAsync("using System;", cancellationToken: TestContext.Current.CancellationToken);
 
         // disassemble code that uses the above imported namespace.
         var result = await services.ConvertToIntermediateLanguage("", debugMode: false);

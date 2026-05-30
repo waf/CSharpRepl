@@ -23,13 +23,27 @@ namespace CSharpRepl;
 /// </summary>
 internal static class Program
 {
-    internal static async Task<int> Main(string[] args)
+    internal static Task<int> Main(string[] args) => RunAsync(args);
+
+    /// <summary>
+    /// Core entry point. The <paramref name="console"/> and <paramref name="inputRedirectedOverride"/>
+    /// parameters are testing seams: production calls supply neither, so a real <see cref="SystemConsoleEx"/>
+    /// is constructed and the ambient <see cref="Console.IsInputRedirected"/> is used. Tests inject a fake
+    /// console and an explicit redirected-input flag, which lets the piped-input path be exercised
+    /// deterministically without reading from (or blocking on) the real standard input handle.
+    /// </summary>
+    internal static async Task<int> RunAsync(string[] args, IConsoleEx? console = null, bool? inputRedirectedOverride = null)
     {
-        Console.InputEncoding = Encoding.UTF8;
-        Console.OutputEncoding = Encoding.UTF8;
+        if (console is null)
+        {
+            // Only mutate the process-wide console encoding for real runs. Setting Console.InputEncoding
+            // resets Console.In, which would discard any reader a test injected (e.g. via Console.SetIn).
+            Console.InputEncoding = Encoding.UTF8;
+            Console.OutputEncoding = Encoding.UTF8;
+            console = new SystemConsoleEx();
+        }
 
         // parse command line input
-        IConsoleEx console = new SystemConsoleEx();
         var appStorage = CreateApplicationStorageDirectory();
         var configFile = Path.Combine(appStorage, "config.rsp");
 
@@ -49,7 +63,7 @@ internal static class Program
         var roslyn = new RoslynServices(console, config, logger);
 
         // we're getting piped input, just evaluate the input and exit.
-        if (Console.IsInputRedirected)
+        if (inputRedirectedOverride ?? Console.IsInputRedirected)
         {
             var evaluator = new PipedInputEvaluator(console, roslyn);
             return config.StreamPipedInput

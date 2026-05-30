@@ -28,13 +28,13 @@ public class EvaluationTests : IAsyncLifetime
         this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync([]);
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => new(services.WarmUpAsync([]));
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     [Fact]
     public async Task Evaluate_LiteralInteger_ReturnsInteger()
     {
-        var result = await services.EvaluateAsync("5");
+        var result = await services.EvaluateAsync("5", cancellationToken: TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<EvaluationResult.Success>(result);
         Assert.Equal("5", success.Input);
@@ -46,8 +46,8 @@ public class EvaluationTests : IAsyncLifetime
     [Fact]
     public async Task Evaluate_Variable_ReturnsValue()
     {
-        var variableAssignment = await services.EvaluateAsync(@"var x = ""Hello World"";");
-        var variableUsage = await services.EvaluateAsync(@"x.Replace(""World"", ""Mundo"")");
+        var variableAssignment = await services.EvaluateAsync(@"var x = ""Hello World"";", cancellationToken: TestContext.Current.CancellationToken);
+        var variableUsage = await services.EvaluateAsync(@"x.Replace(""World"", ""Mundo"")", cancellationToken: TestContext.Current.CancellationToken);
 
         var assignment = Assert.IsType<EvaluationResult.Success>(variableAssignment);
         var usage = Assert.IsType<EvaluationResult.Success>(variableUsage);
@@ -58,8 +58,8 @@ public class EvaluationTests : IAsyncLifetime
     [Fact]
     public async Task Evaluate_NugetPackage_InstallsPackage()
     {
-        var installation = await services.EvaluateAsync(@"#r ""nuget:Newtonsoft.Json""");
-        var usage = await services.EvaluateAsync(@"Newtonsoft.Json.JsonConvert.SerializeObject(new { Foo = ""bar"" })");
+        var installation = await services.EvaluateAsync(@"#r ""nuget:Newtonsoft.Json""", cancellationToken: TestContext.Current.CancellationToken);
+        var usage = await services.EvaluateAsync(@"Newtonsoft.Json.JsonConvert.SerializeObject(new { Foo = ""bar"" })", cancellationToken: TestContext.Current.CancellationToken);
 
         var installationResult = Assert.IsType<EvaluationResult.Success>(installation);
         var usageResult = Assert.IsType<EvaluationResult.Success>(usage);
@@ -73,8 +73,8 @@ public class EvaluationTests : IAsyncLifetime
     [Fact]
     public async Task Evaluate_NugetPackageVersioned_InstallsPackageVersion()
     {
-        var installation = await services.EvaluateAsync(@"#r ""nuget:Microsoft.CodeAnalysis.CSharp, 3.11.0""");
-        var usage = await services.EvaluateAsync(@"Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(""5"")");
+        var installation = await services.EvaluateAsync(@"#r ""nuget:Microsoft.CodeAnalysis.CSharp, 3.11.0""", cancellationToken: TestContext.Current.CancellationToken);
+        var usage = await services.EvaluateAsync(@"Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(""5"")", cancellationToken: TestContext.Current.CancellationToken);
 
         var installationResult = Assert.IsType<EvaluationResult.Success>(installation);
         var usageResult = Assert.IsType<EvaluationResult.Success>(usage);
@@ -87,9 +87,9 @@ public class EvaluationTests : IAsyncLifetime
     [Fact]
     public async Task Evaluate_RelativeAssemblyReference_CanReferenceAssembly()
     {
-        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoLibrary.dll""");
-        var importResult = await services.EvaluateAsync("using DemoLibrary;");
-        var multiplyResult = await services.EvaluateAsync("DemoClass.Multiply(5, 6)");
+        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoLibrary.dll""", cancellationToken: TestContext.Current.CancellationToken);
+        var importResult = await services.EvaluateAsync("using DemoLibrary;", cancellationToken: TestContext.Current.CancellationToken);
+        var multiplyResult = await services.EvaluateAsync("DemoClass.Multiply(5, 6)", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(importResult);
@@ -101,9 +101,9 @@ public class EvaluationTests : IAsyncLifetime
     public async Task Evaluate_AbsoluteAssemblyReference_CanReferenceAssembly()
     {
         var absolutePath = Path.GetFullPath("./Data/DemoLibrary.dll");
-        var referenceResult = await services.EvaluateAsync(@$"#r ""{absolutePath}""");
-        var importResult = await services.EvaluateAsync("using DemoLibrary;");
-        var multiplyResult = await services.EvaluateAsync("DemoClass.Multiply(7, 6)");
+        var referenceResult = await services.EvaluateAsync(@$"#r ""{absolutePath}""", cancellationToken: TestContext.Current.CancellationToken);
+        var importResult = await services.EvaluateAsync("using DemoLibrary;", cancellationToken: TestContext.Current.CancellationToken);
+        var multiplyResult = await services.EvaluateAsync("DemoClass.Multiply(7, 6)", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(importResult);
@@ -114,7 +114,7 @@ public class EvaluationTests : IAsyncLifetime
     [Fact]
     public async Task Evaluate_AssemblyReferenceInSearchPath_CanReferenceAssembly()
     {
-        var referenceResult = await services.EvaluateAsync(@"#r ""System.Linq.dll""");
+        var referenceResult = await services.EvaluateAsync(@"#r ""System.Linq.dll""", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);
     }
@@ -122,23 +122,23 @@ public class EvaluationTests : IAsyncLifetime
     [Fact]
     public async Task Evaluate_AssemblyReferenceWithSharedFramework_ReferencesSharedFramework()
     {
-        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/WebApplication1.dll""");
-        var sharedFrameworkResult = await services.EvaluateAsync(@"using Microsoft.AspNetCore.Hosting;");
-        var applicationResult = await services.EvaluateAsync(@"using WebApplication1;");
+        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/WebApplication1.dll""", cancellationToken: TestContext.Current.CancellationToken);
+        var sharedFrameworkResult = await services.EvaluateAsync(@"using Microsoft.AspNetCore.Hosting;", cancellationToken: TestContext.Current.CancellationToken);
+        var applicationResult = await services.EvaluateAsync(@"using WebApplication1;", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(sharedFrameworkResult);
         Assert.IsType<EvaluationResult.Success>(applicationResult);
 
-        var completions = await services.CompleteAsync(@"using WebApplicat", 17);
+        var completions = await services.CompleteAsync(@"using WebApplicat", 17, TestContext.Current.CancellationToken);
         Assert.Contains("WebApplication1", completions.Select(c => c.Item.DisplayText).First(text => text.StartsWith("WebApplicat")));
     }
 
     [Fact]
     public async Task Evaluate_ProjectReference_ReferencesProject()
     {
-        var referenceResult = await services.EvaluateAsync(@"#r ""./../../../../CSharpRepl.Services/CSharpRepl.Services.csproj""");
-        var importResult = await services.EvaluateAsync(@"using CSharpRepl.Services;");
+        var referenceResult = await services.EvaluateAsync(@"#r ""./../../../../CSharpRepl.Services/CSharpRepl.Services.csproj""", cancellationToken: TestContext.Current.CancellationToken);
+        var importResult = await services.EvaluateAsync(@"using CSharpRepl.Services;", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(importResult);
@@ -147,9 +147,9 @@ public class EvaluationTests : IAsyncLifetime
     [Fact]
     public async Task Evaluate_SolutionReference_ReferencesAllProjects()
     {
-        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoSolution/DemoSolution.sln""");
-        var importProject1Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject1;");
-        var importProject2Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject2;");
+        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoSolution/DemoSolution.sln""", cancellationToken: TestContext.Current.CancellationToken);
+        var importProject1Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject1;", cancellationToken: TestContext.Current.CancellationToken);
+        var importProject2Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject2;", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(importProject1Result);
@@ -159,9 +159,9 @@ public class EvaluationTests : IAsyncLifetime
     [Fact]
     public async Task Evaluate_SolutionReference_ReferencesAllProjects_FromSlnx()
     {
-        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoSolution/DemoSolution.slnx""");
-        var importProject1Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject1;");
-        var importProject2Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject2;");
+        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoSolution/DemoSolution.slnx""", cancellationToken: TestContext.Current.CancellationToken);
+        var importProject1Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject1;", cancellationToken: TestContext.Current.CancellationToken);
+        var importProject2Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject2;", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(importProject1Result);
@@ -171,13 +171,13 @@ public class EvaluationTests : IAsyncLifetime
     [Fact]
     public async Task Evaluate_SolutionReference_ReferencesMultipleTargetFrameworks()
     {
-        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/ComplexSolution/ComplexSolution.sln""");
-        var importEntryPoint = await services.EvaluateAsync(@"using EntryPoint;");
-        var importLibraryA = await services.EvaluateAsync(@"using LibraryA;");
-        var importLibraryB = await services.EvaluateAsync(@"using LibraryB;");
-        var callResult = await services.EvaluateAsync(@"Program.Main();");
+        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/ComplexSolution/ComplexSolution.sln""", cancellationToken: TestContext.Current.CancellationToken);
+        var importEntryPoint = await services.EvaluateAsync(@"using EntryPoint;", cancellationToken: TestContext.Current.CancellationToken);
+        var importLibraryA = await services.EvaluateAsync(@"using LibraryA;", cancellationToken: TestContext.Current.CancellationToken);
+        var importLibraryB = await services.EvaluateAsync(@"using LibraryB;", cancellationToken: TestContext.Current.CancellationToken);
+        var callResult = await services.EvaluateAsync(@"Program.Main();", cancellationToken: TestContext.Current.CancellationToken);
         // we should be able to import the nuget package dependency from LibraryB.
-        var importNugetPackage = await services.EvaluateAsync(@"using Newtonsoft.Json;");
+        var importNugetPackage = await services.EvaluateAsync(@"using Newtonsoft.Json;", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(importEntryPoint);
@@ -197,8 +197,8 @@ public class EvaluationTests : IAsyncLifetime
         var (buildExitCode, _) = builder.Build("./Data/DemoSolution/DemoSolution.DemoProject3");
         Assert.Equal(0, buildExitCode);
 
-        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoSolution/DemoSolution.DemoProject3/bin/Debug/net10.0/DemoSolution.DemoProject3.dll""");
-        var importResult = await services.EvaluateAsync(@"DemoSolution.DemoProject3.DemoClass3.GetSystemManagementPath()");
+        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoSolution/DemoSolution.DemoProject3/bin/Debug/net10.0/DemoSolution.DemoProject3.dll""", cancellationToken: TestContext.Current.CancellationToken);
+        var importResult = await services.EvaluateAsync(@"DemoSolution.DemoProject3.DemoClass3.GetSystemManagementPath()", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);
         Assert.IsType<EvaluationResult.Success>(importResult);
@@ -217,19 +217,19 @@ public class EvaluationTests : IAsyncLifetime
     public async Task Evaluate_SpanResult()
     {
 
-        var eval1 = await services.EvaluateAsync(@"new[]{1,2,3}.AsSpan()");
+        var eval1 = await services.EvaluateAsync(@"new[]{1,2,3}.AsSpan()", cancellationToken: TestContext.Current.CancellationToken);
         dynamic r1 = Assert.IsType<EvaluationResult.Success>(eval1).ReturnValue.Value;
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r1.GetType().FullName);
         Assert.Equal(3, r1.Count);
         Assert.Equal(typeof(Span<int>), r1.OriginalType);
 
-        var eval2 = await services.EvaluateAsync(@"(ReadOnlySpan<int>)[1,2,3]");
+        var eval2 = await services.EvaluateAsync(@"(ReadOnlySpan<int>)[1,2,3]", cancellationToken: TestContext.Current.CancellationToken);
         dynamic r2 = Assert.IsType<EvaluationResult.Success>(eval2).ReturnValue.Value;
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r2.GetType().FullName);
         Assert.Equal(3, r2.Count);
         Assert.Equal(typeof(ReadOnlySpan<int>), r2.OriginalType);
 
-        var eval3 = await services.EvaluateAsync(@"""Hello World"".AsSpan()");
+        var eval3 = await services.EvaluateAsync(@"""Hello World"".AsSpan()", cancellationToken: TestContext.Current.CancellationToken);
         dynamic r3 = Assert.IsType<EvaluationResult.Success>(eval3).ReturnValue.Value;
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput)}", r3.GetType().FullName);
         Assert.Equal(11, r3.Count);
@@ -243,19 +243,19 @@ public class EvaluationTests : IAsyncLifetime
     public async Task Evaluate_MemoryResult()
     {
 
-        var eval1 = await services.EvaluateAsync(@"new[]{1,2,3}.AsMemory()");
+        var eval1 = await services.EvaluateAsync(@"new[]{1,2,3}.AsMemory()", cancellationToken: TestContext.Current.CancellationToken);
         dynamic r1 = Assert.IsType<EvaluationResult.Success>(eval1).ReturnValue.Value;
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r1.GetType().FullName);
         Assert.Equal(3, r1.Count);
         Assert.Equal(typeof(Memory<int>), r1.OriginalType);
 
-        var eval2 = await services.EvaluateAsync(@"(ReadOnlyMemory<int>)new[] { 1, 2, 3 }.AsMemory()");
+        var eval2 = await services.EvaluateAsync(@"(ReadOnlyMemory<int>)new[] { 1, 2, 3 }.AsMemory()", cancellationToken: TestContext.Current.CancellationToken);
         dynamic r2 = Assert.IsType<EvaluationResult.Success>(eval2).ReturnValue.Value;
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.SpanOutput)}", r2.GetType().FullName);
         Assert.Equal(3, r2.Count);
         Assert.Equal(typeof(ReadOnlyMemory<int>), r2.OriginalType);
 
-        var eval3 = await services.EvaluateAsync(@"""Hello World"".AsMemory()");
+        var eval3 = await services.EvaluateAsync(@"""Hello World"".AsMemory()", cancellationToken: TestContext.Current.CancellationToken);
         dynamic r3 = Assert.IsType<EvaluationResult.Success>(eval3).ReturnValue.Value;
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.CharSpanOutput)}", r3.GetType().FullName);
         Assert.Equal(11, r3.Count);
@@ -268,12 +268,12 @@ public class EvaluationTests : IAsyncLifetime
     [Fact]
     public async Task Evaluate_RefStructResult()
     {
-        var e1 = await services.EvaluateAsync(@"ref struct S; default(S)");
+        var e1 = await services.EvaluateAsync(@"ref struct S; default(S)", cancellationToken: TestContext.Current.CancellationToken);
         var r1 = Assert.IsType<EvaluationResult.Success>(e1).ReturnValue.Value;
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.RefStructOutput)}", r1.GetType().FullName);
         Assert.Equal($"Cannot output a value of 'S' because it's a ref-struct. It has to override ToString() to see its value.", r1.ToString());
 
-        var e2 = await services.EvaluateAsync(@"ref struct S{public override string ToString()=>""custom result"";} default(S)");
+        var e2 = await services.EvaluateAsync(@"ref struct S{public override string ToString()=>""custom result"";} default(S)", cancellationToken: TestContext.Current.CancellationToken);
         var r2 = Assert.IsType<EvaluationResult.Success>(e2).ReturnValue.Value;
         Assert.EndsWith($"{nameof(__CSharpRepl_RuntimeHelper)}+{nameof(__CSharpRepl_RuntimeHelper.RefStructOutput)}", r2.GetType().FullName);
         Assert.Equal("custom result", r2.ToString());

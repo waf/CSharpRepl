@@ -22,8 +22,8 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
         this.services = fixture.RoslynServices;
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync([]);
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => new(services.WarmUpAsync([]));
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     //Method invocation overloads.
     [Fact]
@@ -38,12 +38,12 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
             (IReadOnlyList<OverloadItem> Overloads, int ArgumentIndex) result;
             for (int caret = 0; caret < overloadsHelpStart; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Empty(result.Overloads);
                 Assert.Equal(0, result.ArgumentIndex);
             }
 
-            result = await services.GetOverloadsAsync(code, caret: overloadsHelpStart, cancellationToken: default);
+            result = await services.GetOverloadsAsync(code, caret: overloadsHelpStart, cancellationToken: TestContext.Current.CancellationToken);
             Assert.True(result.Overloads.Count > 0);
             Assert.Equal(0, result.ArgumentIndex);
             foreach (var overload in result.Overloads)
@@ -59,14 +59,14 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
 
             for (int caret = 0; caret < overloadsHelpStart; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Empty(result.Overloads);
                 Assert.Equal(0, result.ArgumentIndex);
             }
 
             for (int caret = overloadsHelpStart; caret < overloadsHelpEndExclusive; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.True(result.Overloads.Count > 0);
                 Assert.Equal(0, result.ArgumentIndex);
                 Assert.Equal(0, result.ArgumentIndex);
@@ -78,7 +78,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
 
             for (int caret = overloadsHelpEndExclusive; caret <= code.Length; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Empty(result.Overloads);
                 Assert.Equal(0, result.ArgumentIndex);
             }
@@ -91,14 +91,14 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
 
             for (int caret = 0; caret < overloadsHelpStart; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Empty(result.Overloads);
                 Assert.Equal(0, result.ArgumentIndex);
             }
 
             for (int caret = overloadsHelpStart; caret < overloadsHelpEndExclusive; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.True(result.Overloads.Count > 0);
                 Assert.Equal(caret <= $"{_}Math{_}.{_}Max{_}({_}123".Length ? 0 : 1, result.ArgumentIndex);
                 foreach (var overload in result.Overloads)
@@ -109,7 +109,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
 
             for (int caret = overloadsHelpEndExclusive; caret <= code.Length; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Empty(result.Overloads);
                 Assert.Equal(0, result.ArgumentIndex);
             }
@@ -122,14 +122,14 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
 
             for (int caret = 0; caret < overloadsHelpStart; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Empty(result.Overloads);
                 Assert.Equal(0, result.ArgumentIndex);
             }
 
             for (int caret = overloadsHelpStart; caret < overloadsHelpEndExclusive; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.True(result.Overloads.Count > 0);
                 Assert.Equal(caret <= $"{_}Math{_}.{_}Max{_}({_}Math{_}.{_}Abs{_}({_}-123{_})".Length ? 0 : 1, result.ArgumentIndex);
                 foreach (var overload in result.Overloads)
@@ -143,7 +143,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
             overloadsHelpEndExclusive = code.Length - $",{_}456{_}){_};{_}".Length;
             for (int caret = overloadsHelpStart; caret < overloadsHelpEndExclusive; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.True(result.Overloads.Count > 0);
                 Assert.Equal(0, result.ArgumentIndex);
                 foreach (var overload in result.Overloads)
@@ -157,7 +157,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
             overloadsHelpEndExclusive = code.Length - $"{_};{_}".Length;
             for (int caret = overloadsHelpStart; caret < overloadsHelpEndExclusive; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.True(result.Overloads.Count > 0);
                 Assert.Equal(caret <= $"{_}Math{_}.{_}Max{_}({_}Math{_}.{_}Abs{_}({_}-123{_})".Length ? 0 : 1, result.ArgumentIndex);
                 foreach (var overload in result.Overloads)
@@ -168,7 +168,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
 
             for (int caret = overloadsHelpEndExclusive; caret <= code.Length; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Empty(result.Overloads);
                 Assert.Equal(0, result.ArgumentIndex);
             }
@@ -229,7 +229,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
             (IReadOnlyList<OverloadItem> Overloads, int ArgumentIndex) result;
             for (int caret = 0; caret < overloadsHelpStart; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Empty(result.Overloads);
                 Assert.Equal(0, result.ArgumentIndex);
             }
@@ -238,7 +238,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
             if (args.Length > 0 && args.Last() is ')' or ']' or '>') --max;
             for (int caret = overloadsHelpStart; caret <= max; caret++)
             {
-                result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Equal(overloadCount, result.Overloads.Count);
                 Assert.Equal(caret < secondArgStartCaret ? 0 : 1, result.ArgumentIndex);
                 foreach (var overload in result.Overloads)
@@ -252,7 +252,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
             {
                 for (int caret = code.Length - suffix.Length; caret <= code.Length; caret++)
                 {
-                    result = await services.GetOverloadsAsync(code, caret, cancellationToken: default);
+                    result = await services.GetOverloadsAsync(code, caret, cancellationToken: TestContext.Current.CancellationToken);
                     Assert.True(result.Overloads.All(o => complementaryOpeningTokens.Any(c => o.Signature.Text.Contains(c))));
                     Assert.Equal(0, result.ArgumentIndex);
                 }
@@ -266,7 +266,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
     [InlineData("new Dictionary<List<")]
     public async Task Complete_RecursiveGenerics(string code)
     {
-        var result = await services.GetOverloadsAsync(code, caret: code.Length, cancellationToken: default);
+        var result = await services.GetOverloadsAsync(code, caret: code.Length, cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(result.Overloads.Count == 1);
         Assert.Equal(0, result.ArgumentIndex);
         Assert.Contains("List", result.Overloads[0].Signature.Text);
@@ -281,7 +281,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
     public async Task Complete_MethodWithoutXmlDoc()
     {
         var code = "M();\nvoid M(){}";
-        var result = await services.GetOverloadsAsync(code, caret: 2, cancellationToken: default);
+        var result = await services.GetOverloadsAsync(code, caret: 2, cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(result.Overloads.Count == 1);
         Assert.Equal(0, result.ArgumentIndex);
         Assert.Contains("M", result.Overloads[0].Signature.Text);
@@ -295,7 +295,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
     public async Task Complete_ParamWithoutXmlDoc()
     {
         var code = "M();\nvoid M(int i){}";
-        var result = await services.GetOverloadsAsync(code, caret: 2, cancellationToken: default);
+        var result = await services.GetOverloadsAsync(code, caret: 2, cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(result.Overloads.Count == 1);
         Assert.Equal(0, result.ArgumentIndex);
         var overload = result.Overloads[0];
@@ -311,7 +311,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
     public async Task Complete_ParamsWithAndWithoutXmlDoc()
     {
         var code = "M();\n/// <summary>desc</summary> <param name=\"b\">b desc</param>\nvoid M(int a, string b){}";
-        var result = await services.GetOverloadsAsync(code, caret: 2, cancellationToken: default);
+        var result = await services.GetOverloadsAsync(code, caret: 2, cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(result.Overloads.Count == 1);
         Assert.Equal(0, result.ArgumentIndex);
         var overload = result.Overloads[0];
@@ -330,7 +330,7 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
     public async Task Complete_CrefParsing()
     {
         var code = "M();\n/// <summary>desc <see cref=\"Dictionary{TKey, TValue}\" /> <see cref=\"invalid\" /> </summary> <param name=\"b\">b desc <see cref=\"M\" /></param>\nvoid M(int a, string b){}";
-        var result = await services.GetOverloadsAsync(code, caret: 2, cancellationToken: default);
+        var result = await services.GetOverloadsAsync(code, caret: 2, cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(result.Overloads.Count == 1);
         Assert.Equal(0, result.ArgumentIndex);
         var overload = result.Overloads[0];

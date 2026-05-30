@@ -23,7 +23,7 @@ public sealed class RoslynServicesFixture : IAsyncLifetime
         this.RoslynServices = new RoslynServices(ConsoleStub, new Configuration(), new TestTraceLogger());
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    public Task InitializeAsync() => RoslynServices.WarmUpAsync([]);
+    public ValueTask InitializeAsync() => new(RoslynServices.WarmUpAsync([]));
 }
