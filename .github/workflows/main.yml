@@ -8,13 +8,6 @@ on:
 
 jobs:
   build:
-    # Disable the MSBuild build server and node reuse for every dotnet invocation in CI. The
-    # solution-reference tests spawn `dotnet build` and an out-of-process MSBuildWorkspace BuildHost;
-    # sharing persistent MSBuild nodes across these intermittently deadlocks and hangs the test run.
-    env:
-      DOTNET_CLI_USE_MSBUILD_SERVER: 0
-      MSBUILDDISABLENODEREUSE: 1
-
     strategy:
       matrix:
         platform: [ubuntu-latest, windows-latest]
@@ -36,11 +29,11 @@ jobs:
       run: dotnet build
       
     - name: Test
-      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+      run: dotnet test CSharpRepl.Tests/CSharpRepl.Tests.csproj --no-build --results-directory TestResults --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
 
     - name: Report Code Coverage
       if: matrix.platform == 'windows-latest' # only generate and upload code coverage once
       uses: codecov/codecov-action@260aa3b4b2f265b8578bc0e721e33ebf8ff53313
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: CSharpRepl.Tests/coverage.opencover.xml
+        files: TestResults/coverage.cobertura.xml

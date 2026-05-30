@@ -28,8 +28,8 @@ public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynS
         this.services = fixture.RoslynServices;
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync([]);
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => new(services.WarmUpAsync([]));
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     [Theory]
     [InlineData("var x = 5;", true)]
@@ -122,8 +122,8 @@ public partial class RoslynServices_REPL_Tests : IAsyncLifetime, IClassFixture<R
         this.services = fixture.RoslynServices;
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync([]);
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => new(services.WarmUpAsync([]));
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     [Fact]
     public async Task CompleteStatement_DefaultKeyBindings()

@@ -2,59 +2,45 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using System;
-using System.IO;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Roslyn;
+using NSubstitute;
 using Xunit;
 
 namespace CSharpRepl.Tests;
 
 /// <summary>
-/// Drives <see cref="Program.Main"/> end-to-end in its non-interactive "piped input" mode (the branch
-/// taken when stdin is redirected). Lives in the RoslynServices collection so its Roslyn initialization
-/// is serialized with the other heavy tests rather than contending with them in parallel.
+/// Drives <see cref="Program.RunAsync"/> in its non-interactive "piped input" mode. Input is supplied
+/// through an injected fake console rather than the real standard input handle, so these tests are
+/// deterministic and never block on stdin regardless of how the test host is invoked (interactive
+/// terminal, CI with /dev/null, or a parent process that leaves stdin open). Lives in the RoslynServices
+/// collection so its Roslyn initialization is serialized with the other heavy tests.
 /// </summary>
 [Collection(nameof(RoslynServices))]
 public class ProgramPipedInputTests
 {
     [Fact]
-    public async Task MainMethod_CollectedPipedInput_EvaluatesAndExitsSuccessfully()
+    public async Task RunAsync_CollectedPipedInput_EvaluatesAndExitsSuccessfully()
     {
-        // The interactive prompt path requires a real terminal; this test is only meaningful when
-        // stdin is redirected (which it is under the test host / CI). Bail out safely otherwise so
-        // we never block waiting for interactive input.
-        if (!Console.IsInputRedirected) return;
+        var (console, _) = FakeConsole.CreateStubbedOutput();
+        console.ReadLine().Returns("1 + 1", (string?)null); // one piped line, then end-of-input
 
-        var originalIn = Console.In;
-        using var outputCollector = OutputCollector.Capture(out _);
-        try
-        {
-            Console.SetIn(new StringReader("1 + 1" + Environment.NewLine));
+        var exitCode = await Program.RunAsync([], console, inputRedirectedOverride: true);
 
-            var exitCode = await Program.Main([]);
-
-            Assert.Equal(ExitCodes.Success, exitCode);
-        }
-        finally
-        {
-            Console.SetIn(originalIn);
-        }
+        Assert.Equal(ExitCodes.Success, exitCode);
     }
 
     [Fact]
-    public async Task MainMethod_StreamPipedInputWithoutRedirectedInput_ReturnsParseError()
+    public async Task RunAsync_StreamPipedInputWithoutRedirectedInput_ReturnsParseError()
     {
         // --streamPipedInput only makes sense with redirected stdin. When stdin is NOT redirected the
-        // program reports a configuration error and exits. (When the test host redirects stdin this
-        // instead streams the piped input, which is exercised by the collected-input test above.)
-        if (Console.IsInputRedirected) return;
+        // program reports a configuration error and exits.
+        var (console, _, stderr) = FakeConsole.CreateStubbedOutputAndError();
+        console.PrettyPromptConsole.IsErrorRedirected = true; // route WriteErrorLine to the captured error buffer
 
-        using var outputCollector = OutputCollector.Capture(out _, out var capturedError);
-
-        var exitCode = await Program.Main(["--streamPipedInput"]);
+        var exitCode = await Program.RunAsync(["--streamPipedInput"], console, inputRedirectedOverride: false);
 
         Assert.Equal(ExitCodes.ErrorParseArguments, exitCode);
-        Assert.Contains("streamPipedInput", capturedError.ToString());
+        Assert.Contains("streamPipedInput", stderr.ToString());
     }
 }

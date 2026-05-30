@@ -24,8 +24,8 @@ public class NugetPackageInstallerTests : IAsyncLifetime
         installer = new NugetPackageInstaller(FakeConsole.CreateStubbedOutput().console, new Configuration());
     }
 
-    public Task InitializeAsync() => Task.CompletedTask;
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     /// <summary>
     /// https://github.com/waf/CSharpRepl/issues/58

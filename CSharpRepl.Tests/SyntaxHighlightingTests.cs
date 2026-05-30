@@ -24,8 +24,8 @@ public class SyntaxHighlightingTests : IAsyncLifetime
         ), new TestTraceLogger());
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync([]);
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => new(services.WarmUpAsync([]));
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     [Fact]
     public async Task SyntaxHighlightAsync_GivenCode_DetectsTextSpans()

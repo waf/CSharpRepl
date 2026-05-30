@@ -95,7 +95,7 @@ public sealed class OutputCollector : IDisposable
     public void Dispose()
     {
         Console.SetOut(normalStandardOutput);
-        Console.SetOut(normalStandardError);
+        Console.SetError(normalStandardError);
         semaphore.Release();
     }
 }

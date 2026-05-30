@@ -21,8 +21,8 @@ public class DisassemblerTests : IAsyncLifetime
         this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
     }
 
-    public Task InitializeAsync() => services.WarmUpAsync([]);
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => new(services.WarmUpAsync([]));
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     [Theory]
     [InlineData(OptimizationLevel.Debug, "TopLevelProgram")]
