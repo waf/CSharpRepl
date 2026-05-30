@@ -20,6 +20,42 @@ public class PipedInputEvaluatorTests : IClassFixture<RoslynServicesFixture>
     }
 
     [Fact]
+    public async Task EvaluateCollectedPipeInputAsync_InputThrows_ReturnsErrorCodeAndWritesMessage()
+    {
+        // Use a fresh console so toggling IsErrorRedirected / the ReadLine stub doesn't leak into
+        // the other tests sharing the RoslynServices fixture collection.
+        var (errorConsole, _, stderr) = FakeConsole.CreateStubbedOutputAndError();
+        errorConsole.PrettyPromptConsole.IsErrorRedirected = true; // route WriteErrorLine to the captured error buffer
+        errorConsole.ReadLine().Returns(
+            @"throw new System.Exception(""boom"");",
+            (string)null // end of piped input (cast so NSubstitute treats it as a value, not a null params array)
+        );
+        var evaluator = new PipedInputEvaluator(errorConsole, roslyn);
+
+        var result = await evaluator.EvaluateCollectedPipeInputAsync();
+
+        Assert.NotEqual(ExitCodes.Success, result);
+        Assert.Contains("boom", stderr.ToString());
+    }
+
+    [Fact]
+    public async Task EvaluateStreamingPipeInputAsync_InputThrows_ReturnsErrorCodeAndWritesMessage()
+    {
+        var (errorConsole, _, stderr) = FakeConsole.CreateStubbedOutputAndError();
+        errorConsole.PrettyPromptConsole.IsErrorRedirected = true;
+        errorConsole.ReadLine().Returns(
+            @"throw new System.Exception(""kaboom"");",
+            (string)null // end of piped input (cast so NSubstitute treats it as a value, not a null params array)
+        );
+        var evaluator = new PipedInputEvaluator(errorConsole, roslyn);
+
+        var result = await evaluator.EvaluateStreamingPipeInputAsync();
+
+        Assert.NotEqual(ExitCodes.Success, result);
+        Assert.Contains("kaboom", stderr.ToString());
+    }
+
+    [Fact]
     public async Task EvaluateCollectedPipeInputAsync_FullyCollectsInput_ThenEvaluatesInput()
     {
         // verify we're collecting the input entirely before evaluating it. If we evaluated it line by line,

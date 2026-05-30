@@ -116,7 +116,63 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         [typeof(int?), Level.FirstDetailed, "System.Nullable<System.Int32>"],
 
         [Encoding.UTF8, Level.FirstDetailed, "System.Text.UTF8Encoding.UTF8EncodingSealed"],
+
+        // primitive / scalar values exercise PrimitiveFormatter's per-type literal formatting.
+        // Numbers are formatted identically regardless of detail level.
+        [(byte)200, Level.FirstSimple, "200"],
+        [(byte)200, Level.FirstDetailed, "200"],
+        [(sbyte)-5, Level.FirstSimple, "-5"],
+        [(sbyte)-5, Level.FirstDetailed, "-5"],
+        [(short)-300, Level.FirstSimple, "-300"],
+        [(short)-300, Level.FirstDetailed, "-300"],
+        [(ushort)300, Level.FirstSimple, "300"],
+        [(ushort)300, Level.FirstDetailed, "300"],
+        [42, Level.FirstSimple, "42"],
+        [42, Level.FirstDetailed, "42"],
+        [42u, Level.FirstSimple, "42"],
+        [42u, Level.FirstDetailed, "42"],
+        [42L, Level.FirstSimple, "42"],
+        [42L, Level.FirstDetailed, "42"],
+        [42UL, Level.FirstSimple, "42"],
+        [42UL, Level.FirstDetailed, "42"],
+        [3.14, Level.FirstSimple, "3.14"],
+        [3.14, Level.FirstDetailed, "3.14"],
+        [1.5f, Level.FirstSimple, "1.5"],
+        [1.5f, Level.FirstDetailed, "1.5"],
+        [2.5m, Level.FirstSimple, "2.5"],
+        [2.5m, Level.FirstDetailed, "2.5"],
+        [true, Level.FirstSimple, "true"],
+        [false, Level.FirstSimple, "false"],
+        ['a', Level.FirstSimple, "'a'"],
+        ['a', Level.FirstDetailed, "'a'"],
+        ['\n', Level.FirstSimple, @"'\n'"],
+        [DayOfWeek.Monday, Level.FirstSimple, "Monday"],
+        [DayOfWeek.Monday, Level.FirstDetailed, "Monday"],
+
+        // multidimensional and jagged arrays go through IEnumerableFormatter.FormatToText.
+        [new int[,] { { 1, 2 }, { 3, 4 } }, Level.FirstSimple, "int[4] { 1, 2, 3, 4 }"],
+        [new int[,] { { 1, 2 }, { 3, 4 } }, Level.FirstDetailed, "int[4] { 1, 2, 3, 4 }"],
+        [new int[][] { [1, 2], [3] }, Level.FirstSimple, "int[][2] { int[2] { 1, 2 }, int[1] { 3 } }"],
+        [new int[][] { [1, 2], [3] }, Level.FirstDetailed, "int[][2] { int[2] { 1, 2 }, int[1] { 3 } }"],
     ];
+
+    /// <summary>
+    /// At first-level detail an <see cref="IEnumerable"/> is rendered as a Name/Value/Type table
+    /// (IEnumerableFormatter.FormatToRenderable) rather than the inline "{ ... }" text form.
+    /// </summary>
+    [Theory]
+    [InlineData(Level.FirstSimple, @"{ ""a"", 1 }")]
+    [InlineData(Level.FirstDetailed, @"{ Key: ""a"", Value: 1 }")]
+    public void FormatObject_Dictionary_RendersAsTableWithEntries(Level level, string expectedValueCell)
+    {
+        var dictionary = new Dictionary<string, int> { ["a"] = 1, ["b"] = 2 };
+
+        var output = ToString(prettyPrinter.FormatObject(dictionary, level).Renderable);
+
+        Assert.Contains("Dictionary<string, int>(2)", output); // header with element count
+        Assert.Contains("KeyValuePair<string, int>", output);  // Type column
+        Assert.Contains(expectedValueCell, output);            // Value column entry
+    }
 
     [Theory]
     [MemberData(nameof(ObjectMembersFormattingInputs))]
