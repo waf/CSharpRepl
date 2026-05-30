@@ -29,10 +29,17 @@ internal sealed class ConsoleNugetLogger : ILogger
     private readonly object linesLock = new(); // Lock for the lines list
     private int linesRendered;
 
+    // The normal 'pretty' rendering uses cursor movement and the console buffer width, which only
+    // work against a real terminal. When stdout is redirected (e.g. piped, --eval, or captured by a
+    // tool) those operations throw "The handle is invalid", so if we're non-interactive we should
+    // just write plain text.
+    private readonly bool interactive;
+
     public ConsoleNugetLogger(IConsoleEx console, Configuration configuration)
     {
         this.console = console;
         this.configuration = configuration;
+        this.interactive = !Console.IsOutputRedirected;
 
         successPrefix = configuration.UseUnicode ? "✅ " : "";
         errorPrefix = configuration.UseUnicode ? "❌ " : "";
@@ -59,6 +66,12 @@ internal sealed class ConsoleNugetLogger : ILogger
         var line = CreateLine(data, isError: false);
         if (line.IsEmpty) return;
 
+        if (!interactive)
+        {
+            NonInteractiveAppendLine(line);
+            return;
+        }
+
         lock (linesLock)
         {
             lines.Add(line);
@@ -83,9 +96,17 @@ internal sealed class ConsoleNugetLogger : ILogger
 
     public void LogError(string data)
     {
+        var line = CreateLine(data, isError: true);
+
+        if (!interactive)
+        {
+            NonInteractiveAppendLine(line);
+            return;
+        }
+
         lock (linesLock)
         {
-            lines.Add(CreateLine(data, isError: true));
+            lines.Add(line);
         }
         RenderLines();
     }
@@ -101,6 +122,17 @@ internal sealed class ConsoleNugetLogger : ILogger
 
     public void LogFinish(string text, bool success)
     {
+        if (!interactive)
+        {
+            var summary = CreateLine(text, isError: !success);
+            if (!summary.IsEmpty)
+            {
+                NonInteractiveAppendLine(summary);
+            }
+
+            return;
+        }
+
         //delete rendered lines
         for (int i = 0; i < linesRendered; i++)
         {
@@ -130,6 +162,11 @@ internal sealed class ConsoleNugetLogger : ILogger
 
     private Line CreateLine(string data, bool isError) => new(data, isError, isError ? errorPrefix : successPrefix, configuration);
 
+    /// <summary>
+    /// Write the message as plain text. No cursor movement and no ANSI color.
+    /// </summary>
+    private void NonInteractiveAppendLine(Line line) => console.WriteStandardOutputLine(line.Text.Text ?? "");
+
     private void RenderLines()
     {
         try
@@ -157,7 +194,7 @@ internal sealed class ConsoleNugetLogger : ILogger
                         console.WriteLine(line.Text);
                     }
 
-                    linesRendered += Math.DivRem(line.Text.Length, console.PrettyPromptConsole.BufferWidth, out var remainder) + (remainder == 0 ? 0 : 1);
+                    linesRendered += Math.DivRem(line.Text.Length, console.BufferWidth, out var remainder) + (remainder == 0 ? 0 : 1);
                 }
             }
         }

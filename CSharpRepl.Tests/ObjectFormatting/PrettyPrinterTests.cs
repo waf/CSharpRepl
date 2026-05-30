@@ -31,7 +31,7 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         console = fixture.ConsoleStub;
         services = fixture.RoslynServices;
         prettyPrinter = new PrettyPrinter(
-            console,
+            console.AnsiConsole.Profile,
             new SyntaxHighlighter(
                 new MemoryCache(new MemoryCacheOptions()),
                 new Theme(null, null, null, null, [])),

@@ -26,7 +26,7 @@ internal class TestFormatter
 
     public string Format(ICustomObjectFormatter formatter, object value, Level level)
     {
-        var prettyPrompt = new PrettyPrinter(console, highlighter, config);
+        var prettyPrompt = new PrettyPrinter(console.Profile, highlighter, config);
         Assert.True(formatter.IsApplicable(value));
         return formatter.FormatToText(value, level, new Formatter(prettyPrompt, highlighter, console.Profile)).ToString();
     }

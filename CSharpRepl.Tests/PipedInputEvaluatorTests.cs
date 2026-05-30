@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using NSubstitute;
 using Xunit;
@@ -16,7 +17,7 @@ public class PipedInputEvaluatorTests : IClassFixture<RoslynServicesFixture>
     {
         this.console = fixture.ConsoleStub;
         this.roslyn = fixture.RoslynServices;
-        this.pipedInputEvaluator = new PipedInputEvaluator(console, roslyn);
+        this.pipedInputEvaluator = new PipedInputEvaluator(console, roslyn, new Configuration());
     }
 
     [Fact]
@@ -30,7 +31,7 @@ public class PipedInputEvaluatorTests : IClassFixture<RoslynServicesFixture>
             @"throw new System.Exception(""boom"");",
             (string)null // end of piped input (cast so NSubstitute treats it as a value, not a null params array)
         );
-        var evaluator = new PipedInputEvaluator(errorConsole, roslyn);
+        var evaluator = new PipedInputEvaluator(errorConsole, roslyn, new Configuration());
 
         var result = await evaluator.EvaluateCollectedPipeInputAsync();
 
@@ -47,7 +48,7 @@ public class PipedInputEvaluatorTests : IClassFixture<RoslynServicesFixture>
             @"throw new System.Exception(""kaboom"");",
             (string)null // end of piped input (cast so NSubstitute treats it as a value, not a null params array)
         );
-        var evaluator = new PipedInputEvaluator(errorConsole, roslyn);
+        var evaluator = new PipedInputEvaluator(errorConsole, roslyn, new Configuration());
 
         var result = await evaluator.EvaluateStreamingPipeInputAsync();
 
@@ -75,6 +76,34 @@ public class PipedInputEvaluatorTests : IClassFixture<RoslynServicesFixture>
         var result = await this.pipedInputEvaluator.EvaluateCollectedPipeInputAsync();
 
         Assert.Equal(ExitCodes.Success, result);
+    }
+
+    [Fact]
+    public async Task EvaluateCollectedPipeInputAsync_ValueReturningExpression_AutoPrintsResult()
+    {
+        // Non-interactive mode auto-prints the value of the final expression as plain text, so callers
+        // don't need an explicit Console.WriteLine.
+        var (freshConsole, stdout) = FakeConsole.CreateStubbedOutput();
+        freshConsole.ReadLine().Returns("1 + 1", (string)null);
+        var evaluator = new PipedInputEvaluator(freshConsole, roslyn, new Configuration());
+
+        var result = await evaluator.EvaluateCollectedPipeInputAsync();
+
+        Assert.Equal(ExitCodes.Success, result);
+        Assert.Equal("2", stdout.ToString().TrimEnd());
+    }
+
+    [Fact]
+    public async Task EvaluateStringAsync_ValueReturningExpression_AutoPrintsResult()
+    {
+        // The --eval / --eval-file entry point: evaluate a single string and auto-print its result.
+        var (freshConsole, stdout) = FakeConsole.CreateStubbedOutput();
+        var evaluator = new PipedInputEvaluator(freshConsole, roslyn, new Configuration());
+
+        var result = await evaluator.EvaluateStringAsync("40 + 2");
+
+        Assert.Equal(ExitCodes.Success, result);
+        Assert.Equal("42", stdout.ToString().TrimEnd());
     }
 
     [Fact]

@@ -6,6 +6,8 @@ using System;
 using System.Globalization;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn.References;
+using Spectre.Console.Rendering;
+using Spectre.Console.Testing;
 using Xunit;
 
 namespace CSharpRepl.Tests;
@@ -73,7 +75,7 @@ public class CommandLineTests
     {
         var result = Parse(flag);
         Assert.NotNull(result);
-        Assert.Contains("C# REPL ", result.OutputForEarlyExit.Text);
+        Assert.Contains("C# REPL ", Render(result.OutputForEarlyExit));
     }
 
     [Theory]
@@ -82,7 +84,7 @@ public class CommandLineTests
     {
         var result = Parse(flag);
         Assert.NotNull(result);
-        Assert.Contains("Usage: ", result.OutputForEarlyExit.Text);
+        Assert.Contains("Usage: ", Render(result.OutputForEarlyExit));
     }
 
     [Theory]
@@ -160,21 +162,30 @@ public class CommandLineTests
     public void ParseArguments_DotNetSuggestFrameworkParameter_IsAutocompleted()
     {
         var result = Parse("[suggest:3] --f");
-        Assert.Equal("--framework" + Environment.NewLine, result.OutputForEarlyExit);
+        Assert.Contains("--framework", Render(result.OutputForEarlyExit));
     }
 
     [Fact]
     public void ParseArguments_DotNetSuggestFrameworkValue_IsAutocompleted()
     {
         var result = Parse(new[] { "[suggest:12]", "--framework " });
-        Assert.Contains("Microsoft.NETCore.App", result.OutputForEarlyExit.Text);
+        Assert.Contains("Microsoft.NETCore.App", Render(result.OutputForEarlyExit));
     }
 
     [Fact]
     public void ParseArguments_DotNetSuggestUsingValue_IsAutocompleted()
     {
         var result = Parse(new[] { "[suggest:25]", "--using System.Collection" });
-        Assert.Contains("System.Collections.Immutable", result.OutputForEarlyExit.Text);
+        Assert.Contains("System.Collections.Immutable", Render(result.OutputForEarlyExit));
+    }
+
+    // Early-exit output (help/version/suggestions) is now a Spectre IRenderable; render it to plain
+    // text so we can assert on its content.
+    private static string Render(IRenderable renderable)
+    {
+        var console = new TestConsole().Width(1000);
+        console.Write(renderable);
+        return console.Output;
     }
 
     private static Configuration Parse(string commandline) =>

@@ -5,7 +5,6 @@
 using System;
 using PrettyPrompt.Consoles;
 using Spectre.Console;
-using Spectre.Console.Rendering;
 
 namespace CSharpRepl.Services;
 
@@ -14,17 +13,8 @@ public sealed class SystemConsoleEx : IConsoleEx
     private readonly IAnsiConsole ansiConsole = AnsiConsole.Console;
 
     public IConsole PrettyPromptConsole { get; } = new SystemConsole();
-
-    public Profile Profile => ansiConsole.Profile;
-    public IAnsiConsoleCursor Cursor => ansiConsole.Cursor;
-    public IAnsiConsoleInput Input => ansiConsole.Input;
-    public IExclusivityMode ExclusivityMode => ansiConsole.ExclusivityMode;
-    public RenderPipeline Pipeline => ansiConsole.Pipeline;
-    public void Clear(bool home) => ansiConsole.Clear(home);
-
-    public void Write(IRenderable renderable) => ansiConsole.Write(renderable);
-
-    public void WriteAnsi(Action<AnsiWriter> action) => ansiConsole.WriteAnsi(action);
+    IConsole IConsoleEx.PrettyPromptConsole => PrettyPromptConsole;
+    IAnsiConsole IConsoleEx.Ansi => ansiConsole;
 
     public string? ReadLine() => Console.ReadLine();
 }

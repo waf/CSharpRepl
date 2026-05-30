@@ -79,7 +79,7 @@ internal static class FakeConsole
     /// <see cref="ConsoleModifiers"/> or <see cref="ConsoleKey"/>).
     /// </summary>
     /// <example>$"{Control}LHello{Enter}" is turned into Ctrl-L, H, e, l, l, o, Enter key</example>
-    public static ConfiguredCall StubInput(this IConsoleEx consoleStub, params FormattableString[] inputs)
+    public static ConfiguredCall StubInput(this FakeConsoleAbstract consoleStub, params FormattableString[] inputs)
     {
         var keys = inputs
             .SelectMany(MapToConsoleKeyPresses)
@@ -95,7 +95,7 @@ internal static class FakeConsole
     /// <see cref="ConsoleModifiers"/> or <see cref="ConsoleKey"/>) and with optional Action to be invoked after key press.
     /// Use <see cref="Input(FormattableString)" and <see cref="Input(FormattableString, Action)"/> methods to create inputs./>
     /// </summary>
-    public static ConfiguredCall StubInput(this IConsoleEx consoleStub, params FormattableStringWithAction[] inputs)
+    public static ConfiguredCall StubInput(this FakeConsoleAbstract consoleStub, params FormattableStringWithAction[] inputs)
     {
         var keys = inputs
             .SelectMany(EnumerateKeys)
@@ -128,7 +128,7 @@ internal static class FakeConsole
         }
     }
 
-    public static ConfiguredCall StubInput(this IConsoleEx consoleStub, List<ConsoleKeyInfo> keys)
+    public static ConfiguredCall StubInput(this FakeConsoleAbstract consoleStub, List<ConsoleKeyInfo> keys)
     {
         return consoleStub.PrettyPromptConsole
             .ReadKey(intercept: true)
@@ -263,16 +263,11 @@ public abstract class FakeConsoleAbstract : IConsoleEx
     IConsole IConsoleEx.PrettyPromptConsole => PrettyPromptConsole;
     public FakePrettyPromptConsoleAbstract PrettyPromptConsole { get; } = Substitute.For<FakePrettyPromptConsoleAbstract>();
 
-    public Profile Profile => AnsiConsole.Profile;
-    public IAnsiConsoleCursor Cursor => AnsiConsole.Cursor;
-    public IAnsiConsoleInput Input => AnsiConsole.Input;
-    public IExclusivityMode ExclusivityMode => AnsiConsole.ExclusivityMode;
-    public RenderPipeline Pipeline => AnsiConsole.Pipeline;
+    IAnsiConsole IConsoleEx.Ansi => AnsiConsole;
 
-    public void Clear(bool home) => AnsiConsole.Clear(home);
-    public void Write(IRenderable renderable) => AnsiConsole.Write(renderable);
-
-    public void WriteAnsi(Action<AnsiWriter> action) => AnsiConsole.WriteAnsi(action);
+    // Substitutable (not routed to the TestConsole) so tests can verify the screen was cleared via
+    // console.Received().Clear().
+    public abstract void Clear();
 
     public virtual string? ReadLine() => string.Empty;
 }

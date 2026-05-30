@@ -21,7 +21,7 @@ public class CustomObjectFormattersTests : IClassFixture<RoslynServicesFixture>
 
     public CustomObjectFormattersTests(RoslynServicesFixture fixture)
     {
-        formatter = TestFormatter.Create(fixture.ConsoleStub);
+        formatter = TestFormatter.Create(fixture.ConsoleStub.AnsiConsole);
         services = fixture.RoslynServices;
     }
 

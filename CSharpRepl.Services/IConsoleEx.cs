@@ -9,18 +9,51 @@ using Spectre.Console.Rendering;
 
 namespace CSharpRepl.Services;
 
-public interface IConsoleEx : IAnsiConsole
+/// <summary>
+/// CSharpRepl's console abstraction. Wraps the Spectre and PrettyPrompt consoles.
+/// </summary>
+public interface IConsoleEx
 {
-    IConsole PrettyPromptConsole { get; }
+    // The underlying PrettyPrompt console that's used for the interactive prompt input.
+    protected IConsole PrettyPromptConsole { get; }
 
-    private IAnsiConsole AnsiConsole => this;
+    // The underlying Spectre console that provides e.g. color coded / wrapped output.
+    protected IAnsiConsole Ansi { get; }
 
-    void Write(string text) => AnsiConsole.Write(text);
+    /// <summary>Width, in characters, of the console buffer — for layout/wrapping math.</summary>
+    int BufferWidth => PrettyPromptConsole.BufferWidth;
+
+    /// <summary>Rendering profile (capabilities + width) of the underlying console.</summary>
+    Profile Profile => Ansi.Profile;
+
+    /// <summary>Cursor control for the underlying console.</summary>
+    IAnsiConsoleCursor Cursor => Ansi.Cursor;
+
+    /// <summary>Clears the screen.</summary>
+    void Clear() => Ansi.Clear(home: true);
+
+    void Write(IRenderable renderable) => Ansi.Write(renderable);
+    void Write(string text) => Ansi.Write(text);
     void Write(FormattedString text) => PrettyPromptConsole.Write(text);
 
-    void WriteLine(string text) => AnsiConsole.WriteLine(text);
-    void WriteLine() => AnsiConsole.WriteLine();
+    void WriteLine(string text) => Ansi.WriteLine(text);
+    void WriteLine() => Ansi.WriteLine();
     void WriteLine(FormattedString text) => PrettyPromptConsole.WriteLine(text);
+
+    /// <summary>
+    /// Writes a line of plain, unwrapped text to standard output. Use this for non-interactive output (e.g. --eval / piped results,
+    /// redirected output) rather than <see cref="WriteLine(string)"/>; that writes via Spectre's AnsiConsole, which word-wraps to
+    /// the console width (corrupting a value meant for piping).
+    /// </summary>
+    void WriteStandardOutputLine(string text) => PrettyPromptConsole.WriteLine(text);
+
+    /// <summary>
+    /// Writes a line of plain text to standard error (always the error stream), for startup /
+    /// argument-parsing diagnostics. Unlike <see cref="WriteErrorLine(string)"/> it never falls back to
+    /// stdout, so the message stays separable and is captured through the console abstraction (rather
+    /// than needing the process-wide Console.Error to be swapped).
+    /// </summary>
+    void WriteStandardErrorLine(string text) => PrettyPromptConsole.WriteErrorLine(text);
 
     void WriteError(string text)
     {

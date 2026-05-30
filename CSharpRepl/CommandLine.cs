@@ -17,6 +17,8 @@ using CSharpRepl.Services.Completion;
 using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Theming;
 using PrettyPrompt.Highlighting;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 using static System.Environment;
 
 namespace CSharpRepl;
@@ -28,6 +30,7 @@ namespace CSharpRepl;
 internal static class CommandLine
 {
     private const string DisableFurtherOptionParsing = "--";
+    private const string EvalFileOptionName = "--eval-file";
 
     private static readonly Option<string[]?> References = new("--reference", "-r", "/r")
     {
@@ -69,6 +72,16 @@ internal static class CommandLine
     private static readonly Option<bool> StreamPipedInput = new("--streamPipedInput")
     {
         Description = "If input is piped via stdin, evaluate it line by line instead of in one batch."
+    };
+
+    private static readonly Option<string?> Eval = new("--eval", "-e")
+    {
+        Description = "Evaluate C# code, print the result, and exit. Mutually exclusive with --eval-file."
+    };
+
+    private static readonly Option<string?> EvalFile = new("--eval-file")
+    {
+        Description = "Evaluate a .csx/.cs file, print the result, and exit. Mutually exclusive with --eval."
     };
 
     private static readonly Option<bool> Trace = new("--trace")
@@ -195,7 +208,7 @@ internal static class CommandLine
         foreach (var option in new Option[]
         {
             References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, UsePrereleaseNugets,
-            StreamPipedInput, Trace, Version, Help, TabSize,
+            StreamPipedInput, Eval, EvalFile, Trace, Version, Help, TabSize,
             OpenAIApiKey, OpenAIPrompt, OpenAIModel, OpenAIHistoryCount,
             TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings,
             Configure, Culture,
@@ -214,7 +227,7 @@ internal static class CommandLine
         if (commandLine.GetValue(Configure))
         {
             ConfigurationFile.LaunchEditor(configFilePath);
-            return new Configuration(outputForEarlyExit: "Launching editor for " + configFilePath);
+            return new Configuration(outputForEarlyExit: new Text("Launching editor for " + configFilePath));
         }
         if (ShouldExitEarly(commandLine, configFilePath, out var text))
         {
@@ -237,6 +250,7 @@ internal static class CommandLine
             useUnicode: commandLine.GetValue(UseUnicode),
             usePrereleaseNugets: commandLine.GetValue(UsePrereleaseNugets),
             streamPipedInput: commandLine.GetValue(StreamPipedInput),
+            evaluateInput: ResolveEvaluateInput(commandLine),
             tabSize: commandLine.GetValue(TabSize),
             trace: commandLine.GetValue(Trace),
             triggerCompletionListKeyPatterns: commandLine.GetValue(TriggerCompletionListKeyBindings),
@@ -255,7 +269,7 @@ internal static class CommandLine
         return config;
     }
 
-    private static bool ShouldExitEarly(ParseResult commandLine, string configFilePath, out FormattedString text)
+    private static bool ShouldExitEarly(ParseResult commandLine, string configFilePath, out IRenderable? text)
     {
         if (commandLine.Tokens.Any(token => token.Type == TokenType.Directive))
         {
@@ -263,17 +277,17 @@ internal static class CommandLine
             // and should not start the REPL. It's a feature of System.CommandLine.
             var output = new StringWriter();
             commandLine.Invoke(new InvocationConfiguration { Output = output });
-            text = output.ToString();
+            text = new Text(output.ToString()); // literal text — not markup
             return true;
         }
         if (commandLine.GetValue(Help))
         {
-            text = GetHelp(configFilePath);
+            text = new Markup(GetHelp(configFilePath));
             return true;
         }
         if (commandLine.GetValue(Version))
         {
-            text = GetVersion();
+            text = new Markup(GetVersion());
             return true;
         }
 
@@ -304,8 +318,10 @@ internal static class CommandLine
             yield return "@" + configFilePath;
         }
 
-        foreach (var arg in args)
+        for (int i = 0; i < args.Length; i++)
         {
+            var arg = args[i];
+
             // Everything after "--" is forwarded to the load script as arguments (see
             // GetLoadScriptArgs), so stop handing tokens to the parser here. System.CommandLine v3
             // no longer has a dedicated "unparsed tokens" bucket for these and would otherwise
@@ -314,12 +330,27 @@ internal static class CommandLine
 
             // We allow csx files to be specified, sometimes in ambiguous scenarios that
             // System.CommandLine can't figure out. So we remove it from processing here,
-            // and process it manually in ProcessScriptArguments
-            if (!arg.EndsWith(".csx"))
+            // and process it manually in ProcessScriptArguments. The value of --eval-file is the
+            // exception: keep it so the option binds (it's read & run, not #loaded positionally).
+            if (arg.EndsWith(".csx") && !IsEvalFileArgument(args, i))
             {
-                yield return arg;
+                continue;
             }
+
+            yield return arg;
         }
+    }
+
+    /// <summary>
+    /// True if <paramref name="args"/>[<paramref name="index"/>] is the path supplied to --eval-file,
+    /// in either the "--eval-file path" or "--eval-file=path" form. Such a path must be excluded from
+    /// the positional-.csx handling that otherwise treats a bare .csx as a load-script.
+    /// </summary>
+    private static bool IsEvalFileArgument(string[] args, int index)
+    {
+        var arg = args[index];
+        if (arg.StartsWith(EvalFileOptionName + "=", StringComparison.Ordinal)) return true;
+        return index > 0 && args[index - 1] == EvalFileOptionName;
     }
 
     /// <summary>
@@ -333,15 +364,41 @@ internal static class CommandLine
     }
 
     /// <summary>
+    /// Resolves the C# to evaluate non-interactively from --eval (inline code) or --eval-file (file
+    /// path). These are mutually exclusive. The resulting string is run and the process exits, unlike
+    /// a positional .csx file which is #loaded and then drops into the interactive REPL.
+    /// </summary>
+    private static string? ResolveEvaluateInput(ParseResult commandLine)
+    {
+        var eval = commandLine.GetValue(Eval);
+        var evalFile = commandLine.GetValue(EvalFile);
+
+        if (eval is not null && evalFile is not null)
+            throw new InvalidOperationException("Specify only one of --eval or --eval-file, not both.");
+
+        if (eval is not null) return eval;
+
+        if (evalFile is not null)
+        {
+            if (!File.Exists(evalFile)) throw new FileNotFoundException($@"Eval file ""{evalFile}"" was not found");
+            return File.ReadAllText(evalFile);
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Reads the contents of any provided script (csx) files.
     /// </summary>
     private static string? ProcessScriptArguments(string[] args)
     {
         var stringBuilder = new StringBuilder();
-        foreach (var arg in args)
+        for (int i = 0; i < args.Length; i++)
         {
+            var arg = args[i];
             if (arg == DisableFurtherOptionParsing) break;
             if (!arg.EndsWith(".csx")) continue;
+            if (IsEvalFileArgument(args, i)) continue; // value of --eval-file: read & run by ResolveEvaluateInput, not #loaded
             if (!File.Exists(arg)) throw new FileNotFoundException($@"Script file ""{arg}"" was not found");
 
             //we are not loading content of the script manually because of https://github.com/waf/CSharpRepl/issues/140
@@ -357,10 +414,10 @@ internal static class CommandLine
     /// System.CommandLine can generate the help text for us, but I think it's less
     /// readable, and the code to configure it ends up being longer than the below string.
     /// </remarks>
-    private static FormattedString GetHelp(string configFilePath)
+    private static string GetHelp(string configFilePath)
     {
-        var text = FormattedStringParser.Parse(
-            "[underline]Usage[/]: [brightcyan]csharprepl[/] [green][[OPTIONS]][/] [cyan][[@response-file.rsp]][/] [cyan][[script-file.csx]][/] [green][[-- <additional-arguments>]][/]" + NewLine + NewLine +
+        var text =
+            "[underline]Usage[/]: [aqua]csharprepl[/] [green][[OPTIONS]][/] [cyan][[@response-file.rsp]][/] [cyan][[script-file.csx]][/] [green][[-- <additional-arguments>]][/]" + NewLine + NewLine +
             "Starts a REPL (read eval print loop) according to the provided [green][[OPTIONS]][/]." + NewLine +
             "These [green][[OPTIONS]][/] can be provided at the command line, or via a [cyan][[@response-file.rsp]][/]." + NewLine +
             "A [cyan][[script-file.csx]][/], if provided, will be executed before the prompt starts." + NewLine + NewLine +
@@ -378,6 +435,8 @@ internal static class CommandLine
             $"  [green]--useUnicode[/]:                               {UseUnicode.Description}" + NewLine +
             $"  [green]--usePrereleaseNugets[/]:                      {UsePrereleaseNugets.Description}" + NewLine +
             $"  [green]--streamPipedInput[/]:                         {StreamPipedInput.Description}" + NewLine +
+            $"  [green]-e[/] [cyan]<code>[/] or [green]--eval[/] [cyan]<code>[/]:                 {Eval.Description}" + NewLine +
+            $"  [green]--eval-file[/] [cyan]<path>[/]:                         {EvalFile.Description}" + NewLine +
             $"  [green]--tabSize[/] [cyan]<width>[/]:                          {TabSize.Description}" + NewLine +
             $"  [green]--culture[/] [cyan]<culture name>[/]:                   {Culture.Description}" + NewLine +
             NewLine +
@@ -403,7 +462,7 @@ internal static class CommandLine
             $"  Run 'csharprepl --configure' to launch this file in your editor." + NewLine + NewLine +
             "[cyan]script-file.csx[/]:" + NewLine +
             "  A file, with extension .csx, containing lines of C# to evaluate before starting the REPL." + NewLine +
-            "  Arguments to this script can be passed as [green]<additional-arguments>[/] and will be available in a global `args` variable." + NewLine);
+            "  Arguments to this script can be passed as [green]<additional-arguments>[/] and will be available in a global `args` variable." + NewLine;
 
         return GetVersion() + NewLine + text;
     }
@@ -411,13 +470,13 @@ internal static class CommandLine
     /// <summary>
     /// Get assembly version for usage in --version
     /// </summary>
-    private static FormattedString GetVersion()
+    private static string GetVersion()
     {
         var version = Assembly
             .GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion ?? "unversioned";
-        return FormattedStringParser.Parse($"[brightcyan bold]C# REPL {version}[/]");
+        return $"[aqua bold]C# REPL {version}[/]";
     }
 
     /// <summary>
@@ -427,7 +486,7 @@ internal static class CommandLine
     {
         var frameworkList = SharedFramework
             .SupportedFrameworks
-            .Select(fx => $"{leftPadding}- [cyan]{fx}[/]{(fx == Configuration.FrameworkDefault ? " [brightblack](default)[/]" : "")}");
+            .Select(fx => $"{leftPadding}- [cyan]{fx}[/]{(fx == Configuration.FrameworkDefault ? " [grey](default)[/]" : "")}");
         return string.Join(NewLine, frameworkList);
     }
 
@@ -441,7 +500,7 @@ internal static class CommandLine
             t =>
             {
                 var themePath = Path.GetRelativePath(Configuration.ExecutableDirectory, t);
-                return $"{leftPadding}- [cyan]{themePath}[/]{(themePath == Configuration.DefaultThemeRelativePath ? " [brightblack](default)[/]" : "")}";
+                return $"{leftPadding}- [cyan]{themePath}[/]{(themePath == Configuration.DefaultThemeRelativePath ? " [grey](default)[/]" : "")}";
             });
         return string.Join(NewLine, themes);
     }

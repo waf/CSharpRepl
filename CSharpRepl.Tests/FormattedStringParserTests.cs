@@ -1,14 +1,15 @@
-﻿// This Source Code Form is subject to the terms of the Mozilla Public
+// This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using System.Collections.Generic;
 using CSharpRepl.Services.Theming;
-using PrettyPrompt.Highlighting;
 using Xunit;
 
 namespace CSharpRepl.Tests;
 
+// FormattedStringParser delegates parsing to Spectre.Console's markup parser (AnsiMarkup) and maps the
+// parsed Style onto PrettyPrompt's ConsoleFormat. Standard colors map to PrettyPrompt's named palette
+// AnsiColors (so they follow the terminal theme); #RRGGBB colors are kept as truecolor RGB.
 public class FormattedStringParserTests
 {
     [Theory]
@@ -17,9 +18,9 @@ public class FormattedStringParserTests
     [InlineData("abc", "abc")]
     [InlineData("abc def", "abc def")]
     [InlineData("ab(cd)", "ab(cd)")]
+    [InlineData("/", "/")]
     [InlineData("[[", "[")]
     [InlineData("ab[[cd]]", "ab[cd]")]
-    [InlineData("/", "/")]
     public void ParseNonFormatted(string pattern, string expectedResult)
     {
         Assert.True(FormattedStringParser.TryParse(pattern, out var result));
@@ -28,27 +29,12 @@ public class FormattedStringParserTests
     }
 
     [Theory]
-    [InlineData("[")]
-    [InlineData("]")]
-    [InlineData("[]")]
-    [InlineData("[a")]
-    [InlineData("]a")]
-    [InlineData("[]a")]
-    [InlineData("a[")]
-    [InlineData("a]")]
-    [InlineData("a[]")]
-    [InlineData("[red][blue]a")]
-    [InlineData("[red]a[blue]")]
-    [InlineData("ab[[cd]")]
-    [InlineData("ab[cd]]")]
-    [InlineData("[red]")]
-    [InlineData("[red]a")]
-    [InlineData("[/]")]
-    [InlineData("a[/]")]
-    [InlineData("[red][/][/]")]
-    [InlineData("[on][/]")]
-    [InlineData("[red on][/]")]
-    [InlineData("[on on red][/]")]
+    [InlineData("[")]                 // unterminated tag
+    [InlineData("[red]a[blue]b")]     // unterminated tag (Spectre requires the closing ']')
+    [InlineData("[/]")]               // closing tag with no opening
+    [InlineData("a[/]")]              // closing tag with no opening
+    [InlineData("[red]a[/][/]")]      // extra closing tag
+    [InlineData("[notacolor]a[/]")]   // unknown color
     public void ParseBroken(string pattern)
     {
         Assert.False(FormattedStringParser.TryParse(pattern, out var result));
@@ -56,35 +42,87 @@ public class FormattedStringParserTests
         Assert.True(result.IsEmpty);
     }
 
-    [Theory]
-    [MemberData(nameof(ParseStyleData))]
-    public void ParseStyle(string pattern, FormattedString expectedResult)
+    [Fact]
+    public void ParseStyle_AppliesForegroundOverRange_RemainderUnformatted()
     {
-        Assert.Equal(expectedResult, FormattedStringParser.Parse(pattern));
+        Assert.True(FormattedStringParser.TryParse("[red]a[/]b", out var result));
+        Assert.Equal("ab", result.Text);
+        Assert.Equal(1, result.FormatSpans.Length);
+        Assert.Equal(0, result.FormatSpans[0].Start);
+        Assert.Equal(1, result.FormatSpans[0].Length);
+        Assert.NotNull(result.FormatSpans[0].Formatting.Foreground);
     }
 
-    public static IEnumerable<object[]> ParseStyleData
+    [Fact]
+    public void ParseStyle_MultipleSpans()
     {
-        get
-        {
-            yield return new object[] { "[red][/]", FormattedString.Empty };
-            yield return new object[] { "[red]a[/]", new FormattedString("a", new FormatSpan(0, 1, AnsiColor.Red)) };
-            yield return new object[] { "[red]a[/]b", new FormattedString("ab", new FormatSpan(0, 1, AnsiColor.Red)) };
-            yield return new object[] { "[red]a[/][green]b[/]", new FormattedString("ab", new FormatSpan(0, 1, AnsiColor.Red), new FormatSpan(1, 1, AnsiColor.Green)) };
+        Assert.True(FormattedStringParser.TryParse("[red]a[/][green]b[/]", out var result));
+        Assert.Equal("ab", result.Text);
+        Assert.Equal(2, result.FormatSpans.Length);
+        Assert.Equal(0, result.FormatSpans[0].Start);
+        Assert.Equal(1, result.FormatSpans[1].Start);
+    }
 
-            yield return new object[] { "[red bold]a[/]", new FormattedString("a", new FormatSpan(0, 1, new ConsoleFormat(Foreground: AnsiColor.Red, Bold: true))) };
-            yield return new object[] { "[red underline]a[/]", new FormattedString("a", new FormatSpan(0, 1, new ConsoleFormat(Foreground: AnsiColor.Red, Underline: true))) };
-            yield return new object[] { "[red inverted]a[/]", new FormattedString("a", new FormatSpan(0, 1, new ConsoleFormat(Foreground: AnsiColor.Red, Inverted: true))) };
-            yield return new object[] { "[red bold underline inverted]a[/]", new FormattedString("a", new FormatSpan(0, 1, new ConsoleFormat(Foreground: AnsiColor.Red, Bold: true, Underline: true, Inverted: true))) };
+    [Fact]
+    public void ParseStyle_EmptyContent_ProducesEmpty()
+    {
+        Assert.True(FormattedStringParser.TryParse("[red][/]", out var result));
+        Assert.True(result.IsEmpty);
+    }
 
-            yield return new object[] { "[on red]a[/]", new FormattedString("a", new FormatSpan(0, 1, new ConsoleFormat(Background: AnsiColor.Red))) };
-            yield return new object[] { "[blue on red]a[/]", new FormattedString("a", new FormatSpan(0, 1, new ConsoleFormat(Foreground: AnsiColor.Blue, Background: AnsiColor.Red))) };
-            yield return new object[] { "[bold blue on red]a[/]", new FormattedString("a", new FormatSpan(0, 1, new ConsoleFormat(Foreground: AnsiColor.Blue, Background: AnsiColor.Red, Bold: true))) };
-            yield return new object[] { "[blue on red bold]a[/]", new FormattedString("a", new FormatSpan(0, 1, new ConsoleFormat(Foreground: AnsiColor.Blue, Background: AnsiColor.Red, Bold: true))) };
-            yield return new object[] { "[red]a[/][on green]b[/]", new FormattedString("ab", new FormatSpan(0, 1, AnsiColor.Red), new FormatSpan(1, 1, new ConsoleFormat(Background: AnsiColor.Green))) };
+    [Theory]
+    [InlineData("[red bold]a[/]", true, false, false)]
+    [InlineData("[red underline]a[/]", false, true, false)]
+    [InlineData("[red invert]a[/]", false, false, true)]
+    [InlineData("[red bold underline invert]a[/]", true, true, true)]
+    public void ParseStyle_Decorations(string pattern, bool bold, bool underline, bool inverted)
+    {
+        Assert.True(FormattedStringParser.TryParse(pattern, out var result));
+        Assert.Equal(1, result.FormatSpans.Length);
+        var format = result.FormatSpans[0].Formatting;
+        Assert.Equal(bold, format.Bold);
+        Assert.Equal(underline, format.Underline);
+        Assert.Equal(inverted, format.Inverted);
+    }
 
-            yield return new object[] { "[red][[a]][/][on green][[b]][/]", new FormattedString("[a][b]", new FormatSpan(0, 3, AnsiColor.Red), new FormatSpan(3, 3, new ConsoleFormat(Background: AnsiColor.Green))) };
-            yield return new object[] { "[bold]Usage[/]: [[OPTIONS]]", new FormattedString("Usage: [OPTIONS]", new FormatSpan(0, 5, new ConsoleFormat(Bold: true))) };
-        }
+    [Fact]
+    public void ParseStyle_ForegroundAndBackground()
+    {
+        Assert.True(FormattedStringParser.TryParse("[blue on red]a[/]", out var result));
+        Assert.Equal(1, result.FormatSpans.Length);
+        var format = result.FormatSpans[0].Formatting;
+        Assert.NotNull(format.Foreground);
+        Assert.NotNull(format.Background);
+    }
+
+    [Fact]
+    public void ParseStyle_EscapedBracketsInsideStyle()
+    {
+        Assert.True(FormattedStringParser.TryParse("[red][[a]][/]", out var result));
+        Assert.Equal("[a]", result.Text);
+        Assert.Equal(1, result.FormatSpans.Length);
+        Assert.Equal(0, result.FormatSpans[0].Start);
+        Assert.Equal(3, result.FormatSpans[0].Length);
+    }
+
+    [Fact]
+    public void StandardColor_MapsToTerminalPalette_NotAbsoluteRgb()
+    {
+        // A standard color must become a palette AnsiColor (which the terminal themes), so it stays
+        // readable, rather than an absolute truecolor value. Palette colors stringify to a friendly
+        // name; RGB colors stringify to "#RRGGBB".
+        Assert.True(FormattedStringParser.TryParse("[blue]a[/]", out var result));
+        var foreground = result.FormatSpans[0].Formatting.Foreground;
+        Assert.NotNull(foreground);
+        Assert.DoesNotContain("#", foreground.ToString());
+    }
+
+    [Fact]
+    public void HexColor_PreservedAsTrueColorRgb()
+    {
+        Assert.True(FormattedStringParser.TryParse("[#1A2B3C]a[/]", out var result));
+        var foreground = result.FormatSpans[0].Formatting.Foreground;
+        Assert.NotNull(foreground);
+        Assert.Equal("#1A2B3C", foreground.ToString());
     }
 }

@@ -97,7 +97,7 @@ public sealed partial class RoslynServices
             this.scriptRunner = new ScriptRunner(workspaceManager, parseOptions, compilationOptions, referenceService, console, config);
 
             this.disassembler = new Disassembler(parseOptions, compilationOptions, referenceService, scriptRunner);
-            this.prettyPrinter = new PrettyPrinter(console, highlighter, config);
+            this.prettyPrinter = new PrettyPrinter(console.Profile, highlighter, config);
             this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
             this.autocompleteService = new AutoCompleteService(highlighter, cache, config);
             logger.Log("Background initialization complete");
@@ -169,6 +169,17 @@ public sealed partial class RoslynServices
         }
 
         return formattedObject.Renderable;
+    }
+
+    /// <summary>
+    /// Formats a value as plain text (no Spectre rendering, tables, or ANSI color). Used for
+    /// non-interactive output (--eval / --eval-file / piped input), where a single, deterministic,
+    /// plain-text line is wanted rather than the interactive renderer's decorated output.
+    /// </summary>
+    public async Task<string> PrettyPrintToStringAsync(object? obj, Level level)
+    {
+        await Initialization.ConfigureAwait(false);
+        return prettyPrinter.FormatObjectToText(obj, level).ToString();
     }
 
     public async Task<StyledString> PrettyPrintAsync(Exception obj, Level level)
