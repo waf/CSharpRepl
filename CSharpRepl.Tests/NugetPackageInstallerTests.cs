@@ -33,7 +33,7 @@ public class NugetPackageInstallerTests : IAsyncLifetime
     [Fact]
     public async Task InstallRuntimeSpecificPackage()
     {
-        var references = await installer.InstallAsync("System.Management", "6.0.0");
+        var references = await installer.InstallAsync("System.Management", "6.0.0", TestContext.Current.CancellationToken);
 
         Assert.True(references.Length >= 1);
         var reference = references.FirstOrDefault(r => r.FilePath.EndsWith("System.Management.dll", StringComparison.OrdinalIgnoreCase));
@@ -47,7 +47,7 @@ public class NugetPackageInstallerTests : IAsyncLifetime
     [Fact]
     public async Task InstallPackageWithSupportedButEmptyTargets()
     {
-        var references = await installer.InstallAsync("Microsoft.CSharp", "4.7.0"); //some targets contains only empty file '_._'
+        var references = await installer.InstallAsync("Microsoft.CSharp", "4.7.0", TestContext.Current.CancellationToken); //some targets contains only empty file '_._'
 
         Assert.True(references.Length >= 1);
         var reference = references.FirstOrDefault(r => r.FilePath.EndsWith("Microsoft.CSharp.dll", StringComparison.OrdinalIgnoreCase));
@@ -59,7 +59,7 @@ public class NugetPackageInstallerTests : IAsyncLifetime
     public async Task InstallPackageThatOnlyContainsDependencies()
     {
         // humanizer does not target any frameworks itself, but depends on nuget packages that do.
-        var references = await installer.InstallAsync("Humanizer", "2.14.1");
+        var references = await installer.InstallAsync("Humanizer", "2.14.1", TestContext.Current.CancellationToken);
 
         Assert.True(references.Length >= 1);
         var reference = references.FirstOrDefault(r => r.FilePath.EndsWith("Humanizer.dll", StringComparison.OrdinalIgnoreCase));
@@ -72,7 +72,7 @@ public class NugetPackageInstallerTests : IAsyncLifetime
     public async Task InstallPackageThatContainsImplicitVersioning()
     {
         // The package version is "1.2" but if we accidentally normalize the version, it normalizes to 1.2.0 and causes directory not found errors
-        var references = await installer.InstallAsync("Emik.Results", "1.2");
+        var references = await installer.InstallAsync("Emik.Results", "1.2", TestContext.Current.CancellationToken);
 
         Assert.True(references.Length >= 1);
         var reference = references.FirstOrDefault(r => r.FilePath.EndsWith("Emik.Results.dll", StringComparison.OrdinalIgnoreCase));

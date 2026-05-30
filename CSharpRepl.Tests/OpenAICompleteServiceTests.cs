@@ -18,7 +18,7 @@ public class OpenAICompleteServiceTests
         var service = new OpenAICompleteService(configuration: null);
 
         var results = new List<string>();
-        await foreach (var chunk in service.CompleteAsync([], "Console.Wri", caret: 11, cancellationToken: default))
+        await foreach (var chunk in service.CompleteAsync([], "Console.Wri", caret: 11, cancellationToken: TestContext.Current.CancellationToken))
         {
             results.Add(chunk);
         }
@@ -32,7 +32,7 @@ public class OpenAICompleteServiceTests
         var service = new OpenAICompleteService(new OpenAIConfiguration(apiKey: "", prompt: "p", model: "gpt-4o", historyCount: 5));
 
         var results = new List<string>();
-        await foreach (var chunk in service.CompleteAsync(["previous submission"], "1 + ", caret: 4, cancellationToken: default))
+        await foreach (var chunk in service.CompleteAsync(["previous submission"], "1 + ", caret: 4, cancellationToken: TestContext.Current.CancellationToken))
         {
             results.Add(chunk);
         }

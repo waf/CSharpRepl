@@ -38,7 +38,7 @@ public class PromptConfigurationTests : IAsyncLifetime
     {
         IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
         Assert.True(configuration.TryGetKeyPressCallbacks(keyInfo, out var callback));
-        callback.Invoke("Console.WriteLine(\"Hi!\");", 0, default);
+        callback.Invoke("Console.WriteLine(\"Hi!\");", 0, TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public class PromptConfigurationTests : IAsyncLifetime
 
         // With no OpenAI API key configured the completion stream yields nothing, but the callback
         // still returns a (streaming) result rather than throwing.
-        var result = await callback.Invoke("1 + ", 4, default);
+        var result = await callback.Invoke("1 + ", 4, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
     }
@@ -95,7 +95,7 @@ public class PromptConfigurationTests : IAsyncLifetime
         var f9 = new ConsoleKeyInfo('\0', ConsoleKey.F9, shift: false, alt: false, control: false);
         Assert.True(configuration.TryGetKeyPressCallbacks(f9, out var callback));
 
-        var result = await callback.Invoke("this is not valid c# !@#$", 0, default);
+        var result = await callback.Invoke("this is not valid c# !@#$", 0, TestContext.Current.CancellationToken);
 
         // The disassembler fails to compile, so the error branch returns the red error message.
         Assert.NotNull(result);

@@ -64,7 +64,7 @@ public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynS
     [InlineData("Console.Write( 1+1 ); if(true  ){", 33, "Console.Write( 1+1 ); if (true) {", 33, true)]
     public async Task AutoFormat(string text, int caret, string expectedText, int expectedCaret, bool formatParentNodeOnly)
     {
-        var (formattedText, formattedCaret) = await services.FormatInput(text, caret, formatParentNodeOnly, default);
+        var (formattedText, formattedCaret) = await services.FormatInput(text, caret, formatParentNodeOnly, TestContext.Current.CancellationToken);
 
         if (Environment.NewLine.Length == 2)
         {
@@ -97,7 +97,7 @@ public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynS
     [InlineData("Console.WriteLine();", false, null)]
     public async Task NullOutput_Versus_NoOutput(string text, bool hasOutput, object? expectedOutput)
     {
-        var result = (EvaluationResult.Success)await services.EvaluateAsync(text);
+        var result = (EvaluationResult.Success)await services.EvaluateAsync(text, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(hasOutput, result.ReturnValue.HasValue);
 

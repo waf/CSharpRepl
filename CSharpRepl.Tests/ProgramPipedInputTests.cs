@@ -23,7 +23,7 @@ public class ProgramPipedInputTests
     public async Task RunAsync_CollectedPipedInput_EvaluatesAndExitsSuccessfully()
     {
         var (console, _) = FakeConsole.CreateStubbedOutput();
-        console.ReadLine().Returns("1 + 1", (string?)null); // one piped line, then end-of-input
+        console.ReadLine().Returns("1 + 1", (string)null); // one piped line, then end-of-input
 
         var exitCode = await Program.RunAsync([], console, inputRedirectedOverride: true);
 

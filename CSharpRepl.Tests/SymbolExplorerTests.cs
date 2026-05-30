@@ -89,8 +89,8 @@ public class SymbolExplorerTests : IAsyncLifetime
     [Fact]
     public async Task GetSymbolAtIndex_NonSourceLinkedAssembly_NoException()
     {
-        _ = await services.EvaluateAsync(@"#r ""./Data/DemoLibrary.dll""");
-        _ = await services.EvaluateAsync("using DemoLibrary;");
+        _ = await services.EvaluateAsync(@"#r ""./Data/DemoLibrary.dll""", cancellationToken: TestContext.Current.CancellationToken);
+        _ = await services.EvaluateAsync("using DemoLibrary;", cancellationToken: TestContext.Current.CancellationToken);
         var symbol = await services.GetSymbolAtIndexAsync("DemoClass.Multiply", "DemoClass.Multi".Length);
 
         Assert.Equal("DemoLibrary.DemoClass.Multiply", symbol.SymbolDisplay);

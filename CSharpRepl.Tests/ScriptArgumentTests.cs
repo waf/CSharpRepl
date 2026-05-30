@@ -19,8 +19,8 @@ public class ScriptArgumentTests
         var args = new[] { "Howdy" };
 
         await services.WarmUpAsync(args);
-        var variableAssignment = await services.EvaluateAsync($@"var x = {argsAccessor};");
-        var variableUsage = await services.EvaluateAsync(@"x");
+        var variableAssignment = await services.EvaluateAsync($@"var x = {argsAccessor};", cancellationToken: TestContext.Current.CancellationToken);
+        var variableUsage = await services.EvaluateAsync(@"x", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(variableAssignment);
         var usage = Assert.IsType<EvaluationResult.Success>(variableUsage);
@@ -34,9 +34,9 @@ public class ScriptArgumentTests
         var services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
 
         await services.WarmUpAsync([]);
-        _ = await services.EvaluateAsync("using System.Globalization;");
-        _ = await services.EvaluateAsync("CultureInfo.DefaultThreadCurrentCulture = new System.Globalization.CultureInfo(System.Globalization.CultureInfo.InvariantCulture.Name);");
-        var printStatement = await services.EvaluateAsync("Print(DateTime.MinValue)");
+        _ = await services.EvaluateAsync("using System.Globalization;", cancellationToken: TestContext.Current.CancellationToken);
+        _ = await services.EvaluateAsync("CultureInfo.DefaultThreadCurrentCulture = new System.Globalization.CultureInfo(System.Globalization.CultureInfo.InvariantCulture.Name);", cancellationToken: TestContext.Current.CancellationToken);
+        var printStatement = await services.EvaluateAsync("Print(DateTime.MinValue)", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(printStatement);
         Assert.Equal("[01/01/0001 00:00:00]\n", console.AnsiConsole.Output);

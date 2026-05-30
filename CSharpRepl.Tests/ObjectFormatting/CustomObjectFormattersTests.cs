@@ -41,7 +41,7 @@ public class CustomObjectFormattersTests : IClassFixture<RoslynServicesFixture>
     [InlineData("class Class2<T> { } new Class2<int>()", "Class2<int>")] //https://github.com/waf/CSharpRepl/issues/305
     public async Task TypeDefinedInsideReplFormattingBug(string input, string expectedOutput)
     {
-        var eval = await services.EvaluateAsync(input);
+        var eval = await services.EvaluateAsync(input, cancellationToken: TestContext.Current.CancellationToken);
         if (eval is EvaluationResult.Success { ReturnValue.Value: object obj })
         {
             Assert.Equal(expectedOutput, formatter.Format(TypeFormatter.Instance, obj.GetType(), Level.FirstSimple));
