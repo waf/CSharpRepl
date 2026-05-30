@@ -157,6 +157,18 @@ public class EvaluationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Evaluate_SolutionReference_ReferencesAllProjects_FromSlnx()
+    {
+        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoSolution/DemoSolution.slnx""");
+        var importProject1Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject1;");
+        var importProject2Result = await services.EvaluateAsync(@"using DemoSolution.DemoProject2;");
+
+        Assert.IsType<EvaluationResult.Success>(referenceResult);
+        Assert.IsType<EvaluationResult.Success>(importProject1Result);
+        Assert.IsType<EvaluationResult.Success>(importProject2Result);
+    }
+
+    [Fact]
     public async Task Evaluate_SolutionReference_ReferencesMultipleTargetFrameworks()
     {
         var referenceResult = await services.EvaluateAsync(@"#r ""./Data/ComplexSolution/ComplexSolution.sln""");

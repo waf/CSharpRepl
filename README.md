@@ -107,7 +107,7 @@ When you're done with your session, you can type `exit` or press <kbd>Ctrl+D</kb
 Use the `#r` command to add assembly or nuget references.
 
 - For assembly references, run `#r "AssemblyName"` or `#r "path/to/assembly.dll"`
-- For project references, run `#r "path/to/project.csproj"`. Solution files (.sln) can also be referenced.
+- For project references, run `#r "path/to/project.csproj"`. Solution files (`.sln` and `.slnx`) can also be referenced.
 - For nuget references, run `#r "nuget: PackageName"` to install the latest version of a package, or `#r "nuget: PackageName, 13.0.5"` to install a specific version (13.0.5 in this case).
 
 <p align="center">
