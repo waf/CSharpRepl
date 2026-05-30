@@ -27,6 +27,7 @@ Thanks to everyone who contributes! The following contributors have helped out w
 - Alex ([Rekkonnect](https://github.com/Rekkonnect))
 - Sakamoto ([hikarisakamoto](https://github.com/hikarisakamoto))
 - [sugiiianaaa](https://github.com/sugiiianaaa)
+- Guillermo Teijeiro ([gteijeiro](https://github.com/gteijeiro))
 
 ## PrettyPrompt Contributors
 
