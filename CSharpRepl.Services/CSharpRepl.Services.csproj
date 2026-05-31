@@ -21,14 +21,16 @@
       runtime, so the MSBuild assemblies must NOT be copied to our output directory (otherwise they
       shadow the SDK's and cause version-skew failures). ExcludeAssets="runtime" keeps the
       compile-time reference but stops the runtime copy. This is the fix the MSBL001 check requires.
+      The same is required for Microsoft.NET.StringTools, a dependency of Microsoft.Build.Framework.
       See https://aka.ms/msbuild/locator/diagnostics/MSBL001
     -->
-    <PackageReference Include="Microsoft.Build.Framework" Version="17.11.48" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Framework" Version="18.6.3" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NET.StringTools" Version="18.6.3" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.8" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.8" />
     <PackageReference Include="Microsoft.SymbolStore" Version="1.0.727501" />
     <PackageReference Include="OpenAI" Version="2.10.0" />
-    <PackageReference Include="PrettyPrompt" Version="4.1.1" />
+    <PackageReference Include="PrettyPrompt" Version="5.0.0" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
     <PackageReference Include="Spectre.Console.Ansi" Version="0.55.2" />
     <PackageReference Include="System.IO.Abstractions" Version="22.1.1" />
