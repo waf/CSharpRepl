@@ -1,3 +1,12 @@
+## Release 0.6.9
+
+- Much better unicode/emoji support ([#458](https://github.com/waf/CSharpRepl/pull/458) - via an upgrade to PrettyPrompt 5.0).
+- Add support for referencing `.slnx` solution files (thanks @gteijeiro!) ([#450](https://github.com/waf/CSharpRepl/pull/450)).
+- Respect `packageSourceMapping` when installing NuGet packages ([#454](https://github.com/waf/CSharpRepl/pull/454)).
+- Add extended descriptions for the `help`, `exit`, and `clear` commands (thanks @sugiiianaaa!) ([#449](https://github.com/waf/CSharpRepl/pull/449)).
+- Add `--eval` and `--eval-file` flags for non-interactively evaluating C# code, printing the result, and exiting. AI agents can use this via a skill in the repository ([#457](https://github.com/waf/CSharpRepl/pull/457)).
+- Dependency upgrades ([#454](https://github.com/waf/CSharpRepl/pull/454)).
+
 ## Release 0.6.8
 
 - .NET 10 upgrade ([#424](https://github.com/waf/CSharpRepl/pull/424)).
