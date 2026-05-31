@@ -35,12 +35,12 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
     private const string lowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
     private static SearchValues<char> lowercaseSearchValues = SearchValues.Create(lowercaseLetters);
 
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
     private readonly RoslynServices roslyn;
     private readonly Configuration configuration;
     private readonly OpenAICompleteService openAIComplete;
 
-    public CSharpReplPromptCallbacks(IConsoleEx console, RoslynServices roslyn, Configuration configuration)
+    public CSharpReplPromptCallbacks(IConsoleService console, RoslynServices roslyn, Configuration configuration)
     {
         this.console = console;
         this.roslyn = roslyn;
@@ -295,7 +295,7 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
     protected override Task<(IReadOnlyList<OverloadItem>, int ArgumentIndex)> GetOverloadsAsync(string text, int caret, CancellationToken cancellationToken)
         => roslyn.GetOverloadsAsync(text, caret, cancellationToken);
 
-    private static async Task<KeyPressCallbackResult?> Disassemble(RoslynServices roslyn, string text, IConsoleEx console, bool debugMode)
+    private static async Task<KeyPressCallbackResult?> Disassemble(RoslynServices roslyn, string text, IConsoleService console, bool debugMode)
     {
         var result = await roslyn.ConvertToIntermediateLanguage(text, debugMode);
 
@@ -303,7 +303,7 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         {
             case EvaluationResult.Success success:
                 var ilCode = success.ReturnValue.ToString();
-                var output = Prompt.RenderAnsiOutput(ilCode, [], console.PrettyPromptConsole.BufferWidth);
+                var output = Prompt.RenderAnsiOutput(ilCode, [], console.BufferWidth);
                 return new KeyPressCallbackResult(text, output);
             case EvaluationResult.Error err:
                 return new KeyPressCallbackResult(text, AnsiColor.Red.GetEscapeSequence() + err.Exception.Message + AnsiEscapeCodes.Reset);

@@ -26,11 +26,11 @@ namespace CSharpRepl;
 /// </summary>
 internal sealed class ReadEvalPrintLoop
 {
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
     private readonly RoslynServices roslyn;
     private readonly IPrompt prompt;
 
-    public ReadEvalPrintLoop(IConsoleEx console, RoslynServices roslyn, IPrompt prompt)
+    public ReadEvalPrintLoop(IConsoleService console, RoslynServices roslyn, IPrompt prompt)
     {
         this.console = console;
         this.roslyn = roslyn;
@@ -88,7 +88,7 @@ internal sealed class ReadEvalPrintLoop
         }
     }
 
-    private static async Task Preload(RoslynServices roslyn, IConsoleEx console, Configuration config)
+    private static async Task Preload(RoslynServices roslyn, IConsoleService console, Configuration config)
     {
         bool hasReferences = config.References.Count > 0;
         bool hasLoadScript = config.LoadScript is not null;
@@ -114,7 +114,7 @@ internal sealed class ReadEvalPrintLoop
         }
     }
 
-    private static async Task PrintAsync(RoslynServices roslyn, IConsoleEx console, EvaluationResult result, Level level)
+    private static async Task PrintAsync(RoslynServices roslyn, IConsoleService console, EvaluationResult result, Level level)
     {
         switch (result)
         {
@@ -152,7 +152,7 @@ internal sealed class ReadEvalPrintLoop
         var submitPromptName = KeyPressPatternToString((keyBindings.SubmitPrompt.DefinedPatterns ?? []).Except(submitPromptDetailedKeys.DefinedPatterns ?? []));
         var submitPromptDetailedName = KeyPressPatternToString(submitPromptDetailedKeys.DefinedPatterns ?? []);
 
-        console.WriteLine(FormattedStringParser.Parse($"""
+        console.Write(new Markup($"""
 More details and screenshots are available at
 [blue]https://github.com/waf/CSharpRepl/blob/main/README.md [/]
 
@@ -183,6 +183,7 @@ All configuration, including theming, is done at startup via command line flags.
 Run [green]--help[/] at the command line to view these options.
 """
         ));
+        console.WriteLine();
 
         string Reference(string? argument = null) => Preprocessor("#r", argument);
 
@@ -193,7 +194,17 @@ Run [green]--help[/] at the command line to view these options.
             return highlightedKeyword + highlightedArgument;
         }
 
-        string ToColor(string classification) => roslyn!.ToColor(classification).ToString();
+        // Emit a Spectre-markup-valid hex token for the theme color of a classification. The theme
+        // color's friendly name is either already "#RRGGBB" (RGB themes) or a PrettyPrompt color name
+        // (e.g. "BrightCyan") that Spectre's markup parser wouldn't recognize — TryParseSpectreColor
+        // handles both, and we render it as hex.
+        string ToColor(string classification)
+        {
+            var name = roslyn!.ToColor(classification).ToString();
+            return ThemeColor.TryParseSpectreColor(name, out var color)
+                ? $"#{color.R:X2}{color.G:X2}{color.B:X2}"
+                : name;
+        }
 
         static string KeyPressPatternToString(IEnumerable<KeyPressPattern> patterns)
         {

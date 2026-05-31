@@ -27,34 +27,39 @@ internal static class Program
 
     /// <summary>
     /// Core entry point. The <paramref name="console"/> and <paramref name="inputRedirectedOverride"/>
-    /// parameters are testing seams: production calls supply neither, so a real <see cref="SystemConsoleEx"/>
+    /// parameters are testing seams: production calls supply neither, so a real <see cref="ConsoleService"/>
     /// is constructed and the ambient <see cref="Console.IsInputRedirected"/> is used. Tests inject a fake
     /// console and an explicit redirected-input flag, which lets the piped-input path be exercised
     /// deterministically without reading from (or blocking on) the real standard input handle.
     /// </summary>
-    internal static async Task<int> RunAsync(string[] args, IConsoleEx? console = null, bool? inputRedirectedOverride = null)
+    internal static async Task<int> RunAsync(string[] args, IConsoleService? console = null, bool? inputRedirectedOverride = null)
     {
+        // Tracked as the concrete type for the interactive-prompt path, which hands the raw
+        // PrettyPromptConsole (protected on IConsoleEx) to the PrettyPrompt library.
+        var systemConsole = console as ConsoleService;
         if (console is null)
         {
             // Only mutate the process-wide console encoding for real runs. Setting Console.InputEncoding
             // resets Console.In, which would discard any reader a test injected (e.g. via Console.SetIn).
             Console.InputEncoding = Encoding.UTF8;
             Console.OutputEncoding = Encoding.UTF8;
-            console = new SystemConsoleEx();
+            systemConsole = new ConsoleService();
+            console = systemConsole;
         }
 
         // parse command line input
         var appStorage = CreateApplicationStorageDirectory();
         var configFile = Path.Combine(appStorage, "config.rsp");
 
-        if (!TryParseArguments(args, configFile, out var config))
+        if (!TryParseArguments(args, configFile, console, out var config))
             return ExitCodes.ErrorParseArguments;
 
         SetDefaultCulture(config);
 
-        if (config.OutputForEarlyExit.Text is not null)
+        if (config.OutputForEarlyExit is { } earlyExit)
         {
-            console.WriteLine(config.OutputForEarlyExit);
+            console.Write(earlyExit);
+            console.WriteLine();
             return ExitCodes.Success;
         }
 
@@ -62,10 +67,20 @@ internal static class Program
         var logger = InitializeLogging(config.Trace);
         var roslyn = new RoslynServices(console, config, logger);
 
+        // --eval / --eval-file: evaluate the supplied code non-interactively and exit. Checked before
+        // the stdin-redirected branch below so it works whether or not stdin is a TTY, and never blocks
+        // trying to read empty redirected stdin.
+        if (config.EvaluateInput is not null)
+        {
+            return await new PipedInputEvaluator(console, roslyn, config)
+                .EvaluateStringAsync(config.EvaluateInput)
+                .ConfigureAwait(false);
+        }
+
         // we're getting piped input, just evaluate the input and exit.
         if (inputRedirectedOverride ?? Console.IsInputRedirected)
         {
-            var evaluator = new PipedInputEvaluator(console, roslyn);
+            var evaluator = new PipedInputEvaluator(console, roslyn, config);
             return config.StreamPipedInput
                 ? await evaluator.EvaluateStreamingPipeInputAsync().ConfigureAwait(false)
                 : await evaluator.EvaluateCollectedPipeInputAsync().ConfigureAwait(false);
@@ -76,8 +91,11 @@ internal static class Program
             return ExitCodes.ErrorParseArguments;
         }
 
-        // we're being run interactively, start the prompt
-        var (prompt, exitCode) = InitializePrompt(console, appStorage, roslyn, config);
+        // we're being run interactively, start the prompt. This path is production-only — it needs the
+        // real system console to drive the PrettyPrompt library.
+        var (prompt, exitCode) = InitializePrompt(
+            systemConsole ?? throw new InvalidOperationException("The interactive prompt requires the real system console."),
+            appStorage, roslyn, config);
         if (prompt is not null)
         {
             try
@@ -95,7 +113,7 @@ internal static class Program
         return exitCode;
     }
 
-    private static bool TryParseArguments(string[] args, string configFilePath, [NotNullWhen(true)] out Configuration? configuration)
+    private static bool TryParseArguments(string[] args, string configFilePath, IConsoleService console, [NotNullWhen(true)] out Configuration? configuration)
     {
         try
         {
@@ -104,10 +122,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Error.WriteLine(ex.Message);
-            Console.ResetColor();
-            Console.WriteLine();
+            console.WriteStandardErrorLine(ex.Message);
             configuration = null;
             return false;
         }
@@ -138,7 +153,7 @@ internal static class Program
     private static ITraceLogger InitializeLogging(bool trace) =>
         !trace ? new NullLogger() : TraceLogger.Create($"csharprepl-tracelog-{DateTime.UtcNow:yyyy-MM-dd}.txt");
 
-    private static (Prompt? prompt, int exitCode) InitializePrompt(IConsoleEx console, string appStorage, RoslynServices roslyn, Configuration config)
+    private static (Prompt? prompt, int exitCode) InitializePrompt(ConsoleService console, string appStorage, RoslynServices roslyn, Configuration config)
     {
         try
         {

@@ -17,9 +17,9 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolver
 {
     private readonly DotnetBuilder builder;
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
 
-    public SolutionFileMetadataResolver(DotnetBuilder builder, IConsoleEx console)
+    public SolutionFileMetadataResolver(DotnetBuilder builder, IConsoleService console)
     {
         this.builder = builder;
         this.console = console;

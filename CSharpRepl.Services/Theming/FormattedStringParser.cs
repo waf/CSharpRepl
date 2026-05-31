@@ -1,27 +1,23 @@
-﻿using System;
-using System.Linq;
-using System.Text.RegularExpressions;
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+using System;
 using PrettyPrompt.Highlighting;
+using Spectre.Console;
 
 namespace CSharpRepl.Services.Theming;
 
+/// <summary>
+/// Parses Spectre.Console markup (e.g. <c>[aqua bold]text[/]</c>, <c>[blue on red]text[/]</c>, with
+/// <c>[[</c> / <c>]]</c> escaping a literal bracket) into a PrettyPrompt <see cref="FormattedString"/>.
+/// Spectre does the actual parsing via <see cref="AnsiMarkup.Parse"/>; this only maps each parsed
+/// segment's <see cref="Style"/> onto PrettyPrompt's <see cref="ConsoleFormat"/>. A FormattedString
+/// (rather than a Spectre renderable) is produced because PrettyPrompt renders the interactive prompt,
+/// and the console output helpers take FormattedStrings.
+/// </summary>
 public static class FormattedStringParser
 {
-    private static readonly Regex StyleTagRegex = new(
-            @"\[[a-z \#0-9]*\]|\[/\]",
-            RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex UnescapedTextCheckerRegex = new(
-        @"[^\[]\[[^\[]|" +  // x[x 
-        @"[^\]]\][^\]]|" +  // x]x
-        @"^\[[^\[]|" +      //^[x
-        @"^\][^\]]|" +      //^]x
-        @"[^\]]\]$|" +      // x]$
-        @"[^\[]\[$|" +      // x[$
-        @"^\[$|" +          //^[$
-        @"^\]$",            //^]$
-        RegexOptions.Compiled);
-
     public static FormattedString Parse(string input)
     {
         if (!TryParse(input, out var result))
@@ -33,177 +29,85 @@ public static class FormattedStringParser
 
     public static bool TryParse(string input, out FormattedString result)
     {
-        result = FormattedString.Empty;
-
-        var styleMatches = StyleTagRegex.Matches(input)
-            .Where(m => StartsWithEvenNumberOf(input.AsSpan()[m.Index..], ']') && EndsWithEvenNumberOf(input.AsSpan(0, m.Index), '['))
-            .ToList();
-
-        if (styleMatches.Count % 2 != 0)
+        try
         {
-            //some style tags is surely not closed
-            return false;
-        }
-
-        if (styleMatches.Count == 0)
-        {
-            if (!ValidateUnescapedTextPart(input))
+            var builder = new FormattedStringBuilder();
+            foreach (var segment in AnsiMarkup.Parse(input, style: null))
             {
-                return false;
-            }
-            result = Unescape(input);
-            return true;
-        }
-
-        var sb = new FormattedStringBuilder();
-        ConsoleFormat? lastFormat = null;
-        int lastFormatEnd = 0;
-        foreach (Match styleMatch in styleMatches)
-        {
-            if (styleMatch.Length == 0)
-            {
-                return false;
-            }
-
-            var previousText = input[lastFormatEnd..styleMatch.Index];
-            if (!ValidateUnescapedTextPart(previousText))
-            {
-                return false;
-            }
-
-            lastFormatEnd += previousText.Length + styleMatch.Length;
-            previousText = Unescape(previousText);
-            if (lastFormat.HasValue)
-            {
-                if (styleMatch.ValueSpan.Equals("[/]", StringComparison.Ordinal))
+                if (segment.Text.Length == 0)
                 {
-                    sb.Append(new FormattedString(previousText, lastFormat.Value));
-                    lastFormat = null;
                     continue;
                 }
+                else if (segment.Style == Style.Plain)
+                {
+                    builder.Append(segment.Text);
+                }
                 else
                 {
-                    //previous style tag wasn't closed
-                    return false;
+                    var format = ToConsoleFormat(segment.Style);
+                    builder.Append(new FormattedString(segment.Text, format));
                 }
             }
-            else
-            {
-                sb.Append(previousText);
-
-                if (!TryParseConsoleFormat(styleMatch.ValueSpan[1..^1].ToString(), out var format))
-                {
-                    return false;
-                }
-                lastFormat = format;
-            }
+            result = builder.ToFormattedString();
+            return true;
         }
-
-        if (lastFormat.HasValue)
+        catch (Exception)
         {
-            //last style tag wasn't closed
+            // Spectre throws on malformed markup (unbalanced/unknown tags, unknown colors).
+            result = FormattedString.Empty;
             return false;
         }
-        else
-        {
-            sb.Append(Unescape(input[lastFormatEnd..]));
-        }
-
-        result = sb.ToFormattedString();
-        return true;
     }
 
-    private static bool TryParseConsoleFormat(string input, out ConsoleFormat result)
+    private static ConsoleFormat ToConsoleFormat(Style style)
     {
-        result = default;
-
-        bool bold = false;
-        bool underline = false;
-        bool inverted = false;
-        AnsiColor? foreground = null;
-        AnsiColor? background = null;
-        var parts = input.Split(' ');
-        bool onKeywordActive = false;
-        for (int i = 0; i < parts.Length; i++)
-        {
-            var part = parts[i];
-            if (part.Length == 0) return false;
-
-            if (part.Equals("bold", StringComparison.OrdinalIgnoreCase))
-            {
-                if (onKeywordActive) return false;
-                bold = true;
-            }
-            else if (part.Equals("underline", StringComparison.OrdinalIgnoreCase))
-            {
-                if (onKeywordActive) return false;
-                underline = true;
-            }
-            else if (part.Equals("inverted", StringComparison.OrdinalIgnoreCase))
-            {
-                if (onKeywordActive) return false;
-                inverted = true;
-            }
-            else
-            {
-                if (part.Equals("on", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (onKeywordActive) return false;
-                    onKeywordActive = true;
-                }
-                else if (onKeywordActive)
-                {
-                    if (background.HasValue ||
-                        !ThemeColor.TryParseAnsiColor(part, out var color))
-                    {
-                        return false;
-                    }
-                    background = color;
-                    onKeywordActive = false;
-                }
-                else
-                {
-                    if (foreground.HasValue ||
-                        !ThemeColor.TryParseAnsiColor(part, out var color))
-                    {
-                        return false;
-                    }
-                    foreground = color;
-                }
-            }
-        }
-
-        if (onKeywordActive) return false;
-
-        result = new ConsoleFormat(Foreground: foreground, Background: background, Bold: bold, Underline: underline, Inverted: inverted);
-        return true;
+        var decoration = style.Decoration;
+        return new ConsoleFormat(
+            Foreground: ToAnsiColor(style.Foreground),
+            Background: ToAnsiColor(style.Background),
+            Bold: decoration.HasFlag(Decoration.Bold),
+            Underline: decoration.HasFlag(Decoration.Underline),
+            Inverted: decoration.HasFlag(Decoration.Invert));
     }
 
-    private static string Unescape(string text)
-        => text.Replace("[[", "[").Replace("]]", "]");
-
-    private static bool ValidateUnescapedTextPart(string input)
-        => !UnescapedTextCheckerRegex.IsMatch(input);
-
-    private static bool StartsWithEvenNumberOf(ReadOnlySpan<char> text, char c)
+    // Spectre exposes only RGB (no palette index), so the standard 16 colors look like any other RGB
+    // value. Emitting them as truecolor would bake in an absolute shade and ignore the user's terminal
+    // theme (e.g. a hard-to-read [blue]). So detect a standard color by round-tripping through
+    // ConsoleColor and map it to the matching named AnsiColor (a palette escape the terminal themes);
+    // genuine #RRGGBB colors fall through to truecolor RGB.
+    private static AnsiColor? ToAnsiColor(Color color)
     {
-        int count = 0;
-        for (int i = 0; i < text.Length; i++)
+        if (color == Color.Default) return null;
+
+        var consoleColor = Color.ToConsoleColor(color);
+        if (Color.FromConsoleColor(consoleColor) == color)
         {
-            if (text[i] == c) count++;
-            else break;
+            return FromConsoleColor(consoleColor);
         }
-        return count % 2 == 0;
+
+        return AnsiColor.Rgb(color.R, color.G, color.B);
     }
 
-    private static bool EndsWithEvenNumberOf(ReadOnlySpan<char> text, char c)
+    // Inverse of ThemeColor.TryConvertAnsiColorToConsoleColor: ConsoleColor's dark variants are the
+    // base palette colors, the bright variants are the "Bright*" palette colors.
+    private static AnsiColor FromConsoleColor(ConsoleColor color) => color switch
     {
-        int count = 0;
-        for (int i = text.Length - 1; i >= 0; i--)
-        {
-            if (text[i] == c) count++;
-            else break;
-        }
-        return count % 2 == 0;
-    }
+        ConsoleColor.Black => AnsiColor.Black,
+        ConsoleColor.DarkRed => AnsiColor.Red,
+        ConsoleColor.DarkGreen => AnsiColor.Green,
+        ConsoleColor.DarkYellow => AnsiColor.Yellow,
+        ConsoleColor.DarkBlue => AnsiColor.Blue,
+        ConsoleColor.DarkMagenta => AnsiColor.Magenta,
+        ConsoleColor.DarkCyan => AnsiColor.Cyan,
+        ConsoleColor.Gray => AnsiColor.White,
+        ConsoleColor.DarkGray => AnsiColor.BrightBlack,
+        ConsoleColor.Red => AnsiColor.BrightRed,
+        ConsoleColor.Green => AnsiColor.BrightGreen,
+        ConsoleColor.Yellow => AnsiColor.BrightYellow,
+        ConsoleColor.Blue => AnsiColor.BrightBlue,
+        ConsoleColor.Magenta => AnsiColor.BrightMagenta,
+        ConsoleColor.Cyan => AnsiColor.BrightCyan,
+        ConsoleColor.White => AnsiColor.BrightWhite,
+        _ => AnsiColor.White,
+    };
 }

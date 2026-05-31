@@ -17,7 +17,7 @@ namespace CSharpRepl.Tests;
 public class PromptConfigurationTests : IAsyncLifetime
 {
     private readonly RoslynServices services;
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
     private readonly StringBuilder stdout;
 
     public PromptConfigurationTests()
@@ -143,7 +143,7 @@ public class PromptConfigurationTests : IAsyncLifetime
     /// <summary>Exposes the protected highlight callback so the REPL-keyword highlighting can be tested.</summary>
     private sealed class TestableCallbacks : CSharpReplPromptCallbacks
     {
-        public TestableCallbacks(IConsoleEx console, RoslynServices roslyn, Configuration configuration)
+        public TestableCallbacks(IConsoleService console, RoslynServices roslyn, Configuration configuration)
             : base(console, roslyn, configuration) { }
 
         public async Task<IReadOnlyCollection<FormatSpan>> Highlight(string text)

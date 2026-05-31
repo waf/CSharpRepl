@@ -16,6 +16,7 @@ using Microsoft.CodeAnalysis.Completion;
 using PrettyPrompt;
 using PrettyPrompt.Consoles;
 using PrettyPrompt.Highlighting;
+using Spectre.Console.Rendering;
 
 namespace CSharpRepl.Services;
 
@@ -53,9 +54,15 @@ public sealed class Configuration
     public bool UseUnicode { get; }
     public bool UsePrereleaseNugets { get; }
     public bool StreamPipedInput { get; set; }
+
+    /// <summary>
+    /// C# to evaluate non-interactively (from --eval or --eval-file) before exiting. Null when running
+    /// interactively or reading from piped stdin.
+    /// </summary>
+    public string? EvaluateInput { get; }
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
-    public FormattedString OutputForEarlyExit { get; }
+    public IRenderable? OutputForEarlyExit { get; }
     public OpenAIConfiguration? OpenAIConfiguration { get; }
     public int TabSize { get; }
 
@@ -73,10 +80,11 @@ public sealed class Configuration
         bool useUnicode = false,
         bool usePrereleaseNugets = false,
         bool streamPipedInput = false,
+        string? evaluateInput = null,
         int tabSize = 4,
         string? loadScript = null,
         string[]? loadScriptArgs = null,
-        FormattedString outputForEarlyExit = default,
+        IRenderable? outputForEarlyExit = null,
         string[]? triggerCompletionListKeyPatterns = null,
         string[]? newLineKeyPatterns = null,
         string[]? submitPromptKeyPatterns = null,
@@ -134,6 +142,7 @@ public sealed class Configuration
         UseUnicode = useUnicode;
         UsePrereleaseNugets = usePrereleaseNugets;
         StreamPipedInput = streamPipedInput;
+        EvaluateInput = evaluateInput;
         TabSize = tabSize;
         LoadScript = loadScript;
         LoadScriptArgs = loadScriptArgs ?? [];

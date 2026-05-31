@@ -16,8 +16,7 @@ public class DisassemblerTests : IAsyncLifetime
 
     public DisassemblerTests()
     {
-        var console = Substitute.For<IConsoleEx>();
-        console.PrettyPromptConsole.BufferWidth.Returns(200);
+        var console = FakeConsole.Create(width: 200);
         this.services = new RoslynServices(console, new Configuration(), new TestTraceLogger());
     }
 

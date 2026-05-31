@@ -13,9 +13,9 @@ namespace CSharpRepl.Services.Dotnet;
 
 internal class DotnetBuilder
 {
-    private readonly IConsoleEx console;
+    private readonly IConsoleService console;
 
-    public DotnetBuilder(IConsoleEx console)
+    public DotnetBuilder(IConsoleService console)
     {
         this.console = console;
     }
