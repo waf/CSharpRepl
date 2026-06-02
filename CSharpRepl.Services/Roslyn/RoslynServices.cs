@@ -47,6 +47,8 @@ public sealed partial class RoslynServices
     private readonly IConsoleService console;
     private readonly ITraceLogger logger;
     private readonly SemaphoreSlim semaphore = new(1);
+    private readonly object warmUpLock = new();
+    private Task? warmUpTask;
     private readonly IPromptCallbacks defaultPromptCallbacks = new PromptCallbacks();
     private readonly ThreadLocal<OverloadItemGenerator> overloadItemGenerator;
     private readonly CSharpParseOptions parseOptions = CSharpParseOptions.Default.WithKind(SourceCodeKind.Script).WithLanguageVersion(LanguageVersion.Latest);
@@ -438,39 +440,58 @@ public sealed partial class RoslynServices
     /// Roslyn services can be a bit slow to initialize the first time they're executed.
     /// Warm them up in the background so it doesn't affect the user.
     /// </summary>
-    public Task WarmUpAsync(string[] args) =>
+    /// <remarks>
+    /// Idempotent: the warm-up runs once per instance and later calls return the same task. Production
+    /// warms exactly once, but tests share a single instance and warm it repeatedly.
+    /// </remarks>
+    public Task WarmUpAsync(string[] args)
+    {
+        if (warmUpTask is not null) return warmUpTask;
+        lock (warmUpLock)
+        {
+            return warmUpTask ??= WarmUpCoreAsync(args);
+        }
+    }
+
+    private Task WarmUpCoreAsync(string[] args) =>
         Task.Run(async () =>
         {
             await Initialization.ConfigureAwait(false);
 
             logger.Log("Warm-up Starting");
 
+            // Warm the per-keystroke editor path first, and finish it before the heavier evaluation path below.
+            const string completionSample = @"C";
+            var completionKey = new KeyPress(new ConsoleKeyInfo('C', ConsoleKey.C, shift: false, alt: false, control: false));
+            var highlightTask = SyntaxHighlightAsync(@"_ = ""REPL Warmup""");
+            var formattingTask = FormatInput(@"_=""REPL Warmup"";", caret: 16, formatParentNodeOnly: false, default);
+            var shouldOpenTask = ShouldOpenCompletionWindowAsync(completionSample, caret: 1, completionKey, default);
+            var spanToReplaceTask = GetSpanToReplaceByCompletionAsync(completionSample, caret: 1, default);
+            var completionTask = Task.WhenAny(
+                (await CompleteAsync(completionSample, 1))
+                    .Where(completion => completion.Item.DisplayText.StartsWith("C"))
+                    .Take(15)
+                    .Select(completion => completion.GetDescriptionAsync(cancellationToken: default))
+            );
+            await Task.WhenAll(highlightTask, formattingTask, shouldOpenTask, spanToReplaceTask, completionTask).ConfigureAwait(false);
+            logger.Log("Warm-up: editor path warm");
+
+            // Now warm the evaluation path (compile + emit + load + run). This also loads the runtime helper
+            // used for ref-struct output handling, which the first user submission may need.
             const string RuntimeHelperName = "CSharpRepl.Services.RuntimeHelper.cs";
-            Task evaluationTask;
             using (var runtimeHelperStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(RuntimeHelperName))
             {
                 if (runtimeHelperStream != null)
                 {
                     var runtimeHelperText = new StreamReader(runtimeHelperStream).ReadToEnd();
-                    evaluationTask = EvaluateAsync(runtimeHelperText, args);
+                    await EvaluateAsync(runtimeHelperText, args).ConfigureAwait(false);
                 }
                 else
                 {
-                    evaluationTask = Task.CompletedTask;
                     console.WriteErrorLine($"Unable to load '{RuntimeHelperName}'");
                 }
             }
 
-            var highlightTask = SyntaxHighlightAsync(@"_ = ""REPL Warmup""");
-            var formattingTask = FormatInput(@"_=""REPL Warmup"";", caret: 16, formatParentNodeOnly: false, default);
-            var completionTask = Task.WhenAny(
-                (await CompleteAsync(@"C", 1))
-                    .Where(completion => completion.Item.DisplayText.StartsWith("C"))
-                    .Take(15)
-                    .Select(completion => completion.GetDescriptionAsync(cancellationToken: default))
-            );
-
-            await Task.WhenAll(evaluationTask, highlightTask, formattingTask, completionTask).ConfigureAwait(false);
             logger.Log("Warm-up Complete");
         });
 

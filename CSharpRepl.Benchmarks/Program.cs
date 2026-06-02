@@ -3,6 +3,15 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using BenchmarkDotNet.Running;
+using CSharpRepl.Benchmarks;
+
+// Cold-start diagnostic (not a BenchmarkDotNet benchmark): `coldstart <raw|warmed|race>`.
+// Run one mode per fresh process to observe true first-keystroke cost. See ColdStartDiagnostic.
+if (args.Length >= 1 && args[0] == "coldstart")
+{
+    await ColdStartDiagnostic.RunAsync(args.Length >= 2 ? args[1] : "raw");
+    return;
+}
 
 // With no args, run every benchmark non-interactively. Pass BenchmarkDotNet filters to scope a run, e.g.
 //   dotnet run -c Release --project CSharpRepl.Benchmarks -- --filter *Highlight*
