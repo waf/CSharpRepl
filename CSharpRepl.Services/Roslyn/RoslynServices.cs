@@ -68,6 +68,11 @@ public sealed partial class RoslynServices
 
     internal event Action<string>? EvaluatingInput;
 
+    // The base document that every per-keystroke editor operation (highlight/completion) forks via WithText.
+    // Exposed internally so benchmarks can profile the sub-steps (parse / compilation / semantic model /
+    // classification) of the per-keystroke pipeline. Null until Initialization completes.
+    internal Document? CurrentDocumentForProfiling => workspaceManager?.CurrentDocument;
+
     public RoslynServices(IConsoleService console, Configuration config, ITraceLogger logger)
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
@@ -126,7 +131,7 @@ public sealed partial class RoslynServices
             {
                 // update our final document text, and add a new, empty project that can be
                 // used for future evaluations (whether evaluation, syntax highlighting, or completion)
-                workspaceManager.UpdateCurrentDocument(success);
+                await workspaceManager.UpdateCurrentDocumentAsync(success, cancellationToken).ConfigureAwait(false);
             }
 
             return result;
