@@ -5,6 +5,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Logging;
 using CSharpRepl.Services.Roslyn.References;
@@ -67,7 +69,7 @@ internal sealed class WorkspaceManager
         this.CurrentDocument = document;
     }
 
-    public void UpdateCurrentDocument(EvaluationResult.Success result)
+    public async Task UpdateCurrentDocumentAsync(EvaluationResult.Success result, CancellationToken cancellationToken = default)
     {
         var assemblyReferences = referenceAssemblyService.EnsureReferenceAssemblyWithDocumentation(result.References);
         var document = EmptyProjectAndDocumentChangeset(
@@ -90,6 +92,14 @@ internal sealed class WorkspaceManager
         }
 
         this.CurrentDocument = document;
+
+        // Performance:
+        // Generate this snapshot's compilation now by calling GetCompilationAsync. Roslyn holds a project's Compilation once its CompilationTracker reaches the final state (FinalCompilationWithGeneratedDocuments):
+        // https://github.com/dotnet/roslyn/blob/9fa44037cfccdd8ec2e56429627522e15712af23/src/Workspaces/Core/Portable/Workspace/Solution/SolutionCompilationState.CompilationTracker.CompilationTrackerState.cs#L162
+        // Each per-keystroke CurrentDocument.WithText(...) makes a *new* snapshot, but it reuses the previous submission's compilation if it's been generated as above.
+        // The result is discarded on purpose. CurrentDocument already references this snapshot for the rest of the session; we only need to generate the compilation, not hold the Compilation ourselves.
+        // Confirmed by benchmarks; if we comment out the following line, memory usage grows with each submission, and code completion becomes slower.
+        _ = await CurrentDocument.Project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public IReadOnlyList<Document> GetPreviousDocuments()

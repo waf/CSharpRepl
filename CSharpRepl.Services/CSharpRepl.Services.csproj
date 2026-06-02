@@ -60,6 +60,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="CSharpRepl.Tests" />
+    <InternalsVisibleTo Include="CSharpRepl.Benchmarks" />
   </ItemGroup>
 
   <ItemGroup>
