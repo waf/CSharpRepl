@@ -47,8 +47,11 @@ public sealed partial class RoslynServices
     private readonly IConsoleService console;
     private readonly ITraceLogger logger;
     private readonly SemaphoreSlim semaphore = new(1);
-    private readonly object warmUpLock = new();
     private Task? warmUpTask;
+
+    // false until the per-keystroke editor path has been warmed up (see WarmUpCoreAsync). While warm-up is running, the completion callbacks early exit so the user's first keystrokes don't lag.
+    private volatile bool editorPathWarmedUp;
+
     private readonly IPromptCallbacks defaultPromptCallbacks = new PromptCallbacks();
     private readonly ThreadLocal<OverloadItemGenerator> overloadItemGenerator;
     private readonly CSharpParseOptions parseOptions = CSharpParseOptions.Default.WithKind(SourceCodeKind.Script).WithLanguageVersion(LanguageVersion.Latest);
@@ -210,7 +213,17 @@ public sealed partial class RoslynServices
             .ToList();
     }
 
-    public async Task<IReadOnlyCollection<CompletionItemWithDescription>> CompleteAsync(string text, int caret, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<CompletionItemWithDescription>> CompleteAsync(string text, int caret, CancellationToken cancellationToken = default)
+    {
+        // Suppress completion while warm-up is still warming the editor path. the first time the completion engine runs it pays a large one-time JIT cost
+        // of Microsoft.CodeAnalysis.* (~600ms), which is the main source of first-keystroke lag. Returning nothing here keeps early keystrokes instant.
+        if (warmUpTask is not null && !editorPathWarmedUp)
+            return Task.FromResult<IReadOnlyCollection<CompletionItemWithDescription>>([]);
+
+        return CompleteCoreAsync(text, caret, cancellationToken);
+    }
+
+    private async Task<IReadOnlyCollection<CompletionItemWithDescription>> CompleteCoreAsync(string text, int caret, CancellationToken cancellationToken)
     {
         if (!Initialization.IsCompleted)
             return [];
@@ -266,7 +279,7 @@ public sealed partial class RoslynServices
         return new PrettyPromptTextSpan(span.Start, span.Length);
     }
 
-    public async Task<bool> ShouldOpenCompletionWindowAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
+    public Task<bool> ShouldOpenCompletionWindowAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
     {
         var keyChar = keyPress.ConsoleKeyInfo.KeyChar;
         var keyModifiers = keyPress.ConsoleKeyInfo.Modifiers;
@@ -274,9 +287,19 @@ public sealed partial class RoslynServices
             (keyModifiers & ConsoleModifiers.Control) != 0 ||
             (keyModifiers & ConsoleModifiers.Alt) != 0)
         {
-            return false;
+            return Task.FromResult(false);
         }
 
+        // Don't auto-open the completion window while warming up (and avoid this check's own cold cost) — see
+        // CompleteAsync. The warm-up drives ShouldOpenCompletionWindowCoreAsync directly so it still warms.
+        if (warmUpTask is not null && !editorPathWarmedUp)
+            return Task.FromResult(false);
+
+        return ShouldOpenCompletionWindowCoreAsync(text, caret, keyPress, cancellationToken);
+    }
+
+    private async Task<bool> ShouldOpenCompletionWindowCoreAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
+    {
         await Initialization.ConfigureAwait(false);
 
         var sourceText = SourceText.From(text);
@@ -288,7 +311,7 @@ public sealed partial class RoslynServices
             return await defaultPromptCallbacks.ShouldOpenCompletionWindowAsync(text, caret, keyPress, cancellationToken);
         }
 
-        var trigger = CompletionTrigger.CreateInsertionTrigger(keyChar);
+        var trigger = CompletionTrigger.CreateInsertionTrigger(keyPress.ConsoleKeyInfo.KeyChar);
         return completionService.ShouldTriggerCompletion(sourceText, caret, trigger);
     }
 
@@ -440,17 +463,21 @@ public sealed partial class RoslynServices
     /// Roslyn services can be a bit slow to initialize the first time they're executed.
     /// Warm them up in the background so it doesn't affect the user.
     /// </summary>
-    /// <remarks>
-    /// Idempotent: the warm-up runs once per instance and later calls return the same task. Production
-    /// warms exactly once, but tests share a single instance and warm it repeatedly.
-    /// </remarks>
     public Task WarmUpAsync(string[] args)
     {
         if (warmUpTask is not null) return warmUpTask;
-        lock (warmUpLock)
+
+        // Publish the warm-up task atomically, no dedicated lock object needed. It's created cold (not
+        // started) so a caller that loses the race doesn't kick off a duplicate, orphaned warm-up .
+        // Use CompareExchange because we can't lock on warmUpTask as it's null here.
+        var pending = new Task<Task>(() => WarmUpCoreAsync(args));
+        var warmUp = pending.Unwrap();
+        if (Interlocked.CompareExchange(ref warmUpTask, warmUp, null) is null)
         {
-            return warmUpTask ??= WarmUpCoreAsync(args);
+            pending.Start();
+            return warmUp;
         }
+        return warmUpTask;
     }
 
     private Task WarmUpCoreAsync(string[] args) =>
@@ -465,15 +492,18 @@ public sealed partial class RoslynServices
             var completionKey = new KeyPress(new ConsoleKeyInfo('C', ConsoleKey.C, shift: false, alt: false, control: false));
             var highlightTask = SyntaxHighlightAsync(@"_ = ""REPL Warmup""");
             var formattingTask = FormatInput(@"_=""REPL Warmup"";", caret: 16, formatParentNodeOnly: false, default);
-            var shouldOpenTask = ShouldOpenCompletionWindowAsync(completionSample, caret: 1, completionKey, default);
+            var shouldOpenTask = ShouldOpenCompletionWindowCoreAsync(completionSample, caret: 1, completionKey, default);
             var spanToReplaceTask = GetSpanToReplaceByCompletionAsync(completionSample, caret: 1, default);
             var completionTask = Task.WhenAny(
-                (await CompleteAsync(completionSample, 1))
+                (await CompleteCoreAsync(completionSample, 1, default))
                     .Where(completion => completion.Item.DisplayText.StartsWith("C"))
                     .Take(15)
                     .Select(completion => completion.GetDescriptionAsync(cancellationToken: default))
             );
             await Task.WhenAll(highlightTask, formattingTask, shouldOpenTask, spanToReplaceTask, completionTask).ConfigureAwait(false);
+
+            // Editor path is warm: let the public completion callbacks serve real results from here on.
+            editorPathWarmedUp = true;
             logger.Log("Warm-up: editor path warm");
 
             // Now warm the evaluation path (compile + emit + load + run). This also loads the runtime helper

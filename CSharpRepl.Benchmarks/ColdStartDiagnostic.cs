@@ -103,13 +103,23 @@ internal static class ColdStartDiagnostic
         var shouldOpen = await roslyn.ShouldOpenCompletionWindowAsync(text, caret, key, default);
         Console.WriteLine($"  2. ShouldOpenCompletionWindow {t.Elapsed.TotalMilliseconds,8:F1} ms   (= {shouldOpen})");
 
-        t.Restart();
-        _ = await roslyn.GetSpanToReplaceByCompletionAsync(text, caret, default);
-        Console.WriteLine($"  3. GetSpanToReplace           {t.Elapsed.TotalMilliseconds,8:F1} ms");
+        // Steps 3 & 4 only happen when the window actually opens — exactly as PrettyPrompt drives them.
+        // While completion is suppressed during warm-up, ShouldOpen returns false and the app makes neither call.
+        if (shouldOpen)
+        {
+            t.Restart();
+            _ = await roslyn.GetSpanToReplaceByCompletionAsync(text, caret, default);
+            Console.WriteLine($"  3. GetSpanToReplace           {t.Elapsed.TotalMilliseconds,8:F1} ms");
 
-        t.Restart();
-        var completions = await roslyn.CompleteAsync(text, caret, default);
-        Console.WriteLine($"  4. Complete                   {t.Elapsed.TotalMilliseconds,8:F1} ms   ({completions.Count} items)");
+            t.Restart();
+            var completions = await roslyn.CompleteAsync(text, caret, default);
+            Console.WriteLine($"  4. Complete                   {t.Elapsed.TotalMilliseconds,8:F1} ms   ({completions.Count} items)");
+        }
+        else
+        {
+            Console.WriteLine($"  3. GetSpanToReplace                  -      (window suppressed)");
+            Console.WriteLine($"  4. Complete                          -      (window suppressed)");
+        }
 
         Console.WriteLine($"  ============================================");
         Console.WriteLine($"  first-keystroke total         {total.Elapsed.TotalMilliseconds,8:F1} ms");
