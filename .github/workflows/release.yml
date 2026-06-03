@@ -23,14 +23,19 @@ jobs:
     - name: Dotnet Installation Info
       run: dotnet --info
       
+    # Pack the platform-specific ReadyToRun tool. PackRidSpecific opts into the RID/R2R settings in CSharpRepl.csproj.
+    # It creates:
+    #   - one R2R-crossgen'd nuget package per RID
+    #   - one fallback "any" package for unknown architectures
+    #   - the root package that selects the right one at install time.
     - name: Pack
-      run: dotnet pack -c Release /p:ContinuousIntegrationBuild=true
-      
-    # publish to nuget. This will publish both a nupkg and snupkg file.
+      run: dotnet pack CSharpRepl/CSharpRepl.csproj -c Release /p:ContinuousIntegrationBuild=true /p:PackRidSpecific=true
+
+    # Publish to nuget. The wildcard pushes the root package, the "any" fallback, and every per-RID package in one go.
+    # --skip-duplicate makes a re-run safe if an earlier push published only some of the packages.
     - name: Publish
       shell: pwsh
       run: |
-        pwd
         cd CSharpRepl/nupkg
         ls
-        dotnet nuget push CSharpRepl.*.nupkg --api-key=${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json
+        dotnet nuget push CSharpRepl.*.nupkg --api-key=${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
