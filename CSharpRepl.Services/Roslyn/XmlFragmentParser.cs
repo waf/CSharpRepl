@@ -1,4 +1,4 @@
-﻿// This Source Code Form is subject to the terms of the Mozilla Public
+// This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
@@ -15,12 +15,23 @@ namespace CSharpRepl.Services.Roslyn;
 
 /// <summary>
 /// An XML parser that is designed to parse small fragments of XML such as those that appear in documentation comments.
-/// PERF: We try to re-use the same underlying <see cref="XmlReader"/> to reduce the allocation costs of multiple parses.
 /// </summary>
+/// <remarks>
+/// Each <see cref="ParseFragment{TArg}"/> call uses its own freshly-created <see cref="XmlReader"/> over its own
+/// <see cref="Reader"/> and keeps no state between calls. An earlier version re-used a single <see cref="XmlReader"/>
+/// over a single, rewindable <see cref="Reader"/> across successive parses to save allocations. That shared, stateful
+/// reader could fall out of sync with <see cref="XmlReader"/>'s internal character buffer and corrupt memory,
+/// surfacing as an intermittent <see cref="AccessViolationException"/> that crashed the process (observed only on
+/// Linux/.NET 10, e.g. while parsing overload documentation). Documentation fragments are parsed rarely (completion
+/// and overload help), so the per-parse allocation is negligible; holding no state also makes this safe to call
+/// re-entrantly or concurrently.
+/// </remarks>
 internal sealed class XmlFragmentParser
 {
-    private XmlReader _xmlReader;
-    private readonly Reader _textReader = new();
+    private static readonly XmlReaderSettings s_xmlSettings = new()
+    {
+        DtdProcessing = DtdProcessing.Prohibit,
+    };
 
     /// <summary>
     /// Parse the given XML fragment. The given callback is executed until either the end of the fragment
@@ -36,81 +47,49 @@ internal sealed class XmlFragmentParser
     /// </remarks>
     public void ParseFragment<TArg>(string xmlFragment, Action<XmlReader, TArg> callback, TArg arg)
     {
-        ParseInternal(xmlFragment, callback, arg);
-    }
+        var textReader = new Reader(xmlFragment);
+        using var xmlReader = XmlReader.Create(textReader, s_xmlSettings);
 
-    private static readonly XmlReaderSettings s_xmlSettings = new()
-    {
-        DtdProcessing = DtdProcessing.Prohibit,
-    };
-
-    private void ParseInternal<TArg>(string text, Action<XmlReader, TArg> callback, TArg arg)
-    {
-        _textReader.SetText(text);
-
-        _xmlReader ??= XmlReader.Create(_textReader, s_xmlSettings);
-
-        try
+        while (!ReachedEnd(xmlReader))
         {
-            while (!ReachedEnd)
+            if (BeforeStart(xmlReader))
             {
-                if (BeforeStart)
-                {
-                    // Skip over the synthetic root element and first node
-                    _xmlReader.Read();
-                }
-                else
-                {
-                    callback(_xmlReader, arg);
-                }
+                // Skip over the synthetic root element and first node
+                xmlReader.Read();
             }
+            else
+            {
+                callback(xmlReader, arg);
+            }
+        }
 
-            // Read the final EndElement to reset things for the next user.
-            _xmlReader.ReadEndElement();
-        }
-        catch
-        {
-            // The reader is in a bad state, so dispose of it and recreate a new one next time we get called.
-            _xmlReader.Dispose();
-            _xmlReader = null;
-            _textReader.Reset();
-            throw;
-        }
+        // Read the final EndElement to complete the synthetic current element.
+        xmlReader.ReadEndElement();
     }
 
-    private bool BeforeStart
+    private static bool BeforeStart(XmlReader xmlReader)
     {
-        get
-        {
-            // Depth 0 = Document root
-            // Depth 1 = Synthetic wrapper, "CurrentElement"
-            // Depth 2 = Start of user's fragment.
-            return _xmlReader.Depth < 2;
-        }
+        // Depth 0 = Document root
+        // Depth 1 = Synthetic wrapper, "CurrentElement"
+        // Depth 2 = Start of user's fragment.
+        return xmlReader.Depth < 2;
     }
 
-    private bool ReachedEnd
+    private static bool ReachedEnd(XmlReader xmlReader)
     {
-        get
-        {
-            return _xmlReader.Depth == 1
-                && _xmlReader.NodeType == XmlNodeType.EndElement
-                && _xmlReader.LocalName == Reader.CurrentElementName;
-        }
+        return xmlReader.Depth == 1
+            && xmlReader.NodeType == XmlNodeType.EndElement
+            && xmlReader.LocalName == Reader.CurrentElementName;
     }
 
     /// <summary>
-    /// A text reader over a synthesized XML stream consisting of a single root element followed by a potentially
-    /// infinite stream of fragments. Each time "SetText" is called the stream is rewound to the element immediately
-    /// following the synthetic root node.
+    /// A text reader over a synthesized XML stream consisting of a single root element wrapping the supplied
+    /// fragment, followed by an effectively infinite stream of whitespace. A new instance is created for each
+    /// parse, so it carries no state between parses.
     /// </summary>
     private sealed class Reader : TextReader
     {
-        /// <summary>
-        /// Current text to validate.
-        /// </summary>
-        private string _text;
-
+        private readonly string _text;
         private int _position;
 
         // Base the root element name on a GUID to avoid accidental (or intentional) collisions. An underscore is
@@ -124,22 +103,9 @@ internal sealed class XmlFragmentParser
         private static readonly string s_currentStart = "<" + CurrentElementName + ">";
         private static readonly string s_currentEnd = "</" + CurrentElementName + ">";
 
-        public void Reset()
-        {
-            _text = null;
-            _position = 0;
-        }
-
-        public void SetText(string text)
+        public Reader(string text)
         {
             _text = text;
-
-            // The first read shall read the <root>, 
-            // the subsequents reads shall start with <current> element
-            if (_position > 0)
-            {
-                _position = s_rootStart.Length;
-            }
         }
 
         public override int Read(char[] buffer, int index, int count)
