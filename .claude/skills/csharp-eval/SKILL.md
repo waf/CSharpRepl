@@ -1,6 +1,6 @@
 ---
 name: csharp-eval
-description: Run / execute C# snippets non-interactively with the csharprepl CLI to observe real runtime behavior — return values, exceptions, serialized output — and to probe how a NuGet package actually behaves when called. The complement to dotnet-inspect: that tool inspects static API surface without executing; this one runs code. Use whenever you need to know what C# *does*, not just what an API *looks like*.
+description: Run / execute C# snippets non-interactively with the csharprepl CLI to observe real runtime behavior — return values, exceptions, serialized output — and to probe how a NuGet package actually behaves when called. The complement to dotnet-inspect; that tool inspects static API surface without executing; this one runs code. Use whenever you need to know what C# *does*, not just what an API *looks like*.
 ---
 
 # csharp-eval
