@@ -290,8 +290,7 @@ public sealed partial class RoslynServices
             return Task.FromResult(false);
         }
 
-        // Don't auto-open the completion window while warming up (and avoid this check's own cold cost) — see
-        // CompleteAsync. The warm-up drives ShouldOpenCompletionWindowCoreAsync directly so it still warms.
+        // Don't auto-open the completion window while warming up
         if (warmUpTask is not null && !editorPathWarmedUp)
             return Task.FromResult(false);
 
@@ -467,9 +466,8 @@ public sealed partial class RoslynServices
     {
         if (warmUpTask is not null) return warmUpTask;
 
-        // Publish the warm-up task atomically, no dedicated lock object needed. It's created cold (not
-        // started) so a caller that loses the race doesn't kick off a duplicate, orphaned warm-up .
-        // Use CompareExchange because we can't lock on warmUpTask as it's null here.
+        // Run the warm-up task atomically. It's created cold (not started) so a caller that loses the race doesn't
+        // kick off a duplicate, orphaned warm-up.  Use CompareExchange because we can't lock on warmUpTask (it's null here).
         var pending = new Task<Task>(() => WarmUpCoreAsync(args));
         var warmUp = pending.Unwrap();
         if (Interlocked.CompareExchange(ref warmUpTask, warmUp, null) is null)

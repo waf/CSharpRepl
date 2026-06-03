@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.6.9</Version>
+    <Version>0.7.0</Version>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <RollForward>LatestMajor</RollForward>
@@ -37,6 +37,29 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
+  </ItemGroup>
+
+
+  <!--
+    Platform-specific ReadyToRun (R2R) tool packagin. Opt-in via -p:PackRidSpecific=true . When enabled, `dotnet pack` emits one R2R-crossgen'd tool nuget package per
+    RID plus a root package that selects the right one at install time.  R2R precompiles the Roslyn assemblies, which shortens warm-up (the cold completion JIT).
+  -->
+  <PropertyGroup Condition="'$(PackRidSpecific)' == 'true'">
+    <!-- 'any' produces a portable (non-R2R) fallback package for RIDs we don't pre-build here -->
+    <RuntimeIdentifiers>any;win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+
+  <!--
+    crossgen2 needs the full reference closure, but this project intentionally ships an incomplete one:
+    MSBuild assemblies are loaded from the SDK via MSBuildLocator (see MSBL001 above), and
+    NuGet.PackageManagement/Resolver chain to a NuGet.Packaging that isn't in the output. Exclude those from R2R.
+  -->
+  <ItemGroup Condition="'$(PackRidSpecific)' == 'true'">
+    <PublishReadyToRunExclude Include="NuGet.PackageManagement.dll" />
+    <PublishReadyToRunExclude Include="NuGet.Resolver.dll" />
+    <PublishReadyToRunExclude Include="Microsoft.CodeAnalysis.Workspaces.MSBuild.dll" />
   </ItemGroup>
 
   <ItemGroup>

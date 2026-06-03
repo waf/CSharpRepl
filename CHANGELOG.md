@@ -1,3 +1,9 @@
+## Release 0.7.0
+
+- Removed the noticeable lag on the first keystroke of a new session. Roslyn's editor services are now warmed up in a more effective order, and completion is briefly held back until that warm-up finishes so the first keystrokes stay responsive ([#459](https://github.com/waf/CSharpRepl/pull/459)).
+- Fixed a performance issue where code completion slowed down and memory grew as a session accumulated submissions ([#459](https://github.com/waf/CSharpRepl/pull/459)).
+- ReadyToRun platform-specific tool packages for faster warm-up ([#461](https://github.com/waf/CSharpRepl/pull/461)).
+
 ## Release 0.6.9
 
 - Much better unicode/emoji support ([#458](https://github.com/waf/CSharpRepl/pull/458) - via an upgrade to PrettyPrompt 5.0).
