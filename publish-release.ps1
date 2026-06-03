@@ -12,7 +12,10 @@ if ( $null -ne $remoteChanges ) {
 }
 
 $csproj = [xml](Get-Content ./CSharpRepl/CSharpRepl.csproj)
-$version = $csproj.Project.PropertyGroup.Version
+# Select the <Version> node directly. The project has more than one <PropertyGroup> (e.g. the RID-specific
+# packaging group), so $csproj.Project.PropertyGroup is an array and .Version would yield an array with a
+# blank entry — which interpolates into the tag name with a stray trailing space.
+$version = $csproj.SelectSingleNode('//Project/PropertyGroup/Version').InnerText.Trim()
 
 Write-Output "Reminder: Did you update the CHANGELOG.md?"
 Write-Output "Press Enter to create tag ""v$version"" and publish to nuget.org"
