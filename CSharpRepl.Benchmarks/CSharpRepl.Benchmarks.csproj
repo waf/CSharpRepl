@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.15.6" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <!-- Keep MSBuild/StringTools assemblies out of the output dir (loaded from the SDK via MSBuildLocator);
          arrives transitively through the CSharpRepl.Services project reference.
          See https://aka.ms/msbuild/locator/diagnostics/MSBL001 -->
