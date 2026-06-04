@@ -17,8 +17,8 @@ $csproj = [xml](Get-Content ./CSharpRepl/CSharpRepl.csproj)
 # blank entry — which interpolates into the tag name with a stray trailing space.
 $version = $csproj.SelectSingleNode('//Project/PropertyGroup/Version').InnerText.Trim()
 
-Write-Output "Reminder: Did you update the CHANGELOG.md?"
-Write-Output "Press Enter to create tag ""v$version"" and publish to nuget.org"
+Write-Output "Reminder: Did you add a '## Release $version' section to CHANGELOG.md? It becomes the GitHub release notes."
+Write-Output "Press Enter to create tag ""v$version"" and publish to nuget.org + GitHub releases"
 Read-Host
 
 git tag "v$version"
