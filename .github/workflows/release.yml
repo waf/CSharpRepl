@@ -34,14 +34,29 @@ jobs:
     - name: Pack
       run: dotnet pack CSharpRepl/CSharpRepl.csproj -c Release /p:ContinuousIntegrationBuild=true /p:PackRidSpecific=true
 
-    # Publish to nuget. The wildcard pushes the root package, the "any" fallback, and every per-RID package in one go.
+    # Publish the per-RID packages and the "any" fallback first. The root package is a "pointer"
+    # that resolves to one of these at install time, so it must be published last (next step) to
+    # avoid a window where it's available but the packages it points to are not.
     # --skip-duplicate makes a re-run safe if an earlier push published only some of the packages.
-    - name: Publish
+    - name: Publish architecture-specific packages
       shell: pwsh
       run: |
         cd CSharpRepl/nupkg
         ls
-        dotnet nuget push CSharpRepl.*.nupkg --api-key=${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        $version = '${{ github.ref_name }}'.TrimStart('v')
+        $rootPackage = "CSharpRepl.$version.nupkg"
+        Get-ChildItem CSharpRepl.*.nupkg -Exclude $rootPackage | ForEach-Object {
+            dotnet nuget push $_.Name --api-key=${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        }
+
+    # Publish the root "pointer" package last, now that the packages it resolves to are available.
+    - name: Publish root package
+      shell: pwsh
+      run: |
+        cd CSharpRepl/nupkg
+        $version = '${{ github.ref_name }}'.TrimStart('v')
+        dotnet nuget push "CSharpRepl.$version.nupkg" --api-key=${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
     # Pull the notes for this version straight out of CHANGELOG.md so the GitHub release
     # mirrors what's already curated there (CHANGELOG.md is the single source of truth).
