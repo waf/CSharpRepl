@@ -1,12 +1,15 @@
-# On pushing a tag like v0.3.2, publish to nuget.org
-# Use publish-release.ps1 to push a release
+# On pushing a tag like v0.3.2, publish to nuget.org and create a GitHub release.
+# Use publish-release.ps1 to push a release.
 name: release
 
 on:
   push:
     tags:
     - "v[0-9]+.*" # not a regex! ".*" means a period followed by any character https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
-    
+
+permissions:
+  contents: write # needed to create the GitHub release
+
 jobs:
   build:
 
@@ -39,3 +42,24 @@ jobs:
         cd CSharpRepl/nupkg
         ls
         dotnet nuget push CSharpRepl.*.nupkg --api-key=${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+    # Pull the notes for this version straight out of CHANGELOG.md so the GitHub release
+    # mirrors what's already curated there (CHANGELOG.md is the single source of truth).
+    - name: Extract release notes from CHANGELOG
+      shell: pwsh
+      run: |
+        $version = '${{ github.ref_name }}'.TrimStart('v')
+        $changelog = Get-Content -Raw CHANGELOG.md
+        $escaped = [regex]::Escape($version)
+        $match = [regex]::Match($changelog, "(?ms)^## Release $escaped[ \t]*\r?\n(.*?)(?=\r?\n## Release |\z)")
+        if (-not $match.Success) {
+            Write-Error "Could not find a '## Release $version' section in CHANGELOG.md"
+            exit 1
+        }
+        Set-Content -Path release-notes.md -Value $match.Groups[1].Value.Trim()
+
+    - name: Create GitHub release
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --notes-file release-notes.md --verify-tag
