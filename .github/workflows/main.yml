@@ -28,7 +28,16 @@ jobs:
     - name: Build
       run: dotnet build
       
-    - name: Test
+    # Coverage is only uploaded from the Windows run (see below), so Linux doesn't need --coverage.
+    # We also skip it on Linux because the test host has been intermittently aborting there with a
+    # fatal AccessViolationException (exit 134); the native coverage profiler on Linux/.NET 10 is the
+    # leading suspect (see https://github.com/microsoft/codecoverage/issues/203). Revisit if confirmed/fixed.
+    - name: Test (Linux)
+      if: matrix.platform == 'ubuntu-latest'
+      run: dotnet test CSharpRepl.Tests/CSharpRepl.Tests.csproj --no-build --results-directory TestResults
+
+    - name: Test (Windows, with coverage)
+      if: matrix.platform == 'windows-latest'
       run: dotnet test CSharpRepl.Tests/CSharpRepl.Tests.csproj --no-build --results-directory TestResults --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
 
     - name: Report Code Coverage
