@@ -81,6 +81,11 @@ internal sealed class ScriptRunner
             var alternativeResolutions = await alternativeReferenceResolver.GetAllAlternativeReferences(text, cancellationToken);
             if (alternativeResolutions.Length > 0)
             {
+                // Run a empty base submission if we don't already have one, so the core library is resolved from the implementation assemblies.
+                // This normally happens from the WarmUp routine, but if we evaluate a project/solution reference instead (-r Foo.csproj), it would
+                // load the framework _reference_ assemblies (e.g. Microsoft.NETCore.App.Ref), causing the error from https://github.com/waf/CSharpRepl/issues/399
+                state ??= await EvaluateStringWithStateAsync(string.Empty, state: null, assemblyLoader, scriptOptions, args, cancellationToken).ConfigureAwait(false);
+
                 this.scriptOptions = this.scriptOptions.WithReferences(scriptOptions.MetadataReferences.Concat(alternativeResolutions).DistinctBy(r => r.Display));
             }
 
