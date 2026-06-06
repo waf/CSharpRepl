@@ -39,7 +39,6 @@
     <ProjectReference Include="..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
   </ItemGroup>
 
-
   <!--
     Platform-specific ReadyToRun (R2R) tool packagin. Opt-in via -p:PackRidSpecific=true . When enabled, `dotnet pack` emits one R2R-crossgen'd tool nuget package per
     RID plus a root package that selects the right one at install time.  R2R precompiles the Roslyn assemblies, which shortens warm-up (the cold completion JIT).
@@ -72,16 +71,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="themes\dracula.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="themes\VisualStudio_BlueExtraContrast.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="themes\VisualStudio_Dark.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="themes\VisualStudio_Light.json">
+    <None Update="themes\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

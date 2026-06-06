@@ -135,6 +135,22 @@ public class EvaluationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Evaluate_RunSharedFrameworkCode_DoesNotThrowAssemblyLoadException()
+    {
+        // Regression test for https://github.com/waf/CSharpRepl/issues/414. Referencing the ASP.NET Core shared framework and 
+        // then running code that transitively loaded Microsoft.Extensions.Logging / Microsoft.Extensions.DependencyInjection threw
+        // the exception "Manifest definition does not match the assembly reference", because we bundled those assemblies
+        // at a lower version than the shared framework (they are dependencies of Microsoft.CodeAnalysis.Workspaces.MSBuild)
+        await services.EvaluateAsync(@"#r ""./Data/WebApplication1.dll""", cancellationToken: TestContext.Current.CancellationToken);
+        var result = await services.EvaluateAsync(
+            @"Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder().Build().GetType().Name",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var success = Assert.IsType<EvaluationResult.Success>(result);
+        Assert.Equal("WebApplication", success.ReturnValue.Value);
+    }
+
+    [Fact]
     public async Task Evaluate_ProjectReference_ReferencesProject()
     {
         var referenceResult = await services.EvaluateAsync(@"#r ""./../../../../CSharpRepl.Services/CSharpRepl.Services.csproj""", cancellationToken: TestContext.Current.CancellationToken);
