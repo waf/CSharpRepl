@@ -79,6 +79,35 @@ public class SymbolExplorerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetSymbolAtIndex_CaretAtEndOfText_ReturnsSymbol()
+    {
+        // regression test for https://github.com/waf/CSharpRepl/issues/444
+        // the caret is at the very end of the text, after the final "e" of "Console".
+        const string text = "Console";
+        var symbol = await services.GetSymbolAtIndexAsync(text, text.Length);
+        Assert.Equal("System.Console", symbol.SymbolDisplay);
+    }
+
+    [Fact]
+    public async Task GetSymbolAtIndex_CaretAtStartOfText_ReturnsSymbol()
+    {
+        // regression test for https://github.com/waf/CSharpRepl/issues/444
+        // the caret is at the very start of the text, before the "C" of "Console".
+        var symbol = await services.GetSymbolAtIndexAsync("Console", 0);
+        Assert.Equal("System.Console", symbol.SymbolDisplay);
+    }
+
+    [Fact]
+    public async Task GetSymbolAtIndex_CaretBetweenIdentifierAndDot_ReturnsClosestIdentifier()
+    {
+        // regression test for https://github.com/waf/CSharpRepl/issues/444
+        // the caret sits on the boundary "Console|.WriteLine", so the closest identifier ("Console")
+        // should win over the enclosing "Console.WriteLine" member access.
+        var symbol = await services.GetSymbolAtIndexAsync(@"Console.WriteLine(""abc"");", "Console".Length);
+        Assert.Equal("System.Console", symbol.SymbolDisplay);
+    }
+
+    [Fact]
     public async Task GetSymbolAtIndex_InvalidSymbol_NoException()
     {
         var symbol = await services.GetSymbolAtIndexAsync(@"wow!", 2);

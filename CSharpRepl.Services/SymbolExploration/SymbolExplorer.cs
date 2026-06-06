@@ -124,7 +124,7 @@ internal sealed class SymbolExplorer
         // however, neither of those appears to work for script-type projects. GetEnclosingSymbol always returns "<Initialize>".
         var symbols =
             from node in semanticModel.SyntaxTree.GetRoot().DescendantNodes()
-            where node.Span.Start < position && position < node.Span.End
+            where node.Span.Start <= position && position <= node.Span.End
             orderby node.Span.Length
             let symbolInfo = semanticModel.GetSymbolInfo(node)
             select new { node, symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault() };
