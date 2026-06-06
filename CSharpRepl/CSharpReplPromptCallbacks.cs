@@ -302,8 +302,10 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         switch (result)
         {
             case EvaluationResult.Success success:
-                var ilCode = success.ReturnValue.ToString();
-                var output = Prompt.RenderAnsiOutput(ilCode, [], console.BufferWidth);
+                var (ilCode, highlights) = success.ReturnValue.Value is FormattedString formatted
+                    ? (formatted.Text ?? string.Empty, (IReadOnlyCollection<FormatSpan>)formatted.FormatSpans.ToArray())
+                    : (success.ReturnValue.ToString() ?? string.Empty, []);
+                var output = Prompt.RenderAnsiOutput(ilCode, highlights, console.BufferWidth);
                 return new KeyPressCallbackResult(text, output);
             case EvaluationResult.Error err:
                 return new KeyPressCallbackResult(text, AnsiColor.Red.GetEscapeSequence() + err.Exception.Message + AnsiEscapeCodes.Reset);

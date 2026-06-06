@@ -1,10 +1,12 @@
 ﻿using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using Microsoft.CodeAnalysis;
 using NSubstitute;
+using PrettyPrompt.Highlighting;
 using Xunit;
 
 namespace CSharpRepl.Tests;
@@ -67,6 +69,51 @@ public class DisassemblerTests : IAsyncLifetime
 
         var success = Assert.IsType<EvaluationResult.Success>(result);
         Assert.Contains("Compiling code as Scripting session (will be overly verbose): succeeded", success.ReturnValue.ToString());
+    }
+
+    [Fact]
+    public async Task Disassemble_AnnotatesILWithSourceLines()
+    {
+        // the IL view interleaves each C# statement (as a comment) above the IL it compiled to.
+        var result = await services.ConvertToIntermediateLanguage("Console.WriteLine(42);", debugMode: true);
+
+        var success = Assert.IsType<EvaluationResult.Success>(result);
+        var output = success.ReturnValue.ToString();
+
+        // the source line appears as a comment...
+        Assert.Contains("// Console.WriteLine(42);", output);
+        // ...immediately above the IL it produced, and the raw sequence-point markers are gone.
+        Assert.DoesNotContain("// sequence point:", output);
+    }
+
+    [Fact]
+    public async Task Disassemble_ProducesValidHighlightSpans()
+    {
+        var result = await services.ConvertToIntermediateLanguage("var x = 5;", debugMode: true);
+
+        var success = Assert.IsType<EvaluationResult.Success>(result);
+        var formatted = Assert.IsType<FormattedString>(success.ReturnValue.Value);
+        var text = formatted.Text!;
+        var spans = formatted.FormatSpans.ToArray();
+
+        Assert.NotEmpty(spans);
+
+        // every span must be in-bounds...
+        Assert.All(spans, s => Assert.True(s.Start >= 0 && s.Start + s.Length <= text.Length));
+
+        // ...and non-overlapping when sorted, which the ANSI renderer requires.
+        var sorted = spans.OrderBy(s => s.Start).ToArray();
+        for (var i = 1; i < sorted.Length; i++)
+        {
+            Assert.True(sorted[i - 1].Start + sorted[i - 1].Length <= sorted[i].Start, "highlight spans must not overlap");
+        }
+
+        // the IL opcode is highlighted...
+        Assert.Contains(spans, s => s.Start == text.IndexOf("ldc.i4.5"));
+        // ...and the C# `var` keyword inside the "// var x = 5;" comment is highlighted at the right offset,
+        // proving the embedded C# is classified and offset correctly.
+        var varInComment = text.IndexOf("// var x = 5;") + "// ".Length;
+        Assert.Contains(spans, s => s.Start == varInComment && s.Length == "var".Length);
     }
 
     /// <summary>

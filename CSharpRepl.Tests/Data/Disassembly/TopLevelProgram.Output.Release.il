@@ -1,4 +1,4 @@
-﻿// Method begins at RVA 0x2050
+// Method begins at RVA 0x2050
 // Header size: 12
 // Code size: 11 (0xb)
 .maxstack 2
@@ -7,9 +7,12 @@
     [0] int32
 )
 
+// var x = 5;
 IL_0000: ldc.i4.5
+// var y = 3;
 IL_0001: ldc.i4.3
 IL_0002: stloc.0
+// Console.WriteLine(x + y);
 IL_0003: ldloc.0
 IL_0004: add
 IL_0005: call void [System.Console]System.Console::WriteLine(int32)

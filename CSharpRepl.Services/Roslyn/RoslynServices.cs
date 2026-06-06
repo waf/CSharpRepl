@@ -455,7 +455,39 @@ public sealed partial class RoslynServices
     public async Task<EvaluationResult> ConvertToIntermediateLanguage(string csharpCode, bool debugMode)
     {
         await Initialization.ConfigureAwait(false);
-        return disassembler.Disassemble(csharpCode, debugMode);
+        var (result, csharpCommentSpans) = disassembler.Disassemble(csharpCode, debugMode);
+
+        // attach syntax highlighting: the IL itself (lexically) plus the embedded C# comments (via the
+        // real classifier). The text is carried as a FormattedString so the UI can render it with color
+        // while FormattedString.ToString() still yields the plain IL.
+        if (result is EvaluationResult.Success success && success.ReturnValue.Value is string il)
+        {
+            var highlights = await BuildDisassemblyHighlightsAsync(il, csharpCommentSpans).ConfigureAwait(false);
+            return success with { ReturnValue = new Optional<object?>(new FormattedString(il, highlights)) };
+        }
+
+        return result;
+    }
+
+    private async Task<IReadOnlyList<FormatSpan>> BuildDisassemblyHighlightsAsync(string il, IReadOnlyList<TextSpan> csharpCommentSpans)
+    {
+        var spans = new List<FormatSpan>(IntermediateLanguageSyntaxHighlighter.Highlight(il, highlighter, csharpCommentSpans));
+
+        // highlight each embedded C# snippet with the same classifier the prompt uses, then offset its spans
+        // into the IL text. These regions are disjoint from the IL spans above (which clip around them).
+        foreach (var commentSpan in csharpCommentSpans)
+        {
+            var snippet = il[commentSpan.Start..commentSpan.End];
+            foreach (var classified in await SyntaxHighlightAsync(snippet).ConfigureAwait(false))
+            {
+                // classified spans are relative to the snippet, which is exactly the comment span, so offsetting them keeps them in-bounds.
+                var start = commentSpan.Start + classified.TextSpan.Start;
+                spans.Add(new FormatSpan(start, classified.TextSpan.Length, new ConsoleFormat(Foreground: classified.Color)));
+            }
+        }
+
+        spans.Sort((a, b) => a.Start.CompareTo(b.Start));
+        return spans;
     }
 
     /// <summary>
