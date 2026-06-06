@@ -1,4 +1,4 @@
-﻿.class private auto ansi '<Module>'
+.class private auto ansi '<Module>'
 {
 } // end of class <Module>
 
@@ -26,6 +26,7 @@
         // Code size: 7 (0x7)
         .maxstack 8
 
+        // get;
         IL_0000: ldarg.0
         IL_0001: ldfld string Panda::'<Name>k__BackingField'
         IL_0006: ret
@@ -44,6 +45,7 @@
         // Code size: 8 (0x8)
         .maxstack 8
 
+        // init;
         IL_0000: ldarg.0
         IL_0001: ldarg.1
         IL_0002: stfld string Panda::'<Name>k__BackingField'
