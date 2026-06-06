@@ -40,6 +40,47 @@ public class CSharpReplProcessTests
         Assert.DoesNotContain("handle is invalid", stdout + stderr, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task Eval_WithProjectReference_DoesNotClobberCoreLibrary()
+    {
+        // Regression test for https://github.com/waf/CSharpRepl/issues/399. Referencing a project that
+        // targets a modern .NET pulls in the framework *reference* assemblies (the Microsoft.NETCore.App.Ref
+        // targeting pack, whose System.Runtime.dll/mscorlib.dll define System.Object), which conflict with
+        // the framework *implementation* assemblies the REPL is already configured with. Causes the error
+        // CS0518: Predefined type 'System.Object' is not defined or imported".
+        //
+        // The normal REPL bypasses this with a warm-up, but `-r foo.csproj` evaluates the reference first.
+        // It must be reproduced via a separate process (the test host already loads the runtime).
+        //
+        // The project must target the running .NET (a netstandard project's facade ref pack does not define
+        // System.Object and so would not reproduce the bug); generate a throwaway one so the test adapts to
+        // whatever runtime the tests run on.
+        var tfm = $"net{Environment.Version.Major}.0";
+        var dir = Path.Combine(Path.GetTempPath(), "csharprepl-issue399-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var project = Path.Combine(dir, "RefProj.csproj");
+            await File.WriteAllTextAsync(project, $"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <TargetFramework>{tfm}</TargetFramework>
+                  </PropertyGroup>
+                </Project>
+                """, TestContext.Current.CancellationToken);
+
+            var (exitCode, stdout, stderr) = await RunAsync("-e", "1 + 1", "-r", project);
+
+            Assert.True(exitCode == 0, $"Expected success but got {exitCode}. stdout: {stdout} stderr: {stderr}");
+            Assert.Contains("2", stdout);
+            Assert.DoesNotContain("CS0518", stdout + stderr);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
     private static async Task<(int exitCode, string stdout, string stderr)> RunAsync(params string[] args)
     {
         var startInfo = new ProcessStartInfo(ResolveExecutable())
