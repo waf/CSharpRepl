@@ -28,6 +28,12 @@
     <PackageReference Include="Microsoft.NET.StringTools" Version="18.6.3" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.8" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.8" />
+    <!--
+      Microsoft.CodeAnalysis.Workspaces.MSBuild depends on Microsoft.Extensions.{Logging, DependencyInjection} at 9.0. When a user references a shared framework
+      (e.g. `-f Microsoft.AspNetCore.App`) their code requests 10.0, our copies are found it throws a FileLoadException. Set these at 10.0 to fix that. See issue #414.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
     <PackageReference Include="Microsoft.SymbolStore" Version="1.0.727501" />
     <PackageReference Include="OpenAI" Version="2.10.0" />
     <PackageReference Include="PrettyPrompt" Version="5.0.1" />
