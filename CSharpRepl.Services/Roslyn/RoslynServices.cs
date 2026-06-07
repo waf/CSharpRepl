@@ -11,9 +11,11 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using CSharpRepl.InjectedHook.Contracts;
 using CSharpRepl.Services.CodeTransformation;
 using CSharpRepl.Services.CodeTransformation.Disassembly;
 using CSharpRepl.Services.Completion;
+using CSharpRepl.Services.Remote;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Logging;
 using CSharpRepl.Services.Roslyn.Formatting;
@@ -79,11 +81,16 @@ public sealed partial class RoslynServices
     // classification) of the per-keystroke pipeline. Null until Initialization completes.
     internal Document? CurrentDocumentForProfiling => workspaceManager?.CurrentDocument;
 
-    public RoslynServices(IConsoleService console, Configuration config, ITraceLogger logger)
+    // In inspect mode this seeds the editor services with the target's references + the inspector globals, so
+    // completion/highlighting are target-aware. Null for a normal local REPL session.
+    private readonly RemoteEditorContext? remoteEditor;
+
+    public RoslynServices(IConsoleService console, Configuration config, ITraceLogger logger, RemoteEditorContext? remoteEditor = null)
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
         this.console = console;
         this.logger = logger;
+        this.remoteEditor = remoteEditor;
         this.highlighter = new SyntaxHighlighter(cache, config.Theme);
         this.overloadItemGenerator = new(() => new(highlighter));
 
@@ -94,6 +101,22 @@ public sealed partial class RoslynServices
 
             this.referenceService = new AssemblyReferenceService(config, parseOptions, logger);
 
+            // Inspect mode: fold the target's loaded-assembly paths into the reference set so the editor
+            // workspace sees the target's own types (and the inspector globals' Contracts assembly), on top of
+            // the local framework references. EnsureReferenceAssemblyWithDocumentation maps the target's
+            // framework implementation assemblies to the local reference assemblies and passes the app's own
+            // assemblies through, which is exactly the reference set we want for completion/highlighting.
+            var remoteGlobalsType = remoteEditor?.GlobalsType;
+            if (remoteEditor is not null)
+            {
+                var targetReferences = remoteEditor.ReferencePaths
+                    .Select(TryCreateMetadataReference)
+                    .WhereNotNull()
+                    .ToList();
+                referenceService.EnsureReferenceAssemblyWithDocumentation(targetReferences);
+                referenceService.AddImplementationAssemblyReferences(targetReferences);
+            }
+
             this.compilationOptions = new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 usings: referenceService.Usings.Select(u => u.Name?.ToString()).WhereNotNull(),
@@ -103,9 +126,11 @@ public sealed partial class RoslynServices
 
             // the script runner is used to actually execute the scripts, and the workspace manager
             // is updated alongside. The workspace is a datamodel used in "editor services" like
-            // syntax highlighting, autocompletion, and roslyn symbol queries.
-            this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger);
-            this.scriptRunner = new ScriptRunner(workspaceManager, parseOptions, compilationOptions, referenceService, console, config);
+            // syntax highlighting, autocompletion, and roslyn symbol queries. In inspect mode the host object
+            // type is the inspector globals, so `services`/`Get<T>()` resolve in the editor (the engine in the
+            // target — not this ScriptRunner — performs the actual evaluation).
+            this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger, hostObjectType: remoteGlobalsType);
+            this.scriptRunner = new ScriptRunner(workspaceManager, parseOptions, compilationOptions, referenceService, console, config, globalsType: remoteGlobalsType);
 
             this.codeTransformer = new CodeTransformer(parseOptions, compilationOptions, referenceService, scriptRunner);
             this.prettyPrinter = new PrettyPrinter(console.Profile, highlighter, config);
@@ -115,6 +140,12 @@ public sealed partial class RoslynServices
         });
 
         Initialization.ContinueWith(task => console.WriteErrorLine(task.Exception?.Message ?? "Unknown error"), TaskContinuationOptions.OnlyOnFaulted);
+    }
+
+    private static MetadataReference? TryCreateMetadataReference(string path)
+    {
+        try { return MetadataReference.CreateFromFile(path); }
+        catch { return null; } // unreadable/locked image — skip it rather than fail the whole editor workspace
     }
 
     public async Task<EvaluationResult> EvaluateAsync(string input, string[]? args = null, CancellationToken cancellationToken = default)
@@ -141,6 +172,44 @@ public sealed partial class RoslynServices
             }
 
             return result;
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+    }
+
+    private RemoteValueRenderer? remoteValueRenderer;
+
+    /// <summary>
+    /// Renders a <see cref="RemoteValue"/> produced by an inspector session (in a target process) using the
+    /// user's theme. Unlike <see cref="PrettyPrintAsync(object?, Level)"/> this needs no live object and no
+    /// Roslyn initialization — only the theme/highlighter, which is ready as soon as the service is constructed.
+    /// </summary>
+    public IRenderable RenderRemoteValue(RemoteValue value, Level level) =>
+        (remoteValueRenderer ??= new RemoteValueRenderer(highlighter)).Render(value, level);
+
+    /// <summary>Renders a remote exception as a red-bordered panel plus the plain text to use if error output is redirected.</summary>
+    public (IRenderable Renderable, string PlainText) RenderRemoteException(RemoteException exception, Level level) =>
+        (remoteValueRenderer ??= new RemoteValueRenderer(highlighter)).RenderException(exception, level);
+
+    /// <summary>
+    /// Advances the remote editor workspace after the engine reports a <em>committed</em> submission: adds the
+    /// submission text as a new document in the chain so subsequent completion/highlighting see the locals,
+    /// declared methods, and types introduced by prior remote submissions. This is the cross-process analogue
+    /// of how <see cref="EvaluateAsync"/> calls <c>WorkspaceManager.UpdateCurrentDocumentAsync</c> only on a
+    /// successful local evaluation — the engine in the target is the source of truth for what committed.
+    /// </summary>
+    public async Task AdvanceRemoteWorkspaceAsync(string submissionText, CancellationToken cancellationToken = default)
+    {
+        await Initialization.ConfigureAwait(false);
+        await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // The references don't change per submission here (late-loaded/#r'd target assemblies aren't tracked
+            // in v1); carry the current set forward so the new project keeps seeing the target's types.
+            var result = new EvaluationResult.Success(submissionText, default, referenceService.LoadedImplementationAssemblies);
+            await workspaceManager.UpdateCurrentDocumentAsync(result, cancellationToken).ConfigureAwait(false);
         }
         finally
         {

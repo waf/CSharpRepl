@@ -193,6 +193,30 @@ internal static class CommandLine
         return option;
     }
 
+    private static readonly Option<string?> InspectShell = BuildInspectShellOption();
+
+    private static Option<string?> BuildInspectShellOption()
+    {
+        var option = new Option<string?>("--shell")
+        {
+            Description = "Shell syntax for the printed env vars: pwsh, powershell, cmd, bash, or fish. Auto-detected from the parent shell when omitted.",
+        };
+        // Offer the recognized shells for tab-completion. These aren't enforced: any other value falls back to
+        // the pwsh-style default in BuildInspectInitExports, matching the lenient behavior elsewhere.
+        option.CompletionSources.Add("pwsh", "powershell", "cmd", "bash", "fish");
+        return option;
+    }
+
+    private static readonly Argument<int?> InspectPid = new("pid")
+    {
+        Description = "Process id of the running, inspector-enabled process to connect to.",
+        Arity = ArgumentArity.ZeroOrOne,
+    };
+
+    private static readonly string InspectUsage =
+        "Usage: csharprepl inspect <pid>                          connect to a running, inspector-enabled process" + NewLine +
+        "       csharprepl inspect init [--shell pwsh|bash|cmd]   print the env vars to launch your app with";
+
     public static Configuration Parse(string[] args, string configFilePath)
     {
         var parseArgs = PreProcessArguments(args, configFilePath).ToArray();
@@ -214,10 +238,48 @@ internal static class CommandLine
             Configure, Culture,
         })
         {
+            // Recursive so they also bind under the `inspect <pid>` subcommand (e.g. `inspect 1234 --theme ...`),
+            // letting remote results render with the user's theme without redeclaring every option on `inspect`.
+            option.Recursive = true;
             availableCommands.Options.Add(option);
         }
 
+        // Process inspection lives under the same parser as the REPL. `inspect init [--shell ...]` prints the
+        // env-var exports and exits; `inspect <pid>` connects to a running, inspector-enabled process and then
+        // flows through the normal REPL configuration below (carrying the pid). The pid argument is optional so a
+        // bare `inspect` still parses — it's validated after the early-exit checks so we can show usage.
+        var inspectInit = new Command("init", "Print the environment variables to launch your app with so it can be inspected.")
+        {
+            Options = { InspectShell }
+        };
+        var inspect = new Command("inspect", "Connect to and evaluate code in a running, inspector-enabled .NET process.")
+        {
+            Arguments = { InspectPid },
+            Subcommands = { inspectInit },
+        };
+        availableCommands.Subcommands.Add(inspect);
+
+        // We drive everything through Parse (not Invoke), but System.CommandLine requires any command that has
+        // subcommands to define an action; without one it adds a "Required command was not provided" error when
+        // no subcommand is given (a plain REPL launch, or `inspect <pid>`). These no-ops satisfy that contract.
+        availableCommands.SetAction(_ => 0);
+        inspect.SetAction(_ => 0);
+
         var commandLine = availableCommands.Parse(parseArgs);
+        var invokedCommand = commandLine.CommandResult.Command;
+
+        // `inspect init` is machine-consumable shell output: print the exports and exit before any REPL or
+        // config-file setup (and before the config.rsp render options, which don't apply to it).
+        if (invokedCommand == inspectInit)
+        {
+            if (commandLine.Errors.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(NewLine, commandLine.Errors.Select(e => e.Message)));
+            }
+            // Wrapped in PlainText (not Text) so the exports are written verbatim — word-wrapping a long path
+            // would corrupt a copy-paste or a pipe into the shell.
+            return new Configuration(outputForEarlyExit: new PlainText(BuildInspectInitExports(ResolveInitShell(commandLine.GetValue(InspectShell)))));
+        }
 
         if (!File.Exists(configFilePath))
         {
@@ -233,6 +295,21 @@ internal static class CommandLine
         {
             return new Configuration(outputForEarlyExit: text);
         }
+
+        // `inspect <pid>`: validate the pid (the argument is optional, so a bare `inspect`, a non-numeric, or a
+        // non-positive value reaches here) and surface one usage message for every bad form. We read the raw
+        // token rather than GetValue(InspectPid) because GetValue throws on an unparseable value (e.g. "abc").
+        int? inspectProcessId = null;
+        if (invokedCommand == inspect)
+        {
+            var pidToken = commandLine.GetResult(InspectPid)?.Tokens is [var token] ? token.Value : null;
+            if (!int.TryParse(pidToken, out var pid) || pid <= 0)
+            {
+                throw new InvalidOperationException(InspectUsage);
+            }
+            inspectProcessId = pid;
+        }
+
         if (commandLine.Errors.Count > 0)
         {
             throw new InvalidOperationException(string.Join(NewLine, commandLine.Errors.Select(e => e.Message)));
@@ -251,6 +328,7 @@ internal static class CommandLine
             usePrereleaseNugets: commandLine.GetValue(UsePrereleaseNugets),
             streamPipedInput: commandLine.GetValue(StreamPipedInput),
             evaluateInput: ResolveEvaluateInput(commandLine),
+            inspectProcessId: inspectProcessId,
             tabSize: commandLine.GetValue(TabSize),
             trace: commandLine.GetValue(Trace),
             triggerCompletionListKeyPatterns: commandLine.GetValue(TriggerCompletionListKeyBindings),
@@ -267,6 +345,47 @@ internal static class CommandLine
         );
 
         return config;
+    }
+
+    /// <summary>
+    /// Resolves which shell syntax <c>inspect init</c> should emit: 1. an explicit <c>--shell</c> (parsed by
+    /// System.CommandLine into <paramref name="shell"/>) always wins; 2. otherwise detect the shell we were
+    /// launched from; 3. else fall back to the OS default.
+    /// </summary>
+    private static string ResolveInitShell(string? shell)
+    {
+        if (!string.IsNullOrEmpty(shell)) return shell.ToLowerInvariant();
+        return ShellDetector.DetectShell() ?? (OperatingSystem.IsWindows() ? "pwsh" : "bash");
+    }
+
+    /// <summary>
+    /// Builds the shell-specific exports that activate the inspector at the target's launch. The bootstrap DLL
+    /// ships next to the tool under <c>inspector/</c> (staged by packaging); its absolute path is what
+    /// DOTNET_STARTUP_HOOKS needs so <c>StartupHook.Initialize()</c> runs before the target's Main.
+    /// </summary>
+    private static string BuildInspectInitExports(string shell)
+    {
+        const string HostingStartupAssembly = "CSharpRepl.InjectedHook";
+        var bootstrap = Path.Combine(AppContext.BaseDirectory, "inspector", "CSharpRepl.InjectedHook.dll");
+        return shell switch
+        {
+            "cmd" => string.Join(NewLine,
+                ":: Run in the shell that launches your app, then start it and note its process id:",
+                $@"set ""DOTNET_STARTUP_HOOKS={bootstrap}""",
+                $@"set ""ASPNETCORE_HOSTINGSTARTUPASSEMBLIES={HostingStartupAssembly}"""),
+            "bash" or "sh" or "zsh" => string.Join(NewLine,
+                "# Run in the shell that launches your app, then start it and note its process id:",
+                $@"export DOTNET_STARTUP_HOOKS=""{bootstrap}""",
+                $@"export ASPNETCORE_HOSTINGSTARTUPASSEMBLIES=""{HostingStartupAssembly}"""),
+            "fish" => string.Join(NewLine,
+                "# Run in the shell that launches your app, then start it and note its process id:",
+                $@"set -gx DOTNET_STARTUP_HOOKS ""{bootstrap}""",
+                $@"set -gx ASPNETCORE_HOSTINGSTARTUPASSEMBLIES ""{HostingStartupAssembly}"""),
+            _ => string.Join(NewLine, // pwsh / powershell (default on Windows)
+                "# Run in the shell that launches your app, then start it and note its process id:",
+                $@"$env:DOTNET_STARTUP_HOOKS = ""{bootstrap}""",
+                $@"$env:ASPNETCORE_HOSTINGSTARTUPASSEMBLIES = ""{HostingStartupAssembly}"""),
+        };
     }
 
     private static bool ShouldExitEarly(ParseResult commandLine, string configFilePath, out IRenderable? text)
@@ -417,7 +536,8 @@ internal static class CommandLine
     private static string GetHelp(string configFilePath)
     {
         var text =
-            "[underline]Usage[/]: [aqua]csharprepl[/] [green][[OPTIONS]][/] [cyan][[@response-file.rsp]][/] [cyan][[script-file.csx]][/] [green][[-- <additional-arguments>]][/]" + NewLine + NewLine +
+            "[underline]Usage[/]: [aqua]csharprepl[/] [green][[OPTIONS]][/] [cyan][[@response-file.rsp]][/] [cyan][[script-file.csx]][/] [green][[-- <additional-arguments>]][/]" + NewLine +
+            "       [aqua]csharprepl[/] [green]inspect[/] [cyan]<pid>[/]   or   [aqua]csharprepl[/] [green]inspect init[/] [green][[--shell <shell>]][/]" + NewLine + NewLine +
             "Starts a REPL (read eval print loop) according to the provided [green][[OPTIONS]][/]." + NewLine +
             "These [green][[OPTIONS]][/] can be provided at the command line, or via a [cyan][[@response-file.rsp]][/]." + NewLine +
             "A [cyan][[script-file.csx]][/], if provided, will be executed before the prompt starts." + NewLine + NewLine +
@@ -456,6 +576,13 @@ internal static class CommandLine
             $"  [green]--trace[/]:                                    {Trace.Description}" + NewLine +
             $"  [green]-v[/] or [green]--version[/]:                            {Version.Description}" + NewLine +
             $"  [green]-h[/] or [green]--help[/]:                               {Help.Description}" + NewLine + NewLine +
+            "[underline]COMMANDS[/]:" + NewLine +
+            "  [green]inspect[/] [cyan]<pid>[/]:" + NewLine +
+            "      Connect to and evaluate code in a running, inspector-enabled .NET process." + NewLine +
+            "      The REPL [green][[OPTIONS]][/] above (e.g. [green]--theme[/]) also apply to the remote session." + NewLine +
+            "  [green]inspect init[/] [green][[--shell pwsh|powershell|cmd|bash|fish]][/]:" + NewLine +
+            "      Print the environment variables to launch your app with so it can be inspected." + NewLine +
+            "      The shell is auto-detected from the parent process when [green]--shell[/] is omitted." + NewLine + NewLine +
             "[cyan]@response-file.rsp[/]:" + NewLine +
             "  A file, with extension .rsp, containing the above command line [green][[OPTIONS]][/], one option per line." + NewLine +
             $"  Command line options will also be loaded from {configFilePath}" + NewLine +

@@ -37,7 +37,32 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
+    <!--
+      The inspector bootstrap. ReferenceOutputAssembly="false" (the tool must not link the bootstrap or its
+      Roslyn closure into its own ALC) — we only depend on it to (a) order the build so the bootstrap's
+      StageEngine target has staged the engine + Roslyn next to itself, and (b) stage that full payload into
+      the tool's inspector/ subdir below. CSharpRepl.InjectedHook.Contracts is still a real reference, arriving
+      transitively via CSharpRepl.Services for the controller-side RemoteSession/renderer.
+    -->
+    <ProjectReference Include="..\InjectedHook\CSharpRepl.InjectedHook\CSharpRepl.InjectedHook.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
+
+  <!--
+    Stage the inspector payload (bootstrap + contracts + engine + Roslyn closure + deps.json) into an
+    inspector/ subdir next to the tool. It's isolated in a subdir so the engine's staged Roslyn never shadows
+    the tool's own. `csharprepl inspect init` emits DOTNET_STARTUP_HOOKS pointing at inspector/CSharpRepl.InjectedHook.dll.
+    Declared as CopyToOutputDirectory Content (like themes/) so it ships both on `dotnet run` and in the packed
+    global tool. Sourced in a target (not a static glob) because the files don't exist until the referenced
+    bootstrap project has built — by AssignTargetPaths the ProjectReference above has produced them.
+  -->
+  <Target Name="IncludeInspectorPayload" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <_InspectorPayload Include="$(MSBuildThisFileDirectory)..\CSharpRepl.InjectedHook\bin\$(Configuration)\$(TargetFramework)\**\*.*" />
+      <Content Include="@(_InspectorPayload)" Link="inspector\%(RecursiveDir)%(Filename)%(Extension)">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+  </Target>
 
   <!--
     Platform-specific ReadyToRun (R2R) tool packagin. Opt-in via -p:PackRidSpecific=true . When enabled, `dotnet pack` emits one R2R-crossgen'd tool nuget package per

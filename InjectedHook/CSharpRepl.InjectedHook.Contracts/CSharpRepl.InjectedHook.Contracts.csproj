@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Shared protocol/contract assembly. Loaded once in the target's DEFAULT ALC and resolved to that
+    same instance from the isolated EngineALC (the EngineLoadContext returns null for this assembly so
+    it falls back to Default). That makes IInspectorEngine, InspectorGlobals, InspectorRoots, RemoteValue
+    and the wire messages type-identical across the ALC boundary.
+
+    MUST NOT reference Roslyn (or anything heavy): it lives in the default ALC alongside the unmodified
+    target, so its dependency surface has to stay tiny. Only the shared framework is used
+    (System.Text.Json / System.IO.Pipes / System.Net.Sockets are all in Microsoft.NETCore.App).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
