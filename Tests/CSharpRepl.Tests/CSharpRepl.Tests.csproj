@@ -29,7 +29,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
-    <ProjectReference Include="..\CSharpRepl\CSharpRepl.csproj" />
+    <ProjectReference Include="..\..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
+    <ProjectReference Include="..\..\CSharpRepl\CSharpRepl.csproj" />
+    <!--
+      Build-only reference to the inspector bootstrap (which stages the engine + Roslyn next to itself).
+      ReferenceOutputAssembly="false" so the test assembly doesn't link against it — the inspector tests point
+      DOTNET_STARTUP_HOOKS at the built bootstrap DLL. The unmodified test target it injects into lives under
+      Data\ (like the other test-fixture projects) and is built on demand at test time via DotnetBuilder.
+    -->
+    <ProjectReference Include="..\..\InjectedHook\CSharpRepl.InjectedHook\CSharpRepl.InjectedHook.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>
