@@ -30,23 +30,14 @@ namespace CSharpRepl.PrettyPromptConfig;
 /// An implementation of <see cref="PrettyPrompt.PromptCallbacks"/> that configures C#-specific
 /// behavior for our prompt using Roslyn.
 /// </summary>
-internal class CSharpReplPromptCallbacks : PromptCallbacks
+internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices roslyn, Configuration configuration, Func<string, KeyPressCallbackResult?>? launchBrowser = null) : PromptCallbacks
 {
     private const string lowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
     private static SearchValues<char> lowercaseSearchValues = SearchValues.Create(lowercaseLetters);
+    private readonly OpenAICompleteService openAIComplete = new OpenAICompleteService(configuration.OpenAIConfiguration);
 
-    private readonly IConsoleService console;
-    private readonly RoslynServices roslyn;
-    private readonly Configuration configuration;
-    private readonly OpenAICompleteService openAIComplete;
-
-    public CSharpReplPromptCallbacks(IConsoleService console, RoslynServices roslyn, Configuration configuration)
-    {
-        this.console = console;
-        this.roslyn = roslyn;
-        this.configuration = configuration;
-        this.openAIComplete = new OpenAICompleteService(configuration.OpenAIConfiguration);
-    }
+    // How the F1/Ctrl+F1/F12 keybindings open a URL. Defaults to actually launching the browser; tests inject a no-op.
+    private readonly Func<string, KeyPressCallbackResult?> launchBrowser = launchBrowser ?? LaunchBrowser;
 
     protected override IEnumerable<(KeyPressPattern Pattern, KeyPressCallbackAsync Callback)> GetKeyPressCallbacks()
     {
@@ -65,6 +56,14 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
         yield return (
             new(ConsoleModifiers.Control, ConsoleKey.F9),
             (text, caret, cancellationToken) => Disassemble(roslyn, text, console, debugMode: false));
+
+        yield return (
+            new(ConsoleKey.F8),
+            (text, caret, cancellationToken) => Decompile(roslyn, text, console, debugMode: true));
+
+        yield return (
+            new(ConsoleModifiers.Control, ConsoleKey.F8),
+            (text, caret, cancellationToken) => Decompile(roslyn, text, console, debugMode: false));
 
         yield return (
             new(ConsoleKey.F12),
@@ -308,32 +307,58 @@ internal class CSharpReplPromptCallbacks : PromptCallbacks
                 var output = Prompt.RenderAnsiOutput(ilCode, highlights, console.BufferWidth);
                 return new KeyPressCallbackResult(text, output);
             case EvaluationResult.Error err:
-                return new KeyPressCallbackResult(text, AnsiColor.Red.GetEscapeSequence() + err.Exception.Message + AnsiEscapeCodes.Reset);
+                return RenderError(text, err.Exception.Message);
             default:
                 // this should never happen, as the disassembler cannot be cancelled.
                 throw new InvalidOperationException("Could not process disassembly result");
         }
     }
 
-    private static KeyPressCallbackResult? LaunchDocumentation(SymbolResult type, CultureInfo culture)
+    private static async Task<KeyPressCallbackResult?> Decompile(RoslynServices roslyn, string text, IConsoleService console, bool debugMode)
+    {
+        var result = await roslyn.ConvertToLoweredCSharp(text, debugMode);
+
+        switch (result)
+        {
+            case EvaluationResult.Success success:
+                var (csharpCode, highlights) = success.ReturnValue.Value is FormattedString formatted
+                    ? (formatted.Text ?? string.Empty, (IReadOnlyCollection<FormatSpan>)formatted.FormatSpans.ToArray())
+                    : (success.ReturnValue.ToString() ?? string.Empty, []);
+                var output = Prompt.RenderAnsiOutput(csharpCode, highlights, console.BufferWidth);
+                return new KeyPressCallbackResult(text, output);
+            case EvaluationResult.Error err:
+                return RenderError(text, err.Exception.Message);
+            default:
+                // this should never happen, as the decompiler cannot be cancelled.
+                throw new InvalidOperationException("Could not process decompilation result");
+        }
+    }
+
+    // Renders an error message in red unless the user opted out of color (NO_COLOR).
+    private static KeyPressCallbackResult RenderError(string text, string message)
+        => new(text, PromptConfiguration.HasUserOptedOutFromColor
+            ? message
+            : AnsiColor.Red.GetEscapeSequence() + message + AnsiEscapeCodes.Reset);
+
+    private KeyPressCallbackResult? LaunchDocumentation(SymbolResult type, CultureInfo culture)
     {
         if (type != SymbolResult.Unknown && type.SymbolDisplay is not null)
         {
-            LaunchBrowser($"https://docs.microsoft.com/{culture.Name}/dotnet/api/{type.SymbolDisplay}");
+            launchBrowser($"https://docs.microsoft.com/{culture.Name}/dotnet/api/{type.SymbolDisplay}");
         }
 
         return null;
     }
 
-    private static KeyPressCallbackResult? LaunchSource(SymbolResult type)
+    private KeyPressCallbackResult? LaunchSource(SymbolResult type)
     {
         if (type.Url is not null)
         {
-            LaunchBrowser(type.Url);
+            launchBrowser(type.Url);
         }
         else if (type != SymbolResult.Unknown && type.SymbolDisplay is not null)
         {
-            LaunchBrowser($"https://source.dot.net/#q={type.SymbolDisplay}");
+            launchBrowser($"https://source.dot.net/#q={type.SymbolDisplay}");
         }
 
         return null;

@@ -71,7 +71,8 @@ internal sealed class ReadEvalPrintLoop
                 // evaluate results returned by special keybindings (configured in the PromptConfiguration.cs)
                 if (response is KeyPressCallbackResult callbackOutput)
                 {
-                    console.WriteLine(Environment.NewLine + callbackOutput.Output);
+                    // The output can contain ansi sequences (e.g. when disassembling/decompiling) so write to stdout directly, instead of using WriteLine (Spectre's AnsiConsole) which e.g. applies wrapping
+                    console.WriteStandardOutputLine(Environment.NewLine + callbackOutput.Output);
                     continue;
                 }
 
@@ -175,6 +176,7 @@ to load.
 
 [underline]Exploring Code[/]
   - [green]{"F1"}[/]:  when the caret is in a type or member, open the corresponding MSDN documentation.
+  - [green]{"F8"}[/]:  show the "lowered" C# (state machines, closures, expanded sugar) for the current statement.
   - [green]{"F9"}[/]:  show the IL (intermediate language) for the current statement.
   - [green]{"F12"}[/]: open the type's source code in the browser, if the assembly supports Source Link.
 

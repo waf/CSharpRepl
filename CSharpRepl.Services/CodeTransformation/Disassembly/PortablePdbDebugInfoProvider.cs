@@ -9,7 +9,7 @@ using System.Reflection.Metadata;
 using ICSharpCode.Decompiler.DebugInfo;
 using DecompilerSequencePoint = ICSharpCode.Decompiler.DebugInfo.SequencePoint;
 
-namespace CSharpRepl.Services.Disassembly;
+namespace CSharpRepl.Services.CodeTransformation.Disassembly;
 
 /// <summary>
 /// Exposes the sequence points from an in-memory portable PDB to the ILSpy disassemblers,

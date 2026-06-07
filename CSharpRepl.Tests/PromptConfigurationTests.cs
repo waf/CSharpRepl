@@ -36,7 +36,8 @@ public class PromptConfigurationTests : IAsyncLifetime
     [MemberData(nameof(KeyPresses))]
     public void PromptConfiguration_CanCreate(ConsoleKeyInfo keyInfo)
     {
-        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
+        // pass a no-op browser launcher so invoking the F1/Ctrl+F1/F12 callbacks doesn't spawn a real browser.
+        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration(), launchBrowser: _ => null);
         Assert.True(configuration.TryGetKeyPressCallbacks(keyInfo, out var callback));
         callback.Invoke("Console.WriteLine(\"Hi!\");", 0, TestContext.Current.CancellationToken);
     }
@@ -102,10 +103,26 @@ public class PromptConfigurationTests : IAsyncLifetime
         Assert.False(string.IsNullOrEmpty(result!.Output));
     }
 
+    [Fact]
+    public async Task DecompileKeyBinding_InvalidCode_ReturnsErrorOutput()
+    {
+        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
+        var f8 = new ConsoleKeyInfo('\0', ConsoleKey.F8, shift: false, alt: false, control: false);
+        Assert.True(configuration.TryGetKeyPressCallbacks(f8, out var callback));
+
+        var result = await callback.Invoke("this is not valid c# !@#$", 0, TestContext.Current.CancellationToken);
+
+        // The decompiler fails to compile, so the error branch returns the red error message.
+        Assert.NotNull(result);
+        Assert.False(string.IsNullOrEmpty(result!.Output));
+    }
+
     public static IEnumerable<object[]> KeyPresses()
     {
         yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F1, shift: false, alt: false, control: false) };
         yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F1, shift: false, alt: false, control: true) };
+        yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F8, shift: false, alt: false, control: false) };
+        yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F8, shift: false, alt: false, control: true) };
         yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F9, shift: false, alt: false, control: false) };
         yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F9, shift: false, alt: false, control: true) };
         yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F12, shift: false, alt: false, control: false) };
