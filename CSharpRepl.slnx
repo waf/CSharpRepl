@@ -9,6 +9,9 @@
     <File Path=".github/workflows/release.yml" />
   </Folder>
   <Project Path="CSharpRepl.Benchmarks/CSharpRepl.Benchmarks.csproj" />
+  <Project Path="CSharpRepl.Inspector.Contracts/CSharpRepl.Inspector.Contracts.csproj" />
+  <Project Path="CSharpRepl.Inspector.Engine/CSharpRepl.Inspector.Engine.csproj" />
+  <Project Path="CSharpRepl.Inspector/CSharpRepl.Inspector.csproj" />
   <Project Path="CSharpRepl.Services/CSharpRepl.Services.csproj" />
   <Project Path="CSharpRepl.Tests/CSharpRepl.Tests.csproj" />
   <Project Path="CSharpRepl/CSharpRepl.csproj" />

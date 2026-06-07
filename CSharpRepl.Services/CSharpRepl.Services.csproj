@@ -65,6 +65,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Shared inspector wire contracts + transport for controller-side remote sessions (CSharpRepl.Services/Remote). -->
+    <ProjectReference Include="..\CSharpRepl.Inspector.Contracts\CSharpRepl.Inspector.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="CSharpRepl.Tests" />
     <InternalsVisibleTo Include="CSharpRepl.Benchmarks" />
   </ItemGroup>

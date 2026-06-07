@@ -31,5 +31,13 @@
   <ItemGroup>
     <ProjectReference Include="..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
     <ProjectReference Include="..\CSharpRepl\CSharpRepl.csproj" />
+    <!--
+      Build-only references for the inspector M1 integration test: the bootstrap (which stages the engine +
+      Roslyn next to itself) and the unmodified test target. ReferenceOutputAssembly="false" so the test
+      assembly doesn't link against them — the test launches the target as a separate process and points
+      DOTNET_STARTUP_HOOKS at the bootstrap DLL.
+    -->
+    <ProjectReference Include="..\CSharpRepl.Inspector\CSharpRepl.Inspector.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\CSharpRepl.Inspector.TestTarget\CSharpRepl.Inspector.TestTarget.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

@@ -193,8 +193,27 @@ internal static class CommandLine
         return option;
     }
 
+    private const string InspectCommandName = "inspect";
+    private const string InspectInitName = "init";
+    private const string HostingStartupAssembly = "CSharpRepl.Inspector";
+
     public static Configuration Parse(string[] args, string configFilePath)
     {
+        // The `inspect` subcommand is parsed independently of the REPL option set (and ahead of the always-injected
+        // @config.rsp, whose REPL options don't apply to it). `inspect init` exits early with the env-var exports;
+        // `inspect <pid>` carries the pid into the final Configuration while any remaining tokens (and the config.rsp
+        // theme/render options) are still parsed normally below, so remote results render with the user's theme.
+        int? inspectProcessId = null;
+        if (args.Length > 0 && args[0] == InspectCommandName)
+        {
+            if (TryParseInspectInit(args, out var initExports))
+            {
+                return new Configuration(earlyExitPlainText: initExports);
+            }
+            inspectProcessId = ParseInspectProcessId(args);
+            args = args[2..]; // drop "inspect <pid>"; the rest (if any) are parsed as REPL options below
+        }
+
         var parseArgs = PreProcessArguments(args, configFilePath).ToArray();
 
         var availableCommands = new RootCommand("C# REPL");
@@ -251,6 +270,7 @@ internal static class CommandLine
             usePrereleaseNugets: commandLine.GetValue(UsePrereleaseNugets),
             streamPipedInput: commandLine.GetValue(StreamPipedInput),
             evaluateInput: ResolveEvaluateInput(commandLine),
+            inspectProcessId: inspectProcessId,
             tabSize: commandLine.GetValue(TabSize),
             trace: commandLine.GetValue(Trace),
             triggerCompletionListKeyPatterns: commandLine.GetValue(TriggerCompletionListKeyBindings),
@@ -267,6 +287,68 @@ internal static class CommandLine
         );
 
         return config;
+    }
+
+    /// <summary>
+    /// Handles <c>csharprepl inspect init [--shell pwsh|bash|cmd]</c>: produces the two environment-variable
+    /// exports the user runs in the shell that will launch their app (which activates the inspector via
+    /// DOTNET_STARTUP_HOOKS + the ASP.NET hosting startup). Returns false when the subcommand isn't <c>init</c>.
+    /// </summary>
+    private static bool TryParseInspectInit(string[] args, out string exports)
+    {
+        if (args.Length >= 2 && args[1] == InspectInitName)
+        {
+            exports = BuildInspectInitExports(ResolveInitShell(args));
+            return true;
+        }
+        exports = "";
+        return false;
+    }
+
+    private static int ParseInspectProcessId(string[] args)
+    {
+        if (args.Length >= 2 && int.TryParse(args[1], out var pid) && pid > 0)
+        {
+            return pid;
+        }
+        throw new InvalidOperationException(
+            "Usage: csharprepl inspect <pid>                          connect to a running, inspector-enabled process" + NewLine +
+            "       csharprepl inspect init [--shell pwsh|bash|cmd]   print the env vars to launch your app with");
+    }
+
+    private static string ResolveInitShell(string[] args)
+    {
+        for (int i = 2; i < args.Length; i++)
+        {
+            if (args[i] == "--shell" && i + 1 < args.Length) return args[i + 1].ToLowerInvariant();
+            if (args[i].StartsWith("--shell=", StringComparison.Ordinal)) return args[i]["--shell=".Length..].ToLowerInvariant();
+        }
+        return OperatingSystem.IsWindows() ? "pwsh" : "bash";
+    }
+
+    /// <summary>
+    /// Builds the shell-specific exports that activate the inspector at the target's launch. The bootstrap DLL
+    /// ships next to the tool under <c>inspector/</c> (staged by packaging); its absolute path is what
+    /// DOTNET_STARTUP_HOOKS needs so <c>StartupHook.Initialize()</c> runs before the target's Main.
+    /// </summary>
+    private static string BuildInspectInitExports(string shell)
+    {
+        var bootstrap = Path.Combine(AppContext.BaseDirectory, "inspector", "CSharpRepl.Inspector.dll");
+        return shell switch
+        {
+            "cmd" => string.Join(NewLine,
+                ":: Run in the shell that launches your app, then start it and note its process id:",
+                $@"set ""DOTNET_STARTUP_HOOKS={bootstrap}""",
+                $@"set ""ASPNETCORE_HOSTINGSTARTUPASSEMBLIES={HostingStartupAssembly}"""),
+            "bash" or "sh" or "zsh" => string.Join(NewLine,
+                "# Run in the shell that launches your app, then start it and note its process id:",
+                $@"export DOTNET_STARTUP_HOOKS=""{bootstrap}""",
+                $@"export ASPNETCORE_HOSTINGSTARTUPASSEMBLIES=""{HostingStartupAssembly}"""),
+            _ => string.Join(NewLine, // pwsh / powershell (default on Windows)
+                "# Run in the shell that launches your app, then start it and note its process id:",
+                $@"$env:DOTNET_STARTUP_HOOKS = ""{bootstrap}""",
+                $@"$env:ASPNETCORE_HOSTINGSTARTUPASSEMBLIES = ""{HostingStartupAssembly}"""),
+        };
     }
 
     private static bool ShouldExitEarly(ParseResult commandLine, string configFilePath, out IRenderable? text)

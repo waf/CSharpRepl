@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Roslyn scripting engine. Loaded into the isolated EngineALC (never the target's default ALC), so
+    its Roslyn closure can coexist with any Roslyn the target itself uses. GenerateDependencyFile +
+    CopyLocalLockFileAssemblies put Roslyn and a .deps.json next to this DLL, which the bootstrap then
+    stages into its own directory so the EngineALC's AssemblyDependencyResolver can find them.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CSharpRepl.Inspector.Contracts\CSharpRepl.Inspector.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The injected bootstrap. Loaded into the target's DEFAULT ALC via DOTNET_STARTUP_HOOKS and (for ASP.NET,
+    in M2) activated via ASPNETCORE_HOSTINGSTARTUPASSEMBLIES. MUST NOT statically reference Roslyn — that
+    would load Roslyn into the default ALC and risk clashing with any Roslyn the target itself uses. It
+    references only Contracts; the engine + its Roslyn closure are loaded by reflection into the isolated
+    EngineALC, so the engine is a ReferenceOutputAssembly="false" dependency that we stage next to this DLL.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CSharpRepl.Inspector.Contracts\CSharpRepl.Inspector.Contracts.csproj" />
+    <ProjectReference Include="..\CSharpRepl.Inspector.Engine\CSharpRepl.Inspector.Engine.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!--
+    Stage the engine + its Roslyn closure + deps.json flat into this DLL's directory, so the EngineALC's
+    AssemblyDependencyResolver (pointed at CSharpRepl.Inspector.Engine.dll here) can resolve them. The
+    ReferenceOutputAssembly="false" reference above guarantees the engine is built first.
+  -->
+  <Target Name="StageEngine" AfterTargets="Build">
+    <ItemGroup>
+      <EngineFiles Include="$(MSBuildProjectDirectory)\..\CSharpRepl.Inspector.Engine\bin\$(Configuration)\net10.0\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(EngineFiles)"
+          DestinationFiles="@(EngineFiles->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

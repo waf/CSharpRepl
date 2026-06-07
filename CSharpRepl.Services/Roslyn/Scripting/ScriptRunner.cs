@@ -31,6 +31,7 @@ internal sealed class ScriptRunner
     private readonly WorkspaceManager workspaceManager;
     private readonly CSharpParseOptions parseOptions;
     private readonly AssemblyReferenceService referenceAssemblyService;
+    private readonly Type globalsType;
     private ScriptOptions scriptOptions;
     private ScriptState<object>? state;
 
@@ -40,12 +41,17 @@ internal sealed class ScriptRunner
         CSharpCompilationOptions compilationOptions,
         AssemblyReferenceService referenceAssemblyService,
         IConsoleService console,
-        Configuration configuration)
+        Configuration configuration,
+        Type? globalsType = null)
     {
         this.console = console;
         this.workspaceManager = workspaceManager;
         this.parseOptions = parseOptions;
         this.referenceAssemblyService = referenceAssemblyService;
+        // The globals type backs CompileTransient's semantic model (used for symbol exploration). It defaults
+        // to the local ScriptGlobals; the inspector's remote editor passes InspectorGlobals so symbol lookups
+        // over `services` resolve. The live-evaluation path below always uses ScriptGlobals (it's local-only).
+        this.globalsType = globalsType ?? typeof(ScriptGlobals);
         this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
 
         var dotnetBuilder = new DotnetBuilder(console);
@@ -122,7 +128,7 @@ internal sealed class ScriptRunner
             scriptOptions.MetadataReferences,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, usings: scriptOptions.Imports, optimizationLevel: optimizationLevel, allowUnsafe: scriptOptions.AllowUnsafe, metadataReferenceResolver: metadataResolver),
             previousScriptCompilation: state?.Script.GetCompilation() is CSharpCompilation previous ? previous : null,
-            globalsType: typeof(ScriptGlobals)
+            globalsType: globalsType
         );
     }
 

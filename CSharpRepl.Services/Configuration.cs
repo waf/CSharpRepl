@@ -60,9 +60,22 @@ public sealed class Configuration
     /// interactively or reading from piped stdin.
     /// </summary>
     public string? EvaluateInput { get; }
+
+    /// <summary>
+    /// When set (via <c>csharprepl inspect &lt;pid&gt;</c>), the REPL connects to the inspector hosted in that
+    /// target process and evaluates submissions there instead of constructing a local script engine.
+    /// </summary>
+    public int? InspectProcessId { get; }
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
     public IRenderable? OutputForEarlyExit { get; }
+
+    /// <summary>
+    /// Plain text to write to standard output (unwrapped, no Spectre rendering) before exiting — used for
+    /// machine-consumable output such as the <c>inspect init</c> shell exports, where word-wrapping a long
+    /// path would corrupt a copy-paste or a pipe into the shell.
+    /// </summary>
+    public string? EarlyExitPlainText { get; }
     public OpenAIConfiguration? OpenAIConfiguration { get; }
     public int TabSize { get; }
 
@@ -81,10 +94,12 @@ public sealed class Configuration
         bool usePrereleaseNugets = false,
         bool streamPipedInput = false,
         string? evaluateInput = null,
+        int? inspectProcessId = null,
         int tabSize = 4,
         string? loadScript = null,
         string[]? loadScriptArgs = null,
         IRenderable? outputForEarlyExit = null,
+        string? earlyExitPlainText = null,
         string[]? triggerCompletionListKeyPatterns = null,
         string[]? newLineKeyPatterns = null,
         string[]? submitPromptKeyPatterns = null,
@@ -129,6 +144,15 @@ public sealed class Configuration
             }
         }
 
+        InspectProcessId = inspectProcessId;
+
+        // In inspect mode, default the prompt to the target's pid (e.g. "1234> ") so it's obvious submissions
+        // run remotely. A user-supplied --prompt still wins.
+        if (inspectProcessId is { } pid && promptMarkup == PromptDefault)
+        {
+            promptMarkup = $"{pid}> ";
+        }
+
         if (FormattedStringParser.TryParse(promptMarkup, out var prompt))
         {
             Prompt = prompt;
@@ -147,6 +171,7 @@ public sealed class Configuration
         LoadScript = loadScript;
         LoadScriptArgs = loadScriptArgs ?? [];
         OutputForEarlyExit = outputForEarlyExit;
+        EarlyExitPlainText = earlyExitPlainText;
         OpenAIConfiguration = openAIConfiguration;
         var triggerCompletionList =
             triggerCompletionListKeyPatterns?.Any() == true
