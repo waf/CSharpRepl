@@ -42,7 +42,9 @@ public static class InspectorTransport
     public static async Task<Stream> ConnectAsync(int processId, TimeSpan timeout, CancellationToken cancellationToken)
     {
         if (OperatingSystem.IsWindows())
+        {
             return await ConnectWindowsAsync(processId, timeout, cancellationToken).ConfigureAwait(false);
+        }
 
         return await ConnectUnixAsync(processId, timeout, cancellationToken).ConfigureAwait(false);
     }
@@ -102,9 +104,14 @@ public static class InspectorTransport
         var baseDir = string.IsNullOrEmpty(runtimeDir) ? Path.GetTempPath() : runtimeDir;
         var dir = Path.Combine(baseDir, "csharprepl-inspector");
         if (!OperatingSystem.IsWindows())
+        {
             Directory.CreateDirectory(dir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
         else
+        {
             Directory.CreateDirectory(dir);
+        }
+
         return dir;
     }
 }
@@ -124,11 +131,15 @@ public sealed class InspectorTransportListener : IDisposable
     {
         this.processId = processId;
         if (OperatingSystem.IsWindows())
+        {
             return;
+        }
 
         unixSocketPath = InspectorTransport.SocketPath(processId);
         if (File.Exists(unixSocketPath))
+        {
             File.Delete(unixSocketPath); // remove a stale socket from a prior crashed run
+        }
 
         unixListener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         unixListener.Bind(new UnixDomainSocketEndPoint(unixSocketPath));
@@ -138,7 +149,9 @@ public sealed class InspectorTransportListener : IDisposable
     public async Task<Stream> AcceptAsync(CancellationToken cancellationToken)
     {
         if (OperatingSystem.IsWindows())
+        {
             return await AcceptWindowsAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         // Unix: the socket already lives in a 0700 user-owned directory, but assert the connecting peer is the
         // same user as a second, real check (the socket file's own mode is only forced to 0600 in .NET 11+).
@@ -147,7 +160,9 @@ public sealed class InspectorTransportListener : IDisposable
         {
             var connection = await unixListener!.AcceptAsync(cancellationToken).ConfigureAwait(false);
             if (UnixPeerCredentials.IsSameUser(connection))
+            {
                 return new NetworkStream(connection, ownsSocket: true);
+            }
 
             try { connection.Dispose(); } catch { /* best effort */ }
         }
@@ -235,7 +250,10 @@ internal static class UnixPeerCredentials
                 var ucred = new byte[12];
                 var length = ucred.Length;
                 if (getsockopt(fd, SOL_SOCKET_LINUX, SO_PEERCRED_LINUX, ucred, ref length) != 0)
+                {
                     return true; // couldn't read the credential — rely on the 0700 directory
+                }
+
                 var peerUid = BitConverter.ToUInt32(ucred, 4);
                 return peerUid == self;
             }
@@ -243,7 +261,10 @@ internal static class UnixPeerCredentials
             if (OperatingSystem.IsMacOS())
             {
                 if (getpeereid(fd, out var euid, out _) != 0)
+                {
                     return true; // couldn't read the credential — rely on the 0700 directory
+                }
+
                 return euid == self;
             }
 

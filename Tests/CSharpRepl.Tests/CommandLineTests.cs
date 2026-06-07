@@ -4,6 +4,7 @@
 
 using System;
 using System.Globalization;
+using CSharpRepl.Commands;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn.References;
 using Spectre.Console.Rendering;

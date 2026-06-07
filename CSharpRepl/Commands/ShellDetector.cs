@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace CSharpRepl;
+namespace CSharpRepl.Commands;
 
 /// <summary>
 /// Best-effort detection of the interactive shell that launched this process, used by

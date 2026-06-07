@@ -26,13 +26,18 @@ internal static class StartupHook
         {
             // === Framework-only zone: nothing here may force a non-framework assembly load. ===
             var dir = Path.GetDirectoryName(typeof(StartupHook).Assembly.Location);
-            if (string.IsNullOrEmpty(dir)) return; // single-file bootstrap would have no location; we never bundle it
+            if (string.IsNullOrEmpty(dir))
+            {
+                return; // single-file bootstrap would have no location; we never bundle it
+            }
 
             AssemblyLoadContext.Default.Resolving += (context, name) =>
             {
                 // Scoped to inspector assemblies so we can't accidentally shadow the target's own resolution.
                 if (name.Name is null || !name.Name.StartsWith("CSharpRepl.InjectedHook", StringComparison.Ordinal))
+                {
                     return null;
+                }
 
                 var candidate = Path.Combine(dir, name.Name + ".dll");
                 return File.Exists(candidate) ? context.LoadFromAssemblyPath(candidate) : null;

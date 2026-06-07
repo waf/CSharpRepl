@@ -28,6 +28,7 @@ internal static class InspectorServer
 
     public static void StartInBackground(IInspectorEngine engine)
     {
+        // use a background thread so the inspector loop never keeps the target alive. Don't use a task because we don't want to consume the target's thread pool with a long-running loop.
         var thread = new Thread(() => RunLoop(engine))
         {
             IsBackground = true,
@@ -57,7 +58,9 @@ internal static class InspectorServer
                 try
                 {
                     using (stream)
+                    {
                         ServeConnectionAsync(stream, engine, processId).GetAwaiter().GetResult();
+                    }
                 }
                 catch
                 {
@@ -218,11 +221,15 @@ internal static class InspectorServer
         try
         {
             if (string.IsNullOrEmpty(typeof(object).Assembly.Location))
+            {
                 return TargetAssemblyAvailability.SelfContainedSingleFile;
+            }
 
             var entryAssembly = Assembly.GetEntryAssembly();
             if (entryAssembly is not null && string.IsNullOrEmpty(entryAssembly.Location))
+            {
                 return TargetAssemblyAvailability.FrameworkDependentSingleFile;
+            }
 
             return TargetAssemblyAvailability.Normal;
         }

@@ -28,13 +28,6 @@ public sealed class MessageChannel
     /// <summary>Reject frames larger than this (defensive bound against a hostile/​buggy peer).</summary>
     private const int MaxFrameBytes = 64 * 1024 * 1024;
 
-    private static readonly JsonSerializerOptions SerializerOptions = new()
-    {
-        // The wire stays small and human-debuggable; the polymorphic discriminator is emitted because we
-        // always (de)serialize against the WireMessage base type.
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-    };
-
     private readonly Stream stream;
     private readonly SemaphoreSlim writeGate = new(1, 1);
 
@@ -43,7 +36,7 @@ public sealed class MessageChannel
     public async Task WriteAsync(WireMessage message, CancellationToken cancellationToken)
     {
         // Serialize against the base type so the $kind discriminator is written for the concrete subtype.
-        var payload = JsonSerializer.SerializeToUtf8Bytes<WireMessage>(message, SerializerOptions);
+        var payload = JsonSerializer.SerializeToUtf8Bytes(message, WireJsonContext.Default.WireMessage);
         var header = new byte[4];
         BinaryPrimitives.WriteInt32LittleEndian(header, payload.Length);
 
@@ -70,17 +63,23 @@ public sealed class MessageChannel
     {
         var header = new byte[4];
         if (!await TryReadExactlyAsync(header, cancellationToken).ConfigureAwait(false))
+        {
             return null; // clean EOF — peer disconnected
+        }
 
         int length = BinaryPrimitives.ReadInt32LittleEndian(header);
         if (length < 0 || length > MaxFrameBytes)
+        {
             throw new InvalidDataException($"Inspector frame length {length} is out of range (0..{MaxFrameBytes}).");
+        }
 
         var payload = new byte[length];
         if (!await TryReadExactlyAsync(payload, cancellationToken).ConfigureAwait(false))
+        {
             throw new EndOfStreamException("Inspector connection ended mid-frame.");
+        }
 
-        return JsonSerializer.Deserialize<WireMessage>(payload, SerializerOptions)
+        return JsonSerializer.Deserialize(payload, WireJsonContext.Default.WireMessage)
             ?? throw new InvalidDataException("Inspector frame deserialized to a null message.");
     }
 
@@ -96,7 +95,11 @@ public sealed class MessageChannel
             int n = await stream.ReadAsync(buffer.AsMemory(read), cancellationToken).ConfigureAwait(false);
             if (n == 0)
             {
-                if (read == 0) return false; // clean EOF at a frame boundary
+                if (read == 0)
+                {
+                    return false; // clean EOF at a frame boundary
+                }
+
                 throw new EndOfStreamException("Inspector connection ended mid-frame.");
             }
             read += n;

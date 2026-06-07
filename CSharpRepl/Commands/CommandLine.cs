@@ -21,7 +21,7 @@ using Spectre.Console;
 using Spectre.Console.Rendering;
 using static System.Environment;
 
-namespace CSharpRepl;
+namespace CSharpRepl.Commands;
 
 /// <summary>
 /// Parses command line arguments using System.CommandLine.

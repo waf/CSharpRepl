@@ -18,7 +18,7 @@ using PrettyPrompt.Consoles;
 using PrettyPrompt.Highlighting;
 using Spectre.Console;
 
-namespace CSharpRepl;
+namespace CSharpRepl.Repls;
 
 /// <summary>
 /// The core REPL; prints the welcome message, collects input with the <see cref="PrettyPrompt"/> library and

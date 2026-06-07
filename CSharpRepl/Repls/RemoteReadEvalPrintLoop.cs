@@ -4,7 +4,6 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using CSharpRepl.InjectedHook.Contracts;
 using CSharpRepl.PrettyPromptConfig;
@@ -13,10 +12,9 @@ using CSharpRepl.Services.Remote;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Formatting;
 using PrettyPrompt;
-using PrettyPrompt.Consoles;
 using Spectre.Console;
 
-namespace CSharpRepl;
+namespace CSharpRepl.Repls;
 
 /// <summary>
 /// The inspect-mode REPL: collects input with the same <see cref="PrettyPrompt"/> prompt as the local loop,

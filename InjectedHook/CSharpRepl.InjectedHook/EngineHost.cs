@@ -25,7 +25,9 @@ internal static class EngineHost
         // We MUST NOT statically reference Roslyn — that would load Roslyn into the default ALC and risk clashing with any Roslyn the target itself uses.
         var engineDll = Path.Combine(bootstrapDirectory, EngineAssemblyName + ".dll");
         if (!File.Exists(engineDll))
+        {
             throw new FileNotFoundException($"Inspector engine assembly not found next to the bootstrap.", engineDll);
+        }
 
         var context = new EngineLoadContext(engineDll);
         var engineAssembly = context.LoadFromAssemblyPath(engineDll);
@@ -57,7 +59,9 @@ internal sealed class EngineLoadContext : AssemblyLoadContext
         // Share contracts with the default ALC (resolved there via the bootstrap's Resolving handler), so
         // IInspectorEngine / InspectorGlobals / RemoteValue / wire DTOs are type-identical across the boundary.
         if (assemblyName.Name == ContractsAssemblyName)
+        {
             return null;
+        }
 
         var path = resolver.ResolveAssemblyToPath(assemblyName);
         return path is not null ? LoadFromAssemblyPath(path) : null;
