@@ -11,8 +11,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using CSharpRepl.Services.CodeTransformation;
+using CSharpRepl.Services.CodeTransformation.Disassembly;
 using CSharpRepl.Services.Completion;
-using CSharpRepl.Services.Disassembly;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Logging;
 using CSharpRepl.Services.Roslyn.Formatting;
@@ -57,7 +58,7 @@ public sealed partial class RoslynServices
     private readonly CSharpParseOptions parseOptions = CSharpParseOptions.Default.WithKind(SourceCodeKind.Script).WithLanguageVersion(LanguageVersion.Latest);
     private ScriptRunner? scriptRunner;
     private WorkspaceManager? workspaceManager;
-    private Disassembler? disassembler;
+    private CodeTransformer? codeTransformer;
     private PrettyPrinter prettyPrinter;
     private SymbolExplorer? symbolExplorer;
     private AutoCompleteService? autocompleteService;
@@ -66,7 +67,7 @@ public sealed partial class RoslynServices
 
     // when this Initialization task successfully completes, all the above members will not be null.
     [MemberNotNull(
-        nameof(scriptRunner), nameof(workspaceManager), nameof(disassembler),
+        nameof(scriptRunner), nameof(workspaceManager), nameof(codeTransformer),
         nameof(prettyPrinter), nameof(symbolExplorer), nameof(autocompleteService),
         nameof(referenceService), nameof(compilationOptions))]
     private Task Initialization { get; }
@@ -106,7 +107,7 @@ public sealed partial class RoslynServices
             this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger);
             this.scriptRunner = new ScriptRunner(workspaceManager, parseOptions, compilationOptions, referenceService, console, config);
 
-            this.disassembler = new Disassembler(parseOptions, compilationOptions, referenceService, scriptRunner);
+            this.codeTransformer = new CodeTransformer(parseOptions, compilationOptions, referenceService, scriptRunner);
             this.prettyPrinter = new PrettyPrinter(console.Profile, highlighter, config);
             this.symbolExplorer = new SymbolExplorer(referenceService, scriptRunner);
             this.autocompleteService = new AutoCompleteService(highlighter, cache, config);
@@ -455,12 +456,12 @@ public sealed partial class RoslynServices
     public async Task<EvaluationResult> ConvertToIntermediateLanguage(string csharpCode, bool debugMode)
     {
         await Initialization.ConfigureAwait(false);
-        var (result, csharpCommentSpans) = disassembler.Disassemble(csharpCode, debugMode);
+        var (result, csharpCommentSpans) = codeTransformer.Disassemble(csharpCode, debugMode);
 
         // attach syntax highlighting: the IL itself (lexically) plus the embedded C# comments (via the
         // real classifier). The text is carried as a FormattedString so the UI can render it with color
         // while FormattedString.ToString() still yields the plain IL.
-        if (result is EvaluationResult.Success success && success.ReturnValue.Value is string il)
+        if (result is EvaluationResult.Success success && success.ReturnValue.Value is string il && !PromptConfiguration.HasUserOptedOutFromColor)
         {
             var highlights = await BuildDisassemblyHighlightsAsync(il, csharpCommentSpans).ConfigureAwait(false);
             return success with { ReturnValue = new Optional<object?>(new FormattedString(il, highlights)) };
@@ -488,6 +489,23 @@ public sealed partial class RoslynServices
 
         spans.Sort((a, b) => a.Start.CompareTo(b.Start));
         return spans;
+    }
+
+    /// <summary>
+    /// Decompiles the user's code to its "lowered" C# form (state machines, closures, expanded sugar, etc.) and syntax highlight it.
+    /// </summary>
+    public async Task<EvaluationResult> ConvertToLoweredCSharp(string csharpCode, bool debugMode)
+    {
+        await Initialization.ConfigureAwait(false);
+        var result = codeTransformer.Lower(csharpCode, debugMode);
+
+        if (result is EvaluationResult.Success success && success.ReturnValue.Value is string csharp && !PromptConfiguration.HasUserOptedOutFromColor)
+        {
+            var highlights = (await SyntaxHighlightAsync(csharp).ConfigureAwait(false)).ToFormatSpans();
+            return success with { ReturnValue = new Optional<object?>(new FormattedString(csharp, highlights)) };
+        }
+
+        return result;
     }
 
     /// <summary>

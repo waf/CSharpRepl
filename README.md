@@ -17,7 +17,7 @@ C# REPL provides the following features:
 - Dump and explore objects with syntax highlighting and rich Spectre.Console formatting
 - OpenAI integration (bring your own API key)
 - Navigate to source via Source Link
-- IL disassembly (both Debug and Release mode)
+- IL disassembly and "lowered" C# decompilation (both Debug and Release mode, using ILSpy)
 - Fast and flicker-free rendering. A "diff" algorithm is used to only render what's changed.
 
 ## Installation
@@ -135,6 +135,8 @@ CSharpRepl aims for a similar editing experience as Visual Studio (e.g. for text
   - <kbd>Ctrl+V</kbd>, <kbd>Shift+Insert</kbd>, and <kbd>Ctrl+Shift+V</kbd> - Paste text to prompt. Automatically trims leading indent
 - **Code Actions**
   - <kbd>F1</kbd> - Opens the MSDN documentation for the class/method under the caret ([example](https://docs.microsoft.com/en-US/dotnet/api/System.DateTime.AddDays?view=net-5.0))
+  - <kbd>F8</kbd> - Shows the "lowered" C# for the current statement in Debug mode: the input is decompiled with high-level reconstruction disabled, so compiler-generated constructs (async/await and iterator state machines, lambda closures, `foreach`/`using`/`lock` expansions, etc.) are shown explicitly.
+  - <kbd>Ctrl+F8</kbd> - Shows the lowered C# for the current statement with Release mode optimizations.
   - <kbd>F9</kbd> - Shows the IL (intermediate language) for the current statement in Debug mode. 
   - <kbd>Ctrl+F9</kbd> - Shows the IL for the current statement with Release mode optimizations.
   - <kbd>F12</kbd> - Opens the source code in the browser for the class/method under the caret, if the assembly supports [Source Link](https://github.com/dotnet/sourcelink).

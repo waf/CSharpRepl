@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Text;
 using PrettyPrompt.Highlighting;
 
-namespace CSharpRepl.Services.Disassembly;
+namespace CSharpRepl.Services.CodeTransformation.Disassembly;
 
 /// <summary>
 /// A syntax highlighter for ILSpy's IL text output. It produces <see cref="FormatSpan"/>s colored from the active theme.
