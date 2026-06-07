@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Shared across the bootstrap's default ALC and the engine's isolated ALC. No Roslyn. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike2.Contracts</AssemblyName>
+    <RootNamespace>Spike2.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>

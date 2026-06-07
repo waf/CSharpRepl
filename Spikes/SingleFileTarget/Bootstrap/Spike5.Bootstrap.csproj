@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Injected bootstrap. Ships externally (NOT bundled into the single-file target) and is pointed at
+       via DOTNET_STARTUP_HOOKS. No Roslyn ref. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike5.Bootstrap</AssemblyName>
+    <RootNamespace>Spike5.Bootstrap</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contracts\Spike5.Contracts.csproj" />
+    <ProjectReference Include="..\Engine\Spike5.Engine.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <Target Name="CopyEngine" AfterTargets="Build">
+    <ItemGroup>
+      <EngineFiles Include="$(MSBuildProjectDirectory)\..\Engine\bin\$(Configuration)\net10.0\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(EngineFiles)"
+          DestinationFiles="@(EngineFiles->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

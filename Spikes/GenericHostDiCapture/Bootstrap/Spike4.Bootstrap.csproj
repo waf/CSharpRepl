@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Injected bootstrap for a NON-web Generic Host. No Roslyn ref, no ASP.NET ref, no Hosting ref:
+    the DI provider is captured by snooping the "Microsoft.Extensions.Hosting" DiagnosticListener and
+    pulling IHost.Services off the HostBuilt payload via reflection. DiagnosticListener is in the
+    shared framework, so no package reference is needed.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike4.Bootstrap</AssemblyName>
+    <RootNamespace>Spike4.Bootstrap</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contracts\Spike4.Contracts.csproj" />
+    <ProjectReference Include="..\Engine\Spike4.Engine.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <Target Name="CopyEngine" AfterTargets="Build">
+    <ItemGroup>
+      <EngineFiles Include="$(MSBuildProjectDirectory)\..\Engine\bin\$(Configuration)\net10.0\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(EngineFiles)"
+          DestinationFiles="@(EngineFiles->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

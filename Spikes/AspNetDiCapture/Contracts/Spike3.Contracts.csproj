@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Shared across the bootstrap's default ALC and the engine's isolated ALC. No Roslyn, no DI package
+       (IServiceProvider/GetService are BCL). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike3.Contracts</AssemblyName>
+    <RootNamespace>Spike3.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>

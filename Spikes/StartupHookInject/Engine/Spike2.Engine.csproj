@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Roslyn engine; loaded into the isolated EngineALC. deps.json + CopyLocal so the EngineALC's
+       AssemblyDependencyResolver can find Roslyn next to this DLL in the bootstrap directory. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike2.Engine</AssemblyName>
+    <RootNamespace>Spike2.Engine</RootNamespace>
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contracts\Spike2.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

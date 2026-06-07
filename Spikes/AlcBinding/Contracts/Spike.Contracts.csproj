@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Shared contract assembly. Loaded ONCE in the default ALC (by the Host) and
+    deliberately shared into the EngineALC so that InspectorGlobals / IInspectorEngine /
+    EvalResult are type-identical across the ALC boundary. Must NOT reference Roslyn.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike.Contracts</AssemblyName>
+    <RootNamespace>Spike.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>

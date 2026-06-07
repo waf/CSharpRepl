@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Stand-in for the target application's domain assembly (the "app DLL").
+    The engine does NOT reference this project: it must discover Counter at RUNTIME from the
+    default ALC's loaded assemblies, and submissions must bind to the live instance. That is
+    the realistic case (a real target's types are unknown to the inspector at compile time).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike.TargetLib</AssemblyName>
+    <RootNamespace>Spike.TargetLib</RootNamespace>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Roslyn scripting engine. Loaded into the ISOLATED EngineALC. References Roslyn; the
+    Roslyn closure is copied next to this DLL so AssemblyDependencyResolver can load it into
+    the EngineALC. References Contracts, but Contracts is force-shared back to the default ALC
+    by EngineLoadContext.Load (see Host) so it stays type-identical.
+
+    GenerateDependencyFile + CopyLocalLockFileAssemblies are required so a *.deps.json and the
+    Roslyn DLLs land in bin and AssemblyDependencyResolver can resolve them.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike.Engine</AssemblyName>
+    <RootNamespace>Spike.Engine</RootNamespace>
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contracts\Spike.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

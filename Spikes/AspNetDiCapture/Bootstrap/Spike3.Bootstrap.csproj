@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Injected bootstrap. Loaded into the target's default ALC via DOTNET_STARTUP_HOOKS, and ALSO
+    activated as an ASP.NET hosting-startup assembly via ASPNETCORE_HOSTINGSTARTUPASSEMBLIES.
+    No Roslyn reference. ASP.NET types come from the shared framework (FrameworkReference) — at runtime
+    they resolve to the target's already-loaded ASP.NET assemblies.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike3.Bootstrap</AssemblyName>
+    <RootNamespace>Spike3.Bootstrap</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contracts\Spike3.Contracts.csproj" />
+    <ProjectReference Include="..\Engine\Spike3.Engine.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <Target Name="CopyEngine" AfterTargets="Build">
+    <ItemGroup>
+      <EngineFiles Include="$(MSBuildProjectDirectory)\..\Engine\bin\$(Configuration)\net10.0\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(EngineFiles)"
+          DestinationFiles="@(EngineFiles->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- An ordinary ASP.NET Core minimal-API app. References NOTHING inspector-related. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Target.Web</AssemblyName>
+    <RootNamespace>Target.Web</RootNamespace>
+  </PropertyGroup>
+
+</Project>

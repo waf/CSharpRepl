@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The harness / "controller + target" in one process. References Contracts + TargetLib (loaded
+    into the default ALC). Does NOT statically reference the Engine: it loads Spike.Engine.dll via
+    reflection into an isolated EngineLoadContext, mirroring the real design where the controller
+    compiles nothing.
+
+    The ProjectReference to Engine (ReferenceOutputAssembly=false) only enforces build ordering.
+    The CopyEngine target then copies Engine's output (incl. the Roslyn closure + deps.json) into
+    a SEPARATE 'engine' subfolder, so the EngineALC loads Roslyn from its own directory.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike.Host</AssemblyName>
+    <RootNamespace>Spike.Host</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contracts\Spike.Contracts.csproj" />
+    <ProjectReference Include="..\TargetLib\Spike.TargetLib.csproj" />
+    <ProjectReference Include="..\Engine\Spike.Engine.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!--
+    Clash scenario: the "target" loads an OLDER Roslyn into its own default ALC (simulating an app
+    that uses Roslyn/OmniSharp/runtime source-gen). The engine uses 5.3.0 in the isolated EngineALC.
+    Separate projects/dirs/ALCs => no NuGet unification between this and Spike.Engine.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+  </ItemGroup>
+
+  <Target Name="CopyEngine" AfterTargets="Build">
+    <ItemGroup>
+      <EngineFiles Include="$(MSBuildProjectDirectory)\..\Engine\bin\$(Configuration)\net10.0\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(EngineFiles)"
+          DestinationFiles="@(EngineFiles->'$(OutDir)engine\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

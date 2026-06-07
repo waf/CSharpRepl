@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The injected bootstrap (CSharpRepl.Inspector analog). Loaded into the target's DEFAULT ALC via
+    DOTNET_STARTUP_HOOKS. MUST NOT statically reference Roslyn (verified at runtime). References only
+    Contracts. Engine + Roslyn are copied next to this DLL so the EngineALC can load them from here.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike2.Bootstrap</AssemblyName>
+    <RootNamespace>Spike2.Bootstrap</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contracts\Spike2.Contracts.csproj" />
+    <ProjectReference Include="..\Engine\Spike2.Engine.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- Stage the engine + its Roslyn closure + deps.json flat into this DLL's directory, so the
+       EngineALC's AssemblyDependencyResolver (pointed at Spike2.Engine.dll here) can resolve them. -->
+  <Target Name="CopyEngine" AfterTargets="Build">
+    <ItemGroup>
+      <EngineFiles Include="$(MSBuildProjectDirectory)\..\Engine\bin\$(Configuration)\net10.0\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(EngineFiles)"
+          DestinationFiles="@(EngineFiles->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

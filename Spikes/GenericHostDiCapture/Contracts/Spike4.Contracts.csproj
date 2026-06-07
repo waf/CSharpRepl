@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Spike4.Contracts</AssemblyName>
+    <RootNamespace>Spike4.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>
