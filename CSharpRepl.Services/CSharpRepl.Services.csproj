@@ -36,7 +36,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
     <PackageReference Include="Microsoft.SymbolStore" Version="1.0.727501" />
     <PackageReference Include="OpenAI" Version="2.11.0" />
-    <PackageReference Include="PrettyPrompt" Version="5.0.2" />
+    <PackageReference Include="PrettyPrompt" Version="6.0.0" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
     <PackageReference Include="Spectre.Console.Ansi" Version="0.56.0" />
     <PackageReference Include="System.IO.Abstractions" Version="22.1.1" />

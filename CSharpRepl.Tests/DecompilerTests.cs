@@ -136,16 +136,29 @@ public class DecompilerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Decompile_UsesUnixLineEndings()
+    public async Task Decompile_EscapeSequenceInStringLiteral_ProducesNonOverlappingSpans()
+    {
+        // regression: same as the disassembler case - roslyn emits a string-escape-character span nested
+        // inside the string-literal span, and FormattedString requires disjoint spans.
+        var result = await services.ConvertToLoweredCSharp("""Console.WriteLine("as\ndf");""", debugMode: true);
+
+        var success = Assert.IsType<EvaluationResult.Success>(result);
+        Assert.IsType<FormattedString>(success.ReturnValue.Value); // the ctor validates non-overlap
+    }
+
+    [Fact]
+    public async Task Decompile_WindowsLineEndings_DoNotReachTheTerminal()
     {
         var result = await services.ConvertToLoweredCSharp("System.Console.WriteLine(1);", debugMode: true);
 
         var output = Assert.IsType<EvaluationResult.Success>(result).ReturnValue.ToString();
 
-        // regression: ILSpy emits '\r\n', but the ANSI renderer advances lines itself, so a stray '\r\n'
-        // double-spaces the output. The text must use '\n'-only line endings (like the IL disassembler).
-        Assert.DoesNotContain('\r', output!);
-        Assert.Contains('\n', output);
+        // regression: ILSpy emits '\r\n' line endings, and the ANSI renderer advances lines itself. A literal
+        // '\r' written to the terminal would desync the renderer's cursor tracking (it originally double-spaced
+        // the output). PrettyPrompt treats '\r\n' as a single line break, so no '\r' may survive rendering.
+        var rendered = PrettyPrompt.Prompt.RenderAnsiOutput(output!, [], 120);
+        Assert.DoesNotContain('\r', rendered);
+        Assert.Contains('\n', rendered);
     }
 
     [Fact]
