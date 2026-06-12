@@ -9,7 +9,7 @@ namespace CSharpRepl.InjectedHook.Contracts;
 /// <summary>
 /// The globals object handed to the Roslyn submission chain in the engine. Its members become in-scope
 /// identifiers inside every submission (exactly like the local REPL's ScriptGlobals), so a user can write
-/// <c>services.GetRequiredService&lt;T&gt;()</c> or <c>Get&lt;T&gt;()</c> directly.
+/// services.GetRequiredService&lt;T&gt;() or Get&lt;T&gt;() directly.
 /// </summary>
 public sealed class InspectorGlobals
 {
@@ -25,4 +25,19 @@ public sealed class InspectorGlobals
             ?? throw new InvalidOperationException($"No service of type {typeof(T)} is registered in the target.");
         return (T)service;
     }
+}
+
+/// <summary>
+/// Static holder for the captured "roots" of the target process.
+///
+/// - Lives in the default ALC (shared back into the EngineALC) so the bootstrap's capture code and the
+///   engine's submissions see the same instance.
+/// - The bootstrap's HostCapture populates Services from the "Microsoft.Extensions.Hosting"
+///   DiagnosticListener's HostBuilt event (Generic Host + WebApplication.CreateBuilder ASP.NET Core);
+///   otherwise it stays null and only statics/framework code are reachable.
+/// </summary>
+public static class InspectorRoots
+{
+    /// <summary>The target's captured root service provider, or null if none was captured.</summary>
+    public static IServiceProvider? Services;
 }

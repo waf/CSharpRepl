@@ -11,12 +11,12 @@ using System.Runtime.Loader;
 // with a "public static void Initialize()" method, in the global namespace.
 
 /// <summary>
-/// Runs (via DOTNET_STARTUP_HOOKS) before the target's Main, in the target's default ALC. The crux it
-/// must honor: the bootstrap's only non-framework dependency (CSharpRepl.InjectedHook.Contracts) lives in the
-/// bootstrap directory, which is NOT on the target's probing path. So we install a Default.Resolving handler
-/// pointing at that directory BEFORE touching any non-framework type, then defer all real work to
-/// <see cref="Start"/> — marked <see cref="MethodImplOptions.NoInlining"/> so its Contracts references are
-/// JIT-resolved only when it is called, i.e. after the handler is live.
+/// Runs (via DOTNET_STARTUP_HOOKS) before the target's Main, in the target's default ALC.
+///
+/// - Contracts (the only non-framework dependency) lives in the bootstrap directory, which is NOT on the
+///   target's probing path — so a Default.Resolving handler is installed before touching any non-framework type.
+/// - All real work is deferred to Start, marked NoInlining so its Contracts references are JIT-resolved
+///   only after the handler is live.
 /// </summary>
 internal static class StartupHook
 {
@@ -55,6 +55,10 @@ internal static class StartupHook
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void Start(string bootstrapDirectory)
     {
+        // Subscribe to the hosting DiagnosticListener now, before the target's Main builds its host, so the
+        // root IServiceProvider is captured for `services`/Get<T>() (see HostCapture).
+        CSharpRepl.InjectedHook.HostCapture.Install();
+
         var engine = CSharpRepl.InjectedHook.EngineHost.Load(bootstrapDirectory);
         CSharpRepl.InjectedHook.InspectorServer.StartInBackground(engine);
     }

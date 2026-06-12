@@ -15,10 +15,12 @@ using CSharpRepl.InjectedHook.Contracts;
 namespace CSharpRepl.InjectedHook;
 
 /// <summary>
-/// Listens on the per-process transport for a controller, performs the handshake, and serves the request
-/// loop (Eval / Disconnect) by forwarding to the <see cref="IInspectorEngine"/>. Runs on a background
-/// thread so it never blocks the target's own work, and is written so a failed connection never tears down
-/// the host — it just loops back to accept the next controller (supporting reconnect after the controller detaches).
+/// Listens on the per-process transport, performs the handshake, and serves the request loop by forwarding
+/// to the IInspectorEngine.
+///
+/// - Runs on a background thread so it never blocks the target's own work.
+/// - A failed connection never tears down the host — it loops back to accept the next controller
+///   (supporting reconnect after the controller detaches).
 /// </summary>
 internal static class InspectorServer
 {
@@ -113,9 +115,11 @@ internal static class InspectorServer
     }
 
     /// <summary>
-    /// Evaluates a submission while concurrently reading the channel, so a <see cref="CancelMessage"/> arriving
-    /// mid-evaluation cancels the engine's token. Returns the next message to process (the one read ahead), or
-    /// null on EOF. Keeps request/response framing in lock-step: exactly one response is written per request.
+    /// Evaluates a submission while concurrently reading the channel, so a CancelMessage arriving
+    /// mid-evaluation cancels the engine's token.
+    ///
+    /// - Returns the next message to process (the one read ahead), or null on EOF.
+    /// - Keeps framing in lock-step: exactly one response is written per request.
     /// </summary>
     private static async Task<WireMessage?> EvaluateWithCancellationAsync(MessageChannel channel, IInspectorEngine engine, EvalRequest request)
     {
@@ -212,9 +216,10 @@ internal static class InspectorServer
     };
 
     /// <summary>
-    /// Classifies the target's launch so the controller can refuse or warn. A self-contained single-file
-    /// bundle has even corlib in-memory (empty Location); a framework-dependent single-file bundle keeps the
-    /// shared framework on disk but bundles the app's own assemblies.
+    /// Classifies the target's launch so the controller can refuse or warn.
+    ///
+    /// - Self-contained single-file: even corlib is in-memory (empty Location).
+    /// - Framework-dependent single-file: shared framework on disk, but the app's own assemblies are bundled.
     /// </summary>
     private static TargetAssemblyAvailability DetectAssemblyAvailability()
     {

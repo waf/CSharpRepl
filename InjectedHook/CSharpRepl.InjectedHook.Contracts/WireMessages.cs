@@ -8,9 +8,8 @@ using System.Text.Json.Serialization;
 namespace CSharpRepl.InjectedHook.Contracts;
 
 /// <summary>
-/// Base type for every framed message on the wire. Serialized polymorphically by
-/// <see cref="MessageChannel"/> via the <c>$kind</c> discriminator, so a single
-/// <c>ReadAsync</c> returns the right concrete message.
+/// Base type for every framed message on the wire. Serialized polymorphically by MessageChannel via the
+/// $kind discriminator, so a single ReadAsync returns the right concrete message.
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "$kind")]
 [JsonDerivedType(typeof(HandshakeMessage), "handshake")]
@@ -25,9 +24,20 @@ public abstract class WireMessage
 }
 
 /// <summary>
-/// Sent by the inspector to the controller immediately on connect. Carries identity/version details so
-/// the controller can show a banner and confirm it reached the right (non-stale) process. The
-/// <see cref="SessionId"/> is a non-secret correctness token, not an authentication credential.
+/// Source-generated JsonSerializerContext for the wire protocol.
+///
+/// Serializing the polymorphic WireMessage base writes the $kind discriminator; the generator follows the
+/// type graph from there (derived messages, RemoteValue's recursive members/items, RemoteException, enums).
+/// </summary>
+[JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSerializable(typeof(WireMessage))]
+internal sealed partial class WireJsonContext : JsonSerializerContext { }
+
+/// <summary>
+/// Sent by the inspector to the controller immediately on connect.
+/// - Carries identity/version details for the controller's banner and to confirm it reached the right
+///   (non-stale) process.
+/// - SessionId is a non-secret correctness token, not an authentication credential.
 /// </summary>
 public sealed class HandshakeMessage : WireMessage
 {
@@ -37,15 +47,10 @@ public sealed class HandshakeMessage : WireMessage
     public string InspectorVersion { get; init; } = "";
     public int ProtocolVersion { get; init; }
 
-    /// <summary>True when a root <see cref="System.IServiceProvider"/> was captured. False means
-    /// only statics/framework code are reachable.</summary>
+    /// <summary>True when a root IServiceProvider was captured; false means only statics/framework code are reachable.</summary>
     public bool DiProviderCaptured { get; init; }
 
-    /// <summary>
-    /// How the target was launched, which bounds what the inspector can do. A self-contained single-file
-    /// target can't be evaluated at all (no on-disk assemblies, not even corlib); a framework-dependent
-    /// single-file target works for framework code + reflection but not typed access to the app's own types.
-    /// </summary>
+    /// <summary>How the target was launched, which bounds what the inspector can do (see TargetAssemblyAvailability).</summary>
     public TargetAssemblyAvailability AssemblyAvailability { get; init; }
 
     /// <summary>Non-secret session identifier: process id plus a per-process instance GUID.</summary>
@@ -53,25 +58,24 @@ public sealed class HandshakeMessage : WireMessage
 }
 
 /// <summary>
-/// Describes whether the target's assemblies are reachable on disk, which determines what the inspector can do.
-/// Detected at connect from whether the runtime/app assemblies have an on-disk <c>Assembly.Location</c>.
+/// Whether the target's assemblies are reachable on disk, which determines what the inspector can do.
+/// Detected from whether the runtime/app assemblies have an on-disk Assembly.Location.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<TargetAssemblyAvailability>))]
 public enum TargetAssemblyAvailability
 {
-    /// <summary>A normal launch (apphost or <c>dotnet App.dll</c>): assemblies are on disk; full typed access works.</summary>
+    /// <summary>A normal launch (apphost or dotnet App.dll): assemblies are on disk; full typed access works.</summary>
     Normal,
 
     /// <summary>
-    /// A framework-dependent single-file publish: the app's own assemblies are bundled (empty
-    /// <c>Assembly.Location</c>) but the shared framework stays on disk. Framework code and reflection-based
-    /// access to the target's live state work; typed access to the app's own types does not.
+    /// A framework-dependent single-file publish: the app's own assemblies are bundled but the shared
+    /// framework stays on disk. Framework code and reflection work; typed access to the app's own types does not.
     /// </summary>
     FrameworkDependentSingleFile,
 
     /// <summary>
-    /// A self-contained single-file publish: even the runtime assemblies are bundled, so no metadata reference
-    /// (not even corlib) can be built and every evaluation fails. The controller refuses to start a session.
+    /// A self-contained single-file publish: even the runtime assemblies are bundled, so no metadata
+    /// reference (not even corlib) can be built. The controller refuses to start a session.
     /// </summary>
     SelfContainedSingleFile,
 }
@@ -83,26 +87,25 @@ public sealed class EvalRequest : WireMessage
 
     /// <summary>
     /// True when the controller will render the detailed view (e.g. Ctrl+Enter). The engine projects an
-    /// object's public members only when detailed, so it doesn't invoke the target's property getters for the
-    /// one-line simple view — matching the local REPL, which reflects over members only for the detailed tree.
+    /// object's public members only when detailed, so the simple view never invokes property getters.
     /// </summary>
     public bool Detailed { get; init; }
 }
 
-/// <summary>The outcome of an <see cref="EvalRequest"/>.</summary>
+/// <summary>The outcome of an EvalRequest.</summary>
 public sealed class EvalResponse : WireMessage
 {
     public ResultKind Kind { get; init; }
 
-    /// <summary>The projected return value when <see cref="Kind"/> is <see cref="ResultKind.Value"/>.</summary>
+    /// <summary>The projected return value when Kind is Value.</summary>
     public RemoteValue? Value { get; init; }
 
-    /// <summary>The projected exception when <see cref="Kind"/> is <see cref="ResultKind.Exception"/>.</summary>
+    /// <summary>The projected exception when Kind is Exception.</summary>
     public RemoteException? Exception { get; init; }
 
     /// <summary>
     /// True when the submission committed to the persisted state chain (so the controller may advance its
-    /// remote editor workspace). False for compile/early failures that didn't extend the chain.
+    /// remote editor workspace); false for compile/early failures that didn't extend the chain.
     /// </summary>
     public bool Committed { get; init; }
 
@@ -117,10 +120,9 @@ public sealed class EvalResponse : WireMessage
 }
 
 /// <summary>
-/// Asks the inspector for the file paths of the target's loaded assemblies, so the controller can seed its
-/// remote editor workspace (IntelliSense + semantic highlighting) with the same references the engine compiles
-/// against. Sent right after connect. The engine resolves these lazily on first use, exactly as it builds
-/// its own compilation reference set.
+/// Asks the inspector for the target's loaded-assembly file paths, sent right after connect. The controller
+/// seeds its remote editor workspace (completion + highlighting) with them — the same references the engine
+/// compiles against.
 /// </summary>
 public sealed class ReferencesRequest : WireMessage
 {
@@ -129,18 +131,16 @@ public sealed class ReferencesRequest : WireMessage
 /// <summary>The target's loaded-assembly file paths, used to build the controller's remote editor workspace.</summary>
 public sealed class ReferencesResponse : WireMessage
 {
-    /// <summary>
-    /// On-disk paths of the target's loaded, non-dynamic assemblies. Single-file/in-memory assemblies have no
-    /// path and are omitted (the same set the engine can build a <c>MetadataReference</c> for).
-    /// </summary>
+    /// <summary>On-disk paths of the target's loaded, non-dynamic assemblies; single-file/in-memory assemblies are omitted.</summary>
     public IReadOnlyList<string> Paths { get; init; } = [];
 }
 
 /// <summary>
-/// Sent by the controller to cancel the in-flight evaluation (the user pressed Ctrl+C). The inspector cancels
-/// the engine's evaluation token; cancellation is cooperative, so it interrupts Roslyn-observed points but not
-/// arbitrary running user code (same as the local REPL). Sending it keeps request/response framing in sync —
-/// the controller still waits for the (cancelled or completed) result — rather than abandoning the read.
+/// Sent by the controller to cancel the in-flight evaluation (Ctrl+C).
+///
+/// - Cancellation is cooperative: it interrupts Roslyn-observed points, not arbitrary running user code.
+/// - Keeps framing in sync: the controller still waits for the (cancelled or completed) result rather than
+///   abandoning the read.
 /// </summary>
 public sealed class CancelMessage : WireMessage
 {
@@ -151,16 +151,16 @@ public sealed class DisconnectMessage : WireMessage
 {
 }
 
-/// <summary>The shape of an <see cref="EvalResponse"/>.</summary>
+/// <summary>The shape of an EvalResponse.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<ResultKind>))]
 public enum ResultKind
 {
-    /// <summary>The submission produced a value (carried in <see cref="EvalResponse.Value"/>).</summary>
+    /// <summary>The submission produced a value (carried in EvalResponse.Value).</summary>
     Value,
 
     /// <summary>The submission ran but produced no value to display (e.g. a declaration or statement).</summary>
     Void,
 
-    /// <summary>Compilation or execution failed (detail in <see cref="EvalResponse.Exception"/>).</summary>
+    /// <summary>Compilation or execution failed (detail in EvalResponse.Exception).</summary>
     Exception,
 }

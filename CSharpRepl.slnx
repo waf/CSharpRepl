@@ -3,12 +3,14 @@
     <File Path=".editorconfig" />
     <File Path="ARCHITECTURE.md" />
     <File Path="nuget.config" />
+    <File Path="README.md" />
   </Folder>
   <Folder Name="/Solution Items/.github/">
     <File Path=".github/workflows/main.yml" />
     <File Path=".github/workflows/release.yml" />
   </Folder>
   <Folder Name="/InjectedHook/">
+    <File Path="InjectedHook/InjectedHookReadme.md" />
     <Project Path="InjectedHook/CSharpRepl.InjectedHook.Contracts/CSharpRepl.InjectedHook.Contracts.csproj" />
     <Project Path="InjectedHook/CSharpRepl.InjectedHook.ScriptEngine/CSharpRepl.InjectedHook.ScriptEngine.csproj" />
     <Project Path="InjectedHook/CSharpRepl.InjectedHook/CSharpRepl.InjectedHook.csproj" />

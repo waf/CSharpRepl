@@ -7,52 +7,49 @@ using System.Collections.Generic;
 namespace CSharpRepl.InjectedHook.Contracts;
 
 /// <summary>
-/// A serializable, transport-friendly projection of an evaluation's return value. The engine produces it
-/// in the target process (where the live object lives) and the controller renders it through the existing
-/// theming pipeline. The graph is depth-, breadth-, and length-limited and acyclic so it stays small and
-/// safe to deserialize.
+/// A serializable, transport-friendly projection of an evaluation's return value, produced by the engine in
+/// the target process (where the live object lives) and rendered by the controller through the existing
+/// theming pipeline.
+///
+/// - The graph is depth-, breadth-, and length-limited and acyclic, so it stays small and safe to deserialize.
+/// - The engine carries only theme-agnostic data (formatted scalar text plus a RemoteValueStyle hint, or a
+///   structured member/element breakdown); the controller applies the user's theme.
+/// - Roslyn's ObjectDisplay is internal and unreachable from the engine's isolated ALC, so scalars are
+///   formatted by a small replicated formatter matching the local REPL's PrimitiveFormatter options
+///   (quoted/escaped strings and chars, invariant-culture numbers).
 /// </summary>
-/// <remarks>
-/// The split is deliberate: the engine carries only theme-agnostic data (already-formatted scalar text plus
-/// a <see cref="RemoteValueStyle"/> hint, or a structured member/element breakdown), and the controller
-/// applies the user's theme. Scalars are formatted in the target with Roslyn's own <c>ObjectDisplay</c> — the
-/// same formatter the local REPL's <c>PrimitiveFormatter</c> uses — so the text matches the local REPL exactly.
-/// </remarks>
 public sealed class RemoteValue
 {
     /// <summary>The shape of the value, which selects how the controller renders it.</summary>
     public RemoteValueKind Kind { get; init; }
 
-    /// <summary>
-    /// The runtime type's friendly C# name (e.g. <c>List&lt;int&gt;</c>), or null when the value is null.
-    /// Used for the object/collection header and the type-name colored summary.
-    /// </summary>
+    /// <summary>The runtime type's friendly C# name (e.g. List&lt;int&gt;), or null when the value is null.</summary>
     public string? TypeName { get; init; }
 
     /// <summary>
-    /// For <see cref="RemoteValueKind.Scalar"/>: the formatted scalar text (quoted/escaped for strings and
-    /// chars, invariant for numbers). For <see cref="RemoteValueKind.Object"/>: the one-line summary the
-    /// local REPL shows at the simple level — an overridden <c>ToString()</c> / <c>DebuggerDisplay</c> result,
-    /// or the friendly type name as a fallback. Empty for collections (rendered from <see cref="Items"/>).
+    /// The display text, by kind:
+    /// - Scalar: the formatted text (quoted/escaped strings and chars, invariant numbers).
+    /// - Object: the one-line summary (overridden ToString, or the friendly type name as fallback).
+    /// - Collection: empty (rendered from Items).
     /// </summary>
     public string DisplayText { get; init; } = "";
 
-    /// <summary>How the controller should color <see cref="DisplayText"/>.</summary>
+    /// <summary>How the controller should color DisplayText.</summary>
     public RemoteValueStyle Style { get; init; }
 
     /// <summary>True when the value is null.</summary>
     public bool IsNull { get; init; }
 
-    /// <summary>The public members of an <see cref="RemoteValueKind.Object"/> (null otherwise), depth-limited.</summary>
+    /// <summary>The public members of an Object (null otherwise), depth-limited.</summary>
     public IReadOnlyList<RemoteMember>? Members { get; init; }
 
-    /// <summary>The elements of a <see cref="RemoteValueKind.Collection"/> (null otherwise), count-limited.</summary>
+    /// <summary>The elements of a Collection (null otherwise), count-limited.</summary>
     public IReadOnlyList<RemoteValue>? Items { get; init; }
 
-    /// <summary>The collection's full element count, which may exceed <see cref="Items"/>.Count when truncated.</summary>
+    /// <summary>The collection's full element count, which may exceed Items.Count when truncated.</summary>
     public int? Count { get; init; }
 
-    /// <summary>True when <see cref="Members"/>/<see cref="Items"/> were cut short by a depth/breadth/length limit.</summary>
+    /// <summary>True when Members/Items were cut short by a depth/breadth/length limit.</summary>
     public bool Truncated { get; init; }
 
     /// <summary>The null literal projection.</summary>
@@ -66,25 +63,25 @@ public sealed class RemoteMember
     public RemoteValue Value { get; init; } = RemoteValue.Null;
 }
 
-/// <summary>The shape of a <see cref="RemoteValue"/>, selecting how the controller renders it.</summary>
+/// <summary>The shape of a RemoteValue, selecting how the controller renders it.</summary>
 public enum RemoteValueKind
 {
     /// <summary>The value is null.</summary>
     Null,
 
-    /// <summary>A primitive, string, char, or enum — rendered inline from <see cref="RemoteValue.DisplayText"/>.</summary>
+    /// <summary>A primitive, string, char, or enum — rendered inline from DisplayText.</summary>
     Scalar,
 
-    /// <summary>A non-collection object — a summary line plus, at the detailed level, its <see cref="RemoteValue.Members"/>.</summary>
+    /// <summary>A non-collection object — a summary line plus, at the detailed level, its Members.</summary>
     Object,
 
-    /// <summary>An <see cref="System.Collections.IEnumerable"/> — rendered from its <see cref="RemoteValue.Items"/>.</summary>
+    /// <summary>An IEnumerable — rendered from its Items.</summary>
     Collection,
 }
 
 /// <summary>
 /// A theme-agnostic coloring hint the controller maps to one of its theme's syntax-classification colors.
-/// Kept independent of Roslyn's <c>ClassificationTypeNames</c> so the contracts assembly stays Roslyn-free.
+/// Kept independent of Roslyn's ClassificationTypeNames so the contracts assembly stays Roslyn-free.
 /// </summary>
 public enum RemoteValueStyle
 {
@@ -97,7 +94,7 @@ public enum RemoteValueStyle
     /// <summary>A string or char literal.</summary>
     String,
 
-    /// <summary>A language keyword (e.g. <c>true</c>, <c>false</c>, <c>null</c>).</summary>
+    /// <summary>A language keyword (e.g. true, false, null).</summary>
     Keyword,
 
     /// <summary>A type name.</summary>

@@ -74,7 +74,7 @@ csharprepl can attach to a *separate*, already-running .NET app and evaluate C# 
 The feature was renamed during development; **names are inconsistent across layers**, so search by the right token:
 
 - **Folder / projects:** `InjectedHook/` containing `CSharpRepl.InjectedHook`, `CSharpRepl.InjectedHook.Contracts`, and `CSharpRepl.InjectedHook.ScriptEngine`.
-  - Note: `ARCHITECTURE.md` calls the engine project `CSharpRepl.InjectedHook.Engine` — the actual project on disk is **`.ScriptEngine`**. Earlier planning docs use `CSharpRepl.Inspector.*`; those names no longer exist.
+  - Note: earlier planning docs use `CSharpRepl.Inspector.*` or `CSharpRepl.InjectedHook.Engine`; those names no longer exist.
 - **Classes:** still prefixed **`Inspector*`** (`InspectorServer`, `InspectorEngine`, `IInspectorEngine`, `InspectorClient`, `InspectorTransport`, `InspectorRoots`, `InspectorGlobals`).
 - **User-facing verb:** **`inspect`**.
 

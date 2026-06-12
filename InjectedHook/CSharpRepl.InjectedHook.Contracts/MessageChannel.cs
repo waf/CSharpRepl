@@ -12,17 +12,14 @@ using System.Threading.Tasks;
 namespace CSharpRepl.InjectedHook.Contracts;
 
 /// <summary>
-/// Length-prefixed framing for <see cref="WireMessage"/>s over a duplex <see cref="Stream"/> (a named pipe
-/// on Windows, a Unix domain socket elsewhere). Each frame is a 4-byte little-endian length followed by the
-/// UTF-8 JSON body. A single connection has one reader and one writer driven sequentially (request then
-/// response), so no internal locking is required.
+/// Length-prefixed framing for WireMessages over a duplex Stream (named pipe / Unix domain socket): each
+/// frame is a 4-byte little-endian length followed by the UTF-8 JSON body.
+///
+/// - Inbound data is untrusted: frame lengths are bounded, and malformed JSON surfaces as an exception the
+///   caller can handle rather than crashing the process.
+/// - One logical reader per connection, but writes can race (an out-of-band cancel), so writes are
+///   serialized by a mutex — a frame is never interleaved with another.
 /// </summary>
-/// <remarks>
-/// Inbound data is treated as untrusted: frame lengths are bounded and malformed JSON surfaces as an
-/// exception the caller can handle rather than crashing the process. A single connection has one logical
-/// reader, but writes can race (an out-of-band cancel concurrent with a request/response), so writes are
-/// serialized by a mutex — a frame is written atomically and never interleaved with another.
-/// </remarks>
 public sealed class MessageChannel
 {
     /// <summary>Reject frames larger than this (defensive bound against a hostile/​buggy peer).</summary>
@@ -55,10 +52,7 @@ public sealed class MessageChannel
         }
     }
 
-    /// <summary>
-    /// Reads the next message, or returns null when the peer has cleanly closed the connection
-    /// (end of stream before a new frame begins).
-    /// </summary>
+    /// <summary>Reads the next message, or null when the peer cleanly closed (EOF before a new frame begins).</summary>
     public async Task<WireMessage?> ReadAsync(CancellationToken cancellationToken)
     {
         var header = new byte[4];
@@ -83,10 +77,7 @@ public sealed class MessageChannel
             ?? throw new InvalidDataException("Inspector frame deserialized to a null message.");
     }
 
-    /// <summary>
-    /// Fills <paramref name="buffer"/> completely. Returns false if the stream is at EOF before the first
-    /// byte (clean close); throws if EOF is hit partway through a frame.
-    /// </summary>
+    /// <summary>Fills the buffer completely. False on EOF before the first byte (clean close); throws on EOF mid-frame.</summary>
     private async Task<bool> TryReadExactlyAsync(byte[] buffer, CancellationToken cancellationToken)
     {
         int read = 0;

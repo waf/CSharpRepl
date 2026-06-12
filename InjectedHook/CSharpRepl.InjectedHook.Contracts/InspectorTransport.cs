@@ -17,13 +17,11 @@ namespace CSharpRepl.InjectedHook.Contracts;
 
 /// <summary>
 /// The per-process, OS-access-controlled transport between controller and inspector: a named pipe on
-/// Windows, a Unix domain socket elsewhere. Both endpoints are scoped to the current user, mirroring the
-/// .NET diagnostic-port model — the security boundary is the connecting process's OS identity.
+/// Windows, a Unix domain socket elsewhere.
+///
+/// - Current-user only, mirroring the .NET diagnostic-port model: an explicit DACL granting just the current
+///   user's SID on Windows, a 0700 user-owned directory plus a peer-credential check on Unix.
 /// </summary>
-/// <remarks>
-/// Access is current-user only: an explicit DACL granting just the current user's SID on Windows, and a 0700
-/// user-owned directory plus a peer-credential check on Unix.
-/// </remarks>
 public static class InspectorTransport
 {
     public const int ProtocolVersion = 1;
@@ -36,8 +34,8 @@ public static class InspectorTransport
         Path.Combine(SocketDirectory(), $"inspector-{processId}.sock");
 
     /// <summary>
-    /// Connects to the inspector listening for <paramref name="processId"/>, retrying until the listener
-    /// exists or <paramref name="timeout"/> elapses. Returns a duplex stream ready for a <see cref="MessageChannel"/>.
+    /// Connects to the inspector listening for processId, retrying until the listener exists or the timeout
+    /// elapses. Returns a duplex stream ready for a MessageChannel.
     /// </summary>
     public static async Task<Stream> ConnectAsync(int processId, TimeSpan timeout, CancellationToken cancellationToken)
     {
@@ -117,9 +115,8 @@ public static class InspectorTransport
 }
 
 /// <summary>
-/// Server side of <see cref="InspectorTransport"/>: accepts controller connections for the current process.
-/// Each <see cref="AcceptAsync"/> yields one connected duplex stream; the caller serves it then loops to
-/// accept the next (supporting reconnect after the controller detaches).
+/// Server side of the transport: accepts controller connections for the current process. Each AcceptAsync
+/// yields one connected duplex stream; the caller serves it then loops to accept the next (reconnect support).
 /// </summary>
 public sealed class InspectorTransportListener : IDisposable
 {
@@ -218,10 +215,12 @@ public sealed class InspectorTransportListener : IDisposable
 }
 
 /// <summary>
-/// Asserts a connected Unix-domain-socket peer is the same user as this process (the real defense-in-depth
-/// over the 0700 directory). Uses SO_PEERCRED on Linux and getpeereid on macOS. Fails <em>open</em> only when
-/// the credential can't be read (an unknown platform or a syscall error) — the directory mode is the baseline
-/// in that case — but fails <em>closed</em> on a confirmed different uid.
+/// Asserts a connected Unix-domain-socket peer is the same user as this process (defense-in-depth over the
+/// 0700 directory).
+///
+/// - SO_PEERCRED on Linux, getpeereid on macOS.
+/// - Fails open only when the credential can't be read (unknown platform / syscall error) — the directory
+///   mode is the baseline there — but fails closed on a confirmed different uid.
 /// </summary>
 internal static class UnixPeerCredentials
 {

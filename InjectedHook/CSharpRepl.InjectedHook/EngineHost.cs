@@ -11,9 +11,8 @@ using CSharpRepl.InjectedHook.Contracts;
 namespace CSharpRepl.InjectedHook;
 
 /// <summary>
-/// Loads the engine into an isolated <see cref="EngineLoadContext"/> and returns it as an
-/// <see cref="IInspectorEngine"/>. No Roslyn type is touched here — the engine assembly and its Roslyn
-/// closure load entirely inside the isolated ALC.
+/// Loads the engine into an isolated EngineLoadContext and returns it as an IInspectorEngine.
+/// Touches no Roslyn type: the engine assembly and its Roslyn closure load entirely inside the isolated ALC.
 /// </summary>
 internal static class EngineHost
 {
@@ -39,10 +38,12 @@ internal static class EngineHost
 }
 
 /// <summary>
-/// Isolated ALC for the engine + its Roslyn closure. Resolves the engine's own dependencies (Roslyn) from
-/// the bootstrap directory via <see cref="AssemblyDependencyResolver"/>, but delegates the shared contracts
-/// assembly back to the default ALC (returning null) so its types stay identical across the boundary. The
-/// shared framework is resolved by the runtime's default fallback.
+/// Isolated ALC for the engine + its Roslyn closure.
+///
+/// - Resolves the engine's own dependencies (Roslyn) from the bootstrap directory via AssemblyDependencyResolver.
+/// - Delegates the shared Contracts assembly back to the default ALC (returns null) so its types stay
+///   identical across the boundary.
+/// - The shared framework is resolved by the runtime's default fallback.
 /// </summary>
 internal sealed class EngineLoadContext : AssemblyLoadContext
 {

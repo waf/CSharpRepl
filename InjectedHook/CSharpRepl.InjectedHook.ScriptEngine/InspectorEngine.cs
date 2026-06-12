@@ -23,11 +23,12 @@ using Microsoft.CodeAnalysis.Scripting.Hosting;
 namespace CSharpRepl.InjectedHook.ScriptEngine;
 
 /// <summary>
-/// A trimmed relocation of the local REPL's <c>ScriptRunner</c> core (CSharpRepl.Services ScriptRunner.cs),
-/// hosted inside the isolated EngineALC. Holds the persisted <c>ScriptState</c> chain, builds compilation
-/// references from the <em>target's</em> loaded assemblies, and registers those live <see cref="System.Reflection.Assembly"/>
-/// instances with Roslyn's loader so submissions compile against the target's types and bind at runtime to
-/// the already-loaded default-ALC instances (full local-REPL parity via <c>ContinueWithAsync</c>).
+/// A trimmed relocation of the local REPL's ScriptRunner core, hosted inside the isolated EngineALC.
+///
+/// - Holds the persisted ScriptState chain (full local-REPL parity via ContinueWithAsync).
+/// - Builds compilation references from the target's loaded assemblies and registers those live Assembly
+///   instances with Roslyn's loader, so submissions compile against the target's types and bind at runtime
+///   to the already-loaded default-ALC instances.
 /// </summary>
 public sealed class InspectorEngine : IInspectorEngine
 {
@@ -41,7 +42,9 @@ public sealed class InspectorEngine : IInspectorEngine
 
     // Projection limits — keep the wire payload bounded and the projection fast/acyclic. Depth 1 mirrors the
     // local REPL's detailed view (top object's members, each shown as a scalar or a type-name summary), so a
-    // member that points back at its parent is rendered as a summary rather than recursed into.
+    // member that points back at its parent is rendered as a summary rather than recursed into. Collections
+    // honor the same depth limit (a nested collection becomes a type-name + count header), which is also what
+    // keeps a cyclic collection from recursing unboundedly.
     private const int MaxDepth = 1;
     private const int MaxMembers = 100;
     private const int MaxItems = 100;
@@ -143,10 +146,9 @@ public sealed class InspectorEngine : IInspectorEngine
         var references = new List<MetadataReference>();
         var paths = new List<string>();
 
-        // Snapshot the target's live, loaded assemblies once (the spike showed re-enumerating the default
-        // ALC each round picks up accumulating submission assemblies). Late-loaded target assemblies/#r are
-        // best-effort refreshed later. By the time a controller connects, the target's Main is running,
-        // so its own assemblies are loaded and reachable here.
+        // Snapshot the target's live, loaded assemblies once (re-enumerating the default ALC each round would picksup accumulating submission
+        // assemblies). Late-loaded target assemblies/#r are best-effort refreshed later. By the time a controller connects, the target's Main
+        // is running, so its own assemblies are loaded and reachable here.
         foreach (var assembly in AssemblyLoadContext.Default.Assemblies)
         {
             if (assembly.IsDynamic)
@@ -157,7 +159,7 @@ public sealed class InspectorEngine : IInspectorEngine
             var location = assembly.Location;
             if (string.IsNullOrEmpty(location))
             {
-                continue; // single-file/in-memory — no on-disk image (see SingleFileTarget spike)
+                continue; // single-file/in-memory — no on-disk image
             }
 
             try
@@ -187,10 +189,9 @@ public sealed class InspectorEngine : IInspectorEngine
     }
 
     /// <summary>
-    /// Port of <c>ScriptRunner.HasValueReturningStatement</c>: the just-run submission produces a displayable
-    /// value iff its last top-level statement is an expression statement with a <em>missing</em> semicolon and
-    /// a non-void converted type. We read the syntax and semantic model straight off the compilation Roslyn
-    /// produced for this submission, so this is authoritative (no re-parse).
+    /// Port of ScriptRunner.HasValueReturningStatement: the submission produces a displayable value iff its
+    /// last top-level statement is an expression statement with a missing semicolon and a non-void converted
+    /// type. Reads the syntax/semantic model off the compilation Roslyn produced for this submission (no re-parse).
     /// </summary>
     private static async Task<bool> IsValueReturningAsync(ScriptState<object> state, CancellationToken cancellationToken)
     {
@@ -263,9 +264,8 @@ public sealed class InspectorEngine : IInspectorEngine
     };
 
     /// <summary>
-    /// Formats primitives/strings/chars to match the local REPL's PrimitiveFormatter options (quoted/escaped
-    /// strings and chars, invariant-culture numbers, decimal radix, no type suffix). Returns false for anything
-    /// that isn't a scalar (objects, collections, DateTime, etc.), which is then projected structurally.
+    /// Formats primitives/strings/chars to match the local REPL's PrimitiveFormatter (quoted/escaped strings
+    /// and chars, invariant-culture numbers, no type suffix). False for non-scalars, which project structurally.
     /// </summary>
     private static bool TryFormatScalar(object value, out string text, out RemoteValueStyle style)
     {
@@ -431,9 +431,25 @@ public sealed class InspectorEngine : IInspectorEngine
 
     private RemoteValue ProjectCollection(IEnumerable enumerable, Type type, int depth, bool detailed)
     {
+        int? count = (enumerable as ICollection)?.Count;
+
+        // Past the depth limit, project a header only (type name + count, no elements) — that's all the
+        // controller renders for a nested collection anyway, and it keeps the recursion bounded: without
+        // this, a self-referential collection (l.Add(l)) recurses until a StackOverflowException kills the
+        // target process.
+        if (depth >= MaxDepth)
+        {
+            return new RemoteValue
+            {
+                Kind = RemoteValueKind.Collection,
+                TypeName = FriendlyTypeName(type),
+                Count = count,
+                Truncated = count != 0,
+            };
+        }
+
         var items = new List<RemoteValue>();
         var truncated = false;
-        int? count = (enumerable as ICollection)?.Count;
 
         try
         {
@@ -469,7 +485,7 @@ public sealed class InspectorEngine : IInspectorEngine
         return method is not null && method.DeclaringType != typeof(object);
     }
 
-    /// <summary>A compact C#-ish type name (keywords for primitives, <c>T?</c>, <c>T[]</c>, <c>List&lt;int&gt;</c>).</summary>
+    /// <summary>A compact C#-ish type name (keywords for primitives, T?, T[], List&lt;int&gt;).</summary>
     private static string FriendlyTypeName(Type type)
     {
         var underlying = Nullable.GetUnderlyingType(type);

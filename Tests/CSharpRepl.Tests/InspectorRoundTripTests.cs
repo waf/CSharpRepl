@@ -113,6 +113,25 @@ public class InspectorRoundTripTests
             Assert.NotNull(collection.Value.Items);
             Assert.Equal(["10", "20", "30"], collection.Value.Items!.Select(i => i.DisplayText));
 
+            // --- A cyclic collection must not recurse unboundedly (a StackOverflowException would kill the
+            //         target). Nested collections are depth-limited to a type-name + count header. ---
+            var cyclic = await EvalAsync(session, "var cycle = new List<object>(); cycle.Add(cycle); cycle");
+            Assert.Equal(ResultKind.Value, cyclic.Kind);
+            Assert.Equal(RemoteValueKind.Collection, cyclic.Value!.Kind);
+            var nested = Assert.Single(cyclic.Value.Items!);
+            Assert.Equal(RemoteValueKind.Collection, nested.Kind);
+            Assert.Equal(1, nested.Count);
+            Assert.Null(nested.Items); // header only — the recursion stops here
+
+            // --- DI-root capture: the bootstrap captures the host's root provider from the HostBuilt
+            //         DiagnosticListener event, and Get<T>() resolves the target's real live singleton.
+            //         The capture races with connecting (the transport is up before Main builds the host),
+            //         so poll: the globals read InspectorRoots live, no reconnect needed. ---
+            await WaitForDiCaptureAsync(session);
+            var resolved = await EvalAsync(session, "Get<CSharpRepl.InjectedHook.TestTarget.Service>().Value");
+            Assert.Equal(ResultKind.Value, resolved.Kind);
+            Assert.Equal("42", resolved.Value!.DisplayText); // the registered singleton IS Program.Shared (mutated to 42 above)
+
             // --- Object projection — members are projected only for the detailed view (so getters aren't
             //         invoked for the simple summary), matching the local REPL. ---
             var objSimple = await EvalAsync(session, $"{TargetType}.Shared");
@@ -129,6 +148,12 @@ public class InspectorRoundTripTests
             await session.DisconnectAsync(TestContext.Current.CancellationToken);
             await Task.Delay(500, TestContext.Current.CancellationToken);
             Assert.False(process.HasExited, "Target should keep running after the controller disconnects.");
+
+            // --- Reconnect: the server accepts a new controller, and this handshake (built after the host
+            //         was captured above) reports the DI provider. ---
+            await using var secondSession = await ConnectAsync(process);
+            Assert.True(secondSession.Handshake.DiProviderCaptured,
+                "A handshake built after the target's host was captured should report DiProviderCaptured.");
         }
         finally
         {
@@ -153,4 +178,24 @@ public class InspectorRoundTripTests
 
     private static Task<EvalResponse> EvalAsync(RemoteSession session, string code, bool detailed = false)
         => session.EvalAsync(code, detailed, TestContext.Current.CancellationToken);
+
+    /// <summary>
+    /// Waits for the bootstrap's HostCapture to observe the target's HostBuilt event. The capture happens
+    /// when the target's Main builds its host, which races with the controller connecting (the transport
+    /// listener is up before Main); the globals read the captured provider live, so polling an eval suffices.
+    /// </summary>
+    private static async Task WaitForDiCaptureAsync(RemoteSession session)
+    {
+        var deadline = Stopwatch.StartNew();
+        while (true)
+        {
+            var captured = await EvalAsync(session, "services is not null");
+            if (captured.Value?.DisplayText == "true")
+                return;
+
+            Assert.True(deadline.Elapsed < TimeSpan.FromSeconds(15),
+                "The target builds a Generic Host, so the DI provider should have been captured.");
+            await Task.Delay(200, TestContext.Current.CancellationToken);
+        }
+    }
 }

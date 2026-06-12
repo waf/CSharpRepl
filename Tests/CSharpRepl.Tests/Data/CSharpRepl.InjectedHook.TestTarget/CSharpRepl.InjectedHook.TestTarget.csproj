@@ -14,4 +14,9 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- An ordinary Generic Host, so the integration tests exercise the bootstrap's DI-root capture. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
+  </ItemGroup>
+
 </Project>

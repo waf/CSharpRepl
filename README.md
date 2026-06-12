@@ -122,22 +122,22 @@ csharprepl --framework  Microsoft.AspNetCore.App
 
 ## Inspecting a running process
 
-In addition to the normal REPL — which evaluates code in csharprepl's *own* process — csharprepl can attach to a **separate, already-running .NET application** and evaluate expressions inside it, reading and writing its live state (statics and DI singletons). You get the same interactive ergonomics as the local REPL: declare a `var` or a helper method on one line and reuse it on the next, operating on the target's real, live objects. This is useful for diagnosing a running service without restarting it or adding logging.
+In addition to the normal REPL, which evaluates code in csharprepl's *own* process — csharprepl can attach to other .NET applications and evaluate expressions inside them, reading and writing live application state (e.g. statics and services resolved from DI). You get the same interactivity as the normal REPL: declare a `var` or a helper method on one line and reuse it on the next, but operating on the target's real, live objects.
 
 > [!WARNING]
-> Connecting to an inspector-enabled process is **equivalent to running arbitrary code inside it, with its privileges**. The transport is a per-process, current-user-only channel (a named pipe on Windows, a Unix domain socket elsewhere) — the same security model as the .NET diagnostic port. This is a **development and diagnostics tool**: never enable the inspector on a production process.
+> Connecting to an inspector-enabled process is **equivalent to running arbitrary code inside it, with its privileges**. The transport is a per-process, current-user-only channel (a named pipe on Windows, a Unix domain socket elsewhere) — the same security model as the .NET diagnostic port. This is a development and diagnostics tool: never enable the inspector on a production process.
 
-This is a *cooperative* approach, not a debugger: a real Roslyn scripting engine is injected into the target, so it runs unconstrained C# right where the objects live (the trade-off is that the target must opt in — breakpoints, stepping, and non-cooperative attach are out of scope). The target's source is never modified; attachment is opt-in via a runtime startup hook set through environment variables when the app is launched.
+This is not a debugger: instead, a real Roslyn scripting engine is injected into the target, so it runs unconstrained C# right where the objects live (the trade-off is that the target must opt in, and breakpoints, stepping, and non-cooperative attach are not supported). The target's source does not need to be modified; CSharpRepl uses the .NET runtime's "startup hook" support via environment variables.
 
-**1. Print the environment variables** to launch your app with (pick your shell with `--shell pwsh|bash|cmd`):
+1. Print the environment variables: to launch your app with (pick your shell with `--shell pwsh|bash|cmd`):
 
 ```console
-csharprepl inspect init --shell pwsh
+csharprepl inspect init        # autodetects shell, or pass e.g. --shell pwsh
 ```
 
-**2. Set those variables and launch your app** in that shell, then note its process id. The inspector activates before the app's entry point runs.
+2. Set those variables and launch your app in that shell, then note its process id. The inspector activates before the app's entry point runs. You should NOT set these as permanent environment variables on your machine, rather, you should only set them in the shell where you plan to launch the target app.
 
-**3. Attach to the process** by its id:
+3. Attach to the process by its id:
 
 ```console
 csharprepl inspect 1234
@@ -145,18 +145,19 @@ csharprepl inspect 1234
 
 You'll get a banner with the target's details and a `1234>` prompt. From there:
 
-- **Statics**: reference them by their fully-qualified name, e.g. `MyApp.Program.SomeStatic` (read and write).
-- **DI services** (ASP.NET Core or Generic Host apps): `services.GetRequiredService<T>()` or the shorthand `Get<T>()`. The inspector captures the application's root service provider via the framework's standard hosting hooks.
-- **Parity**: `var s = services.GetRequiredService<IOrderService>();` then on the next line `s.PendingCount` — locals, declared methods, and types persist across submissions, exactly like the local REPL. IntelliSense and syntax highlighting are aware of the target's types.
+- Statics: reference them by their fully-qualified name, e.g. `MyApp.Program.SomeStatic` (read and write).
+- DI services (ASP.NET Core or Generic Host apps): `services.GetRequiredService<T>()` or the shorthand `Get<T>()`. The inspector captures the application's root service provider via .NET's hosting hooks.
 
 Type `exit` (or press <kbd>Ctrl+D</kbd>) to detach — the target keeps running, and you can reconnect to it later.
 
 **Requirements and limitations:**
 
-- **`net10.0` targets only.** The inspector and the target must both be on .NET 10.
-- **Pass the managed runtime process id** — the one the OS reports for a normal `dotnet App.dll` / apphost launch. A launcher that re-execs into a child runtime process would make the visible pid differ from the managed one.
-- **Single-file publishes are limited.** A *framework-dependent* single-file app connects in a reduced "reflection mode" (its own assemblies are bundled with no metadata, so typed access to the app's own types is unavailable — reach its state via reflection; framework code still works). A *self-contained* single-file app is unsupported (even the runtime is bundled, so nothing can be compiled) and the inspector refuses to start.
-- **DI capture** works for ASP.NET Core and Generic Host apps. An app that builds a service provider with neither (a bare `new ServiceCollection().BuildServiceProvider()`) has no capture hook; statics still work everywhere.
+- `net10.0` targets only.** The inspector and the target must both be on .NET 10.
+- Pass the managed runtime process id** — the one the OS reports for a normal `dotnet App.dll` / apphost launch. A launcher that re-execs into a child runtime process would make the visible pid differ from the managed one.
+- Single-file publishes are limited:
+	- A framework-dependent single-file app connects in a reduced "reflection mode" (its own assemblies are bundled with no metadata, so typed access to the app's own types is unavailable — reach its state via reflection; framework code still works).
+    - A self-contained single-file app is unsupported (even the runtime is bundled, so nothing can be compiled); the inspector refuses to start.
+- DI capture: works for ASP.NET Core and Generic Host apps. An app that builds a service provider with neither (a bare `new ServiceCollection().BuildServiceProvider()`) has no capture hook; statics still work everywhere.
 
 ## Keyboard Shortcuts
 
