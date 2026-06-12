@@ -27,6 +27,7 @@ namespace CSharpRepl.Services.Roslyn.References;
 internal sealed class AssemblyReferenceService
 {
     private readonly DotNetInstallationLocator dotnetInstallationLocator;
+    private readonly ConcurrentDictionary<string, SharedFramework> sharedFrameworksByReferencePath;
     private readonly ConcurrentDictionary<string, MetadataReference> cachedMetadataReferences;
     private readonly HashSet<MetadataReference> loadedReferenceAssemblies;
     private readonly HashSet<MetadataReference> loadedImplementationAssemblies;
@@ -48,6 +49,7 @@ internal sealed class AssemblyReferenceService
         this.referenceAssemblyPaths = [];
         this.implementationAssemblyPaths = [];
         this.sharedFrameworkImplementationAssemblyPaths = [];
+        this.sharedFrameworksByReferencePath = new();
         this.cachedMetadataReferences = new();
         this.loadedReferenceAssemblies = new(new AssemblyReferenceComparer());
         this.loadedImplementationAssemblies = new(new AssemblyReferenceComparer());
@@ -85,24 +87,30 @@ internal sealed class AssemblyReferenceService
     {
         var (referencePath, implementationPath) = dotnetInstallationLocator.FindInstallation(framework, version);
 
-        var referenceDlls = CreateDefaultReferences(
-            referencePath,
-            Directory.GetFiles(referencePath, "*.dll", SearchOption.TopDirectoryOnly)
-        );
-        var implementationDlls = CreateDefaultReferences(
-            implementationPath,
-            Directory.GetFiles(implementationPath, "*.dll", SearchOption.TopDirectoryOnly)
+        // the same framework can be requested repeatedly, e.g. by each `#r`'d assembly that has a runtimeconfig.json.
+        // creating the references reads every dll in the framework from disk, so only do it once per installation.
+        var sharedFramework = sharedFrameworksByReferencePath.GetOrAdd(referencePath, _ =>
+            new SharedFramework(
+                referencePath,
+                CreateDefaultReferences(
+                    referencePath,
+                    Directory.GetFiles(referencePath, "*.dll", SearchOption.TopDirectoryOnly)
+                ),
+                implementationPath,
+                CreateDefaultReferences(
+                    implementationPath,
+                    Directory.GetFiles(implementationPath, "*.dll", SearchOption.TopDirectoryOnly)
+                )
+            )
         );
 
         // Microsoft.NETCore.App is always loaded.
         // e.g. if we're loading Microsoft.AspNetCore.App, load it alongside Microsoft.NETCore.App.
         return framework switch
         {
-            SharedFramework.NetCoreApp => [
-                    new SharedFramework(referencePath, referenceDlls, implementationPath, implementationDlls)
-                ],
+            SharedFramework.NetCoreApp => [sharedFramework],
             _ => GetSharedFrameworkConfiguration(SharedFramework.NetCoreApp, version)
-                .Append(new SharedFramework(referencePath, referenceDlls, implementationPath, implementationDlls))
+                .Append(sharedFramework)
                 .ToArray()
         };
     }
@@ -132,7 +140,7 @@ internal sealed class AssemblyReferenceService
     /// here. If it's a reference assembly, pass it through unchanged. If it's an implementation assembly, try to locate the corresponding reference assembly.
     /// </summary>
     /// <remarks>This method can run in multiple threads due to the "main" thread and the "background initialization" thread.</remarks>
-    private MetadataReference? EnsureReferenceAssembly(MetadataReference reference)
+    internal MetadataReference? EnsureReferenceAssembly(MetadataReference reference)
     {
         string? suppliedAssemblyPath = reference.Display;
 
@@ -165,6 +173,13 @@ internal sealed class AssemblyReferenceService
         if (sharedFrameworkImplementationAssemblyPaths.Any(path => assembly.StartsWith(path)))
         {
             return null;
+        }
+
+        // the corresponding reference assembly may already be loaded (e.g. the shared framework references); reuse it rather than loading a second copy.
+        if (cachedMetadataReferences.TryGetValue(assembly, out var existingReference))
+        {
+            cachedMetadataReferences[suppliedAssemblyPath] = existingReference;
+            return existingReference;
         }
 
         var potentialDocumentationPath = Path.ChangeExtension(assembly, ".xml");
@@ -200,6 +215,16 @@ internal sealed class AssemblyReferenceService
         this.sharedFrameworkImplementationAssemblyPaths.UnionWith(sharedFrameworks.Select(framework => framework.ImplementationPath));
         this.loadedReferenceAssemblies.UnionWith(sharedFrameworks.SelectMany(framework => framework.ReferenceAssemblies));
         this.loadedImplementationAssemblies.UnionWith(sharedFrameworks.SelectMany(framework => framework.ImplementationAssemblies));
+
+        // make the framework reference assemblies findable by path, so EnsureReferenceAssembly reuses
+        // them instead of loading a second copy when it maps an implementation assembly to its reference assembly.
+        foreach (var reference in sharedFrameworks.SelectMany(framework => framework.ReferenceAssemblies))
+        {
+            if (reference.Display is not null)
+            {
+                this.cachedMetadataReferences.TryAdd(reference.Display, reference);
+            }
+        }
     }
 
     internal IReadOnlyCollection<UsingDirectiveSyntax> GetUsings(string code) =>
