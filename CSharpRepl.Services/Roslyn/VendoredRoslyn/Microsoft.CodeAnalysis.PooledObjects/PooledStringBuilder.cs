@@ -10,12 +10,11 @@ namespace Microsoft.CodeAnalysis.PooledObjects;
 /// <summary>
 /// The usage is:
 ///        var inst = PooledStringBuilder.GetInstance();
-///        var sb = inst.builder;
+///        var sb = inst.Builder;
 ///        ... Do Stuff...
-///        ... sb.ToString() ...
-///        inst.Free();
+///        ... inst.ToStringAndFree() ...
 /// </summary>
-internal sealed partial class PooledStringBuilder
+internal sealed class PooledStringBuilder
 {
     public readonly StringBuilder Builder = new();
     private readonly ObjectPool<PooledStringBuilder> _pool;
@@ -24,11 +23,6 @@ internal sealed partial class PooledStringBuilder
     {
         Debug.Assert(pool != null);
         _pool = pool!;
-    }
-
-    public int Length
-    {
-        get { return this.Builder.Length; }
     }
 
     public void Free()
@@ -47,12 +41,6 @@ internal sealed partial class PooledStringBuilder
         }
     }
 
-    [System.Obsolete("Consider calling ToStringAndFree instead.")]
-    public new string ToString()
-    {
-        return this.Builder.ToString();
-    }
-
     public string ToStringAndFree()
     {
         var result = this.Builder.ToString();
@@ -61,24 +49,10 @@ internal sealed partial class PooledStringBuilder
         return result;
     }
 
-    public string ToStringAndFree(int startIndex, int length)
-    {
-        var result = this.Builder.ToString(startIndex, length);
-        this.Free();
-
-        return result;
-    }
-
     // global pool
     private static readonly ObjectPool<PooledStringBuilder> s_poolInstance = CreatePool();
 
-    // if someone needs to create a private pool;
-    /// <summary>
-    /// If someone need to create a private pool
-    /// </summary>
-    /// <param name="size">The size of the pool.</param>
-    /// <returns></returns>
-    public static ObjectPool<PooledStringBuilder> CreatePool(int size = 32)
+    private static ObjectPool<PooledStringBuilder> CreatePool(int size = 32)
     {
         ObjectPool<PooledStringBuilder>? pool = null;
         pool = new ObjectPool<PooledStringBuilder>(() => new PooledStringBuilder(pool!), size);
@@ -90,10 +64,5 @@ internal sealed partial class PooledStringBuilder
         var builder = s_poolInstance.Allocate();
         Debug.Assert(builder.Builder.Length == 0);
         return builder;
-    }
-
-    public static implicit operator StringBuilder(PooledStringBuilder obj)
-    {
-        return obj.Builder;
     }
 }
