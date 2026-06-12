@@ -60,8 +60,19 @@ public sealed class Configuration
     /// interactively or reading from piped stdin.
     /// </summary>
     public string? EvaluateInput { get; }
+
+    /// <summary>
+    /// When set (via <c>csharprepl inspect &lt;pid&gt;</c>), the REPL connects to the inspector hosted in that
+    /// target process and evaluates submissions there instead of constructing a local script engine.
+    /// </summary>
+    public int? InspectProcessId { get; }
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
+    /// <summary>
+    /// Output to render before exiting (help, version, usage, <c>inspect init</c> exports, ...). Spectre
+    /// word-wraps to the console width; for machine-consumable output that must not wrap, supply a
+    /// <see cref="PlainText"/>.
+    /// </summary>
     public IRenderable? OutputForEarlyExit { get; }
     public OpenAIConfiguration? OpenAIConfiguration { get; }
     public int TabSize { get; }
@@ -81,6 +92,7 @@ public sealed class Configuration
         bool usePrereleaseNugets = false,
         bool streamPipedInput = false,
         string? evaluateInput = null,
+        int? inspectProcessId = null,
         int tabSize = 4,
         string? loadScript = null,
         string[]? loadScriptArgs = null,
@@ -127,6 +139,15 @@ public sealed class Configuration
                 Console.Error.WriteLine($"{AnsiColor.Red.GetEscapeSequence()}Unable to locate theme file '{theme}'. Defaut theme with terminal palette colors will be used.{AnsiEscapeCodes.Reset}");
                 Theme = Theme.DefaultTheme;
             }
+        }
+
+        InspectProcessId = inspectProcessId;
+
+        // In inspect mode, default the prompt to the target's pid (e.g. "1234> ") so it's obvious submissions
+        // run remotely. A user-supplied --prompt still wins.
+        if (inspectProcessId is { } pid && promptMarkup == PromptDefault)
+        {
+            promptMarkup = $"{pid}> ";
         }
 
         if (FormattedStringParser.TryParse(promptMarkup, out var prompt))

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CSharpRepl.PrettyPromptConfig;
+using CSharpRepl.Repls;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;

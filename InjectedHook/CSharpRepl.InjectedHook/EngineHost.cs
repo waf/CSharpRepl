@@ -1,0 +1,70 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+using System;
+using System.IO;
+using System.Reflection;
+using System.Runtime.Loader;
+using CSharpRepl.InjectedHook.Contracts;
+
+namespace CSharpRepl.InjectedHook;
+
+/// <summary>
+/// Loads the engine into an isolated EngineLoadContext and returns it as an IInspectorEngine.
+/// Touches no Roslyn type: the engine assembly and its Roslyn closure load entirely inside the isolated ALC.
+/// </summary>
+internal static class EngineHost
+{
+    private const string EngineAssemblyName = "CSharpRepl.InjectedHook.ScriptEngine";
+    private const string EngineTypeName = "CSharpRepl.InjectedHook.ScriptEngine.InspectorEngine";
+
+    public static IInspectorEngine Load(string bootstrapDirectory)
+    {
+        // We MUST NOT statically reference Roslyn — that would load Roslyn into the default ALC and risk clashing with any Roslyn the target itself uses.
+        var engineDll = Path.Combine(bootstrapDirectory, EngineAssemblyName + ".dll");
+        if (!File.Exists(engineDll))
+        {
+            throw new FileNotFoundException($"Inspector engine assembly not found next to the bootstrap.", engineDll);
+        }
+
+        var context = new EngineLoadContext(engineDll);
+        var engineAssembly = context.LoadFromAssemblyPath(engineDll);
+        var engineType = engineAssembly.GetType(EngineTypeName)
+            ?? throw new InvalidOperationException($"{EngineTypeName} not found in {engineDll}.");
+
+        return (IInspectorEngine)Activator.CreateInstance(engineType)!;
+    }
+}
+
+/// <summary>
+/// Isolated ALC for the engine + its Roslyn closure.
+///
+/// - Resolves the engine's own dependencies (Roslyn) from the bootstrap directory via AssemblyDependencyResolver.
+/// - Delegates the shared Contracts assembly back to the default ALC (returns null) so its types stay
+///   identical across the boundary.
+/// - The shared framework is resolved by the runtime's default fallback.
+/// </summary>
+internal sealed class EngineLoadContext : AssemblyLoadContext
+{
+    private const string ContractsAssemblyName = "CSharpRepl.InjectedHook.Contracts";
+
+    private readonly AssemblyDependencyResolver resolver;
+
+    public EngineLoadContext(string engineMainDll)
+        : base(name: "CSharpRepl.InjectedHook.Engine", isCollectible: false)
+        => resolver = new AssemblyDependencyResolver(engineMainDll);
+
+    protected override Assembly? Load(AssemblyName assemblyName)
+    {
+        // Share contracts with the default ALC (resolved there via the bootstrap's Resolving handler), so
+        // IInspectorEngine / InspectorGlobals / RemoteValue / wire DTOs are type-identical across the boundary.
+        if (assemblyName.Name == ContractsAssemblyName)
+        {
+            return null;
+        }
+
+        var path = resolver.ResolveAssemblyToPath(assemblyName);
+        return path is not null ? LoadFromAssemblyPath(path) : null;
+    }
+}

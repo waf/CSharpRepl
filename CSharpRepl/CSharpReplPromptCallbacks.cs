@@ -11,6 +11,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CSharpRepl.Repls;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Completion;
 using CSharpRepl.Services.Roslyn;

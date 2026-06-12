@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CSharpRepl.PrettyPromptConfig;
+using CSharpRepl.Repls;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using NSubstitute;

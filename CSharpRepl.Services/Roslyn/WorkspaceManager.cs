@@ -34,13 +34,22 @@ internal sealed class WorkspaceManager
     private readonly AssemblyReferenceService referenceAssemblyService;
     private readonly ITraceLogger logger;
 
+    /// <summary>
+    /// The script globals type whose members are in scope for every submission (e.g. <c>services</c> /
+    /// <c>Get&lt;T&gt;()</c> from the inspector's globals). Null for the local REPL, which doesn't surface its
+    /// globals in completion. When set, it's applied as each submission project's host object type, so editor
+    /// services resolve the globals members. The type's assembly must be among the project's references.
+    /// </summary>
+    private readonly Type? hostObjectType;
+
     public Document CurrentDocument { get; private set; }
 
-    public WorkspaceManager(CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceAssemblyService, ITraceLogger logger)
+    public WorkspaceManager(CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceAssemblyService, ITraceLogger logger, Type? hostObjectType = null)
     {
         this.compilationOptions = compilationOptions;
         this.referenceAssemblyService = referenceAssemblyService;
         this.logger = logger;
+        this.hostObjectType = hostObjectType;
         this.workspace = new AdhocWorkspace(MefHostServices.DefaultHost);
 
         logger.Log(() => "MEF Default Assemblies: " + string.Join(", ", MefHostServices.DefaultAssemblies.Select(a => a.Location)));
@@ -51,6 +60,7 @@ internal sealed class WorkspaceManager
                 workspace.CurrentSolution,
                 assemblyReferences,
                 compilationOptions,
+                hostObjectType,
                 out var documentId
             )
             .ApplyChanges(workspace)
@@ -76,6 +86,7 @@ internal sealed class WorkspaceManager
                 workspace.CurrentSolution,
                 assemblyReferences,
                 compilationOptions,
+                hostObjectType,
                 out var documentId
             )
             .WithDocumentText(CurrentDocument.Id, SourceText.From(result.Input))
@@ -112,9 +123,10 @@ internal sealed class WorkspaceManager
         Solution solution,
         IReadOnlyCollection<MetadataReference> references,
         CompilationOptions compilationOptions,
+        Type? hostObjectType,
         out DocumentId documentId)
     {
-        var projectInfo = CreateProject(solution, references, compilationOptions);
+        var projectInfo = CreateProject(solution, references, compilationOptions, hostObjectType);
         var documentInfo = CreateDocument(projectInfo, string.Empty);
 
         documentId = documentInfo.Id;
@@ -132,7 +144,7 @@ internal sealed class WorkspaceManager
             loader: TextLoader.From(TextAndVersion.Create(SourceText.From(text), VersionStamp.Create()))
         );
 
-    private static ProjectInfo CreateProject(Solution solution, IReadOnlyCollection<MetadataReference> references, CompilationOptions compilationOptions) =>
+    private static ProjectInfo CreateProject(Solution solution, IReadOnlyCollection<MetadataReference> references, CompilationOptions compilationOptions, Type? hostObjectType) =>
         ProjectInfo
             .Create(
                 id: ProjectId.CreateNewId(),
@@ -140,7 +152,8 @@ internal sealed class WorkspaceManager
                 name: "Project" + DateTime.UtcNow.Ticks,
                 assemblyName: "Project" + DateTime.UtcNow.Ticks,
                 language: compilationOptions.Language,
-                isSubmission: true
+                isSubmission: true,
+                hostObjectType: hostObjectType
             )
             .WithMetadataReferences(references)
             .WithProjectReferences(solution.ProjectIds.TakeLast(1).Select(id => new ProjectReference(id)))

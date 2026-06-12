@@ -7,11 +7,16 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using CSharpRepl.Commands;
+using CSharpRepl.InjectedHook.Contracts;
 using CSharpRepl.Logging;
 using CSharpRepl.PrettyPromptConfig;
+using CSharpRepl.Repls;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Logging;
+using CSharpRepl.Services.Remote;
 using CSharpRepl.Services.Roslyn;
 using PrettyPrompt;
 
@@ -58,6 +63,8 @@ internal static class Program
 
         if (config.OutputForEarlyExit is { } earlyExit)
         {
+            // Help/version/usage render word-wrapped; machine-consumable output (e.g. `inspect init` exports)
+            // arrives as PlainText and is written verbatim. Either way, one branch.
             console.Write(earlyExit);
             console.WriteLine();
             return ExitCodes.Success;
@@ -65,6 +72,16 @@ internal static class Program
 
         // initialize roslyn
         var logger = InitializeLogging(config.Trace);
+
+        // inspect mode: connect to the inspector in the target process and run the remote loop instead of
+        // the local evaluation paths below. It builds its own RoslynServices, seeded with the target's
+        // references + the inspector globals, so completion/highlighting are target-aware.
+        if (config.InspectProcessId is { } inspectProcessId)
+        {
+            return await RunInspectModeAsync(systemConsole, console, appStorage, logger, config, inspectProcessId)
+                .ConfigureAwait(false);
+        }
+
         var roslyn = new RoslynServices(console, config, logger);
 
         // --eval / --eval-file: evaluate the supplied code non-interactively and exit. Checked before
@@ -111,6 +128,94 @@ internal static class Program
         }
 
         return exitCode;
+    }
+
+    /// <summary>
+    /// Connects to the inspector hosted in the target process and runs the remote REPL loop. The same
+    /// interactive prompt as the local REPL is used; only evaluation and rendering are routed remotely.
+    /// </summary>
+    private static async Task<int> RunInspectModeAsync(
+        ConsoleService? systemConsole, IConsoleService console, string appStorage, ITraceLogger logger, Configuration config, int processId)
+    {
+        RemoteSession session;
+        try
+        {
+            console.WriteLine($"Connecting to the inspector in process {processId}...");
+            session = await RemoteSession
+                .ConnectAsync(processId, TimeSpan.FromSeconds(10), CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            console.WriteErrorLine($"Could not connect to the inspector in process {processId}: {ex.Message}");
+            console.WriteErrorLine(
+                "Launch the target with the inspector enabled first (run 'csharprepl inspect init' for the env vars), " +
+                "and pass the managed runtime process id.");
+            return ExitCodes.ErrorParseArguments;
+        }
+
+        await using (session)
+        {
+            // A self-contained single-file target has no on-disk assemblies (not even corlib), so the engine
+            // can't build a metadata reference for anything and every evaluation would fail. Refuse up front
+            // with a clear message rather than dropping the user into a prompt where nothing works.
+            if (session.Handshake.AssemblyAvailability == TargetAssemblyAvailability.SelfContainedSingleFile)
+            {
+                console.WriteErrorLine(
+                    "The target is a self-contained single-file app: its assemblies are bundled in memory with no " +
+                    "on-disk path, so the inspector cannot compile against them and evaluation would always fail. " +
+                    "Inspect a framework-dependent build (or a normal `dotnet App.dll` launch) instead.");
+                return ExitCodes.ErrorParseArguments;
+            }
+
+            // Seed the controller-side editor services with the target's references + the inspector globals, so
+            // completion and semantic highlighting see the target's own types and `services`/`Get<T>()`. Editor
+            // services run here (not in the target), so there's no per-keystroke pipe hop.
+            var remoteEditor = await BuildRemoteEditorContextAsync(session, console).ConfigureAwait(false);
+            var roslyn = new RoslynServices(console, config, logger, remoteEditor);
+
+            // The interactive prompt requires the real system console to drive the PrettyPrompt library.
+            var (prompt, exitCode) = InitializePrompt(
+                systemConsole ?? throw new InvalidOperationException("The interactive prompt requires the real system console."),
+                appStorage, roslyn, config);
+            if (prompt is null)
+            {
+                return exitCode;
+            }
+
+            try
+            {
+                await new RemoteReadEvalPrintLoop(console, session, roslyn, prompt)
+                    .RunAsync(config)
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                await prompt.DisposeAsync().ConfigureAwait(false);
+            }
+
+            return ExitCodes.Success;
+        }
+    }
+
+    /// <summary>
+    /// Builds the remote editor seed by asking the inspector for the target's loaded-assembly paths. Editor
+    /// services are advisory, so a failure (or a single-file target with no on-disk assemblies) degrades to a
+    /// reference-less workspace — completion/highlighting then cover framework code and the inspector globals
+    /// but not the target's own types — rather than failing the whole session.
+    /// </summary>
+    private static async Task<RemoteEditorContext> BuildRemoteEditorContextAsync(RemoteSession session, IConsoleService console)
+    {
+        try
+        {
+            var referencePaths = await session.GetReferencePathsAsync(CancellationToken.None).ConfigureAwait(false);
+            return new RemoteEditorContext(referencePaths, typeof(InspectorGlobals));
+        }
+        catch (Exception ex)
+        {
+            console.WriteErrorLine($"Could not load the target's references for editor services; completion will be limited: {ex.Message}");
+            return new RemoteEditorContext([], typeof(InspectorGlobals));
+        }
     }
 
     private static bool TryParseArguments(string[] args, string configFilePath, IConsoleService console, [NotNullWhen(true)] out Configuration? configuration)

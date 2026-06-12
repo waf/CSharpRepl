@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using CSharpRepl.Repls;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using NSubstitute;

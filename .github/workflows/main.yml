@@ -34,11 +34,11 @@ jobs:
     # leading suspect (see https://github.com/microsoft/codecoverage/issues/203). Revisit if confirmed/fixed.
     - name: Test (Linux)
       if: matrix.platform == 'ubuntu-latest'
-      run: dotnet test CSharpRepl.Tests/CSharpRepl.Tests.csproj --no-build --results-directory TestResults
+      run: dotnet test Tests/CSharpRepl.Tests/CSharpRepl.Tests.csproj --no-build --results-directory TestResults
 
     - name: Test (Windows, with coverage)
       if: matrix.platform == 'windows-latest'
-      run: dotnet test CSharpRepl.Tests/CSharpRepl.Tests.csproj --no-build --results-directory TestResults --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
+      run: dotnet test Tests/CSharpRepl.Tests/CSharpRepl.Tests.csproj --no-build --results-directory TestResults --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
 
     - name: Report Code Coverage
       if: matrix.platform == 'windows-latest' # only generate and upload code coverage once

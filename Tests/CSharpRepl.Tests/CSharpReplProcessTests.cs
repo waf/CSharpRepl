@@ -109,8 +109,8 @@ public class CSharpReplProcessTests
     private static string ResolveExecutable()
     {
         var exeDir = AppContext.BaseDirectory.Replace(
-            $"CSharpRepl.Tests{Path.DirectorySeparatorChar}bin",
-            $"CSharpRepl{Path.DirectorySeparatorChar}bin");
+            Path.Combine("Tests", "CSharpRepl.Tests", "bin"),
+            Path.Combine("CSharpRepl", "bin"));
         var exe = Path.Combine(exeDir, OperatingSystem.IsWindows() ? "CSharpRepl.exe" : "CSharpRepl");
 
         Assert.True(File.Exists(exe), $"Could not find built csharprepl executable at '{exe}'. Build the CSharpRepl project first.");

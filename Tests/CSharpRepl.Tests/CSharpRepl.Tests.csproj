@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Data\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Data\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NSubstitute" Version="5.3.0" />
+    <PackageReference Include="PrettyPrompt" Version="6.0.0" />
+    <PackageReference Include="Spectre.Console.Testing" Version="0.56.0" />
+    <PackageReference Include="System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
+    <PackageReference Include="xunit.v3.mtp-v2" Version="4.0.0-pre.128" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.8.0" />
+    <!-- Keep MSBuild/StringTools assemblies out of the output dir (loaded from the SDK via MSBuildLocator);
+         arrives transitively through the CSharpRepl.Services project reference.
+         See https://aka.ms/msbuild/locator/diagnostics/MSBL001 -->
+    <PackageReference Include="Microsoft.Build.Framework" Version="18.6.3" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NET.StringTools" Version="18.6.3" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
+    <ProjectReference Include="..\..\CSharpRepl\CSharpRepl.csproj" />
+    <!--
+      Build-only reference to the inspector bootstrap (which stages the engine + Roslyn next to itself).
+      ReferenceOutputAssembly="false" so the test assembly doesn't link against it — the inspector tests point
+      DOTNET_STARTUP_HOOKS at the built bootstrap DLL. The unmodified test target it injects into lives under
+      Data\ (like the other test-fixture projects) and is built on demand at test time via DotnetBuilder.
+    -->
+    <ProjectReference Include="..\..\InjectedHook\CSharpRepl.InjectedHook\CSharpRepl.InjectedHook.csproj" ReferenceOutputAssembly="false" />
+    <!--
+      Real reference to the script engine so InspectorEngineTests can host it in-process: the engine builds its
+      compilation references from whatever process hosts it, so running it inside the test process exercises the
+      same real Roslyn eval/projection pipeline as inside a hooked target, without a child process.
+    -->
+    <ProjectReference Include="..\..\InjectedHook\CSharpRepl.InjectedHook.ScriptEngine\CSharpRepl.InjectedHook.ScriptEngine.csproj" />
+  </ItemGroup>
+</Project>

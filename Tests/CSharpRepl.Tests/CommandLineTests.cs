@@ -4,6 +4,7 @@
 
 using System;
 using System.Globalization;
+using CSharpRepl.Commands;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn.References;
 using Spectre.Console.Rendering;
@@ -177,6 +178,77 @@ public class CommandLineTests
     {
         var result = Parse(new[] { "[suggest:25]", "--using System.Collection" });
         Assert.Contains("System.Collections.Immutable", Render(result.OutputForEarlyExit));
+    }
+
+    [Fact]
+    public void ParseArguments_DotNetSuggestInspectSubcommand_IsAutocompleted()
+    {
+        var result = Parse(new[] { "[suggest:8]", "inspect " });
+        Assert.Contains("init", Render(result.OutputForEarlyExit));
+    }
+
+    [Fact]
+    public void ParseArguments_DotNetSuggestInspectShellValue_IsAutocompleted()
+    {
+        var result = Parse(new[] { "[suggest:21]", "inspect init --shell " });
+        var output = Render(result.OutputForEarlyExit);
+        Assert.Contains("pwsh", output);
+        Assert.Contains("bash", output);
+        Assert.Contains("fish", output);
+    }
+
+    [Fact]
+    public void ParseArguments_InspectPid_SetsInspectProcessId()
+    {
+        var result = Parse("inspect 1234");
+        Assert.NotNull(result);
+        Assert.Equal(1234, result.InspectProcessId);
+    }
+
+    [Fact]
+    public void ParseArguments_InspectPidWithReplOption_BindsRecursiveOption()
+    {
+        // The REPL render options are recursive, so they still bind after `inspect <pid>` and remote
+        // results render with the user's theme.
+        var result = Parse("inspect 1234 --theme Data/theme.json");
+        Assert.Equal(1234, result.InspectProcessId);
+        Assert.True(result.Theme.TryGetSyntaxHighlightingAnsiColor("struct name", out var color));
+        Assert.Equal("Yellow", color.ToString());
+    }
+
+    [Theory]
+    [InlineData("inspect")]        // missing pid
+    [InlineData("inspect 0")]      // non-positive
+    [InlineData("inspect -5")]     // non-positive
+    [InlineData("inspect abc")]    // non-numeric
+    public void ParseArguments_InspectWithInvalidPid_ThrowsUsage(string commandline)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => Parse(commandline));
+        Assert.Contains("Usage: csharprepl inspect", ex.Message);
+    }
+
+    [Fact]
+    public void ParseArguments_InspectInit_PrintsExportsAndExitsWithoutInspecting()
+    {
+        var result = Parse("inspect init");
+        Assert.NotNull(result.OutputForEarlyExit);
+        var output = Render(result.OutputForEarlyExit);
+        Assert.Contains("DOTNET_STARTUP_HOOKS", output);
+        Assert.Contains("ASPNETCORE_HOSTINGSTARTUPASSEMBLIES", output);
+        Assert.Null(result.InspectProcessId);
+    }
+
+    [Theory]
+    [InlineData("inspect init --shell bash", "export DOTNET_STARTUP_HOOKS=")]
+    [InlineData("inspect init --shell=bash", "export DOTNET_STARTUP_HOOKS=")]
+    [InlineData("inspect init --shell cmd", "set \"DOTNET_STARTUP_HOOKS=")]
+    [InlineData("inspect init --shell fish", "set -gx DOTNET_STARTUP_HOOKS ")]
+    [InlineData("inspect init --shell pwsh", "$env:DOTNET_STARTUP_HOOKS = ")]
+    public void ParseArguments_InspectInitWithShell_EmitsShellSpecificSyntax(string commandline, string expectedFragment)
+    {
+        var result = Parse(commandline);
+        Assert.NotNull(result.OutputForEarlyExit);
+        Assert.Contains(expectedFragment, Render(result.OutputForEarlyExit));
     }
 
     // Early-exit output (help/version/suggestions) is now a Spectre IRenderable; render it to plain

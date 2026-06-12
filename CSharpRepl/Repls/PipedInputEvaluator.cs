@@ -7,7 +7,7 @@ using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.Roslyn.Scripting;
 
-namespace CSharpRepl;
+namespace CSharpRepl.Repls;
 
 /// <summary>
 /// CSharpRepl is predominantly an interactive repl, but also supports being run non-interactively:

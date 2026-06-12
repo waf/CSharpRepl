@@ -153,7 +153,7 @@ public class EvaluationTests : IAsyncLifetime
     [Fact]
     public async Task Evaluate_ProjectReference_ReferencesProject()
     {
-        var referenceResult = await services.EvaluateAsync(@"#r ""./../../../../CSharpRepl.Services/CSharpRepl.Services.csproj""", cancellationToken: TestContext.Current.CancellationToken);
+        var referenceResult = await services.EvaluateAsync(@"#r ""./../../../../../CSharpRepl.Services/CSharpRepl.Services.csproj""", cancellationToken: TestContext.Current.CancellationToken);
         var importResult = await services.EvaluateAsync(@"using CSharpRepl.Services;", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);
