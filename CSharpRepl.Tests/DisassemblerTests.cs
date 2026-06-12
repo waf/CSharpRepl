@@ -87,6 +87,19 @@ public class DisassemblerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Disassemble_EscapeSequenceInStringLiteral_ProducesNonOverlappingSpans()
+    {
+        // regression: roslyn classifies the whole string literal AND each escape sequence inside it, producing
+        // nested spans. FormattedString requires disjoint spans, so F9 on this input crashed with
+        // "Spans cannot overlap". The escape spans must win over the enclosing string-literal span.
+        var result = await services.ConvertToIntermediateLanguage("""Console.WriteLine("as\ndf");""", debugMode: true);
+
+        var success = Assert.IsType<EvaluationResult.Success>(result);
+        var formatted = Assert.IsType<FormattedString>(success.ReturnValue.Value); // the ctor validates non-overlap
+        Assert.Contains("""ldstr "as\ndf""", formatted.Text);
+    }
+
+    [Fact]
     public async Task Disassemble_ProducesValidHighlightSpans()
     {
         var result = await services.ConvertToIntermediateLanguage("var x = 5;", debugMode: true);
