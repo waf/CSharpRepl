@@ -38,5 +38,11 @@
       Data\ (like the other test-fixture projects) and is built on demand at test time via DotnetBuilder.
     -->
     <ProjectReference Include="..\..\InjectedHook\CSharpRepl.InjectedHook\CSharpRepl.InjectedHook.csproj" ReferenceOutputAssembly="false" />
+    <!--
+      Real reference to the script engine so InspectorEngineTests can host it in-process: the engine builds its
+      compilation references from whatever process hosts it, so running it inside the test process exercises the
+      same real Roslyn eval/projection pipeline as inside a hooked target, without a child process.
+    -->
+    <ProjectReference Include="..\..\InjectedHook\CSharpRepl.InjectedHook.ScriptEngine\CSharpRepl.InjectedHook.ScriptEngine.csproj" />
   </ItemGroup>
 </Project>

@@ -499,6 +499,13 @@ public sealed class InspectorEngine : IInspectorEngine
             return FriendlyTypeName(type.GetElementType()!) + "[" + new string(',', type.GetArrayRank() - 1) + "]";
         }
 
+        // Before the keyword lookup: Type.GetTypeCode reports an enum's underlying integral type, which would
+        // name every enum "int".
+        if (type.IsEnum)
+        {
+            return type.Name;
+        }
+
         if (TryGetKeyword(type, out var keyword))
         {
             return keyword;
