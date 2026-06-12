@@ -34,10 +34,10 @@ internal sealed class CodeLowerer(AssemblyReferenceService referenceService)
         try
         {
             var csharp = DecompileToLoweredCSharp(compilation.AssemblyStream);
+            // ILSpy emits Windows '\r\n' line endings; PrettyPrompt's renderer treats them as single line breaks.
             var output = csharp.TrimEnd() + "\n\n" + string.Join('\n', compilation.Footer);
 
-            // normalize to '\n'-only line endings: ILSpy emits Windows '\r\n', but PrettyPrompt's ANSI renderer advances lines with its own cursor-movement codes.
-            return new EvaluationResult.Success(compilation.Code, output.Replace("\r\n", "\n"), []);
+            return new EvaluationResult.Success(compilation.Code, output, []);
         }
         catch (Exception ex)
         {

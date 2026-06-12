@@ -556,8 +556,9 @@ public sealed partial class RoslynServices
             }
         }
 
-        spans.Sort((a, b) => a.Start.CompareTo(b.Start));
-        return spans;
+        // the C# classifier nests spans (e.g. string-escape-character inside string-literal), but
+        // FormattedString requires disjoint spans.
+        return spans.FlattenOverlappingSpans();
     }
 
     /// <summary>
@@ -570,7 +571,9 @@ public sealed partial class RoslynServices
 
         if (result is EvaluationResult.Success success && success.ReturnValue.Value is string csharp && !PromptConfiguration.HasUserOptedOutFromColor)
         {
-            var highlights = (await SyntaxHighlightAsync(csharp).ConfigureAwait(false)).ToFormatSpans();
+            // FlattenOverlappingSpans: the classifier nests spans (e.g. string-escape-character inside
+            // string-literal), but FormattedString requires disjoint spans.
+            var highlights = (await SyntaxHighlightAsync(csharp).ConfigureAwait(false)).ToFormatSpans().FlattenOverlappingSpans();
             return success with { ReturnValue = new Optional<object?>(new FormattedString(csharp, highlights)) };
         }
 
