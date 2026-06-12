@@ -1,8 +1,9 @@
-﻿#nullable enable
+#nullable enable
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
@@ -43,6 +44,12 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
     [InlineData(@"void M1() => M2(); void M2() => throw null; M1()", $"NullReferenceException: Object reference not set to an instance of an object.\n    at void M2()\n    at void M1()")]
     [InlineData(@"async Task M1() => await M2(); async Task M2() => throw null; await M1()", $"NullReferenceException: Object reference not set to an instance of an object.\n    at async Task M2()\n    at async Task M1()")]
     [InlineData(@"void M((int A, int B) tuple) => throw null; M(default)", $"NullReferenceException: Object reference not set to an instance of an object.\n    at void M((int A, int B) tuple)")]
+    [InlineData(@"class Ctor { public Ctor() => throw null; } new Ctor()", $"NullReferenceException: Object reference not set to an instance of an object.\n    at new Ctor()")]
+    [InlineData(@"int M() { int Local() => throw null; return Local(); } M()", $"NullReferenceException: Object reference not set to an instance of an object.\n    at int M()+Local()\n    at int M()")]
+    [InlineData(@"void M<T>() => throw null; M<int>()", $"NullReferenceException: Object reference not set to an instance of an object.\n    at void M<T>()")]
+    [InlineData(@"void M(ref int x) => throw null; int y = 0; M(ref y)", $"NullReferenceException: Object reference not set to an instance of an object.\n    at void M(ref int x)")]
+    [InlineData(@"void M(dynamic d) => throw null; M(1)", $"NullReferenceException: Object reference not set to an instance of an object.\n    at void M(dynamic d)")]
+    [InlineData(@"void M(int n) { if (n == 0) throw null; M(n - 1); } M(3)", $"NullReferenceException: Object reference not set to an instance of an object.\n    at void M(int n) x 4")]
     public async Task ExceptionCallstack(string input, string expectedOutput)
     {
         var result = await services.EvaluateAsync(input, cancellationToken: TestContext.Current.CancellationToken);
@@ -51,6 +58,51 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
 
         Assert.Equal(expectedOutput.Replace("\n", NewLine), output);
     }
+
+    [Fact]
+    public async Task ExceptionCallstack_Lambda_RendersLambdaMarker()
+    {
+        var result = await services.EvaluateAsync("Func<int> f = () => throw null; f()", cancellationToken: TestContext.Current.CancellationToken);
+        var exception = ((EvaluationResult.Error)result).Exception;
+
+        var output = prettyPrinter.FormatException(exception, Level.FirstDetailed).ToString();
+
+        Assert.Contains("=> { }", output); // the demystified lambda frame
+    }
+
+    /// <summary>
+    /// Exceptions thrown from regular (non-script) assemblies have PDB info, so their frames
+    /// render with file paths and line numbers.
+    /// </summary>
+    [Fact]
+    public void ExceptionCallstack_WithPdbInfo_IncludesFileAndLineNumbers()
+    {
+        Exception exception;
+        try
+        {
+            Deep1();
+            throw new InvalidOperationException("unreachable");
+        }
+        catch (InvalidOperationException e)
+        {
+            exception = e;
+        }
+
+        var output = prettyPrinter.FormatException(exception, Level.FirstDetailed).ToString();
+
+        Assert.Contains("InvalidOperationException: deep failure", output);
+        Assert.Contains("PrettyPrinterTests.Deep6()", output);
+        Assert.Contains(".cs:line ", output);
+    }
+
+    // deep enough that some frames survive FormatException's trimming of the bottommost
+    // (normally script-runner) frames.
+    [MethodImpl(MethodImplOptions.NoInlining)] private static int Deep1() => Deep2();
+    [MethodImpl(MethodImplOptions.NoInlining)] private static int Deep2() => Deep3();
+    [MethodImpl(MethodImplOptions.NoInlining)] private static int Deep3() => Deep4();
+    [MethodImpl(MethodImplOptions.NoInlining)] private static int Deep4() => Deep5();
+    [MethodImpl(MethodImplOptions.NoInlining)] private static int Deep5() => Deep6();
+    [MethodImpl(MethodImplOptions.NoInlining)] private static int Deep6() => throw new InvalidOperationException("deep failure");
 
     /// <summary>
     /// https://github.com/waf/CSharpRepl/issues/193
@@ -148,6 +200,19 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         ['\n', Level.FirstSimple, @"'\n'"],
         [DayOfWeek.Monday, Level.FirstSimple, "Monday"],
         [DayOfWeek.Monday, Level.FirstDetailed, "Monday"],
+
+        // string and char escaping goes through the vendored ObjectDisplay.FormatLiteral.
+        ["tab\tquote\"backslash\\", Level.FirstSimple, "\"tab\\tquote\\\"backslash\\\\\""],
+        ["null\0alert\abackspace\bformfeed\fvertical\v", Level.FirstSimple, @"""null\0alert\abackspace\bformfeed\fvertical\v"""],
+        ["control\u0001char", Level.FirstSimple, @"""control\u0001char"""],
+        ["unpaired\ud800surrogate", Level.FirstSimple, @"""unpaired\ud800surrogate"""],
+        ["emoji \U0001F600 pair", Level.FirstSimple, "\"emoji \U0001F600 pair\""],
+        ["noncharacter \U0010FFFF", Level.FirstSimple, @"""noncharacter \U0010ffff"""],
+        ['\'', Level.FirstSimple, @"'\''"],
+        ['\0', Level.FirstSimple, @"'\0'"],
+        ['\u0001', Level.FirstSimple, @"'\u0001'"],
+        [double.NaN, Level.FirstSimple, "NaN"],
+        [float.NaN, Level.FirstSimple, "NaN"],
 
         // multidimensional and jagged arrays go through IEnumerableFormatter.FormatToText.
         [new int[,] { { 1, 2 }, { 3, 4 } }, Level.FirstSimple, "int[4] { 1, 2, 3, 4 }"],
