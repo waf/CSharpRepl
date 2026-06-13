@@ -203,7 +203,7 @@ CSharpRepl aims for a similar editing experience as Visual Studio (e.g. for text
   - <kbd>Enter</kbd>, <kbd>Tab</kbd> - Select the active autocompletion option
   - <kbd>Escape</kbd> - Closes the autocomplete menu
 
-Many readline/emacs-style alternatives are also available, e.g. <kbd>Ctrl+B</kbd> / <kbd>Ctrl+F</kbd> to move by character, <kbd>Alt+B</kbd> / <kbd>Alt+F</kbd> to move by word, <kbd>Ctrl+P</kbd> / <kbd>Ctrl+N</kbd> for history, and <kbd>Ctrl+D</kbd> to delete the character ahead of the caret.
+Many readline/emacs-style alternatives are also available, e.g. <kbd>Ctrl+B</kbd> / <kbd>Ctrl+F</kbd> to move by character, <kbd>Alt+B</kbd> / <kbd>Alt+F</kbd> to move by word, and <kbd>Ctrl+P</kbd> / <kbd>Ctrl+N</kbd> for previous/next lines.
 
 ## Command Line Configuration
 
