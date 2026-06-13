@@ -62,6 +62,13 @@
       <_InspectorPayload Include="$(MSBuildThisFileDirectory)..\InjectedHook\CSharpRepl.InjectedHook\bin\$(Configuration)\$(TargetFramework)\**\*.*" />
       <Content Include="@(_InspectorPayload)" Link="inspector\%(RecursiveDir)%(Filename)%(Extension)">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <!--
+          Pack="false": these ship in the tool via the publish output (CopyToOutputDirectory), not as NuGet
+          "content". Packing them as content flattens every path to content/<filename>, so the localized
+          Roslyn resource DLLs (de/, es/, ... all named e.g. Microsoft.CodeAnalysis.resources.dll) collide
+          and emit NU5118.
+        -->
+        <Pack>false</Pack>
       </Content>
     </ItemGroup>
   </Target>
@@ -96,5 +103,7 @@
     <None Update="themes\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- Include the repo-root README so it renders on the nuget.org page (PackageReadmeFile above). -->
+    <None Include="..\README.md" Link="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
