@@ -160,30 +160,46 @@ Type `exit` (or press <kbd>Ctrl+D</kbd>) to detach. The target application will 
 	- A framework-dependent single-file app's assemblies are bundled with no metadata, so strongly-typed access to the app's own types is unavailable. You need to use reflection to access the app's types.
   - A self-contained single-file app is unsupported (even the runtime is bundled, so nothing can be compiled). The inspector will refuse to start.
 
+See the [Injected Hook documentation](https://github.com/waf/CSharpRepl/blob/main/InjectedHook/InjectedHookReadme.md) for information on how this works under the hood.
+
 ## Keyboard Shortcuts
 
 CSharpRepl aims for a similar editing experience as Visual Studio (e.g. for text navigation, selection and keyboard shortcuts).
 
 - **Basic Usage**
-  - <kbd>Ctrl+C</kbd> - Cancel current line
+  - <kbd>Ctrl+C</kbd> - Cancel current line (or copies text if text is highlighted)
   - <kbd>Ctrl+D</kbd> or type `exit` - Exit the REPL
-  - <kbd>Ctrl+L</kbd> - Clear screen
+  - <kbd>Ctrl+L</kbd> or type `clear` - Clear screen
   - <kbd>Enter</kbd> - Evaluate the current line if it's a syntactically complete statement; otherwise add a newline
-  - <kbd>Control+Enter</kbd> - Evaluate the current line, and return a more detailed representation of the result
-  - <kbd>Shift+Enter</kbd> - Insert a new line (this does not currently work on Linux or Mac OS; Hopefully this will work in .NET 7)
-  - <kbd>Ctrl+Shift+C</kbd> - Copy current line to clipboard
+  - <kbd>Ctrl+Enter</kbd> or <kbd>Ctrl+Alt+Enter</kbd> - Evaluate the current line, and return a more detailed representation of the result
+  - <kbd>Shift+Enter</kbd> or <kbd>Alt+Enter</kbd> - Insert a new line without evaluating
+  - <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd> - Undo / redo
+  - <kbd>Ctrl+Alt+Space</kbd> - Request an AI code completion at the caret (requires an OpenAI API key to be configured)
+- **Editing & Clipboard**
+  - <kbd>Ctrl+Shift+C</kbd> - Copy the entire current input to the clipboard
+  - <kbd>Ctrl+X</kbd> - Cut the highlighted text, or the current line if nothing is highlighted
+  - <kbd>Shift+Delete</kbd> - Cut the current line
   - <kbd>Ctrl+V</kbd>, <kbd>Shift+Insert</kbd>, and <kbd>Ctrl+Shift+V</kbd> - Paste text to prompt. Automatically trims leading indent
+  - <kbd>Ctrl+A</kbd> - Select all
+  - <kbd>Ctrl+Backspace</kbd> / <kbd>Ctrl+Delete</kbd> - Delete the word to the left / right of the caret
+  - <kbd>Ctrl+K</kbd> / <kbd>Ctrl+U</kbd> - Delete from the caret to the end / start of the current line
+  - <kbd>Ctrl+Left</kbd> / <kbd>Ctrl+Right</kbd> - Move the caret one word to the left / right
+  - <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> - Indent / unindent the selected lines (when nothing is selected, <kbd>Tab</kbd> inserts indentation)
+- **History**
+  - <kbd>Up</kbd> / <kbd>Down</kbd> - Cycle backward / forward through previously evaluated input
 - **Code Actions**
   - <kbd>F1</kbd> - Opens the MSDN documentation for the class/method under the caret ([example](https://docs.microsoft.com/en-US/dotnet/api/System.DateTime.AddDays?view=net-5.0))
+  - <kbd>Ctrl+F1</kbd> or <kbd>F12</kbd> - Opens the source code in the browser for the class/method under the caret, if the assembly supports [Source Link](https://github.com/dotnet/sourcelink).
   - <kbd>F8</kbd> - Shows the "lowered" C# for the current statement in Debug mode: the input is decompiled with high-level reconstruction disabled, so compiler-generated constructs (async/await and iterator state machines, lambda closures, `foreach`/`using`/`lock` expansions, etc.) are shown explicitly.
-  - <kbd>Ctrl+F8</kbd> - Shows the lowered C# for the current statement with Release mode optimizations.
+    - <kbd>Ctrl+F8</kbd> - Shows the lowered C# for the current statement with Release mode optimizations.
   - <kbd>F9</kbd> - Shows the IL (intermediate language) for the current statement in Debug mode. 
-  - <kbd>Ctrl+F9</kbd> - Shows the IL for the current statement with Release mode optimizations.
-  - <kbd>F12</kbd> - Opens the source code in the browser for the class/method under the caret, if the assembly supports [Source Link](https://github.com/dotnet/sourcelink).
+    - <kbd>Ctrl+F9</kbd> - Shows the IL for the current statement with Release mode optimizations.
 - **Autocompletion**
-  - <kbd>Ctrl+Space</kbd> - Open the autocomplete menu.
+  - <kbd>Ctrl+Space</kbd> - Open the autocomplete menu
   - <kbd>Enter</kbd>, <kbd>Tab</kbd> - Select the active autocompletion option
   - <kbd>Escape</kbd> - Closes the autocomplete menu
+
+Many readline/emacs-style alternatives are also available, e.g. <kbd>Ctrl+B</kbd> / <kbd>Ctrl+F</kbd> to move by character, <kbd>Alt+B</kbd> / <kbd>Alt+F</kbd> to move by word, <kbd>Ctrl+P</kbd> / <kbd>Ctrl+N</kbd> for history, and <kbd>Ctrl+D</kbd> to delete the character ahead of the caret.
 
 ## Command Line Configuration
 

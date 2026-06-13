@@ -1,11 +1,8 @@
 # Inspecting a Running Process (`csharprepl inspect`)
 
-csharprepl can attach to a *separate, already-running* .NET application and evaluate C# inside it — reading and writing its live state (statics, DI singletons) with the same line-to-line experience as the local REPL.
+csharprepl can attach to a *separate, already-running* .NET application and evaluate C# inside it, reading and writing its live state (statics, DI singletons) with the same line-to-line experience as the local REPL.
 
-This is not a debugger. A debugger pauses the target and asks the runtime to perform constrained expression evaluation; here, a real Roslyn scripting engine is injected *into* the target and runs unconstrained C# right where the objects live. The trade-offs:
-
-- The target must opt in at launch (an environment variable; see README). There is no attach-to-arbitrary-process.
-- Breakpoints, stepping, and pausing the target are out of scope. The target keeps running the whole time.
+This is not a debugger. A debugger pauses the target and asks the runtime to perform constrained expression evaluation; here, a real Roslyn scripting engine is injected *into* the target and runs unconstrained C#.
 
 ## How it works
 
@@ -23,10 +20,10 @@ On first evaluation the engine snapshots the target's own loaded assemblies and 
 
 When attached, the csharprepl process is a thin controller (`CSharpRepl/Repls/RemoteReadEvalPrintLoop.cs` + `CSharpRepl.Services/Remote/`). It compiles nothing for evaluation. The local REPL's "two Roslyn worlds kept in sync" idea is split across the two processes:
 
-- The scripting world (execution, the persisted submission chain) lives in the target, inside the engine.
-- The workspace world (completion, highlighting, tooltips) stays in the controller: on connect it asks the inspector for the target's loaded-assembly paths and builds a second, remote-configured `RoslynServices` seeded with those paths plus `InspectorGlobals` — so editor features are target-aware with no per-keystroke round-trip. The controller advances that workspace only when an `EvalResponse` reports `Committed == true`, the cross-process analogue of the local REPL advancing its workspace only on successful evaluation.
+- The scripting world (execution, the persisted submission chain) lives in the target application, inside the engine.
+- The workspace world (completion, highlighting, tooltips) stays in the controller / local REPL. On connect, it asks the inspector for the target's loaded-assembly paths and builds a second `RoslynServices` seeded with those paths plus the `InspectorGlobals`. This means that editor features are target-aware and don't need to communicate with the target app on each keystroke. The controller advances the Workspace Manager only when an `EvalResponse` reports `Committed == true`. This similar to how the local REPL advances its Workspace Manager only on successful evaluation.
 
-Results travel as a `RemoteValue` tree — a depth/breadth/length-limited, theme-agnostic projection produced in the target — and are rendered controller-side through the same theming pipeline as local output (`RemoteValueRenderer`).
+Results are sent over the wire (a domain socket or named pipe) as a `RemoteValue` tree of data. A limited, theme-agnostic projection produced in the target applicaiton, and are rendered controller-side through the same theming pipeline as local output (`RemoteValueRenderer`).
 
 ## Wire protocol
 
