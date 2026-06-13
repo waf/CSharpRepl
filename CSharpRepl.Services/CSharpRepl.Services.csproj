@@ -24,23 +24,27 @@
       The same is required for Microsoft.NET.StringTools, a dependency of Microsoft.Build.Framework.
       See https://aka.ms/msbuild/locator/diagnostics/MSBL001
     -->
-    <PackageReference Include="Microsoft.Build.Framework" Version="18.6.3" ExcludeAssets="runtime" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.NET.StringTools" Version="18.6.3" ExcludeAssets="runtime" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Build.Framework" Version="18.7.1" ExcludeAssets="runtime" PrivateAssets="all">
+      <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.StringTools" Version="18.7.1" ExcludeAssets="runtime" PrivateAssets="all">
+      <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.9" />
     <!--
       Microsoft.CodeAnalysis.Workspaces.MSBuild depends on Microsoft.Extensions.{Logging, DependencyInjection} at 9.0. When a user references a shared framework
       (e.g. `-f Microsoft.AspNetCore.App`) their code requests 10.0, our copies are found it throws a FileLoadException. Set these at 10.0 to fix that. See issue #414.
     -->
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
     <PackageReference Include="Microsoft.SymbolStore" Version="1.0.727501" />
     <PackageReference Include="OpenAI" Version="2.11.0" />
-    <PackageReference Include="PrettyPrompt" Version="6.0.0" />
+    <PackageReference Include="PrettyPrompt" Version="6.0.1" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
-    <PackageReference Include="Spectre.Console.Ansi" Version="0.56.0" />
+    <PackageReference Include="Spectre.Console.Ansi" Version="0.57.0" />
     <PackageReference Include="System.IO.Abstractions" Version="22.1.1" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.8" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.9" />
   </ItemGroup>
 
   <!--
