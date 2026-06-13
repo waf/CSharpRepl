@@ -121,6 +121,10 @@ To run ASP.NET applications inside the REPL, start the `csharprepl ` application
 csharprepl --framework  Microsoft.AspNetCore.App
 ```
 
+## Loading scripts
+
+Use the `#load` directive to run a C# script file (`.csx`), e.g. `#load "path/to/script.csx"`. This is handy for initializing a session, as any references, namespaces, and variables the script defines remain available afterwards.
+
 ## Inspecting a running process
 
 In addition to the normal REPL, which evaluates code in csharprepl's own process, csharprepl can attach to other .NET applications and evaluate expressions inside them, reading and writing live application state (e.g. statics and services resolved from DI).
