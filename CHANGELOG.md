@@ -1,3 +1,15 @@
+## Release 0.8.0
+
+- New `inspect` feature: attach to a separate, already-running .NET process and evaluate C# inside it with full local-REPL parity (IntelliSense, highlighting, pretty-printing), reading and writing its live state. Run `csharprepl inspect init` to get the launch environment variables, then `csharprepl inspect <pid>`. It is cooperative and opt-in only ([#477](https://github.com/waf/CSharpRepl/pull/477)).
+- Integrate ILSpy's lowering/decompilation feature, so you can see the lowered C# for a submission ([#471](https://github.com/waf/CSharpRepl/pull/471)).
+- Intermediate Language (IL) syntax highlighting, with the original C# shown inline as comments ([#470](https://github.com/waf/CSharpRepl/pull/470)).
+- Fix an assembly-resolve issue when loading ASP.NET Core ([#468](https://github.com/waf/CSharpRepl/pull/468)).
+- Fix "System.Object is not defined or imported" error when referencing a `.csproj` ([#466](https://github.com/waf/CSharpRepl/pull/466)).
+- Fix navigate-to-source index range to be inclusive ([#469](https://github.com/waf/CSharpRepl/pull/469)).
+- Better handling for newlines and nested syntax-highlight spans ([#474](https://github.com/waf/CSharpRepl/pull/474)).
+- Performance: remove duplicate assembly loads ([#475](https://github.com/waf/CSharpRepl/pull/475)).
+- Dependency upgrades ([#472](https://github.com/waf/CSharpRepl/pull/472), [#479](https://github.com/waf/CSharpRepl/pull/479)).
+
 ## Release 0.7.1
 
 - Fix syntax highlighting edge cases (emoji, new lines embedded in syntax highlighting spans e.g. raw string literals)
