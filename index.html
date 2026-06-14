@@ -1,167 +1,326 @@
----
-title: CSharpRepl
----
-<section class="hero">
-	<div class="text-container">
-		<h1>A cross-platform command-line C# <abbr title="Read Eval Print Loop"><a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop" style="color:inherit">REPL</a></abbr></h1>
-		<p class="subtext">Explore the language, libraries and nuget packages interactively</p>
-		<code class="cta" style="margin: 40px auto" onclick="copy(this)">dotnet tool install -g csharprepl</code>
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>csharprepl: a command-line C# REPL</title>
+	<meta name="description" content="A cross-platform command-line C# REPL. Prototype code, install NuGet packages, reference your projects, read the IL the compiler emits, and attach to running .NET processes — all from the terminal.">
+	<link rel="canonical" href="https://fuqua.io/csharprepl/">
 
-		<div>
-			<video autoplay controls src="{{ site.baseurl }}/images/videos/csharprepl-intro.mp4" class="screenshot" />
+	<!-- Open Graph / Twitter -->
+	<meta property="og:type" content="website">
+	<meta property="og:title" content="csharprepl — a command-line C# REPL">
+	<meta property="og:description" content="Explore C# and .NET interactively, from the terminal. Prototype code, pull in NuGet packages, jump to source, and inspect running processes.">
+	<meta property="og:url" content="https://fuqua.io/csharprepl/">
+	<meta property="og:image" content="https://fuqua.io/csharprepl/images/screenshots/experiment.png">
+	<meta name="twitter:card" content="summary_large_image">
+
+	<meta name="theme-color" content="#0c0d12">
+
+	<!-- Prompt-glyph favicon, inline so there's no extra request -->
+	<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c0d12'/%3E%3Cpath d='M9 11l5 5-5 5' fill='none' stroke='%23d782c9' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M17 22h7' stroke='%234b89ff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+	<link rel="stylesheet" href="style.css">
+	<noscript><style>[data-reveal]{opacity:1;transform:none}</style></noscript>
+</head>
+<body>
+
+	<header class="site-header">
+		<div class="container">
+			<a class="wordmark" href="./"><span class="caret">&gt;</span> csharprepl</a>
+			<nav class="nav">
+				<a class="nav-link" href="#features">Features</a>
+				<a class="nav-link" href="#reference">Shortcuts</a>
+				<a class="nav-link" href="https://github.com/waf/CSharpRepl/wiki">Docs</a>
+				<a class="nav-cta" href="https://github.com/waf/CSharpRepl">GitHub ↗</a>
+			</nav>
 		</div>
+	</header>
+
+	<!-- ============================================================ HERO -->
+	<section class="hero">
+		<div class="container">
+			<div class="hero-copy">
+				<p class="eyebrow">A free &amp; open source .NET global tool</p>
+				<h1>A command-line C#&nbsp;<abbr title="Read–Eval–Print Loop"><a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop">REPL</a></abbr></h1>
+				<p class="lede">Prototype code, probe libraries, and see what the compiler does under-the-hood, without leaving the terminal.</p>
+
+				<div class="hero-actions">
+					<div class="command">
+						<span class="cmd-text"><span class="sh">$</span> <span class="cmd-payload">dotnet tool install -g csharprepl</span></span>
+						<button class="copy" type="button" onclick="copyCmd(this)">Copy</button>
+					</div>
+					<a class="btn-text" href="https://github.com/waf/CSharpRepl">Source on GitHub <span class="arrow">→</span></a>
+				</div>
+
+				<p class="hero-meta">MIT licensed<span class="dot">·</span>Windows<span class="dot">·</span>macOS · Linux</p>
+			</div>
+
+			<div class="hero-media" data-reveal>
+				<figure class="panel">
+					<video src="images/videos/csharprepl-intro.mp4" autoplay loop muted playsinline controls
+					       poster="images/screenshots/experiment.png"></video>
+				</figure>
+			</div>
+		</div>
+	</section>
+
+	<!-- ======================================================== FEATURES -->
+	<div id="features">
+
+		<!-- 1 · Experiment -->
+		<section class="feature">
+			<div class="container">
+				<div class="feature-copy" data-reveal>
+					<p class="eyebrow"><span class="k">//</span> prototype</p>
+					<h2>Try ideas without the ceremony</h2>
+					<p>Run C# and see the result immediately; no scratch console projects needed. Command-line autocomplete with inline documentation keeps the reference at your fingertips.</p>
+				</div>
+				<div class="feature-media" data-reveal>
+					<figure class="panel shot">
+						<img src="images/screenshots/experiment.png" alt="A csharprepl session building and draining a PriorityQueue, with syntax-highlighted output." loading="lazy">
+					</figure>
+				</div>
+			</div>
+		</section>
+
+		<!-- 2 · Rich output (hand-built terminal) -->
+		<section class="feature">
+			<div class="container">
+				<div class="feature-copy" data-reveal>
+					<p class="eyebrow"><span class="k">Ctrl+Enter</span></p>
+					<h2>Rich output formatting</h2>
+					<p>Results are formatted with syntax highlighting and Spectre.Console rendering. Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> on any line for a detailed, member-by-member view of the object.</p>
+				</div>
+				<div class="feature-media" data-reveal>
+					<figure class="panel shot">
+						<img src="images/screenshots/detailed-output.png" alt="DateTime.Now shown two ways in the REPL: a one-line default representation, then a Ctrl+Enter member-by-member breakdown." loading="lazy">
+					</figure>
+				</div>
+			</div>
+		</section>
+
+		<!-- 3 · NuGet -->
+		<section class="feature">
+			<div class="container">
+				<div class="feature-copy" data-reveal>
+					<p class="eyebrow"><span class="k">#r</span> <span class="a">"nuget: …"</span></p>
+					<h2>Pull in any NuGet package</h2>
+					<p>Reference a package with the <span class="inline">#r</span> directive and start using it on the next line. The completion window shows documentation for the package's methods and types.</p>
+				</div>
+				<div class="feature-media" data-reveal>
+					<figure class="panel shot">
+						<img src="images/screenshots/nuget.png" alt="Installing the NSubstitute NuGet package with #r and immediately using it in the REPL." loading="lazy">
+					</figure>
+				</div>
+			</div>
+		</section>
+
+		<!-- 4 · Reference projects -->
+		<section class="feature">
+			<div class="container">
+				<div class="feature-copy" data-reveal>
+					<p class="eyebrow"><span class="k">#r</span> <span class="a">"App.csproj"</span></p>
+					<h2>Point it at your own code</h2>
+					<p>The same <span class="inline">#r</span> directive takes assemblies, <span class="inline">.csproj</span> projects, and <span class="inline">.sln</span>&#8202;/&#8202;<span class="inline">.slnx</span> solutions. Load your project, then call straight into it.</p>
+				</div>
+				<div class="feature-media" data-reveal>
+					<figure class="panel shot">
+						<img src="images/screenshots/reference.png" alt="Building and referencing a local .csproj from the REPL, then calling its Main method." loading="lazy">
+					</figure>
+				</div>
+			</div>
+		</section>
+
+		<!-- 5 · Source link -->
+		<section class="feature">
+			<div class="container">
+				<div class="feature-copy" data-reveal>
+					<p class="eyebrow"><span class="k">F12</span></p>
+					<h2>Jump to the real source</h2>
+					<p>Googling for a library's implementation? Press <kbd>F12</kbd> instead on any symbol to open its original source in the browser, for every assembly that supports <a href="https://github.com/dotnet/sourcelink">Source Link</a>.</p>
+				</div>
+				<div class="feature-media" data-reveal>
+					<figure class="panel shot">
+						<img src="images/screenshots/sourcelink.png" alt="Pressing F12 on DateTime.Now opens the corresponding source on GitHub." loading="lazy">
+					</figure>
+				</div>
+			</div>
+		</section>
+
+		<!-- 6 · IL & lowered C# -->
+		<section class="feature">
+			<div class="container">
+				<div class="feature-copy" data-reveal>
+					<p class="eyebrow"><span class="k">F9</span> · <span class="k">F8</span></p>
+					<h2>See what the compiler does</h2>
+                    <p>Press <kbd>F9</kbd> for the <abbr title=".NET Intermediate Language">IL</abbr> of any statement, or <kbd>F8</kbd> for the <em>lowered</em> C#. Explore async state machines, lambda closures, and <span class="inline">foreach</span>&#8202;/&#8202;<span class="inline">using</span> expansions made explicit. Hold <kbd>Ctrl</kbd> to see Release-mode optimizations. Powered by ILSpy.</p>
+				</div>
+				<div class="feature-media" data-reveal>
+					<figure class="panel shot">
+						<img src="images/screenshots/intermediate-language.png" alt="The IL disassembly for a Console.WriteLine call, shown inline in the REPL." loading="lazy">
+					</figure>
+				</div>
+			</div>
+		</section>
+
+		<!-- 7 · Inspect a running process (hand-built terminal) -->
+		<section class="feature feature--wide">
+			<div class="container">
+				<div class="feature-copy" data-reveal>
+					<p class="eyebrow"><span class="k">csharprepl inspect</span> <span class="a">&lt;pid&gt;</span></p>
+					<h2>Attach to a running process</h2>
+					<p>Beyond its own process, csharprepl can attach to another .NET 10 app and evaluate C# <em>inside</em> it, reading and writing live statics and DI-resolved services, with the same interactivity as the normal REPL.</p>
+                    <p class="note">A real Roslyn engine is injected via the .NET runtime's startup-hook support; the target opts in by setting a few environment variables. Development and diagnostics only! Never enable the inspector on a production process.</p>
+				</div>
+				<div class="feature-media" data-reveal>
+					<figure class="panel shot">
+						<img src="images/screenshots/inspect-process.png" alt="csharprepl attached to a running ASP.NET app, reading live configuration and DI-resolved services from inside the process, alongside the target app's console." loading="lazy">
+					</figure>
+				</div>
+			</div>
+		</section>
+
 	</div>
-</section>
 
-<div class="content">
-	<section>
-		<div class="container flex">
-			<div class="text">
-				<h2><strong>Experiment</strong> with C# and .NET APIs</h2>
-				<p>Quickly try out C# syntax and .NET APIs, without needing to litter your filesystem with testing projects. Command-line autocompletion helps you find answers fast.</p>
+	<!-- ======================================================= REFERENCE -->
+	<section class="reference" id="reference">
+		<div class="container">
+			<div class="head" data-reveal>
+				<p class="eyebrow"><span class="k">//</span> keyboard reference</p>
+				<h2>Familiar keyboard shortcuts</h2>
+				<p>Editing and navigation mirror Visual Studio, so the keyboard shortcuts feel natural.</p>
 			</div>
-			<div class="image">
-				<a href="{{ site.baseurl }}/images/screenshots/experiment.png" onclick="microLite(this); return false;">
-					<img src="{{ site.baseurl }}/images/screenshots/experiment.png" class="screenshot" width="530" height="275" />
-				</a>
-			</div>
-		</div>
-	</section>
 
-	<section>
-		<div class="container flex">
-			<div class="text">
-				<h2><strong>Install</strong> NuGet packages</h2>
-				<p>Use the <strong>#r</strong> command to reference NuGet packages; the autocompletion window shows relevant method/class documentation.</p>
-			</div>
-			<div class="image">
-				<a href="{{ site.baseurl }}/images/screenshots/nuget.png" onclick="microLite(this); return false;">
-					<img src="{{ site.baseurl }}/images/screenshots/nuget.png" class="screenshot" />
-				</a>
-			</div>
-		</div>
-	</section>
-
-	<section>
-		<div class="container flex">
-			<div class="text">
-				<h2><strong>Navigate</strong> to source code</h2>
-				<p>Ever find yourself Googling for a library's source code? For NuGet packages and assemblies that support SourceLink, browse their original source code by simply pressing F12.</p>
-			</div>
-			<div class="image">
-				<a href="{{ site.baseurl }}/images/screenshots/sourcelink.png" onclick="microLite(this); return false;">
-					<img src="{{ site.baseurl }}/images/screenshots/sourcelink.png" class="screenshot" />
-				</a>
+			<div class="ref-grid">
+				<div class="ref-card" data-reveal>
+					<h3>Evaluate</h3>
+					<ul>
+						<li><span>Run, or break the line</span><span class="keys"><kbd>Enter</kbd></span></li>
+						<li><span>Insert a newline</span><span class="keys"><kbd>Shift</kbd><span class="plus">+</span><kbd>Enter</kbd></span></li>
+						<li><span>Run with detail</span><span class="keys"><kbd>Ctrl</kbd><span class="plus">+</span><kbd>Enter</kbd></span></li>
+						<li><span>Autocomplete</span><span class="keys"><kbd>Ctrl</kbd><span class="plus">+</span><kbd>Space</kbd></span></li>
+						<li><span>Cancel · clear · exit</span><span class="keys"><kbd>Ctrl</kbd>+<kbd>C</kbd> <kbd>L</kbd> <kbd>D</kbd></span></li>
+					</ul>
+				</div>
+				<div class="ref-card" data-reveal>
+					<h3>Inspect</h3>
+					<ul>
+						<li><span>MSDN docs for symbol</span><span class="keys"><kbd>F1</kbd></span></li>
+						<li><span>Go to source</span><span class="keys"><kbd>F12</kbd></span></li>
+						<li><span>IL (Debug · Release)</span><span class="keys"><kbd>F9</kbd> <kbd>Ctrl</kbd>+<kbd>F9</kbd></span></li>
+						<li><span>Lowered C# (Debug · Release)</span><span class="keys"><kbd>F8</kbd> <kbd>Ctrl</kbd>+<kbd>F8</kbd></span></li>
+					</ul>
+				</div>
+				<div class="ref-card" data-reveal>
+					<h3>Reference</h3>
+					<ul>
+						<li><span>NuGet package</span><span class="keys mono">#r "nuget: …"</span></li>
+						<li><span>Project or solution</span><span class="keys mono">#r "App.csproj"</span></li>
+						<li><span>Assembly by name or path</span><span class="keys mono">#r "Lib.dll"</span></li>
+						<li><span>Bring your own theme</span><span class="keys mono">theme.json</span></li>
+					</ul>
+				</div>
 			</div>
 		</div>
 	</section>
 
-	<section>
-		<div class="container flex">
-			<div class="text">
-				<h2><strong>Reference</strong> your existing projects</h2>
-				<p>The <strong>#r</strong> command can also reference assemblies by name and filepath, as well as your own .csproj and .sln files.</p>
-			</div>
-			<div class="image">
-				<a href="{{ site.baseurl }}/images/screenshots/reference.png" onclick="microLite(this); return false;">
-					<img src="{{ site.baseurl }}/images/screenshots/reference.png" class="screenshot" />
-				</a>
-			</div>
-		</div>
-	</section>
+	<!-- ========================================================= CLOSING -->
+	<section class="closing">
+		<div class="container">
+			<p class="eyebrow"><span class="k">$</span> get started</p>
+			<h2>Install the global tool</h2>
+			<p>Requires the .NET&nbsp;10 SDK. Runs on Windows, macOS, and Linux.</p>
 
-	<section>
-		<div class="container flex">
-			<div class="text">
-				<h2><strong>Dive</strong> into the IL code</h2>
-				<p>Curious how a feature in C# works? Press F9 to view the IL code of any statement or expression, or F8 to view the lowered C#.</p>
+			<div class="command">
+				<span class="cmd-text"><span class="sh">$</span> <span class="cmd-payload">dotnet tool install -g csharprepl</span></span>
+				<button class="copy" type="button" onclick="copyCmd(this)">Copy</button>
 			</div>
-			<div class="image">
-				<a href="{{ site.baseurl }}/images/screenshots/intermediate-language.png" onclick="microLite(this); return false;">
-					<img src="{{ site.baseurl }}/images/screenshots/intermediate-language.png" class="screenshot" />
-				</a>
+			<p class="update">Update later with <code>dotnet tool update -g csharprepl</code></p>
+
+			<div class="links">
+				<a href="https://github.com/waf/CSharpRepl">GitHub</a>
+				<a href="https://www.nuget.org/packages/CSharpRepl">NuGet</a>
+				<a href="https://github.com/waf/CSharpRepl/wiki">Documentation</a>
+				<a href="https://github.com/waf/CSharpRepl/issues">Report an issue</a>
 			</div>
 		</div>
 	</section>
 
-	<section class="bottom-cta">
-		<h2>Free and Open Source. Install it now by running:</h2>
-		<code class="cta" style="margin: 40px auto 20px auto" onclick="copy(this)">dotnet tool install -g csharprepl</code>
-	</section>
-</div>
+	<!-- ========================================================== FOOTER -->
+	<footer class="site-footer">
+		<div class="container">
+			<span class="copy-line"><span class="caret">&gt;</span> csharprepl, free and MIT licensed</span>
+			<nav class="foot-links">
+				<a href="https://github.com/waf/CSharpRepl">Repository</a>
+				<a href="https://www.nuget.org/packages/CSharpRepl">NuGet</a>
+				<a href="https://github.com/waf/CSharpRepl/wiki">Docs</a>
+				<a href="https://github.com/waf/CSharpRepl/blob/main/LICENSE.txt">License</a>
+			</nav>
+		</div>
+	</footer>
 
-<script>
-function copy(el) {
-  window.getSelection().selectAllChildren(el);
-  navigator.clipboard.writeText(el.textContent);
-}
+	<script>
+		// Copy the install command and confirm inline.
+		function copyCmd(btn) {
+			var payload = btn.parentElement.querySelector('.cmd-payload').textContent.trim();
+			navigator.clipboard.writeText(payload).then(function () {
+				btn.textContent = 'Copied';
+				btn.classList.add('copied');
+				setTimeout(function () {
+					btn.textContent = 'Copy';
+					btn.classList.remove('copied');
+				}, 1600);
+			});
+		}
 
-// lightbox effect https://github.com/danklammer/microlite
-function microLite(i) {
-  var childNode = i.children[0],
-    body = document.body,
-    zoomPadding = 50,
-    windowWidth = window.innerWidth - (zoomPadding * 2),
-    windowHeight = window.innerHeight - (zoomPadding * 2),
-    imgWidth = childNode.width,
-    imgHeight = childNode.height,
-    imgX = childNode.offsetLeft,
-    imgY = parseInt(childNode.offsetTop - (document.documentElement.scrollTop || body.scrollTop)),
-    scaleX = windowWidth / imgWidth,
-    scaleY = windowHeight / imgHeight,
-    scaleMax = Math.min(scaleX, scaleY),
-    mlite = document.createElement('div');
+		// Click a screenshot to open it full-size; click anywhere or Esc to close.
+		(function () {
+			function open(src) {
+				var box = document.createElement('div');
+				box.className = 'lightbox';
+				var img = document.createElement('img');
+				img.src = src;
+				box.appendChild(img);
+				document.body.appendChild(box);
+				requestAnimationFrame(function () { box.classList.add('open'); });
 
-  if (scaleX <= scaleY) {
-    var zoomX = zoomPadding,
-      zoomY = ((windowHeight - (imgHeight * scaleMax)) / 2) + zoomPadding;
-  } else {
-    var zoomX = ((windowWidth - (imgWidth * scaleMax)) / 2) + zoomPadding,
-      zoomY = zoomPadding;
-  }
-  console.log(imgY);
+				function close() {
+					box.classList.remove('open');
+					box.addEventListener('transitionend', function () { box.remove(); }, { once: true });
+					document.removeEventListener('keydown', onKey);
+				}
+				function onKey(e) { if (e.key === 'Escape') close(); }
 
-  mlite.setAttribute('id', 'ml');
-  mlite.setAttribute(
-    'onclick',
-    'this.className = " "; addEventListener("transitionend", function() { if (this.parentNode) { this.parentNode.removeChild(this); } });'
-  );
-  mlite.innerHTML = '<div class="mlbg"></div><div class="mli"></div><style>#ml{cursor:pointer;position:fixed;top:0;left:0;width:100%;height:100%}.mlbg{position:fixed;width:100%;height:100%;background:#0a0a0a;opacity:0;will-change:opacity;transition:opacity .4s ease}.mli{background:url(' + i.href + ')no-repeat center,url(' + childNode.src + ')no-repeat center;background-size:contain;width:' + childNode.width + 'px;height:' + childNode.height + 'px;transform:translate3d(' + imgX + 'px, ' + imgY + 'px, 0) scale(1);transform-origin:top left;will-change:transform;transition:transform .4s ease}.s .mlbg{opacity:0.8}.s .mli{transform: translate3d(' + zoomX + 'px, ' + zoomY + 'px, 0) scale(' + scaleMax + ')}</style>';
-  body.appendChild(mlite);
+				box.addEventListener('click', close);
+				document.addEventListener('keydown', onKey);
+			}
 
-  setTimeout(function() {
-    mlite.className = 's';
-  }, 20);
+			document.querySelectorAll('.panel.shot img').forEach(function (img) {
+				img.parentElement.addEventListener('click', function () { open(img.src); });
+			});
+		})();
 
-  ['keydown', 'wheel'].forEach(function(action) {
-    window.addEventListener(action, mliteEventHandler);
-  });
-}
+		// Subtle one-time reveal as sections enter the viewport.
+		(function () {
+			var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			var els = document.querySelectorAll('[data-reveal]');
+			if (reduce || !('IntersectionObserver' in window)) {
+				els.forEach(function (el) { el.classList.add('in'); });
+				return;
+			}
+			var io = new IntersectionObserver(function (entries) {
+				entries.forEach(function (e) {
+					if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+				});
+			}, { threshold: 0.12 });
+			els.forEach(function (el) { io.observe(el); });
+		})();
+	</script>
 
-function mliteEventHandler(e) {
-  var mliteOpen = document.getElementById('ml');
-  var isEscape = false;
-  if (mliteOpen) {
-    if (e.type == "wheel") {
-      e.preventDefault();
-    } else {
-      if ("key" in e) {
-        isEscape = (e.key == "Escape" || e.key == "Esc");
-      } else {
-        isEscape = (e.keyCode == 27);
-      }
-      if (isEscape) {
-        mliteOpen.className = " ";
-        addEventListener("transitionend", function() {
-          if (mliteOpen.parentNode) {
-            mliteOpen.parentNode.removeChild(mliteOpen);
-          }
-        });
-      }
-    }
-  } else {
-    window.removeEventListener('keydown', mliteEventHandler);
-    window.removeEventListener('wheel', mliteEventHandler);
-  }
-}
-</script>
+</body>
+</html>

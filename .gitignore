@@ -1,4 +1,3 @@
-_site/
-.sass-cache/
-.jekyll-metadata/
-.jekyll-cache/
+# OS / editor cruft
+.DS_Store
+Thumbs.db

@@ -1,6 +1,39 @@
----
-title: Not Found
-description: This does not exist
-permalink: /404.html
-sitemap: false
----
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Not found — csharprepl</title>
+	<meta name="robots" content="noindex">
+	<meta name="theme-color" content="#0c0d12">
+	<!-- Self-contained so it renders correctly at any URL depth. -->
+	<style>
+		:root { --bg:#0c0d12; --text:#e8eaf1; --muted:#a3a9bb; --faint:#6e7589; --accent:#6ea4ff; --prompt:#d782c9; }
+		* { box-sizing:border-box; }
+		html,body { height:100%; margin:0; }
+		body {
+			background:var(--bg); color:var(--muted);
+			font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+			display:flex; align-items:center; justify-content:center; padding:24px; line-height:1.6;
+		}
+		.wrap { text-align:center; max-width:30rem; }
+		.code {
+			font-family:"JetBrains Mono",ui-monospace,"SF Mono",Consolas,monospace;
+			font-size:.85rem; color:var(--faint); letter-spacing:.02em; margin:0 0 18px;
+		}
+		.code .pr { color:var(--prompt); }
+		h1 { color:var(--text); font-size:2rem; margin:0 0 10px; letter-spacing:-.02em; }
+		p { margin:0 0 22px; }
+		a { color:var(--accent); text-decoration:none; }
+		a:hover { text-decoration:underline; text-underline-offset:3px; }
+	</style>
+</head>
+<body>
+	<div class="wrap">
+		<p class="code"><span class="pr">&gt;</span> throw new FileNotFoundException();</p>
+		<h1>404 — not found</h1>
+		<p>That page doesn't exist. The expression didn't evaluate.</p>
+		<a href="https://fuqua.io/csharprepl/">← Back to csharprepl</a>
+	</div>
+</body>
+</html>

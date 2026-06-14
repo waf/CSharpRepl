@@ -1,0 +1,448 @@
+:root {
+	/* Surfaces — near-black, faintly blue, deeper than the screenshots so the
+	   terminal captures (which sit at ~#282936) read as elevated panels. */
+	--bg:            #0c0d12;
+	--surface:       #14161e;
+	--surface-2:     #1a1d27;
+	--terminal-bg:   #282936; /* matches the screenshot/terminal background */
+
+	--border:        rgba(255, 255, 255, .08);
+	--border-strong: rgba(255, 255, 255, .15);
+
+	/* Text */
+	--text:       #e8eaf1;
+	--text-muted: #a3a9bb;
+	--text-faint: #6e7589;
+
+	/* Accent — .NET-adjacent blue. Pink is the prompt mark only. */
+	--accent:        #4b89ff;
+	--accent-bright: #6ea4ff;
+	--accent-weak:   rgba(75, 137, 255, .12);
+	--prompt:        #d782c9;
+
+	--font-sans:    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	--font-display: "Space Grotesk", var(--font-sans);
+	--font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+
+	--radius:    12px;
+	--radius-sm: 8px;
+	--maxw:      1120px;
+
+	--shadow: 0 1px 2px rgba(0,0,0,.4), 0 18px 40px -24px rgba(0,0,0,.7);
+}
+
+/* --------------------------------------------------------------- base ---- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { background: var(--bg); scroll-behavior: smooth; }
+
+/* belt-and-suspenders against horizontal overflow; clip (not hidden/auto)
+   so it never creates a scroll container that would break position:sticky */
+html, body { overflow-x: clip; max-width: 100%; }
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text-muted);
+	font-family: var(--font-sans);
+	font-size: 17px;
+	line-height: 1.65;
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html { scroll-behavior: auto; }
+}
+
+h1, h2, h3 {
+	font-family: var(--font-display);
+	color: var(--text);
+	line-height: 1.12;
+	letter-spacing: -0.02em;
+	font-weight: 600;
+	margin: 0;
+}
+
+h1 { font-size: clamp(2.1rem, 5.2vw, 3.3rem); }
+h2 { font-size: clamp(1.55rem, 3.2vw, 2.05rem); }
+h3 { font-size: 1.05rem; letter-spacing: 0; }
+
+p { margin: 0 0 1rem; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-bright); text-decoration: underline; text-underline-offset: 3px; }
+
+img, video { max-width: 100%; display: block; }
+
+code, kbd { font-family: var(--font-mono); }
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+	border-radius: 4px;
+}
+
+/* ---------------------------------------------------------- structure ---- */
+
+.container {
+	width: 100%;
+	max-width: var(--maxw);
+	margin: 0 auto;
+	padding: 0 24px;
+}
+
+section { padding: clamp(64px, 9vw, 116px) 0; }
+
+/* clear the sticky header when jumping to an anchor */
+#features, #reference, .closing { scroll-margin-top: 76px; }
+
+/* Grid children default to min-width:auto, which lets a wide <video> or a long
+   <pre> line stretch its track past the viewport. Let them shrink instead. */
+.hero .container > *,
+.feature .container > *,
+.ref-grid > * { min-width: 0; }
+
+/* mono "code comment" eyebrow that labels each section */
+.eyebrow {
+	font-family: var(--font-mono);
+	font-size: .8rem;
+	font-weight: 500;
+	letter-spacing: 0.01em;
+	color: var(--text-faint);
+	margin: 0 0 14px;
+}
+.eyebrow .k { color: var(--prompt); }     /* prompt / keyword tint */
+.eyebrow .a { color: var(--accent-bright); }
+
+/* ------------------------------------------------------------- header ---- */
+
+.site-header {
+	position: sticky;
+	top: 0;
+	z-index: 50;
+	background: rgba(12, 13, 18, .72);
+	backdrop-filter: saturate(140%) blur(12px);
+	-webkit-backdrop-filter: saturate(140%) blur(12px);
+	border-bottom: 1px solid var(--border);
+}
+.site-header .container {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 60px;
+}
+
+.wordmark {
+	font-family: var(--font-mono);
+	font-weight: 700;
+	font-size: 1.02rem;
+	color: var(--text);
+	letter-spacing: -0.01em;
+}
+.wordmark:hover { text-decoration: none; color: var(--text); }
+.wordmark .caret { color: var(--prompt); margin-right: 1px; }
+
+.nav { display: flex; align-items: center; gap: 28px; }
+.nav a {
+	font-size: .92rem;
+	color: var(--text-muted);
+	font-weight: 500;
+}
+.nav a:hover { color: var(--text); text-decoration: none; }
+.nav .nav-cta {
+	font-family: var(--font-mono);
+	font-size: .82rem;
+	color: var(--text);
+	border: 1px solid var(--border-strong);
+	border-radius: 7px;
+	padding: 7px 13px;
+}
+.nav .nav-cta:hover { border-color: var(--accent); color: var(--accent-bright); }
+
+@media (max-width: 680px) {
+	.nav .nav-link { display: none; }
+}
+
+/* --------------------------------------------------------------- hero ---- */
+
+.hero { padding-top: clamp(48px, 7vw, 84px); }
+.hero .container {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: clamp(36px, 5vw, 60px);
+	align-items: center;
+}
+@media (min-width: 940px) {
+	.hero .container { grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); }
+}
+
+.hero h1 { margin-bottom: 18px; }
+.hero h1 abbr { text-decoration: none; }
+.hero h1 abbr a {
+	color: inherit;
+	border-bottom: 1px dotted var(--text-faint);
+}
+.hero h1 abbr a:hover { color: var(--accent-bright); border-color: var(--accent-bright); }
+
+.hero .lede {
+	font-size: 1.18rem;
+	line-height: 1.6;
+	color: var(--text-muted);
+	max-width: 38ch;
+	margin-bottom: 30px;
+}
+
+.hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+
+/* install command + copy, styled as a terminal line ----------------------- */
+
+.command {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+	background: var(--terminal-bg);
+	border: 1px solid var(--border-strong);
+	border-radius: 10px;
+	padding: 12px 12px 12px 16px;
+	font-family: var(--font-mono);
+	font-size: .92rem;
+	color: var(--text);
+	max-width: 100%;
+	min-width: 0; /* allow shrinking inside the flex hero-actions row */
+	box-shadow: var(--shadow);
+}
+.command .cmd-text {
+	white-space: nowrap;
+	overflow-x: auto;
+	min-width: 0;            /* so long commands scroll instead of pushing Copy off-screen */
+	scrollbar-width: none;
+}
+.command .cmd-text::-webkit-scrollbar { display: none; }
+.command .sh { color: var(--text-faint); user-select: none; margin-right: 2px; }
+.command .copy {
+	flex: none;
+	font-family: var(--font-mono);
+	font-size: .76rem;
+	letter-spacing: .02em;
+	color: var(--text-muted);
+	background: rgba(255,255,255,.05);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 6px 11px;
+	cursor: pointer;
+	transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+.command .copy:hover { color: var(--text); border-color: var(--border-strong); }
+.command .copy.copied { color: var(--accent-bright); border-color: var(--accent); }
+
+.btn-text {
+	font-family: var(--font-mono);
+	font-size: .86rem;
+	font-weight: 500;
+	color: var(--text-muted);
+    margin-top: 9px;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+.btn-text:hover { color: var(--text); text-decoration: none; }
+.btn-text .arrow { color: var(--accent-bright); transition: transform .15s ease; }
+.btn-text:hover .arrow { transform: translateX(2px); }
+
+.hero-meta {
+	margin-top: 19px;
+	font-family: var(--font-mono);
+	font-size: .78rem;
+	color: var(--text-faint);
+}
+.hero-meta .dot { margin: 0 8px; opacity: .5; }
+
+/* ----------------------------------------------- terminal / screenshots -- */
+
+/* A framed window panel — used for both PNG screenshots and the video. */
+.panel {
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	overflow: hidden;
+	box-shadow: var(--shadow);
+	background: var(--terminal-bg);
+	margin: 0;
+}
+.panel img, .panel video { width: 100%; height: auto; display: block; }
+.panel.shot { cursor: zoom-in; }
+.panel.shot img { transition: opacity .2s ease; }
+.panel.shot:hover img { opacity: .94; }
+
+/* ----------------------------------------------------------- features ---- */
+
+.feature .container {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: clamp(32px, 5vw, 64px);
+	align-items: center;
+}
+
+@media (min-width: 860px) {
+	.feature .container { grid-template-columns: 1fr 1fr; }
+	/* alternate sides */
+	.feature:nth-of-type(even) .feature-media { order: -1; }
+
+	/* Full-width variant: stacks text over a full-bleed panel. For panoramic
+	   captures that would be too small squeezed into a half-width column. */
+	.feature--wide .container { grid-template-columns: 1fr; gap: clamp(28px, 4vw, 44px); }
+	.feature--wide .feature-copy { max-width: 100%; }
+	.feature--wide .feature-media { order: 0; }
+}
+
+.feature h2, .reference h2 { margin-bottom: 16px; }
+.feature p { color: var(--text-muted); max-width: 46ch; }
+.feature--wide p { max-width: 100%; }
+.feature .note {
+	font-size: .9rem;
+	color: var(--text-faint);
+	margin-top: 14px;
+}
+.feature .inline { font-family: var(--font-mono); font-size: .92em; color: var(--accent-bright); }
+
+/* Section divider rhythm — hairline between feature bands */
+.feature + .feature { padding-top: 0; }
+
+/* ---------------------------------------------------- keyboard reference - */
+
+.reference { border-top: 1px solid var(--border); }
+.reference .head { margin-bottom: clamp(36px, 5vw, 52px); }
+.reference .head p { color: var(--text-muted); }
+
+.ref-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 20px;
+}
+@media (min-width: 720px) { .ref-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.ref-card {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	padding: 22px 22px 8px;
+}
+.ref-card h3 {
+	font-family: var(--font-mono);
+	font-size: .76rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .12em;
+	color: var(--text-faint);
+	margin-bottom: 6px;
+}
+.ref-card ul { list-style: none; margin: 0; padding: 0; }
+.ref-card li {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 13px 0;
+	border-top: 1px solid var(--border);
+	font-size: .93rem;
+	color: var(--text-muted);
+}
+.ref-card li:first-of-type { border-top: 0; }
+.ref-card .keys { flex: none; white-space: nowrap; }
+
+kbd {
+	display: inline-block;
+	font-size: .76rem;
+	line-height: 1;
+	color: var(--text);
+	background: var(--surface-2);
+	border: 1px solid var(--border-strong);
+	border-bottom-width: 2px;
+	border-radius: 6px;
+	padding: 4px 7px;
+}
+.ref-card .keys .plus { color: var(--text-faint); margin: 0 3px; font-size: .8rem; }
+.ref-card .mono { font-family: var(--font-mono); font-size: .82rem; color: var(--accent-bright); }
+
+/* ------------------------------------------------------------- closing --- */
+
+.closing { border-top: 1px solid var(--border); text-align: center; }
+.closing h2 { margin-bottom: 14px; }
+.closing p { color: var(--text-muted); margin-left: auto; margin-right: auto; }
+.closing .command { margin: 30px auto 18px; }
+.closing .update {
+	font-family: var(--font-mono);
+	font-size: .8rem;
+	color: var(--text-faint);
+}
+.closing .update code { color: var(--text-muted); }
+.closing .links {
+	margin-top: 30px;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px 22px;
+	font-size: .92rem;
+}
+
+/* -------------------------------------------------------------- footer --- */
+
+.site-footer {
+	border-top: 1px solid var(--border);
+	padding: 44px 0;
+	color: var(--text-faint);
+	font-size: .88rem;
+}
+.site-footer .container {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+}
+.site-footer a { color: var(--text-muted); }
+.site-footer a:hover { color: var(--text); text-decoration: none; }
+.site-footer .foot-links { display: flex; flex-wrap: wrap; gap: 22px; }
+.site-footer .copy-line .caret { color: var(--prompt); }
+
+/* ----------------------------------------------------------- lightbox ---- */
+
+.lightbox {
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4vmin;
+	background: rgba(6, 7, 10, 0);
+	cursor: zoom-out;
+	transition: background .25s ease;
+}
+.lightbox.open { background: rgba(6, 7, 10, .9); }
+.lightbox img {
+	max-width: 96vw;
+	max-height: 92vh;
+	width: auto;
+	border-radius: var(--radius);
+	border: 1px solid var(--border-strong);
+	box-shadow: 0 30px 80px -20px rgba(0,0,0,.9);
+	transform: scale(.97);
+	opacity: 0;
+	transition: transform .25s ease, opacity .25s ease;
+}
+.lightbox.open img { transform: scale(1); opacity: 1; }
+
+/* ----------------------------------------------------- scroll reveal ----- */
+
+[data-reveal] {
+	opacity: 0;
+	transform: translateY(14px);
+	transition: opacity .6s ease, transform .6s ease;
+}
+[data-reveal].in { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+	[data-reveal] { opacity: 1; transform: none; transition: none; }
+}
