@@ -326,6 +326,37 @@ public partial class RoslynServicesOverloadsTests : IAsyncLifetime, IClassFixtur
         Assert.Equal("b desc", overload.Parameters[1].Description.Text);
     }
 
+    /// <summary>
+    /// Static method overloads must not be suggested for instance-method calls, and instance
+    /// overloads must not be suggested for calls through a type name.
+    /// https://github.com/waf/CSharpRepl/issues/357
+    /// </summary>
+    [Theory]
+    [InlineData("new C().M(", "int")]    //instance access -> only the instance overload M(int a)
+    [InlineData("C.M(", "string")]       //static access   -> only the static overload M(string a, string b)
+    public async Task Overloads_StaticAndInstanceAreNotMixed(string call, string expectedParameterType)
+    {
+        var code = $"{call});\nclass C {{ public void M(int a){{}} public static void M(string a, string b){{}} }}";
+        var result = await services.GetOverloadsAsync(code, caret: call.Length, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Single(result.Overloads);
+        Assert.Contains(expectedParameterType, result.Overloads[0].Signature.Text);
+    }
+
+    /// <summary>
+    /// Instance-callable extension methods are reduced to instance form (IMethodSymbol.IsStatic == false),
+    /// so they must still be suggested for instance-method calls.
+    /// Regression guard for https://github.com/waf/CSharpRepl/issues/357
+    /// </summary>
+    [Fact]
+    public async Task Overloads_ExtensionMethodsAreKeptForInstanceCalls()
+    {
+        var prefix = "using System.Linq;\nnew[] { 1, 2, 3 }.Where(";
+        var code = $"{prefix});";
+        var result = await services.GetOverloadsAsync(code, caret: prefix.Length, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(2, result.Overloads.Count); //Where(Func<T,bool>) and Where(Func<T,int,bool>)
+        Assert.All(result.Overloads, o => Assert.Contains("Where", o.Signature.Text));
+    }
+
     [Fact]
     public async Task Complete_CrefParsing()
     {

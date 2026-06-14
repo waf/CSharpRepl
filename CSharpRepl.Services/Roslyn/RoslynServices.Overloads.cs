@@ -225,7 +225,8 @@ public sealed partial class RoslynServices
         {
             if (node is InvocationExpressionSyntax invocationExpression)
             {
-                return semanticModel.GetMemberGroup(invocationExpression.Expression, cancellationToken);
+                var memberGroup = semanticModel.GetMemberGroup(invocationExpression.Expression, cancellationToken);
+                return FilterMemberGroupByAccessKind(semanticModel, invocationExpression.Expression, memberGroup, cancellationToken);
             }
             else if (node is ObjectCreationExpressionSyntax objectCreationExpression)
             {
@@ -292,6 +293,33 @@ public sealed partial class RoslynServices
                 Debug.Fail("unexpected case");
             }
             return [];
+        }
+
+        /// <summary>
+        /// Roslyn's method group for a member access (e.g. 'value.M(' or 'Type.M(') contains every method named M, both static and instance.
+        /// Filter out the candidates that don't apply to the access kind. Extension methods report IsStatic == false, so they're correctly kept for instance accesses.
+        /// </summary>
+        static IReadOnlyList<object> FilterMemberGroupByAccessKind(SemanticModel semanticModel, ExpressionSyntax invokedExpression, ImmutableArray<ISymbol> memberGroup, CancellationToken cancellationToken)
+        {
+            bool isStaticAccess;
+            switch (invokedExpression)
+            {
+                case MemberAccessExpressionSyntax memberAccess:
+                    //A receiver that binds to a type ('Type.M(') is a static access; locals, fields, properties, 'this', 'base' and literals are instance accesses.
+                    isStaticAccess = semanticModel.GetSymbolInfo(memberAccess.Expression, cancellationToken).Symbol is ITypeSymbol;
+                    break;
+                case MemberBindingExpressionSyntax:
+                    //Null-conditional access ('value?.M(') is always an instance access.
+                    isStaticAccess = false;
+                    break;
+                default:
+                    //Not a member access (e.g. a bare 'M(' identifier or a delegate invocation); the method group is already context-appropriate.
+                    return memberGroup;
+            }
+
+            return memberGroup
+                .Where(symbol => symbol is not IMethodSymbol method || method.IsStatic == isStaticAccess)
+                .ToList();
         }
 
         static IReadOnlyList<object> GetMemberGroupGeneric(SemanticModel semanticModel, GenericNameSyntax genericNameSyntax, CancellationToken cancellationToken)
