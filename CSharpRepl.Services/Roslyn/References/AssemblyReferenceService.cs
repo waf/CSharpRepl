@@ -5,11 +5,13 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Logging;
+using CSharpRepl.Services.Nuget;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -36,6 +38,13 @@ internal sealed class AssemblyReferenceService
     private readonly HashSet<string> sharedFrameworkImplementationAssemblyPaths;
     private readonly HashSet<UsingDirectiveSyntax> usings;
     private readonly CSharpParseOptions parseOptions;
+    private readonly ITraceLogger logger;
+
+    // The session's resolved-asset model, shared between the managed (#355) and native (#375) resolution paths.
+    private readonly NativeAssemblyResolver nativeAssemblyResolver = new();
+    private readonly ConcurrentDictionary<string, AssemblyName?> assemblyIdentitiesByPath = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, string> unifiedAssemblyPathsByIdentity = new();
+    private readonly HashSet<string> warnedOverriddenIdentities = [];
 
     public IReadOnlySet<string> ImplementationAssemblyPaths => implementationAssemblyPaths;
     public IReadOnlySet<MetadataReference> LoadedImplementationAssemblies => loadedImplementationAssemblies;
@@ -45,6 +54,7 @@ internal sealed class AssemblyReferenceService
     public AssemblyReferenceService(Configuration config, CSharpParseOptions parseOptions, ITraceLogger logger)
     {
         this.parseOptions = parseOptions;
+        this.logger = logger;
         this.dotnetInstallationLocator = new DotNetInstallationLocator(logger);
         this.referenceAssemblyPaths = [];
         this.implementationAssemblyPaths = [];
@@ -120,7 +130,137 @@ internal sealed class AssemblyReferenceService
         loadedReferenceAssemblies.UnionWith(
             references.Select(suppliedReference => EnsureReferenceAssembly(suppliedReference)).WhereNotNull()
         );
-        return loadedReferenceAssemblies;
+        // loadedReferenceAssemblies accumulates across submissions and is deduplicated only by path, so it can hold
+        // several versions of the same assembly. Unify before handing the set to the workspace/compilation.
+        return RemoveDuplicateReferences(loadedReferenceAssemblies);
+    }
+
+    /// <summary>
+    /// Registers a directory containing native assets (a package's runtimes/RID/native folder) so the
+    /// libraries inside become loadable at p/invoke time. https://github.com/waf/CSharpRepl/issues/375
+    /// </summary>
+    public void AddNativeSearchDirectory(string directory) => nativeAssemblyResolver.AddSearchDirectory(directory);
+
+    /// <summary>
+    /// Collapses references that share an assembly identity (simple name + culture + public key token) down to a
+    /// single highest-version reference, mirroring what NuGet restore does for a built app. Without this, separate
+    /// #r closures can each contribute a different version of the same assembly (e.g. a project's transitive
+    /// Microsoft.EntityFrameworkCore plus an explicit `#r "nuget: Microsoft.EntityFrameworkCore"`), and Roslyn
+    /// then sees two distinct identities for the same type, producing confusing errors such as CS1929, where an
+    /// extension method's receiver "isn't the same type". https://github.com/waf/CSharpRepl/issues/355
+    /// </summary>
+    internal IReadOnlyList<MetadataReference> RemoveDuplicateReferences(IEnumerable<MetadataReference> references)
+    {
+        var result = new List<MetadataReference>();
+        var groupsByIdentity = new Dictionary<string, List<(MetadataReference Reference, AssemblyName Identity)>>();
+
+        foreach (var reference in references)
+        {
+            var identity = GetAssemblyIdentity(reference);
+            if (identity?.Name is null)
+            {
+                // No path or not a managed assembly - we have nothing to unify on, so leave it untouched.
+                result.Add(reference);
+                continue;
+            }
+
+            var key = GetIdentityKey(identity);
+            if (!groupsByIdentity.TryGetValue(key, out var group))
+            {
+                groupsByIdentity[key] = group = [];
+            }
+            group.Add((reference, identity));
+        }
+
+        foreach (var (key, group) in groupsByIdentity)
+        {
+            var highestVersion = group.Max(member => GetVersion(member.Identity)) ?? new Version(0, 0, 0, 0);
+
+            // Only intervene on a genuine version conflict. When every copy is the same version (e.g. the same
+            // assembly resolved from multiple paths), keep them all and let Roslyn deduplicate identical identities
+            // itself - collapsing them here can swap in a different physical file than the host already loaded.
+            if (group.All(member => GetVersion(member.Identity) == highestVersion))
+            {
+                result.AddRange(group.Select(member => member.Reference));
+                continue;
+            }
+
+            // Conflicting versions: keep the highest (mirroring NuGet restore) and drop the rest, so the same type
+            // doesn't appear under two assembly identities. https://github.com/waf/CSharpRepl/issues/355
+            foreach (var (reference, identity) in group)
+            {
+                if (GetVersion(identity) == highestVersion)
+                {
+                    result.Add(reference);
+                    // Record the winner so the runtime assembly resolver binds to the same version the compilation used.
+                    if (reference is PortableExecutableReference { FilePath: { } winnerPath })
+                    {
+                        unifiedAssemblyPathsByIdentity[key] = winnerPath;
+                    }
+                }
+                else
+                {
+                    WarnOverridden(key, keptVersion: highestVersion, droppedVersion: GetVersion(identity), name: identity.Name!);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns the path of the unified (highest-version) assembly chosen for <paramref name="name"/>'s identity, if
+    /// one has been resolved during this session. Lets the runtime loader bind to the same version the compilation used.
+    /// </summary>
+    internal bool TryGetUnifiedAssemblyPath(AssemblyName name, [NotNullWhen(true)] out string? path)
+    {
+        if (name.Name is not null && unifiedAssemblyPathsByIdentity.TryGetValue(GetIdentityKey(name), out path))
+        {
+            return true;
+        }
+        path = null;
+        return false;
+    }
+
+    private AssemblyName? GetAssemblyIdentity(MetadataReference reference)
+    {
+        if (reference is not PortableExecutableReference { FilePath: { } path })
+        {
+            return null;
+        }
+
+        return assemblyIdentitiesByPath.GetOrAdd(path, static p =>
+        {
+            try
+            {
+                return AssemblyName.GetAssemblyName(p);
+            }
+            catch (Exception e) when (e is FileNotFoundException or BadImageFormatException or FileLoadException)
+            {
+                return null; // e.g. a native dll that slipped into the reference set
+            }
+        });
+    }
+
+    private static string GetIdentityKey(AssemblyName name)
+    {
+        var publicKeyToken = name.GetPublicKeyToken();
+        var publicKeyTokenText = publicKeyToken is { Length: > 0 } ? Convert.ToHexString(publicKeyToken) : "null";
+        return $"{name.Name!.ToLowerInvariant()}/{name.CultureName ?? string.Empty}/{publicKeyTokenText}";
+    }
+
+    private static Version GetVersion(AssemblyName name) => name.Version ?? new Version(0, 0, 0, 0);
+
+    private void WarnOverridden(string key, Version keptVersion, Version droppedVersion, string name)
+    {
+        lock (warnedOverriddenIdentities)
+        {
+            if (!warnedOverriddenIdentities.Add($"{key}:{droppedVersion}=>{keptVersion}"))
+            {
+                return;
+            }
+        }
+        logger.Log(() => $"Unifying assembly '{name}': using version {keptVersion} and ignoring {droppedVersion}.");
     }
 
     private static (string framework, Version version) GetDesiredFrameworkVersion(string sharedFramework)

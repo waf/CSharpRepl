@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
 using NuGet.Client;
 using NuGet.Configuration;
@@ -34,11 +35,13 @@ internal sealed class NugetPackageInstaller
 
     private readonly ConsoleNugetLogger logger;
     private readonly bool usePrereleaseNugets;
+    private readonly AssemblyReferenceService? referenceAssemblyService;
 
-    public NugetPackageInstaller(IConsoleService console, Configuration configuration)
+    public NugetPackageInstaller(IConsoleService console, Configuration configuration, AssemblyReferenceService? referenceAssemblyService = null)
     {
         this.logger = new ConsoleNugetLogger(console, configuration);
         this.usePrereleaseNugets = configuration.UsePrereleaseNugets;
+        this.referenceAssemblyService = referenceAssemblyService;
     }
 
     public async Task<ImmutableArray<PortableExecutableReference>> InstallAsync(
@@ -167,6 +170,15 @@ internal sealed class NugetPackageInstaller
             .ToArray()
             ?? [];
 
+        string[] FindNativeLibraries(NuGetFramework framework) =>
+            collection.FindBestItemGroup(
+                managedCodeConventions.Criteria.ForFrameworkAndRuntime(framework, RuntimeInformation.RuntimeIdentifier),
+                managedCodeConventions.Patterns.NativeLibraries)
+            ?.Items
+            .Select(i => i.Path)
+            .ToArray()
+            ?? [];
+
         var supportedFrameworks = (await reader.GetSupportedFrameworksAsync(cancellationToken))
             .Where(f => FindDlls(f).Any()) //Not all supported frameworks contains dlls. E.g. Microsoft.CSharp.4.7.0\lib\netcoreapp2.0 contains only empty file '_._'.
             .ToList();
@@ -186,6 +198,19 @@ internal sealed class NugetPackageInstaller
         var dlls = FindDlls(selectedFramework)
                 .Select(path => MetadataReference.CreateFromFile(Path.GetFullPath(Path.Combine(installedPath, path)))) //GetFullPath will normalize separators
                 .ToList();
+
+        // Make any native assets (runtimes/<rid>/native/*) loadable at p/invoke time. These aren't added as
+        // metadata references (they're not managed assemblies), but their containing directory has to be on the
+        // native search path or the managed binding fails to load. https://github.com/waf/CSharpRepl/issues/375
+        foreach (var nativeLibrary in FindNativeLibraries(selectedFramework))
+        {
+            var nativeLibraryDirectory = Path.GetDirectoryName(Path.GetFullPath(Path.Combine(installedPath, nativeLibrary)));
+            if (nativeLibraryDirectory is not null)
+            {
+                referenceAssemblyService?.AddNativeSearchDirectory(nativeLibraryDirectory);
+            }
+        }
+
         if (!dlls.Any())
         {
             logger.LogWarning($"No applicable references were found inside '{packageIdentity}' package.");
@@ -195,9 +220,15 @@ internal sealed class NugetPackageInstaller
             aggregatedReferences[packageIdentity] = dlls;
         }
 
-        var dependencyGroup =
-            (await reader.GetPackageDependenciesAsync(cancellationToken))
-            .FirstOrDefault(g => g.TargetFramework == selectedFramework);
+        // The dependency group to recurse into is chosen independently of which lib/ folder supplied
+        // this package's own dlls. A metapackage (e.g. Microsoft.Data.Sqlite or System.Data.SQLite) has
+        // no dlls of its own, so 'selectedFramework' collapses to AnyFramework above - but its dependencies
+        // are declared under a framework-specific group (e.g. .NETStandard2.0). https://github.com/waf/CSharpRepl/issues/392
+        var dependencyGroups = (await reader.GetPackageDependenciesAsync(cancellationToken)).ToList();
+        var nearestDependencyFramework = frameworkReducer.GetNearest(targetFramework, dependencyGroups.Select(g => g.TargetFramework));
+        var dependencyGroup = nearestDependencyFramework is null
+            ? null
+            : dependencyGroups.FirstOrDefault(g => g.TargetFramework.Equals(nearestDependencyFramework));
 
         if (dependencyGroup is null)
             return;

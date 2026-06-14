@@ -150,6 +150,13 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
             }
         }
 
+        // Bind to the same version the compilation unified on, so runtime type identity matches compile-time
+        // (otherwise we'd trade a compile error for a runtime TypeLoad/MissingMethod). https://github.com/waf/CSharpRepl/issues/355
+        if (located is null && referenceAssemblyService.TryGetUnifiedAssemblyPath(assemblyName, out var unifiedPath))
+        {
+            located = loadContext.LoadFromAssemblyPath(unifiedPath);
+        }
+
         located ??= referenceAssemblyService.ImplementationAssemblyPaths
                 .SelectMany(path => Directory.GetFiles(path, "*.dll"))
                 .Where(file => Path.GetFileNameWithoutExtension(file) == assemblyName.Name)
