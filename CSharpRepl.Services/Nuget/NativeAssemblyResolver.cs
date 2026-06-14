@@ -14,44 +14,36 @@ using System.Threading;
 namespace CSharpRepl.Services.Nuget;
 
 /// <summary>
-/// Makes native libraries that ship inside nuget packages (under <c>runtimes/&lt;rid&gt;/native/</c>)
-/// loadable at runtime. Unlike a normal <c>dotnet build</c>, the REPL references package assemblies
-/// in-place from the package cache and never copies their native assets next to an output executable,
-/// so the default p/invoke search (next to the calling assembly + the OS search path) can't find them.
-/// We register the directories that contain the current RID's native assets and resolve unmanaged dll
-/// loads out of them as a fallback. https://github.com/waf/CSharpRepl/issues/375
+/// Makes native libraries that ship inside nuget packages loadable at runtime. Unlike a normal `dotnet build`, the REPL references package assemblies
+/// in-place from the package cache and never copies their native assets next to an output executable, so the default p/invoke search (next to the calling
+/// assembly + the OS search path) can't find them. https://github.com/waf/CSharpRepl/issues/375
 /// </summary>
 /// <remarks>
-/// The p/invoking package assemblies (e.g. <c>SQLitePCLRaw.provider.e_sqlite3</c>) are loaded by Roslyn's
-/// <c>InteractiveAssemblyLoader</c> into its own non-default <see cref="AssemblyLoadContext"/>, and
-/// <see cref="AssemblyLoadContext.ResolvingUnmanagedDll"/> only fires on the context of the assembly that
-/// declared the p/invoke. We therefore attach the resolver to every load context in the process (the
-/// default one plus any that scripting creates), discovering new ones as assemblies are loaded.
+/// Owned by <see cref="Roslyn.References.AssemblyReferenceService"/> so native (GH Issue #375) and managed (GH Issue #355) resolution share one session-scoped
+/// owner. The handler is attached to the load contexts in the process, so the set of search directories is effectivelyprocess-wide as well.
 /// </remarks>
-internal static class NativeAssemblyResolver
+internal sealed class NativeAssemblyResolver
 {
-    // The handler is attached to process-wide load contexts, so the set of search directories is
-    // necessarily process-global as well.
-    private static readonly ConcurrentDictionary<string, byte> SearchDirectories = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly HashSet<AssemblyLoadContext> HookedContexts = new();
-    private static int initialized;
+    private readonly ConcurrentDictionary<string, byte> searchDirectories = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<AssemblyLoadContext> hookedContexts = new();
+    private int initialized;
 
     /// <summary>
     /// Registers a directory (e.g. a package's <c>runtimes/&lt;rid&gt;/native</c> folder) to be searched
     /// when an unmanaged dll fails to load through the default mechanism.
     /// </summary>
-    public static void AddSearchDirectory(string directory)
+    public void AddSearchDirectory(string directory)
     {
         if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
         {
             return;
         }
 
-        SearchDirectories.TryAdd(directory, 0);
+        searchDirectories.TryAdd(directory, 0);
         EnsureHooksInstalled();
     }
 
-    private static void EnsureHooksInstalled()
+    private void EnsureHooksInstalled()
     {
         if (Interlocked.Exchange(ref initialized, 1) != 0)
         {
@@ -69,7 +61,7 @@ internal static class NativeAssemblyResolver
         }
     }
 
-    private static void HookContextOf(Assembly assembly)
+    private void HookContextOf(Assembly assembly)
     {
         var context = AssemblyLoadContext.GetLoadContext(assembly);
         if (context is not null)
@@ -78,20 +70,20 @@ internal static class NativeAssemblyResolver
         }
     }
 
-    private static void HookContext(AssemblyLoadContext context)
+    private void HookContext(AssemblyLoadContext context)
     {
-        lock (HookedContexts)
+        lock (hookedContexts)
         {
-            if (HookedContexts.Add(context))
+            if (hookedContexts.Add(context))
             {
                 context.ResolvingUnmanagedDll += Resolve;
             }
         }
     }
 
-    private static IntPtr Resolve(Assembly assembly, string unmanagedDllName)
+    private IntPtr Resolve(Assembly assembly, string unmanagedDllName)
     {
-        foreach (var directory in SearchDirectories.Keys)
+        foreach (var directory in searchDirectories.Keys)
         {
             foreach (var candidate in GetCandidateFileNames(unmanagedDllName))
             {

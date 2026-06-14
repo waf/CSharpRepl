@@ -160,6 +160,23 @@ public class EvaluationTests : IAsyncLifetime
         Assert.IsType<EvaluationResult.Success>(importResult);
     }
 
+    [Fact] // https://github.com/waf/CSharpRepl/issues/355
+    public async Task Evaluate_ConflictingPackageVersions_UnifiesToHighestVersion()
+    {
+        // Two #r closures pull in different versions of the same assembly. Without identity-based unification
+        // both land in the compilation, so a type defined in both (JsonConvert) is ambiguous (CS0433) - the same
+        // class of failure as the transitive extension-method conflict in the original report (CS1929). Unification
+        // collapses them to the highest version, so the code compiles and binds against Newtonsoft.Json 13.
+        await services.EvaluateAsync(@"#r ""nuget: Newtonsoft.Json, 12.0.3""", cancellationToken: TestContext.Current.CancellationToken);
+        await services.EvaluateAsync(@"#r ""nuget: Newtonsoft.Json, 13.0.3""", cancellationToken: TestContext.Current.CancellationToken);
+        var result = await services.EvaluateAsync(
+            @"Newtonsoft.Json.JsonConvert.SerializeObject(new { a = 1 }) + "" v"" + typeof(Newtonsoft.Json.JsonConvert).Assembly.GetName().Version",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var success = Assert.IsType<EvaluationResult.Success>(result);
+        Assert.Equal(@"{""a"":1} v13.0.0.0", success.ReturnValue.Value);
+    }
+
     [Fact]
     public async Task Evaluate_SolutionReference_ReferencesAllProjects()
     {

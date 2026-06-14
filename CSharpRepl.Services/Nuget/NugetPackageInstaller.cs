@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
 using NuGet.Client;
 using NuGet.Configuration;
@@ -34,11 +35,13 @@ internal sealed class NugetPackageInstaller
 
     private readonly ConsoleNugetLogger logger;
     private readonly bool usePrereleaseNugets;
+    private readonly AssemblyReferenceService? referenceAssemblyService;
 
-    public NugetPackageInstaller(IConsoleService console, Configuration configuration)
+    public NugetPackageInstaller(IConsoleService console, Configuration configuration, AssemblyReferenceService? referenceAssemblyService = null)
     {
         this.logger = new ConsoleNugetLogger(console, configuration);
         this.usePrereleaseNugets = configuration.UsePrereleaseNugets;
+        this.referenceAssemblyService = referenceAssemblyService;
     }
 
     public async Task<ImmutableArray<PortableExecutableReference>> InstallAsync(
@@ -204,7 +207,7 @@ internal sealed class NugetPackageInstaller
             var nativeLibraryDirectory = Path.GetDirectoryName(Path.GetFullPath(Path.Combine(installedPath, nativeLibrary)));
             if (nativeLibraryDirectory is not null)
             {
-                NativeAssemblyResolver.AddSearchDirectory(nativeLibraryDirectory);
+                referenceAssemblyService?.AddNativeSearchDirectory(nativeLibraryDirectory);
             }
         }
 

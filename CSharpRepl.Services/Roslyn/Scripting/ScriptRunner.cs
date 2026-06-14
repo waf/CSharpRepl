@@ -56,7 +56,7 @@ internal sealed class ScriptRunner
 
         var dotnetBuilder = new DotnetBuilder(console);
         var solutionFileMetadataResolver = new SolutionFileMetadataResolver(dotnetBuilder, console);
-        var nugetResolver = new NugetPackageMetadataResolver(console, configuration);
+        var nugetResolver = new NugetPackageMetadataResolver(console, configuration, referenceAssemblyService);
 
         this.alternativeReferenceResolver = new CompositeAlternativeReferenceResolver(
             nugetResolver,
@@ -92,7 +92,9 @@ internal sealed class ScriptRunner
                 // load the framework _reference_ assemblies (e.g. Microsoft.NETCore.App.Ref), causing the error from https://github.com/waf/CSharpRepl/issues/399
                 state ??= await EvaluateStringWithStateAsync(string.Empty, state: null, assemblyLoader, scriptOptions, args, cancellationToken).ConfigureAwait(false);
 
-                this.scriptOptions = this.scriptOptions.WithReferences(scriptOptions.MetadataReferences.Concat(alternativeResolutions).DistinctBy(r => r.Display));
+                // Unify by assembly identity (not just by path), so conflicting versions pulled in by different
+                // `#r` closures collapse to one - see RemoveDuplicateReferences. https://github.com/waf/CSharpRepl/issues/355
+                this.scriptOptions = this.scriptOptions.WithReferences(referenceAssemblyService.RemoveDuplicateReferences(scriptOptions.MetadataReferences.Concat(alternativeResolutions)));
             }
 
             var usings = referenceAssemblyService.GetUsings(text);
@@ -139,7 +141,9 @@ internal sealed class ScriptRunner
         referenceAssemblyService.AddImplementationAssemblyReferences(state.Script.GetCompilation().References);
         var frameworkReferenceAssemblies = referenceAssemblyService.LoadedReferenceAssemblies;
         var frameworkImplementationAssemblies = referenceAssemblyService.LoadedImplementationAssemblies;
-        this.scriptOptions = this.scriptOptions.WithReferences(frameworkImplementationAssemblies);
+        // The accumulated implementation assemblies are deduplicated only by path, so re-unify by identity before
+        // they become the next submission's references. https://github.com/waf/CSharpRepl/issues/355
+        this.scriptOptions = this.scriptOptions.WithReferences(referenceAssemblyService.RemoveDuplicateReferences(frameworkImplementationAssemblies));
         var returnValue = hasValueReturningStatement ? new Optional<object?>(state.ReturnValue) : default;
         return new EvaluationResult.Success(text, returnValue, frameworkImplementationAssemblies.Concat(frameworkReferenceAssemblies).ToList());
     }

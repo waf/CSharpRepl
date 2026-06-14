@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Nuget;
+using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
@@ -20,9 +21,9 @@ internal sealed class NugetPackageMetadataResolver : AlternativeReferenceResolve
     private const string NugetPrefixWithHashR = "#r \"" + NugetPrefix;
     private readonly NugetPackageInstaller nugetInstaller;
 
-    public NugetPackageMetadataResolver(IConsoleService console, Configuration configuration)
+    public NugetPackageMetadataResolver(IConsoleService console, Configuration configuration, AssemblyReferenceService referenceAssemblyService)
     {
-        this.nugetInstaller = new NugetPackageInstaller(console, configuration);
+        this.nugetInstaller = new NugetPackageInstaller(console, configuration, referenceAssemblyService);
     }
 
     public override bool CanResolve(string reference) =>
