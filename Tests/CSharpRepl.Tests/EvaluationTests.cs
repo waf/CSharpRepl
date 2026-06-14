@@ -44,6 +44,20 @@ public class EvaluationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Evaluate_FailingDebugAssert_DoesNotCrashAndReturnsError()
+    {
+        // Without DebugAssertHandler, a failed Debug.Assert FailFasts and crashes the whole process.
+        // Debug.Assert is [Conditional("DEBUG")], so the submission must define DEBUG for it to emit.
+        // See https://github.com/waf/CSharpRepl/issues/374.
+        var result = await services.EvaluateAsync(
+            "#define DEBUG\nSystem.Diagnostics.Debug.Assert(false, \"boom\");",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var error = Assert.IsType<EvaluationResult.Error>(result);
+        Assert.Contains("boom", error.Exception.Message);
+    }
+
+    [Fact]
     public async Task Evaluate_Variable_ReturnsValue()
     {
         var variableAssignment = await services.EvaluateAsync(@"var x = ""Hello World"";", cancellationToken: TestContext.Current.CancellationToken);
