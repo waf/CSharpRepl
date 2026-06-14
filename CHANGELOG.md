@@ -1,3 +1,7 @@
+## Unreleased
+
+- Fix `inspect init` printing `cmd` syntax (`set "..."`) instead of PowerShell syntax when the RID-specific tool is run from PowerShell. The `.cmd` tool shim makes Windows insert a transient `cmd.exe /c` between PowerShell and the tool; shell detection now walks past such a cmd when its own parent is itself a recognized shell.
+
 ## Release 0.8.0
 
 - New `inspect` feature: attach to a separate, already-running .NET process and evaluate C# inside it with full local-REPL parity (IntelliSense, highlighting, pretty-printing), reading and writing its live state. Run `csharprepl inspect init` to get the launch environment variables, then `csharprepl inspect <pid>`. It is cooperative and opt-in only ([#477](https://github.com/waf/CSharpRepl/pull/477)).

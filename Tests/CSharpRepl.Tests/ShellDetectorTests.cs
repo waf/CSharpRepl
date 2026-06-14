@@ -40,4 +40,37 @@ public class ShellDetectorTests
         var shell = ShellDetector.DetectShell();
         Assert.True(shell is null or "pwsh" or "cmd" or "bash" or "fish");
     }
+
+    [Fact]
+    public void ResolveShellFromAncestry_ReturnsNearestRecognizedShell()
+        => Assert.Equal("pwsh", ShellDetector.ResolveShellFromAncestry(["pwsh", "WindowsTerminal"]));
+
+    [Fact]
+    public void ResolveShellFromAncestry_SkipsNonShellHostsToReachShell()
+        // `dotnet run`: pwsh → dotnet → dotnet → CSharpRepl. The dotnet hosts are skipped to reach pwsh.
+        => Assert.Equal("pwsh", ShellDetector.ResolveShellFromAncestry(["dotnet", "dotnet", "pwsh"]));
+
+    [Fact]
+    public void ResolveShellFromAncestry_SkipsTransientCmdShimWrapper()
+        // RID-specific tool from pwsh: pwsh → cmd (/c …csharprepl.cmd) → CSharpRepl. The cmd is a
+        // transient batch-shim wrapper whose parent is the real shell, so we resolve pwsh, not cmd.
+        => Assert.Equal("pwsh", ShellDetector.ResolveShellFromAncestry(["cmd", "pwsh"]));
+
+    [Fact]
+    public void ResolveShellFromAncestry_KeepsInteractiveCmd()
+        // WindowsTerminal → cmd → CSharpRepl: cmd's parent isn't a shell, so it's a genuine cmd prompt.
+        => Assert.Equal("cmd", ShellDetector.ResolveShellFromAncestry(["cmd", "WindowsTerminal"]));
+
+    [Fact]
+    public void ResolveShellFromAncestry_KeepsCmdWhenItIsTheTopKnownAncestor()
+        // Nothing above the cmd to prove it's a shim wrapper → keep cmd (the conservative default).
+        => Assert.Equal("cmd", ShellDetector.ResolveShellFromAncestry(["cmd"]));
+
+    [Fact]
+    public void ResolveShellFromAncestry_NoRecognizedShell_ReturnsNull()
+        => Assert.Null(ShellDetector.ResolveShellFromAncestry(["explorer", "services"]));
+
+    [Fact]
+    public void ResolveShellFromAncestry_EmptyAncestry_ReturnsNull()
+        => Assert.Null(ShellDetector.ResolveShellFromAncestry([]));
 }

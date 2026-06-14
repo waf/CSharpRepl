@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -10,67 +11,101 @@ using System.Runtime.InteropServices;
 namespace CSharpRepl.Commands;
 
 /// <summary>
-/// Best-effort detection of the interactive shell that launched this process, used by
-/// <c>csharprepl inspect init</c> to emit env-var exports in the right syntax without the user
-/// having to pass <c>--shell</c>. The reliable signal is the parent process: shell variables like
-/// <c>BASH_VERSION</c>/<c>ZSH_VERSION</c> aren't exported (a child can't see them) and <c>SHELL</c>
-/// is the login shell, not necessarily the one currently driving the terminal. So we walk up the
-/// process tree and match the first recognized shell name.
+/// Best-effort detection of the interactive shell that launched us, so `csharprepl inspect init`
+/// can emit env-var exports in the right syntax without the user passing `--shell`. We match the
+/// parent process, not env vars, because:
+/// - shell vars like `BASH_VERSION`/`ZSH_VERSION` aren't exported to children
+/// - `SHELL` is the login shell, not necessarily the one driving the terminal
 /// </summary>
 internal static class ShellDetector
 {
     /// <summary>
-    /// Returns the normalized shell name (<c>"pwsh"</c>, <c>"cmd"</c>, <c>"bash"</c>, or <c>"fish"</c>)
-    /// of the nearest ancestor process that is a recognized shell, or <c>null</c> when none is found
-    /// (the caller should fall back to an OS default). Never throws.
+    /// Returns the normalized shell name (`pwsh`, `cmd`, `bash`, or `fish`) of the nearest ancestor
+    /// process that is a recognized shell, or `null` when none is found (the caller should fall back
+    /// to an OS default). Never throws.
     /// </summary>
     public static string? DetectShell()
     {
         try
         {
-            // Walk up a few levels so intermediate hosts (the apphost, `dotnet`, `dotnet tool run`)
-            // between us and the real shell don't hide it. The cap also guards against pid cycles.
-            var pid = Environment.ProcessId;
-            for (var depth = 0; depth < 5; depth++)
-            {
-                var ppid = GetParentPid(pid);
-                if (ppid <= 0)
-                {
-                    break;
-                }
-
-                string name;
-                try
-                {
-                    using var parent = Process.GetProcessById(ppid);
-                    name = parent.ProcessName;
-                }
-                catch
-                {
-                    // Parent already exited, or the pid was reused for something we can't open.
-                    break;
-                }
-
-                var shell = MapShellName(name);
-                if (shell is not null)
-                {
-                    return shell;
-                }
-
-                pid = ppid;
-            }
+            return ResolveShellFromAncestry(GetAncestorProcessNames());
         }
         catch
         {
             // Best-effort only: any failure falls back to the caller's OS default.
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Collects up to a few ancestor process names, nearest first. Best-effort:
+    /// - walks several levels so hosts between us and the shell (apphost, `dotnet`, a transient `cmd /c` shim) don't hide it
+    /// - the depth cap also guards against pid cycles
+    /// - stops at the first ancestor it can't resolve (exited / pid reused / unsupported platform)
+    /// </summary>
+    private static List<string> GetAncestorProcessNames()
+    {
+        var names = new List<string>();
+        var pid = Environment.ProcessId;
+        for (var depth = 0; depth < 5; depth++)
+        {
+            var ppid = GetParentPid(pid);
+            if (ppid <= 0)
+            {
+                break;
+            }
+
+            try
+            {
+                using var parent = Process.GetProcessById(ppid);
+                names.Add(parent.ProcessName);
+            }
+            catch
+            {
+                // Parent already exited, or the pid was reused for something we can't open.
+                break;
+            }
+
+            pid = ppid;
+        }
+
+        return names;
+    }
+
+    /// <summary>
+    /// Picks the shell from an ancestry chain (nearest first): the first recognized shell wins, except a
+    /// `cmd` whose own parent is also a recognized shell. That's the transient `cmd.exe /c` wrapper around
+    /// our `.cmd` tool shim that Windows inserts when a non-cmd shell runs it (RID-specific tools ship a
+    /// `.cmd`, not an apphost `.exe`):
+    /// - shim wrapper — its parent is the real shell, so skip it and keep walking
+    /// - genuine interactive cmd — its parent is the terminal/conhost (not a shell), so keep it
+    /// Returns `null` when no ancestor is a recognized shell.
+    /// </summary>
+    internal static string? ResolveShellFromAncestry(IReadOnlyList<string> ancestorNames)
+    {
+        for (var i = 0; i < ancestorNames.Count; i++)
+        {
+            var shell = MapShellName(ancestorNames[i]);
+            if (shell is null)
+            {
+                continue;
+            }
+
+            // Transient `cmd /c <shim>.cmd` wrapper: its parent is the real shell, so keep walking.
+            if (shell == "cmd" && i + 1 < ancestorNames.Count && MapShellName(ancestorNames[i + 1]) is not null)
+            {
+                continue;
+            }
+
+            return shell;
         }
 
         return null;
     }
 
     /// <summary>
-    /// Maps a raw process name (no path, no <c>.exe</c>, any casing) to the normalized shell name
-    /// understood by the export builder, or <c>null</c> if it isn't a recognized shell.
+    /// Maps a raw process name (no path, no `.exe`, any casing) to the normalized shell name
+    /// understood by the export builder, or `null` if it isn't a recognized shell.
     /// </summary>
     internal static string? MapShellName(string processName) => processName.ToLowerInvariant() switch
     {
@@ -82,10 +117,10 @@ internal static class ShellDetector
     };
 
     /// <summary>
-    /// Returns the parent process id of <paramref name="pid"/>, or a non-positive value when it can't
-    /// be determined. Windows and Linux resolve any pid; macOS resolves only the current process's
-    /// parent (the common single-hop case), since deeper walks there would require fragile struct
-    /// offsets into <c>kinfo_proc</c>.
+    /// Returns the parent pid of <paramref name="pid"/>, or a non-positive value when it can't be
+    /// determined. Per platform:
+    /// - Windows / Linux — resolve any pid
+    /// - macOS — only the current process's parent (the common single-hop case); deeper walks would need fragile `kinfo_proc` struct offsets
     /// </summary>
     private static int GetParentPid(int pid)
     {
