@@ -30,7 +30,10 @@ public sealed class Configuration
     public static readonly string DefaultThemeRelativePath = Path.Combine("themes", "VisualStudio_Dark.json");
 
     public const string PromptDefault = "> ";
-
+    
+    public const string KeyBindingPatternDescription =
+        "Key pattern is a key with optional modifiers (Alt/Shift/Control) e.g. 'Enter', 'Control+A'";
+  
     /// <summary>
     /// The directory where csharprepl stores its config file, prompt history, and the (potentially large)
     /// NuGet package and symbol caches.
@@ -227,8 +230,6 @@ public sealed class Configuration
     {
         if (string.IsNullOrEmpty(keyPattern)) return default;
 
-        const string GeneralInfo = "Key pattern must contain one key with optional modifiers (Alt/Shift/Control). E.g. 'Enter', 'Control+A', '(', 'Alt+.', ...";
-
         ConsoleKey? key = null;
         char? keyChar = null;
         ConsoleModifiers modifiers = default;
@@ -250,7 +251,7 @@ public sealed class Configuration
             }
             else
             {
-                throw new ArgumentException($"Unable to parse '{part}'. {GeneralInfo}", nameof(keyPattern));
+                throw new ArgumentException($"Unable to parse '{part}'. {KeyBindingPatternDescription}", nameof(keyPattern));
             }
         }
 
@@ -267,7 +268,7 @@ public sealed class Configuration
             return new KeyPressPattern(keyChar.Value);
         }
 
-        static void Throw() => throw new ArgumentException(GeneralInfo, nameof(keyPattern));
+        static void Throw() => throw new ArgumentException(KeyBindingPatternDescription, nameof(keyPattern));
 
         static bool TryParseConsoleModifiers(string text, out ConsoleModifiers result)
         {
