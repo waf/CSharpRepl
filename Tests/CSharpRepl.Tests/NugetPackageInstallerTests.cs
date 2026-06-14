@@ -79,4 +79,19 @@ public class NugetPackageInstallerTests : IAsyncLifetime
         Assert.NotNull(reference);
         Assert.True(reference.FilePath.Contains("lib", StringComparison.OrdinalIgnoreCase));
     }
+
+    [Fact] // https://github.com/waf/CSharpRepl/issues/392
+    public async Task InstallMetapackageWithFrameworkSpecificDependencies()
+    {
+        // Microsoft.Data.Sqlite has no lib dll of its own (only lib/netstandard2.0/_._); all of its
+        // assemblies come from dependencies that are declared under a framework-specific (.NETStandard2.0)
+        // dependency group. Unlike Humanizer (whose dependencies live in an "Any" group), this exercises
+        // matching the dependency group against the target framework independently of the (empty) lib folder.
+        var references = await installer.InstallAsync("Microsoft.Data.Sqlite", "9.0.1", TestContext.Current.CancellationToken);
+
+        Assert.True(references.Length >= 1);
+        var reference = references.FirstOrDefault(r => r.FilePath.EndsWith("Microsoft.Data.Sqlite.dll", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(reference);
+        Assert.True(reference.FilePath.Contains("lib", StringComparison.OrdinalIgnoreCase));
+    }
 }
