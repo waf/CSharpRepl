@@ -1,6 +1,6 @@
 # csharprepl website
 
-Source for the promotional site at <https://fuqua.io/csharprepl>.
+Source for the promotional site at <https://fuqua.io/CSharpRepl>.
 
 This is a plain static site — no build step, no Jekyll. GitHub Pages serves the
 files in this branch as-is (the `.nojekyll` file disables Jekyll processing).
