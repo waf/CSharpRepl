@@ -630,7 +630,8 @@ internal static class CommandLine
             $"  [green]--tabSize[/] [cyan]<width>[/]:                          {TabSize.Description}" + NewLine +
             $"  [green]--culture[/] [cyan]<culture name>[/]:                   {Culture.Description}" + NewLine +
             NewLine +
-            $"  Key Bindings" + NewLine +
+            $"  Key Bindings:                               {Configuration.KeyBindingPatternDescription}" + NewLine +
+            $"                                              Specifying an option multiple times makes any of its key bindings trigger the action." + NewLine +
             $"  [green]--triggerCompletionListKeys[/] [cyan]<key-binding>[/]:  {TriggerCompletionListKeyBindings.Description}" + NewLine +
             $"  [green]--newLineKeys[/] [cyan]<key-binding>[/]:                {NewLineKeyBindings.Description}" + NewLine +
             $"  [green]--submitPromptKeys[/] [cyan]<key-binding>[/]:           {SubmitPromptKeyBindings.Description}" + NewLine +
