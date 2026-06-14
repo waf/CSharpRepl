@@ -147,7 +147,8 @@ csharprepl inspect init        # this autodetects your shell, or pass e.g. --she
 3. Attach to the application by its process ID:
 
 ```console
-csharprepl inspect 1234
+csharprepl inspect list   # lists available processes to attach to, with their process ID.
+csharprepl inspect 1234   # attaches to a process with process ID e.g. 1234
 ```
 
 This will start the REPL in the target application. Some things you can try:

@@ -3,6 +3,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
 using System.Net.Sockets;
@@ -26,12 +28,94 @@ public static class InspectorTransport
 {
     public const int ProtocolVersion = 1;
 
+    // The endpoint name embeds the target's process id. These are the single source of truth for that
+    // convention: PipeName/SocketPath build it, and TryParseProcessId/EnumerateListeningProcessIds reverse it
+    // for discovery (`inspect list`). Keep them in sync.
+    private const string PipeNamePrefix = "CSharpRepl.InjectedHook.";
+    private const string SocketNamePrefix = "inspector-";
+    private const string SocketNameSuffix = ".sock";
+
     /// <summary>The Windows named-pipe name for a given target process id.</summary>
-    public static string PipeName(int processId) => $"CSharpRepl.InjectedHook.{processId}";
+    public static string PipeName(int processId) => PipeNamePrefix + processId;
 
     /// <summary>The Unix domain socket path for a given target process id (inside a 0700 user dir).</summary>
     public static string SocketPath(int processId) =>
-        Path.Combine(SocketDirectory(), $"inspector-{processId}.sock");
+        Path.Combine(SocketDirectory(), SocketNamePrefix + processId + SocketNameSuffix);
+
+    /// <summary>
+    /// Discovers the process ids of inspector-enabled processes for the current user by scanning the
+    /// transport namespace for our PID-embedded endpoints.
+    ///
+    /// - Windows: named pipes under <c>\\.\pipe\</c> matching <see cref="PipeName(int)"/>.
+    /// - Unix: socket files in the user-private socket directory matching <see cref="SocketPath(int)"/>.
+    ///
+    /// Best-effort and never throws. A returned id may still be stale (a crashed Unix process can leave 
+    /// its socket behind), so the caller should confirm liveness.
+    /// </summary>
+    public static IReadOnlyList<int> EnumerateListeningProcessIds()
+    {
+        var processIds = new HashSet<int>();
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                const string PipeRoot = @"\\.\pipe\";
+                foreach (var pipe in Directory.GetFiles(PipeRoot))
+                {
+                    // Directory.GetFiles returns full paths like \\.\pipe\CSharpRepl.InjectedHook.1234.
+                    var name = pipe.StartsWith(PipeRoot, StringComparison.Ordinal) ? pipe[PipeRoot.Length..] : pipe;
+                    if (TryParseProcessId(name, out var processId)) processIds.Add(processId);
+                }
+            }
+            else
+            {
+                var directory = SocketDirectory();
+                if (Directory.Exists(directory))
+                {
+                    foreach (var socket in Directory.GetFiles(directory, SocketNamePrefix + "*" + SocketNameSuffix))
+                    {
+                        if (TryParseProcessId(Path.GetFileName(socket), out var processId)) processIds.Add(processId);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Discovery is advisory; a failure to enumerate the namespace just yields what we found so far.
+        }
+
+        var sorted = new List<int>(processIds);
+        sorted.Sort();
+        return sorted;
+    }
+
+    /// <summary>
+    /// Extracts the process id from a transport endpoint name (a Windows pipe name or a Unix socket file
+    /// name), reversing <see cref="PipeName(int)"/> / <see cref="SocketPath(int)"/>.
+    /// </summary>
+    public static bool TryParseProcessId(string endpointName, out int processId)
+    {
+        processId = 0;
+        if (string.IsNullOrEmpty(endpointName)) return false;
+
+        string number;
+        if (endpointName.StartsWith(PipeNamePrefix, StringComparison.Ordinal))
+        {
+            number = endpointName[PipeNamePrefix.Length..];
+        }
+        else if (endpointName.StartsWith(SocketNamePrefix, StringComparison.Ordinal) &&
+                 endpointName.EndsWith(SocketNameSuffix, StringComparison.Ordinal))
+        {
+            number = endpointName[SocketNamePrefix.Length..^SocketNameSuffix.Length];
+        }
+        else
+        {
+            return false;
+        }
+
+        // NumberStyles.None: digits only — reject a leading sign, whitespace, or thousands separators.
+        return int.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out processId) && processId > 0;
+    }
 
     /// <summary>
     /// Connects to the inspector listening for processId, retrying until the listener exists or the timeout

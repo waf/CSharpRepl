@@ -7,11 +7,13 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Completions;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using CSharpRepl.InjectedHook.Contracts;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Completion;
 using CSharpRepl.Services.Roslyn.References;
@@ -215,6 +217,7 @@ internal static class CommandLine
 
     private static readonly string InspectUsage =
         "Usage: csharprepl inspect <pid>                          connect to a running, inspector-enabled process" + NewLine +
+        "       csharprepl inspect list                           list the inspector-enabled processes you can connect to" + NewLine +
         "       csharprepl inspect init [--shell pwsh|bash|cmd]   print the env vars to launch your app with";
 
     public static Configuration Parse(string[] args, string configFilePath)
@@ -252,10 +255,11 @@ internal static class CommandLine
         {
             Options = { InspectShell }
         };
+        var inspectList = new Command("list", "List the running, inspector-enabled processes you can connect to.");
         var inspect = new Command("inspect", "Connect to and evaluate code in a running, inspector-enabled .NET process.")
         {
             Arguments = { InspectPid },
-            Subcommands = { inspectInit },
+            Subcommands = { inspectInit, inspectList },
         };
         availableCommands.Subcommands.Add(inspect);
 
@@ -279,6 +283,17 @@ internal static class CommandLine
             // Wrapped in PlainText (not Text) so the exports are written verbatim — word-wrapping a long path
             // would corrupt a copy-paste or a pipe into the shell.
             return new Configuration(outputForEarlyExit: new PlainText(BuildInspectInitExports(ResolveInitShell(commandLine.GetValue(InspectShell)))));
+        }
+
+        // `inspect list` is a human-facing report of the currently attachable processes — print it and exit,
+        // before any REPL or config-file setup (like `inspect init`).
+        if (invokedCommand == inspectList)
+        {
+            if (commandLine.Errors.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(NewLine, commandLine.Errors.Select(e => e.Message)));
+            }
+            return new Configuration(outputForEarlyExit: BuildInspectListOutput());
         }
 
         if (!File.Exists(configFilePath))
@@ -386,6 +401,61 @@ internal static class CommandLine
                 $@"$env:DOTNET_STARTUP_HOOKS = ""{bootstrap}""",
                 $@"$env:ASPNETCORE_HOSTINGSTARTUPASSEMBLIES = ""{HostingStartupAssembly}"""),
         };
+    }
+
+    /// <summary>
+    /// Builds the `inspect list` report: the inspector-enabled processes the current user can connect to.
+    /// The process name is read from the pid, which also drops a stale endpoint left behind by a crashed process.
+    /// </summary>
+    private static IRenderable BuildInspectListOutput()
+    {
+        var processes = InspectorTransport.EnumerateListeningProcessIds()
+            .Select(pid => (Pid: pid, Name: TryGetProcessName(pid)))
+            .Where(p => p.Name is not null)
+            .Select(p => (p.Pid, p.Name!))
+            .ToList();
+
+        return RenderInspectList(processes);
+    }
+
+    /// <summary>
+    /// Renders the `inspect list` report from an already-resolved (pid, name) set: a hint when nothing is
+    /// attachable, otherwise a table plus the connect hint. Split from <see cref="BuildInspectListOutput"/>
+    /// (which does the live discovery) so the rendering can be tested without depending on running processes.
+    /// </summary>
+    internal static IRenderable RenderInspectList(IReadOnlyList<(int ProcessId, string ProcessName)> processes)
+    {
+        if (processes.Count == 0)
+        {
+            return new Markup(
+                "No inspector-enabled processes found." + NewLine +
+                "Launch your app with the environment variables from [green]csharprepl inspect init[/], then run [green]csharprepl inspect list[/] again.");
+        }
+
+        var table = new Table()
+            .AddColumn("PID")
+            .AddColumn("Process");
+        // Use Text (not markup strings) for the cells so a process name containing '[' isn't parsed as markup.
+        foreach (var (processId, processName) in processes)
+        {
+            table.AddRow(new Text(processId.ToString()), new Text(processName));
+        }
+
+        return new Rows(table, new Markup("Connect with [green]csharprepl inspect [/][cyan]<pid>[/]."));
+    }
+
+    /// <summary>Resolves a pid to its process name, or null if the process is gone (e.g. a stale endpoint).</summary>
+    private static string? TryGetProcessName(int processId)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(processId);
+            return process.ProcessName;
+        }
+        catch
+        {
+            return null; // not running anymore — skip it
+        }
     }
 
     private static bool ShouldExitEarly(ParseResult commandLine, string configFilePath, out IRenderable? text)
@@ -537,7 +607,7 @@ internal static class CommandLine
     {
         var text =
             "[underline]Usage[/]: [aqua]csharprepl[/] [green][[OPTIONS]][/] [cyan][[@response-file.rsp]][/] [cyan][[script-file.csx]][/] [green][[-- <additional-arguments>]][/]" + NewLine +
-            "       [aqua]csharprepl[/] [green]inspect[/] [cyan]<pid>[/]   or   [aqua]csharprepl[/] [green]inspect init[/] [green][[--shell <shell>]][/]" + NewLine + NewLine +
+            "       [aqua]csharprepl[/] [green]inspect[/] [cyan]<pid>[/]   or   [aqua]csharprepl[/] [green]inspect list[/]   or   [aqua]csharprepl[/] [green]inspect init[/] [green][[--shell <shell>]][/]" + NewLine + NewLine +
             "Starts a REPL (read eval print loop) according to the provided [green][[OPTIONS]][/]." + NewLine +
             "These [green][[OPTIONS]][/] can be provided at the command line, or via a [cyan][[@response-file.rsp]][/]." + NewLine +
             "A [cyan][[script-file.csx]][/], if provided, will be executed before the prompt starts." + NewLine + NewLine +
@@ -580,6 +650,8 @@ internal static class CommandLine
             "  [green]inspect[/] [cyan]<pid>[/]:" + NewLine +
             "      Connect to and evaluate code in a running, inspector-enabled .NET process." + NewLine +
             "      The REPL [green][[OPTIONS]][/] above (e.g. [green]--theme[/]) also apply to the remote session." + NewLine +
+            "  [green]inspect list[/]:" + NewLine +
+            "      List the running, inspector-enabled processes you can connect to (with their process ids)." + NewLine +
             "  [green]inspect init[/] [green][[--shell pwsh|powershell|cmd|bash|fish]][/]:" + NewLine +
             "      Print the environment variables to launch your app with so it can be inspected." + NewLine +
             "      The shell is auto-detected from the parent process when [green]--shell[/] is omitted." + NewLine + NewLine +
