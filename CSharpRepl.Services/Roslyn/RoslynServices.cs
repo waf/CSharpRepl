@@ -87,6 +87,8 @@ public sealed partial class RoslynServices
 
     public RoslynServices(IConsoleService console, Configuration config, ITraceLogger logger, RemoteEditorContext? remoteEditor = null)
     {
+        DebugAssertHandler.Install(); // Prevent a failed Debug.Assert in evaluated code from killing the whole REPL.
+
         var cache = new MemoryCache(new MemoryCacheOptions());
         this.console = console;
         this.logger = logger;
