@@ -31,8 +31,23 @@ public sealed class Configuration
 
     public const string PromptDefault = "> ";
 
-    public static readonly string ApplicationDirectory =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
+    /// <summary>
+    /// The directory where csharprepl stores its config file, prompt history, and the (potentially large)
+    /// NuGet package and symbol caches.
+    /// </summary>
+    /// <remarks>
+    /// On Windows this historically lived in the roaming profile (%APPDATA%>), but new csharprepl installations use
+    /// the local profile (%LOCALAPPDATA%>) instead. To avoid orphaning existing users' configuration and caches, we
+    /// keep using the roaming location when it already exists.
+    /// </remarks>
+    public static readonly string ApplicationDirectory = GetApplicationDirectory(
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ".csharprepl"),
+        Directory.Exists,
+        OperatingSystem.IsWindows());
+
+    internal static string GetApplicationDirectory(string roamingDirectory, string localDirectory, Func<string, bool> directoryExists, bool isWindows)
+        => !isWindows || directoryExists(roamingDirectory) ? roamingDirectory : localDirectory;
 
     public static readonly string ExecutableDirectory =
         Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ??

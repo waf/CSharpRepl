@@ -239,7 +239,7 @@ internal static class Program
     /// </summary>
     private static string CreateApplicationStorageDirectory()
     {
-        var appStorage = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
+        var appStorage = Configuration.ApplicationDirectory;
         Directory.CreateDirectory(appStorage);
         return appStorage;
     }

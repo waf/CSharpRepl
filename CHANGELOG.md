@@ -1,7 +1,10 @@
 ## Unreleased
 
-- Add `csharprepl inspect list`, which lists the running, inspector-enabled processes you can attach to, so you no longer have to find the process id by hand.
-- Fix `inspect init` printing `cmd` syntax (`set "..."`) instead of PowerShell syntax when the RID-specific tool is run from PowerShell. The `.cmd` tool shim makes Windows insert a transient `cmd.exe /c` between PowerShell and the tool; shell detection now walks past such a cmd when its own parent is itself a recognized shell.
+- On Windows, new installations store the config file, prompt history, and NuGet/symbol caches in the local profile (`%LOCALAPPDATA%\.csharprepl`) instead of the roaming profile (`%APPDATA%`), so the package cache is no longer synchronized across machines.
+  - Existing installations keep using their current (roaming) location; macOS and Linux are unaffected ([#391](https://github.com/waf/CSharpRepl/issues/391)).
+- Support native assets in Nuget packages and improve assembly version conflict resolution (use highest) ([#483](https://github.com/waf/CSharpRepl/issues/483)).
+- Add `csharprepl inspect list`, which lists the running, inspector-enabled processes you can attach to, so you no longer have to find the process id by hand ([#482](https://github.com/waf/CSharpRepl/issues/482))..
+- Fix `inspect init` printing `cmd` syntax (`set "..."`) instead of PowerShell syntax when the RID-specific tool is run from PowerShell. The `.cmd` tool shim makes Windows insert a transient `cmd.exe /c` between PowerShell and the tool; shell detection now walks past such a cmd when its own parent is itself a recognized shell. ([#481](https://github.com/waf/CSharpRepl/pull/481)).
 
 ## Release 0.8.0
 
