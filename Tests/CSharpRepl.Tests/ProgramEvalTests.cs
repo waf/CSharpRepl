@@ -94,7 +94,6 @@ public class ProgramEvalTests
     }
 
     [Fact]
-    [Trait("Category", "Integration")] // hits the network to restore the package
     public async Task MainMethod_EvalFile_NugetPackageWithNativeBinary_LoadsAndRuns()
     {
         // Microsoft.Data.Sqlite is a metapackage whose managed assemblies all come from a framework-specific

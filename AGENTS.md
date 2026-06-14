@@ -30,7 +30,6 @@ The test runner is **Microsoft.Testing.Platform** with the **xUnit v3** runner (
 ### Test-suite behavior to know about
 
 - Heavy Roslyn/integration tests share `[Collection(nameof(RoslynServices))]` and run **serially** on purpose (`MSBuildLocator.RegisterDefaults()` and per-instance `AppDomain.AssemblyResolve` are process-global). The full suite is ~2 minutes.
-- Process-based black-box tests are tagged `[Trait("Category","Integration")]`.
 - Some tests spawn `dotnet build` / MSBuild subprocesses (solution/project references) and a few touch the network (NuGet install). These are the slow ones and can occasionally be flaky.
 - The inspect-feature integration tests (`InspectorRoundTripTests`, `InspectorCancellationTests`, `RemoteEditorServicesTests`, `InspectorServerProtocolTests`, `RemoteReadEvalPrintLoopTests`) **launch a real hooked child process** — the interactive PrettyPrompt loop itself cannot be driven without a TTY, so `RemoteReadEvalPrintLoopTests` stubs `IPrompt` (like `ReadEvalPrintLoopTests`) and everything below it is real. Two more inspect suites run in-process without a child: `InspectorEngineTests` hosts the real engine + Roslyn inside the test process, and `InspectorTransportTests` exercises the real OS pipe/socket transport (note: the Windows pipe uses zero-byte buffers, so a write rendezvouses with the peer's read — keep the read pending while writing).
 
