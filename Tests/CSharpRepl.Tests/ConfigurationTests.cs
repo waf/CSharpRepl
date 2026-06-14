@@ -37,4 +37,29 @@ public class ConfigurationTests
         Assert.Equal(keyChar, parsed.Character);
         Assert.Equal(default, parsed.Modifiers);
     }
+
+    [Fact]
+    public void GetApplicationDirectory_WindowsRoamingExists_KeepsRoaming()
+    {
+        // Existing Windows installations keep their (roaming) directory so config and caches aren't orphaned.
+        var result = Configuration.GetApplicationDirectory("roaming", "local", directoryExists: dir => dir == "roaming", isWindows: true);
+        Assert.Equal("roaming", result);
+    }
+
+    [Fact]
+    public void GetApplicationDirectory_WindowsRoamingMissing_UsesLocal()
+    {
+        // New Windows installations prefer the local directory so the package cache isn't synced across machines.
+        var result = Configuration.GetApplicationDirectory("roaming", "local", directoryExists: _ => false, isWindows: true);
+        Assert.Equal("local", result);
+    }
+
+    [Fact]
+    public void GetApplicationDirectory_NonWindows_AlwaysUsesRoaming()
+    {
+        // The roaming-profile sync problem only exists on Windows, so Unix behavior is left unchanged
+        // (ApplicationData), regardless of whether that directory already exists.
+        Assert.Equal("roaming", Configuration.GetApplicationDirectory("roaming", "local", directoryExists: _ => false, isWindows: false));
+        Assert.Equal("roaming", Configuration.GetApplicationDirectory("roaming", "local", directoryExists: _ => true, isWindows: false));
+    }
 }

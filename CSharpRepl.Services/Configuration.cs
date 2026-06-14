@@ -30,12 +30,27 @@ public sealed class Configuration
     public static readonly string DefaultThemeRelativePath = Path.Combine("themes", "VisualStudio_Dark.json");
 
     public const string PromptDefault = "> ";
-
+    
     public const string KeyBindingPatternDescription =
         "Key pattern is a key with optional modifiers (Alt/Shift/Control) e.g. 'Enter', 'Control+A'";
+  
+    /// <summary>
+    /// The directory where csharprepl stores its config file, prompt history, and the (potentially large)
+    /// NuGet package and symbol caches.
+    /// </summary>
+    /// <remarks>
+    /// On Windows this historically lived in the roaming profile (%APPDATA%>), but new csharprepl installations use
+    /// the local profile (%LOCALAPPDATA%>) instead. To avoid orphaning existing users' configuration and caches, we
+    /// keep using the roaming location when it already exists.
+    /// </remarks>
+    public static readonly string ApplicationDirectory = GetApplicationDirectory(
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ".csharprepl"),
+        Directory.Exists,
+        OperatingSystem.IsWindows());
 
-    public static readonly string ApplicationDirectory =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".csharprepl");
+    internal static string GetApplicationDirectory(string roamingDirectory, string localDirectory, Func<string, bool> directoryExists, bool isWindows)
+        => !isWindows || directoryExists(roamingDirectory) ? roamingDirectory : localDirectory;
 
     public static readonly string ExecutableDirectory =
         Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ??
