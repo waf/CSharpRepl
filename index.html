@@ -5,14 +5,14 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>csharprepl: a command-line C# REPL</title>
 	<meta name="description" content="A cross-platform command-line C# REPL. Prototype code, install NuGet packages, reference your projects, read the IL the compiler emits, and attach to running .NET processes — all from the terminal.">
-	<link rel="canonical" href="https://fuqua.io/csharprepl/">
+	<link rel="canonical" href="https://fuqua.io/CSharpRepl/">
 
 	<!-- Open Graph / Twitter -->
 	<meta property="og:type" content="website">
 	<meta property="og:title" content="csharprepl — a command-line C# REPL">
 	<meta property="og:description" content="Explore C# and .NET interactively, from the terminal. Prototype code, pull in NuGet packages, jump to source, and inspect running processes.">
-	<meta property="og:url" content="https://fuqua.io/csharprepl/">
-	<meta property="og:image" content="https://fuqua.io/csharprepl/images/screenshots/experiment.png">
+	<meta property="og:url" content="https://fuqua.io/CSharpRepl/">
+	<meta property="og:image" content="https://fuqua.io/CSharpRepl/images/screenshots/experiment.png">
 	<meta name="twitter:card" content="summary_large_image">
 
 	<meta name="theme-color" content="#0c0d12">
@@ -25,7 +25,6 @@
 	<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
 	<link rel="stylesheet" href="style.css">
-	<noscript><style>[data-reveal]{opacity:1;transform:none}</style></noscript>
 </head>
 <body>
 
@@ -60,7 +59,7 @@
 				<p class="hero-meta">MPL-2.0 licensed<span class="dot">·</span>Windows<span class="dot">·</span>macOS · Linux</p>
 			</div>
 
-			<div class="hero-media" data-reveal>
+			<div class="hero-media">
 				<figure class="panel">
 					<video src="images/videos/csharprepl-intro.mp4" autoplay loop muted playsinline controls
 					       poster="images/screenshots/experiment.png"></video>
@@ -75,12 +74,12 @@
 		<!-- 1 · Experiment -->
 		<section class="feature">
 			<div class="container">
-				<div class="feature-copy" data-reveal>
+				<div class="feature-copy">
 					<p class="eyebrow"><span class="k">//</span> prototype</p>
 					<h2>Try ideas without the ceremony</h2>
 					<p>Run C# and see the result immediately; no scratch console projects needed. Command-line autocomplete with inline documentation keeps the reference at your fingertips.</p>
 				</div>
-				<div class="feature-media" data-reveal>
+				<div class="feature-media">
 					<figure class="panel shot">
 						<img src="images/screenshots/experiment.png" alt="A csharprepl session building and draining a PriorityQueue, with syntax-highlighted output." loading="lazy">
 					</figure>
@@ -91,12 +90,12 @@
 		<!-- 2 · Rich output (hand-built terminal) -->
 		<section class="feature">
 			<div class="container">
-				<div class="feature-copy" data-reveal>
+				<div class="feature-copy">
 					<p class="eyebrow"><span class="k">Ctrl+Enter</span></p>
 					<h2>Rich output formatting</h2>
 					<p>Results are formatted with syntax highlighting and Spectre.Console rendering. Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> on any line for a detailed, member-by-member view of the object.</p>
 				</div>
-				<div class="feature-media" data-reveal>
+				<div class="feature-media">
 					<figure class="panel shot">
 						<img src="images/screenshots/detailed-output.png" alt="DateTime.Now shown two ways in the REPL: a one-line default representation, then a Ctrl+Enter member-by-member breakdown." loading="lazy">
 					</figure>
@@ -107,12 +106,12 @@
 		<!-- 3 · NuGet -->
 		<section class="feature">
 			<div class="container">
-				<div class="feature-copy" data-reveal>
+				<div class="feature-copy">
 					<p class="eyebrow"><span class="k">#r</span> <span class="a">"nuget: …"</span></p>
 					<h2>Pull in any NuGet package</h2>
 					<p>Reference a package with the <span class="inline">#r</span> directive and start using it on the next line. The completion window shows documentation for the package's methods and types.</p>
 				</div>
-				<div class="feature-media" data-reveal>
+				<div class="feature-media">
 					<figure class="panel shot">
 						<img src="images/screenshots/nuget.png" alt="Installing the NSubstitute NuGet package with #r and immediately using it in the REPL." loading="lazy">
 					</figure>
@@ -123,12 +122,12 @@
 		<!-- 4 · Reference projects -->
 		<section class="feature">
 			<div class="container">
-				<div class="feature-copy" data-reveal>
+				<div class="feature-copy">
 					<p class="eyebrow"><span class="k">#r</span> <span class="a">"App.csproj"</span></p>
 					<h2>Point it at your own code</h2>
 					<p>The same <span class="inline">#r</span> directive takes assemblies, <span class="inline">.csproj</span> projects, and <span class="inline">.sln</span>&#8202;/&#8202;<span class="inline">.slnx</span> solutions. Load your project, then call straight into it.</p>
 				</div>
-				<div class="feature-media" data-reveal>
+				<div class="feature-media">
 					<figure class="panel shot">
 						<img src="images/screenshots/reference.png" alt="Building and referencing a local .csproj from the REPL, then calling its Main method." loading="lazy">
 					</figure>
@@ -139,12 +138,12 @@
 		<!-- 5 · Source link -->
 		<section class="feature">
 			<div class="container">
-				<div class="feature-copy" data-reveal>
+				<div class="feature-copy">
 					<p class="eyebrow"><span class="k">F12</span></p>
 					<h2>Jump to the real source</h2>
 					<p>Googling for a library's implementation? Press <kbd>F12</kbd> instead on any symbol to open its original source in the browser, for every assembly that supports <a href="https://github.com/dotnet/sourcelink">Source Link</a>.</p>
 				</div>
-				<div class="feature-media" data-reveal>
+				<div class="feature-media">
 					<figure class="panel shot">
 						<img src="images/screenshots/sourcelink.png" alt="Pressing F12 on DateTime.Now opens the corresponding source on GitHub." loading="lazy">
 					</figure>
@@ -155,12 +154,12 @@
 		<!-- 6 · IL & lowered C# -->
 		<section class="feature">
 			<div class="container">
-				<div class="feature-copy" data-reveal>
+				<div class="feature-copy">
 					<p class="eyebrow"><span class="k">F9</span> · <span class="k">F8</span></p>
 					<h2>See what the compiler does</h2>
                     <p>Press <kbd>F9</kbd> for the <abbr title=".NET Intermediate Language">IL</abbr> of any statement, or <kbd>F8</kbd> for the <em>lowered</em> C#. Explore async state machines, lambda closures, and <span class="inline">foreach</span>&#8202;/&#8202;<span class="inline">using</span> expansions made explicit. Hold <kbd>Ctrl</kbd> to see Release-mode optimizations. Powered by ILSpy.</p>
 				</div>
-				<div class="feature-media" data-reveal>
+				<div class="feature-media">
 					<figure class="panel shot">
 						<img src="images/screenshots/intermediate-language.png" alt="The IL disassembly for a Console.WriteLine call, shown inline in the REPL." loading="lazy">
 					</figure>
@@ -171,13 +170,13 @@
 		<!-- 7 · Inspect a running process (hand-built terminal) -->
 		<section class="feature feature--wide">
 			<div class="container">
-				<div class="feature-copy" data-reveal>
+				<div class="feature-copy">
 					<p class="eyebrow"><span class="k">csharprepl inspect</span> <span class="a">&lt;pid&gt;</span></p>
 					<h2>Attach to a running process</h2>
 					<p>Beyond its own process, csharprepl can attach to another .NET 10 app and evaluate C# <em>inside</em> it, reading and writing live statics and DI-resolved services, with the same interactivity as the normal REPL.</p>
                     <p class="note">A real Roslyn engine is injected via the .NET runtime's startup-hook support; the target opts in by setting a few environment variables. Development and diagnostics only! Never enable the inspector on a production process.</p>
 				</div>
-				<div class="feature-media" data-reveal>
+				<div class="feature-media">
 					<figure class="panel shot">
 						<img src="images/screenshots/inspect-process.png" alt="csharprepl attached to a running ASP.NET app, reading live configuration and DI-resolved services from inside the process, alongside the target app's console." loading="lazy">
 					</figure>
@@ -190,14 +189,14 @@
 	<!-- ======================================================= REFERENCE -->
 	<section class="reference" id="reference">
 		<div class="container">
-			<div class="head" data-reveal>
+			<div class="head">
 				<p class="eyebrow"><span class="k">//</span> keyboard reference</p>
 				<h2>Familiar keyboard shortcuts</h2>
 				<p>Editing and navigation mirror Visual Studio, so the keyboard shortcuts feel natural.</p>
 			</div>
 
 			<div class="ref-grid">
-				<div class="ref-card" data-reveal>
+				<div class="ref-card">
 					<h3>Evaluate</h3>
 					<ul>
 						<li><span>Run, or break the line</span><span class="keys"><kbd>Enter</kbd></span></li>
@@ -207,7 +206,7 @@
 						<li><span>Cancel · clear · exit</span><span class="keys"><kbd>Ctrl</kbd>+<kbd>C</kbd> <kbd>L</kbd> <kbd>D</kbd></span></li>
 					</ul>
 				</div>
-				<div class="ref-card" data-reveal>
+				<div class="ref-card">
 					<h3>Inspect</h3>
 					<ul>
 						<li><span>MSDN docs for symbol</span><span class="keys"><kbd>F1</kbd></span></li>
@@ -216,7 +215,7 @@
 						<li><span>Lowered C# (Debug · Release)</span><span class="keys"><kbd>F8</kbd> <kbd>Ctrl</kbd>+<kbd>F8</kbd></span></li>
 					</ul>
 				</div>
-				<div class="ref-card" data-reveal>
+				<div class="ref-card">
 					<h3>Reference</h3>
 					<ul>
 						<li><span>NuGet package</span><span class="keys mono">#r "nuget: …"</span></li>
@@ -304,23 +303,6 @@
 				img.parentElement.addEventListener('click', function () { open(img.src); });
 			});
 		})();
-
-		// Subtle one-time reveal as sections enter the viewport.
-		(function () {
-			var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-			var els = document.querySelectorAll('[data-reveal]');
-			if (reduce || !('IntersectionObserver' in window)) {
-				els.forEach(function (el) { el.classList.add('in'); });
-				return;
-			}
-			var io = new IntersectionObserver(function (entries) {
-				entries.forEach(function (e) {
-					if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
-				});
-			}, { threshold: 0.12 });
-			els.forEach(function (el) { io.observe(el); });
-		})();
 	</script>
-
 </body>
 </html>
