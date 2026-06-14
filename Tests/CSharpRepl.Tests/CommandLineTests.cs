@@ -184,7 +184,9 @@ public class CommandLineTests
     public void ParseArguments_DotNetSuggestInspectSubcommand_IsAutocompleted()
     {
         var result = Parse(new[] { "[suggest:8]", "inspect " });
-        Assert.Contains("init", Render(result.OutputForEarlyExit));
+        var output = Render(result.OutputForEarlyExit);
+        Assert.Contains("init", output);
+        Assert.Contains("list", output);
     }
 
     [Fact]
@@ -236,6 +238,47 @@ public class CommandLineTests
         Assert.Contains("DOTNET_STARTUP_HOOKS", output);
         Assert.Contains("ASPNETCORE_HOSTINGSTARTUPASSEMBLIES", output);
         Assert.Null(result.InspectProcessId);
+    }
+
+    [Fact]
+    public void ParseArguments_InspectList_ProducesEarlyExitWithoutInspecting()
+    {
+        // `inspect list` reports the attachable processes and exits, like `inspect init` — it never enters
+        // inspect mode (no pid). The rendered content depends on what's running, so only assert the shape.
+        var result = Parse("inspect list");
+        Assert.NotNull(result.OutputForEarlyExit);
+        Assert.Null(result.InspectProcessId);
+    }
+
+    [Fact]
+    public void RenderInspectList_WithNoProcesses_ShowsTheInitHint()
+    {
+        var output = Render(CommandLine.RenderInspectList([]));
+        Assert.Contains("No inspector-enabled processes found", output);
+        Assert.Contains("csharprepl inspect init", output);
+    }
+
+    [Fact]
+    public void RenderInspectList_WithProcesses_ListsEachPidAndNameAndAConnectHint()
+    {
+        var output = Render(CommandLine.RenderInspectList([(1234, "MyApp"), (5678, "dotnet")]));
+
+        Assert.Contains("PID", output);
+        Assert.Contains("Process", output);
+        Assert.Contains("1234", output);
+        Assert.Contains("MyApp", output);
+        Assert.Contains("5678", output);
+        Assert.Contains("dotnet", output);
+        Assert.Contains("csharprepl inspect", output); // the "connect with" hint
+    }
+
+    [Fact]
+    public void RenderInspectList_WithMarkupCharsInName_RendersThemLiterally()
+    {
+        // A process name with '[' must not be interpreted as Spectre markup (it would otherwise throw or be
+        // swallowed). The cells use Text, not markup, so the brackets survive verbatim.
+        var output = Render(CommandLine.RenderInspectList([(42, "weird[name]")]));
+        Assert.Contains("weird[name]", output);
     }
 
     [Theory]

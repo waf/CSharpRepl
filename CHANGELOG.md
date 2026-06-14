@@ -1,5 +1,6 @@
 ## Unreleased
 
+- Add `csharprepl inspect list`, which lists the running, inspector-enabled processes you can attach to, so you no longer have to find the process id by hand.
 - Fix `inspect init` printing `cmd` syntax (`set "..."`) instead of PowerShell syntax when the RID-specific tool is run from PowerShell. The `.cmd` tool shim makes Windows insert a transient `cmd.exe /c` between PowerShell and the tool; shell detection now walks past such a cmd when its own parent is itself a recognized shell.
 
 ## Release 0.8.0
