@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <PackageReference Include="PrettyPrompt" Version="6.0.1" />
-    <PackageReference Include="System.CommandLine" Version="3.0.0-preview.4.26230.115" />
+    <PackageReference Include="System.CommandLine" Version="3.0.0-preview.5.26302.115" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.9" />
     <!-- Keep MSBuild/StringTools assemblies out of the output dir; they're loaded from the SDK via
          MSBuildLocator at runtime. Required transitively through CSharpRepl.Services.
