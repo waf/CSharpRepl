@@ -269,7 +269,9 @@ public class CommandLineTests
         Assert.Contains("MyApp", output);
         Assert.Contains("5678", output);
         Assert.Contains("dotnet", output);
-        Assert.Contains("csharprepl inspect", output); // the "connect with" hint
+        // the "connect with" hint
+        Assert.Contains("csharprepl inspect", output);
+        Assert.Contains("Hint: you most likely want to connect to the 'MyApp' process (PID 1234).", output);
     }
 
     [Fact]
