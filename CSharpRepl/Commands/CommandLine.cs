@@ -432,16 +432,36 @@ internal static class CommandLine
                 "Launch your app with the environment variables from [green]csharprepl inspect init[/], then run [green]csharprepl inspect list[/] again.");
         }
 
+        (bool containsDotNetExecutable, string? appExecutable, int pid) hint = (false, null, 0);
+
         var table = new Table()
+            .MinimalBorder()
             .AddColumn("PID")
             .AddColumn("Process");
         // Use Text (not markup strings) for the cells so a process name containing '[' isn't parsed as markup.
         foreach (var (processId, processName) in processes)
         {
             table.AddRow(new Text(processId.ToString()), new Text(processName));
+
+            hint.containsDotNetExecutable |= processName == "dotnet";
+            if(processName != "dotnet" && hint.appExecutable is null)
+            {
+                hint.appExecutable = processName;
+                hint.pid = processId;
+            }
         }
 
-        return new Rows(table, new Markup("Connect with [green]csharprepl inspect [/][cyan]<pid>[/]."));
+        List<Renderable> rows = [
+            table,
+            new Markup("Connect with [green]csharprepl inspect [/][cyan]<PID>[/]."),
+        ];
+
+        if(processes.Count == 2 && hint.containsDotNetExecutable && hint.appExecutable is not null)
+        {
+            rows.Add(new Markup($"Hint: you most likely want to connect to the '{hint.appExecutable}' process (PID {hint.pid})."));
+        }
+
+        return new Rows(rows);
     }
 
     /// <summary>Resolves a pid to its process name, or null if the process is gone (e.g. a stale endpoint).</summary>

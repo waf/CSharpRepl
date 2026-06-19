@@ -156,7 +156,7 @@ internal sealed class RemoteReadEvalPrintLoop
 
         console.WriteLine(string.Empty);
         console.Write(new Markup(
-            "[yellow]⚠ Development/diagnostics tool: code you evaluate runs inside the target process with its full privileges. Never inspect a production process.[/]"));
+            "[yellow] Development/diagnostics tool: code you evaluate runs inside the target process with its full privileges. Never inspect a production process.[/]"));
         console.WriteLine();
         console.WriteLine("Type C# to evaluate it in the target. Type exit (or press Ctrl+D) to detach; the target keeps running and you can reconnect later.");
         console.WriteLine(string.Empty);
