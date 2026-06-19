@@ -1,10 +1,14 @@
-## Unreleased
+## Release 0.8.1
 
 - On Windows, new installations store the config file, prompt history, and NuGet/symbol caches in the local profile (`%LOCALAPPDATA%\.csharprepl`) instead of the roaming profile (`%APPDATA%`), so the package cache is no longer synchronized across machines.
   - Existing installations keep using their current (roaming) location; macOS and Linux are unaffected ([#391](https://github.com/waf/CSharpRepl/issues/391)).
 - Support native assets in Nuget packages and improve assembly version conflict resolution (use highest) ([#483](https://github.com/waf/CSharpRepl/issues/483)).
-- Add `csharprepl inspect list`, which lists the running, inspector-enabled processes you can attach to, so you no longer have to find the process id by hand ([#482](https://github.com/waf/CSharpRepl/issues/482))..
+- Add `csharprepl inspect list`, which lists the running, inspector-enabled processes you can attach to, so you no longer have to find the process id by hand ([#482](https://github.com/waf/CSharpRepl/issues/482)).
 - Fix `inspect init` printing `cmd` syntax (`set "..."`) instead of PowerShell syntax when the RID-specific tool is run from PowerShell. The `.cmd` tool shim makes Windows insert a transient `cmd.exe /c` between PowerShell and the tool; shell detection now walks past such a cmd when its own parent is itself a recognized shell. ([#481](https://github.com/waf/CSharpRepl/pull/481)).
+- Overload help is now filtered by access kind: static methods no longer appear when invoking on an instance (`value.M(`), and instance methods no longer appear when invoking on a type (`Type.M(`) ([#487](https://github.com/waf/CSharpRepl/pull/487)).
+- A failing `Debug.Assert` in evaluated code now throws a catchable exception instead of crashing the REPL ([#374](https://github.com/waf/CSharpRepl/issues/374), [#486](https://github.com/waf/CSharpRepl/pull/486)).
+- Improve the `--help` text for the key-binding options, documenting the key-pattern syntax and that an option can be passed multiple times to bind several keys to one action ([#485](https://github.com/waf/CSharpRepl/pull/485)).
+- Dependency upgrades, including PrettyPrompt 6.0.2, which fixes a macOS/Linux issue where the prompt could render at a stale screen position until the next keypress ([#395](https://github.com/waf/CSharpRepl/issues/395), [#490](https://github.com/waf/CSharpRepl/pull/490)).
 
 ## Release 0.8.0
 
