@@ -201,3 +201,12 @@ classDiagram
 Statics and any singletons stored in statics are reachable for free — a submission just names them like ordinary code. For dependency-injected services, the bootstrap cooperatively captures the application's root service provider and exposes it to submissions (as `services` and `Get<T>()`), so a script can resolve the app's real services.
 
 The capture mechanism: before the target's `Main` runs, the bootstrap subscribes to the `"Microsoft.Extensions.Hosting"` `DiagnosticListener` — the same effectively-public contract `HostFactoryResolver` and the EF Core design-time tools rely on. Both `HostBuilder.Build()` and `HostApplicationBuilder.Build()` write a `HostBuilt` event whose payload is the `IHost`; the bootstrap reflects the host's `Services` property off the payload (reflection rather than a typed reference, so the bootstrap carries no hosting dependency and no version coupling) and stores it in the shared `InspectorRoots`. This covers the non-web Generic Host and modern ASP.NET Core (`WebApplication.CreateBuilder` builds through `HostApplicationBuilder`); the first host built wins, and apps that don't use the hosting abstractions simply report "no provider captured" — statics remain reachable.
+
+### Live method replacement
+
+When attached, the controller can detour a live method in the target to a method the user defines in the REPL, so the running application's behavior changes immediately.
+
+- The user defines a delegate, then runs `#replace` (supplant the original) or `#wrap` (call the original via a leading `orig` delegate). `#patches` lists active patches; `#revert` undoes them.
+- The engine's `InspectorPatcher` detours the method via MonoMod.RuntimeDetour: it resolves the target, matches the overload from the delegate's signature, applies a reversible `Hook`, and tracks it by id.
+- The detour repoints native code, so it works across the engine-ALC/target-ALC split: the replacement compiles in the engine ALC and patches a method in the target's default ALC.
+- Patches persist until reverted or the process exits, so they outlive a controller detach. `ref`/`out`/`in` parameters work in Replace mode (the patcher emits a delegate type carrying the modifiers, since `Func` can't). Generic methods, pointer parameters, `#wrap` with by-ref, and already-inlined call sites are out of scope.

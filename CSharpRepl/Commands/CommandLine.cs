@@ -386,18 +386,22 @@ internal static class CommandLine
         {
             "cmd" => string.Join(NewLine,
                 ":: Run in the shell that launches your app, then start it and note its process id:",
+                ":: Do NOT set them as system-wide or user-wide environment variables; only set them in the shell.",
                 $@"set ""DOTNET_STARTUP_HOOKS={bootstrap}""",
                 $@"set ""ASPNETCORE_HOSTINGSTARTUPASSEMBLIES={HostingStartupAssembly}"""),
             "bash" or "sh" or "zsh" => string.Join(NewLine,
                 "# Run in the shell that launches your app, then start it and note its process id:",
+                "# Do NOT set them as system-wide or user-wide environment variables; only set them in the shell.",
                 $@"export DOTNET_STARTUP_HOOKS=""{bootstrap}""",
                 $@"export ASPNETCORE_HOSTINGSTARTUPASSEMBLIES=""{HostingStartupAssembly}"""),
             "fish" => string.Join(NewLine,
                 "# Run in the shell that launches your app, then start it and note its process id:",
+                "# Do NOT set them as system-wide or user-wide environment variables; only set them in the shell.",
                 $@"set -gx DOTNET_STARTUP_HOOKS ""{bootstrap}""",
                 $@"set -gx ASPNETCORE_HOSTINGSTARTUPASSEMBLIES ""{HostingStartupAssembly}"""),
             _ => string.Join(NewLine, // pwsh / powershell (default on Windows)
                 "# Run in the shell that launches your app, then start it and note its process id:",
+                "# Do NOT set them as system-wide or user-wide environment variables; only set them in the shell.",
                 $@"$env:DOTNET_STARTUP_HOOKS = ""{bootstrap}""",
                 $@"$env:ASPNETCORE_HOSTINGSTARTUPASSEMBLIES = ""{HostingStartupAssembly}"""),
         };

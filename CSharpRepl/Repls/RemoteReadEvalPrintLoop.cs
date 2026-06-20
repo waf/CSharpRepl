@@ -9,6 +9,7 @@ using CSharpRepl.InjectedHook.Contracts;
 using CSharpRepl.PrettyPromptConfig;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Remote;
+using CSharpRepl.Services.Remote.Commands;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Formatting;
 using PrettyPrompt;
@@ -28,6 +29,7 @@ internal sealed class RemoteReadEvalPrintLoop
     private readonly RemoteSession session;
     private readonly RoslynServices roslyn;
     private readonly IPrompt prompt;
+    private readonly InspectorCommandProcessor commands;
 
     public RemoteReadEvalPrintLoop(IConsoleService console, RemoteSession session, RoslynServices roslyn, IPrompt prompt)
     {
@@ -35,6 +37,7 @@ internal sealed class RemoteReadEvalPrintLoop
         this.session = session;
         this.roslyn = roslyn;
         this.prompt = prompt;
+        this.commands = new InspectorCommandProcessor(session);
     }
 
     public async Task RunAsync(Configuration config)
@@ -62,6 +65,29 @@ internal sealed class RemoteReadEvalPrintLoop
             if (command == "clear") { console.Clear(); continue; }
             if (command is "help" or "#help" or "?") { PrintHelp(); continue; }
 
+            // Live method replacement commands (#replace / #wrap / #patches / #revert), handled before eval. The
+            // processor parses and runs them against the session; this loop renders the raw result. A lost
+            // connection here is reported but, unlike eval, does not end the session.
+            InspectorCommandResult? commandResult;
+            try
+            {
+                commandResult = await commands.TryExecuteAsync(commandText, response.CancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                continue;
+            }
+            catch (IOException ex)
+            {
+                console.WriteErrorLine($"Lost the connection to the target process: {ex.Message}");
+                continue;
+            }
+            if (commandResult is not null)
+            {
+                PrintCommandResult(commandResult);
+                continue;
+            }
+
             // Local key-binding callbacks (e.g. lowering/IL) still operate on the local Roslyn services; they're
             // advisory in remote mode but harmless, so surface their output the same way the local loop does.
             if (response is KeyPressCallbackResult callbackOutput)
@@ -70,9 +96,8 @@ internal sealed class RemoteReadEvalPrintLoop
                 continue;
             }
 
-            // Ctrl+C cancels the in-flight evaluation cooperatively: EvalAsync sends a cancel to the engine and
-            // still awaits the (cancelled or completed) result, so the channel stays in sync and the session
-            // survives — no longer tearing down the controller process. Cancellation is cooperative, so it can't
+            // Ctrl+C cancels the in-flight evaluation cooperatively: EvalAsync sends a cancel to the engine and still
+            // awaits the result, so the channel stays in sync and the session survives. Being cooperative, it can't
             // interrupt arbitrary running user code in the target (same limitation as the local REPL).
             var detailed = config.SubmitPromptDetailedKeys.Matches(response.SubmitKeyInfo);
             var level = detailed ? Level.FirstDetailed : Level.FirstSimple;
@@ -104,6 +129,49 @@ internal sealed class RemoteReadEvalPrintLoop
             }
 
             Print(result, level);
+        } // loop!
+    }
+
+    /// <summary>Renders a command result. All wording lives here; the processor only returns the raw responses.</summary>
+    private void PrintCommandResult(InspectorCommandResult result)
+    {
+        switch (result)
+        {
+            case InspectorCommandResult.UsageError usage:
+                console.WriteErrorLine($"Usage: {usage.Command.Usage}");
+                break;
+
+            case InspectorCommandResult.Replaced { Response: var response } replaced when response.Ok:
+                var arrow = replaced.Mode == PatchMode.Wrap ? "wrapped" : "patched";
+                console.WriteLine($"{arrow} {response.ResolvedMethod ?? replaced.Target}  ←  {replaced.Replacement}  (patch #{response.PatchId})");
+                break;
+
+            case InspectorCommandResult.Replaced replaced:
+                console.WriteErrorLine($"{(replaced.Mode == PatchMode.Wrap ? InspectorCommands.Wrap.Token : InspectorCommands.Replace.Token)} failed: {replaced.Response.Error}");
+                break;
+
+            case InspectorCommandResult.Listed { Response.Patches: { Count: 0 } }:
+                console.WriteLine("No active patches.");
+                break;
+
+            case InspectorCommandResult.Listed listed:
+                foreach (var patch in listed.Response.Patches)
+                {
+                    console.WriteLine($"  #{patch.Id}  [{patch.Mode}]  {patch.Method}  ←  {patch.Replacement}");
+                }
+                break;
+
+            case InspectorCommandResult.Reverted { All: true } reverted:
+                console.WriteLine($"reverted {reverted.Response.RevertedCount} patch(es).");
+                break;
+
+            case InspectorCommandResult.Reverted { Response.Ok: true } reverted:
+                console.WriteLine($"reverted patch #{reverted.RequestedId}.");
+                break;
+
+            case InspectorCommandResult.Reverted reverted:
+                console.WriteErrorLine(reverted.Response.Error ?? "revert failed.");
+                break;
         }
     }
 
@@ -134,9 +202,12 @@ internal sealed class RemoteReadEvalPrintLoop
         console.WriteLine($"Connected to {handshake.ProcessName} (pid {handshake.ProcessId})");
         console.WriteLine($"  Runtime:   {handshake.RuntimeVersion}");
         console.WriteLine($"  Inspector: v{handshake.InspectorVersion} (protocol v{handshake.ProtocolVersion})");
-        console.WriteLine(handshake.DiProviderCaptured
-            ? "  DI provider captured: yes — `services` and `Get<T>()` are available."
-            : "  DI provider captured: no — only statics and framework code are reachable.");
+        console.Write(new Markup(handshake.DiProviderCaptured
+            ? "  DI provider captured: yes, [green]services[/] and [green]Get<T>()[/] are available."
+            : "  DI provider captured: [red]no[/], only statics and framework code are reachable."
+            )
+        );
+        console.WriteLine();
 
         if (handshake.AssemblyAvailability == TargetAssemblyAvailability.FrameworkDependentSingleFile)
         {
@@ -156,7 +227,7 @@ internal sealed class RemoteReadEvalPrintLoop
 
         console.WriteLine(string.Empty);
         console.Write(new Markup(
-            "[yellow] Development/diagnostics tool: code you evaluate runs inside the target process with its full privileges. Never inspect a production process.[/]"));
+            "[yellow]Development/diagnostics tool: code you evaluate runs inside the target process with its full privileges. Never inspect a production process.[/]"));
         console.WriteLine();
         console.WriteLine("Type C# to evaluate it in the target. Type exit (or press Ctrl+D) to detach; the target keeps running and you can reconnect later.");
         console.WriteLine(string.Empty);
@@ -168,15 +239,33 @@ internal sealed class RemoteReadEvalPrintLoop
             """
             [underline]Inspect mode[/]
             Submissions are evaluated inside the target process and share a persistent state chain, so a
-            [green]var[/] or a declared method on one line is reusable on the next — exactly like the local REPL.
+            [green]var[/] or a declared method on one line is reusable on the next, exactly like the local REPL.
 
             Reachable state:
               - Statics: reference them by their fully-qualified name, e.g. [green]MyApp.Program.SomeStatic[/].
               - DI services (when captured): [green]services.GetRequiredService<T>()[/] or [green]Get<T>()[/].
 
+            Live method replacement (the target running app changes immediately, generics not supported):
+              1. Define a method in the REPL whose parameters match the target. Instance methods take the
+                 instance as the first parameter; a static method omits it. For example:
+                 [green]decimal Half(MyApp.OrderService svc, int qty, decimal unit) => qty * unit * 0.5m;[/]
+                 [green]#replace MyApp.OrderService.CalculatePrice with Half[/]
+              2. To wrap instead, give the method an [green]orig[/] delegate as its first parameter (then the
+                 instance, then the original parameters) and call it to invoke the original. For example:
+                 [green]decimal Logged(Func<MyApp.OrderService, int, decimal, decimal> orig, MyApp.OrderService svc, int qty, decimal unit)
+                 {
+                     var result = orig(svc, qty, unit);
+                     Console.WriteLine($"price = {result}");
+                     return result;
+                 }
+                 #wrap MyApp.OrderService.CalculatePrice with Logged[/].
+              3. [green]#patches[/] lists active patches; [green]#revert <id>[/] or [green]#revert all[/] undoes them.
+            Patches persist in the target after you detach until reverted (or the process exits).
+
             Commands:
               - [green]exit[/]: detach and quit the REPL; the target keeps running and you can reconnect later.
               - [green]clear[/]: clear the terminal.
+              - [green]#replace[/] / [green]#wrap[/] / [green]#patches[/] / [green]#revert[/]: live method replacement (above).
             """));
         console.WriteLine();
     }

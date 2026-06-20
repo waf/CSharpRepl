@@ -68,22 +68,47 @@ public sealed class InspectorClient : IAsyncDisposable
             catch { /* peer may be gone; the read below will surface it */ }
         }, channel);
 
-        var response = await channel.ReadAsync(CancellationToken.None).ConfigureAwait(false)
-            ?? throw new IOException("The inspector closed the connection without responding to the evaluation.");
-        return response is not EvalResponse evalResponse
-            ? throw new IOException($"Expected an evaluation result from the inspector but received {response.GetType().Name}.")
-            : evalResponse;
+        return await ReadResponseAsync<EvalResponse>("evaluation", "an evaluation result", CancellationToken.None).ConfigureAwait(false);
     }
 
     internal async Task<IReadOnlyList<string>> GetReferencePathsAsync(CancellationToken cancellationToken)
     {
         await channel.WriteAsync(new ReferencesRequest(), cancellationToken).ConfigureAwait(false);
+        var response = await ReadResponseAsync<ReferencesResponse>("references request", "a references response", cancellationToken).ConfigureAwait(false);
+        return response.Paths;
+    }
 
+    internal async Task<ReplaceResponse> ReplaceAsync(string targetMethod, string replacement, PatchMode mode, CancellationToken cancellationToken)
+    {
+        await channel.WriteAsync(new ReplaceRequest { TargetMethod = targetMethod, Replacement = replacement, Mode = mode }, cancellationToken).ConfigureAwait(false);
+        return await ReadResponseAsync<ReplaceResponse>("replace request", "a replace response", cancellationToken).ConfigureAwait(false);
+    }
+
+    internal async Task<PatchListResponse> ListPatchesAsync(CancellationToken cancellationToken)
+    {
+        await channel.WriteAsync(new PatchListRequest(), cancellationToken).ConfigureAwait(false);
+        return await ReadResponseAsync<PatchListResponse>("patch-list request", "a patch-list response", cancellationToken).ConfigureAwait(false);
+    }
+
+    internal async Task<RevertResponse> RevertAsync(int patchId, bool all, CancellationToken cancellationToken)
+    {
+        await channel.WriteAsync(new RevertRequest { PatchId = patchId, All = all }, cancellationToken).ConfigureAwait(false);
+        return await ReadResponseAsync<RevertResponse>("revert request", "a revert response", cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Reads the next frame and asserts it's the expected response type, turning a closed connection or an
+    /// unexpected message into a clear <see cref="IOException"/>. <paramref name="requestNoun"/> names the request
+    /// in the connection-closed message; <paramref name="responseNoun"/> names the expected reply in the
+    /// type-mismatch message (e.g. <c>"a revert response"</c>).
+    /// </summary>
+    private async Task<TResponse> ReadResponseAsync<TResponse>(string requestNoun, string responseNoun, CancellationToken cancellationToken)
+        where TResponse : WireMessage
+    {
         var response = await channel.ReadAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new IOException("The inspector closed the connection without responding to the references request.");
-        return response is not ReferencesResponse referencesResponse
-            ? throw new IOException($"Expected a references response from the inspector but received {response.GetType().Name}.")
-            : referencesResponse.Paths;
+            ?? throw new IOException($"The inspector closed the connection without responding to the {requestNoun}.");
+        return response as TResponse
+            ?? throw new IOException($"Expected {responseNoun} from the inspector but received {response.GetType().Name}.");
     }
 
     internal async Task SendDisconnectAsync(CancellationToken cancellationToken)

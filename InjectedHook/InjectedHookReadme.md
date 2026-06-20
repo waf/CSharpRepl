@@ -11,7 +11,7 @@ Three projects under `InjectedHook/` are staged (together with their own private
 | Project | Loaded into | Role |
 |---|---|---|
 | `CSharpRepl.InjectedHook` | target's default AssemblyLoadContext | The bootstrap. `StartupHook.Initialize()` runs before the target's `Main` (via `DOTNET_STARTUP_HOOKS`), must never throw, and references no Roslyn. It installs an assembly-resolving handler, subscribes to the hosting `DiagnosticListener` to capture the root `IServiceProvider` (`HostCapture`), creates the isolated engine ALC (`EngineHost`), and runs the transport server (`InspectorServer`) on a background thread. |
-| `CSharpRepl.InjectedHook.ScriptEngine` | dedicated isolated ALC | The engine (`InspectorEngine`). Hosts `CSharpScript` and the persisted `ScriptState` submission chain. Its Roslyn lives entirely inside the isolated ALC, so it cannot collide with any Roslyn version the target itself uses. |
+| `CSharpRepl.InjectedHook.ScriptEngine` | dedicated isolated ALC | The engine (`InspectorEngine`). Hosts `CSharpScript` and the persisted `ScriptState` submission chain. Its Roslyn lives entirely inside the isolated ALC, so it cannot collide with any Roslyn version the target itself uses. Also hosts `InspectorPatcher`, which detours live target methods to REPL-defined delegates via `MonoMod.RuntimeDetour`. |
 | `CSharpRepl.InjectedHook.Contracts` | default ALC, shared into the isolated ALC | The boundary types: `IInspectorEngine`, `InspectorGlobals`/`InspectorRoots`, `RemoteValue`, the `WireMessage` hierarchy, and the transport/framing (`InspectorTransport`, `MessageChannel`). Loaded once and resolved to that same instance from the engine ALC, so these types are *type-identical* on both sides. References no Roslyn. |
 
 On first evaluation the engine snapshots the target's own loaded assemblies and builds its compilation references from them, so submissions compile against the target's real types and bind, at runtime, to the already-loaded live instances.
@@ -32,9 +32,19 @@ One duplex connection per session (named pipe on Windows, Unix domain socket els
 1. → connect; ← `HandshakeMessage` (pid, runtime, inspector/protocol version, DI-captured flag, assembly availability).
 2. → `ReferencesRequest`; ← `ReferencesResponse` (assembly paths for the controller's editor workspace).
 3. Per submission: → `EvalRequest { Code, Detailed }`; ← `EvalResponse { Kind, Value/Exception, Committed }`. A `CancelMessage` may be sent mid-flight (Ctrl+C); the controller still waits for the response so framing stays in lock-step.
-4. → `DisconnectMessage`; the target keeps running and the server loops to accept a future reconnect.
+4. Optional, any time after step 2: → `ReplaceRequest` / `PatchListRequest` / `RevertRequest`; ← the matching response (protocol v2, live method replacement).
+5. → `DisconnectMessage`; the target keeps running and the server loops to accept a future reconnect.
 
 Inbound data is treated as untrusted: frame lengths are bounded (64 MB) and malformed frames surface as catchable exceptions, never a crash of the target.
+
+## Live method replacement
+
+The controller can detour a live method in the target to a REPL-defined delegate. Commands, handled in `RemoteReadEvalPrintLoop`: `#replace`, `#wrap`, `#patches`, `#revert`.
+
+- Engine: `InspectorPatcher` (ScriptEngine project) over `MonoMod.RuntimeDetour`. It resolves the named target, matches the overload from the replacement delegate's signature, coerces a bare method group via a generated cast (an emitted delegate type when the target has `ref`/`out`/`in` parameters, which `Func` can't express), applies a `Hook`, and tracks it by id for revert.
+- Replacement shape: the delegate matches the target's parameters. Instance methods take the instance as the first parameter. `#wrap` prepends an `orig` delegate the body can call to invoke the original.
+- Cross-ALC: detours repoint native code, so the replacement (compiled in the engine ALC) patches a method that lives in the target's default ALC.
+- Lifecycle: patches persist in the target until reverted with `#revert` (or the process exits), so they survive a controller detach.
 
 ## What doesn't work
 
@@ -42,3 +52,5 @@ Inbound data is treated as untrusted: frame lengths are bounded (64 MB) and malf
 - Framework-dependent single-file targets: framework types work, but the app's *own* assemblies have no on-disk metadata, so typed access to its types fails to compile (CS0103). You can still reach its state via reflection (`Type.GetType("MyApp.Program, MyApp")`). The banner warns about this mode.
 - Ctrl+C is cooperative: it cancels at points Roslyn observes (same as the local REPL). It cannot interrupt arbitrary running code — a submission stuck in a tight loop inside the target cannot be aborted (see "Known limitations").
 - `#r` (NuGet/assembly references) inside a remote session is not supported.
+- `#replace` supports `ref`/`out`/`in` parameters (via an emitted delegate type). Not supported: generic methods, pointer parameters, and `#wrap` on a method with by-ref parameters.
+- A method already inlined by the JIT at a call site keeps its old behavior at that site.

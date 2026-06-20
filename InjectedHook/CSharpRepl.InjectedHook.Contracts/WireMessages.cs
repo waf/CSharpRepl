@@ -19,6 +19,12 @@ namespace CSharpRepl.InjectedHook.Contracts;
 [JsonDerivedType(typeof(ReferencesResponse), "references-response")]
 [JsonDerivedType(typeof(CancelMessage), "cancel")]
 [JsonDerivedType(typeof(DisconnectMessage), "disconnect")]
+[JsonDerivedType(typeof(ReplaceRequest), "replace-request")]
+[JsonDerivedType(typeof(ReplaceResponse), "replace-response")]
+[JsonDerivedType(typeof(PatchListRequest), "patch-list-request")]
+[JsonDerivedType(typeof(PatchListResponse), "patch-list-response")]
+[JsonDerivedType(typeof(RevertRequest), "revert-request")]
+[JsonDerivedType(typeof(RevertResponse), "revert-response")]
 public abstract class WireMessage
 {
 }
@@ -163,4 +169,91 @@ public enum ResultKind
 
     /// <summary>Compilation or execution failed (detail in EvalResponse.Exception).</summary>
     Exception,
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Live method replacement. The controller names a target method in the running app and supplies a
+// REPL-defined replacement (a delegate value, or a method/expression the engine can coerce to one); the engine
+// detours the live method to it via MonoMod.RuntimeDetour. Patches are reversible and tracked by id.
+// ---------------------------------------------------------------------------------------------------------
+
+/// <summary>How a replacement relates to the original method.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<PatchMode>))]
+public enum PatchMode
+{
+    /// <summary>The replacement fully replaces the original (the original never runs).</summary>
+    Replace,
+
+    /// <summary>
+    /// The replacement wraps the original: its first parameter is an "orig" delegate (same signature as the
+    /// original, instance-first for instance methods) that the body may call to delegate to the original.
+    /// </summary>
+    Wrap,
+}
+
+/// <summary>Controller → engine: detour <see cref="TargetMethod"/> to <see cref="Replacement"/>.</summary>
+public sealed class ReplaceRequest : WireMessage
+{
+    /// <summary>Fully-qualified target, e.g. <c>MyApp.Ordering.OrderService.CalculatePrice</c>.</summary>
+    public string TargetMethod { get; init; } = "";
+
+    /// <summary>
+    /// A C# expression, evaluated against the engine's persisted state, that yields the replacement. Typically
+    /// the name of a delegate the user defined (e.g. <c>cheaper</c>) or an explicit cast of a method group
+    /// (<c>(Func&lt;...&gt;)MyMethod</c>). For instance methods the delegate takes the instance as its first
+    /// parameter; in Wrap mode an "orig" delegate precedes that.
+    /// </summary>
+    public string Replacement { get; init; } = "";
+
+    public PatchMode Mode { get; init; }
+}
+
+/// <summary>Engine → controller: the outcome of a <see cref="ReplaceRequest"/>.</summary>
+public sealed class ReplaceResponse : WireMessage
+{
+    public bool Ok { get; init; }
+
+    /// <summary>The id under which the patch is tracked (for #patches / #revert). Valid only when Ok.</summary>
+    public int PatchId { get; init; }
+
+    /// <summary>A friendly rendering of the resolved target method when Ok (e.g. for overload confirmation).</summary>
+    public string? ResolvedMethod { get; init; }
+
+    /// <summary>The failure reason when not Ok.</summary>
+    public string? Error { get; init; }
+}
+
+/// <summary>Controller → engine: list the active patches.</summary>
+public sealed class PatchListRequest : WireMessage
+{
+}
+
+/// <summary>Engine → controller: the currently tracked patches.</summary>
+public sealed class PatchListResponse : WireMessage
+{
+    public IReadOnlyList<PatchInfo> Patches { get; init; } = [];
+}
+
+/// <summary>One tracked patch.</summary>
+public sealed class PatchInfo
+{
+    public int Id { get; init; }
+    public string Method { get; init; } = "";
+    public string Replacement { get; init; } = "";
+    public PatchMode Mode { get; init; }
+}
+
+/// <summary>Controller → engine: undo one patch (by id) or every patch.</summary>
+public sealed class RevertRequest : WireMessage
+{
+    public int PatchId { get; init; }
+    public bool All { get; init; }
+}
+
+/// <summary>Engine → controller: the outcome of a <see cref="RevertRequest"/>.</summary>
+public sealed class RevertResponse : WireMessage
+{
+    public bool Ok { get; init; }
+    public int RevertedCount { get; init; }
+    public string? Error { get; init; }
 }

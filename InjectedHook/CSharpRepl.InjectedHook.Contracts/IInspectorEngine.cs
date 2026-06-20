@@ -36,4 +36,16 @@ public interface IInspectorEngine
     /// - Single-file/in-memory assemblies are omitted.
     /// </summary>
     Task<IReadOnlyList<string>> GetReferencePathsAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Detours a live method in the target to a REPL-defined replacement (see <see cref="ReplaceRequest"/>).
+    /// Never throws for resolution/compile failures; those return as <c>Ok == false</c> with an Error.
+    /// </summary>
+    Task<ReplaceResponse> ReplaceMethodAsync(string targetMethod, string replacement, PatchMode mode, CancellationToken cancellationToken);
+
+    /// <summary>Lists the patches currently applied by this engine.</summary>
+    Task<PatchListResponse> ListPatchesAsync(CancellationToken cancellationToken);
+
+    /// <summary>Undoes a patch by id, or every patch when <paramref name="all"/> is true.</summary>
+    Task<RevertResponse> RevertAsync(int patchId, bool all, CancellationToken cancellationToken);
 }

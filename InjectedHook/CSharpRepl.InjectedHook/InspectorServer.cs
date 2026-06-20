@@ -30,7 +30,7 @@ internal static class InspectorServer
 
     public static void StartInBackground(IInspectorEngine engine)
     {
-        // use a background thread so the inspector loop never keeps the target alive. Don't use a task because we don't want to consume the target's thread pool with a long-running loop.
+        // Dedicated background thread, not a pool Task: the loop is long-lived, and IsBackground keeps it from holding the target alive.
         var thread = new Thread(() => RunLoop(engine))
         {
             IsBackground = true,
@@ -95,6 +95,21 @@ internal static class InspectorServer
                 case ReferencesRequest:
                     var references = await GetReferencePathsAsync(engine).ConfigureAwait(false);
                     await channel.WriteAsync(new ReferencesResponse { Paths = references }, CancellationToken.None).ConfigureAwait(false);
+                    message = await channel.ReadAsync(CancellationToken.None).ConfigureAwait(false);
+                    break;
+
+                case ReplaceRequest replace:
+                    await channel.WriteAsync(await ReplaceAsync(engine, replace).ConfigureAwait(false), CancellationToken.None).ConfigureAwait(false);
+                    message = await channel.ReadAsync(CancellationToken.None).ConfigureAwait(false);
+                    break;
+
+                case PatchListRequest:
+                    await channel.WriteAsync(await ListPatchesAsync(engine).ConfigureAwait(false), CancellationToken.None).ConfigureAwait(false);
+                    message = await channel.ReadAsync(CancellationToken.None).ConfigureAwait(false);
+                    break;
+
+                case RevertRequest revert:
+                    await channel.WriteAsync(await RevertAsync(engine, revert).ConfigureAwait(false), CancellationToken.None).ConfigureAwait(false);
                     message = await channel.ReadAsync(CancellationToken.None).ConfigureAwait(false);
                     break;
 
@@ -200,6 +215,43 @@ internal static class InspectorServer
         {
             // The controller degrades to a reference-less editor workspace if this fails; never tear down the session.
             return [];
+        }
+    }
+
+    private static async Task<ReplaceResponse> ReplaceAsync(IInspectorEngine engine, ReplaceRequest request)
+    {
+        try
+        {
+            return await engine.ReplaceMethodAsync(request.TargetMethod, request.Replacement, request.Mode, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            // The engine reports expected failures as Ok=false; this catches only unexpected engine faults.
+            return new ReplaceResponse { Ok = false, Error = exception.Message };
+        }
+    }
+
+    private static async Task<PatchListResponse> ListPatchesAsync(IInspectorEngine engine)
+    {
+        try
+        {
+            return await engine.ListPatchesAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch
+        {
+            return new PatchListResponse();
+        }
+    }
+
+    private static async Task<RevertResponse> RevertAsync(IInspectorEngine engine, RevertRequest request)
+    {
+        try
+        {
+            return await engine.RevertAsync(request.PatchId, request.All, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            return new RevertResponse { Ok = false, Error = exception.Message };
         }
     }
 

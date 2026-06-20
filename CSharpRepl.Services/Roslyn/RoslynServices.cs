@@ -85,6 +85,12 @@ public sealed partial class RoslynServices
     // completion/highlighting are target-aware. Null for a normal local REPL session.
     private readonly RemoteEditorContext? remoteEditor;
 
+    /// <summary>
+    /// True when this is an inspect-mode session (editor services target a remote process). Used to offer the
+    /// inspect-only commands (#replace/#wrap/#patches/#revert) in completion only when they're applicable.
+    /// </summary>
+    public bool IsInspectMode => remoteEditor is not null;
+
     public RoslynServices(IConsoleService console, Configuration config, ITraceLogger logger, RemoteEditorContext? remoteEditor = null)
     {
         DebugAssertHandler.Install(); // Prevent a failed Debug.Assert in evaluated code from killing the whole REPL.
@@ -131,7 +137,7 @@ public sealed partial class RoslynServices
             // syntax highlighting, autocompletion, and roslyn symbol queries. In inspect mode the host object
             // type is the inspector globals, so `services`/`Get<T>()` resolve in the editor (the engine in the
             // target — not this ScriptRunner — performs the actual evaluation).
-            this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger, hostObjectType: remoteGlobalsType);
+            this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger, hostObjectType: remoteGlobalsType, hostServices: remoteEditor?.EditorHostServices);
             this.scriptRunner = new ScriptRunner(workspaceManager, parseOptions, compilationOptions, referenceService, console, config, globalsType: remoteGlobalsType);
 
             this.codeTransformer = new CodeTransformer(parseOptions, compilationOptions, referenceService, scriptRunner);

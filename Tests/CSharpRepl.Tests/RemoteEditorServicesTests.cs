@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using CSharpRepl.InjectedHook.Contracts;
+using CSharpRepl.PrettyPromptConfig;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Remote;
 using CSharpRepl.Services.Roslyn;
@@ -67,6 +68,38 @@ public class RemoteEditorServicesTests
             var memberCompletions = await CompletionDisplayTextsAsync(services, "s.");
             Assert.Contains("Value", memberCompletions); // Service.Value
             Assert.Contains("Next", memberCompletions);  // Service.Next()
+
+            // --- #replace completion: the target's types complete in the type-path segment ---
+            var replaceTypes = await CompletionDisplayTextsAsync(services, $"#replace {TargetNamespace}.");
+            Assert.Contains("Service", replaceTypes);
+            Assert.Contains("Program", replaceTypes);
+
+            // --- #replace completion: a type's INSTANCE members complete (nameof rewrite, not static-only) ---
+            var replaceMembers = await CompletionDisplayTextsAsync(services, $"#replace {TargetNamespace}.Service.");
+            Assert.Contains("Compute", replaceMembers); // instance method
+            Assert.Contains("Next", replaceMembers);    // instance method
+
+            // --- The span committed for a #replace target is the identifier under the caret, not the whole line ---
+            var partial = $"#replace {TargetNamespace}.Servi";
+            var span = await services.GetSpanToReplaceByCompletionAsync(partial, partial.Length, TestContext.Current.CancellationToken);
+            Assert.Equal("Servi", partial.Substring(span.Start, span.Length));
+
+            // --- The replacement-expression position completes ordinary script code against the chain (s.) ---
+            var replaceExpr = await CompletionDisplayTextsAsync(services, $"#replace {TargetNamespace}.Service.Compute with s.");
+            Assert.Contains("Value", replaceExpr);
+            Assert.Contains("Compute", replaceExpr);
+
+            // --- The inspect commands themselves complete (with help text), via the prompt callbacks ---
+            var promptCallbacks = new CSharpReplPromptCallbacks(console, services, new Configuration(theme: "Data/theme.json"));
+            var commandItems = await promptCallbacks.GetCompletionItemsCoreAsync("#re", 3, TestContext.Current.CancellationToken);
+            var commandTexts = commandItems.Select(c => c.ReplacementText).ToList();
+            Assert.Contains("#replace", commandTexts);
+            Assert.Contains("#wrap", commandTexts);
+            Assert.Contains("#patches", commandTexts);
+            Assert.Contains("#revert", commandTexts);
+            var replaceDescription = await commandItems.First(c => c.ReplacementText == "#replace")
+                .GetExtendedDescriptionAsync(TestContext.Current.CancellationToken);
+            Assert.Contains("Replace a live method", replaceDescription.Text);
 
             // --- Semantic highlighting resolves the target type as a class (not an unresolved identifier) ---
             var classNameColor = services.ToColor(ClassificationTypeNames.ClassName);

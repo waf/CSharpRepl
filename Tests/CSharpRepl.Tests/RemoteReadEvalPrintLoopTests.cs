@@ -27,6 +27,7 @@ namespace CSharpRepl.Tests;
 public class RemoteReadEvalPrintLoopTests
 {
     private const string TargetType = "CSharpRepl.InjectedHook.TestTarget.Program";
+    private const string ServiceType = "CSharpRepl.InjectedHook.TestTarget.Service";
 
     [Fact(Timeout = 180_000)]
     public async Task RunAsync_DrivesAFullInspectSession_AgainstAHookedProcess()
@@ -61,6 +62,24 @@ public class RemoteReadEvalPrintLoopTests
                 new PromptResult(true, "definitelyNotDefined", default),                  // compile error, loop survives
                 new PromptResult(true, """throw new System.InvalidOperationException("bang!");""", default),
                 new KeyPressCallbackResult("", "callback output marker"),                 // local key-binding output
+                // --- live method replacement: define a delegate, replace a live method, observe the change,
+                //     list it, then revert it — the running target's behavior changes and reverts mid-session ---
+                new PromptResult(true, $"System.Func<{ServiceType}, int, int> stub = (self, n) => 888;", default),
+                new PromptResult(true, $"#replace {ServiceType}.Compute with stub", default),
+                new PromptResult(true, "svc.Compute(111)", default),                      // detoured → 888
+                new PromptResult(true, "#patches", default),
+                new PromptResult(true, "#revert 1", default),
+                new PromptResult(true, "svc.Compute(111)", default),                      // reverted → 222
+                // --- command edge cases: usage error, engine failures, wrap, revert-all, empty listing ---
+                new PromptResult(true, "#replace BadInput", default),                     // no " with " → usage error
+                new PromptResult(true, $"#replace {ServiceType}.NoSuchMethod with stub", default), // engine Ok=false → "failed:"
+                new PromptResult(true, "#revert 999", default),                           // no such patch → revert error
+                new PromptResult(true, $"System.Func<System.Func<{ServiceType}, int, int>, {ServiceType}, int, int> wrapper = (orig, self, n) => orig(self, n) + 1000;", default),
+                new PromptResult(true, $"#wrap {ServiceType}.Compute with wrapper", default),
+                new PromptResult(true, "svc.Compute(111)", default),                      // wrapped → 222 + 1000 = 1222
+                new PromptResult(true, "#patches", default),                              // lists the wrap (patch #2)
+                new PromptResult(true, "#revert all", default),                           // → "reverted 1 patch(es)."
+                new PromptResult(true, "#patches", default),                              // → "No active patches."
                 new PromptResult(true, "exit", default));
 
             await repl.RunAsync(new Configuration());
@@ -82,6 +101,21 @@ public class RemoteReadEvalPrintLoopTests
 
             // Key-binding callback output is surfaced via standard output, like the local loop.
             Assert.Contains("callback output marker", capturedStdout.ToString());
+
+            // Live method replacement: the detour took effect (888), was listed, then reverted (222 = 111 * 2).
+            Assert.Contains("patched", output);
+            Assert.Contains("888", output);
+            Assert.Contains("#1", output);              // #patches listing / revert confirmation
+            Assert.Contains("222", output);             // original behavior after #revert
+
+            // Command edge cases, each a distinct PrintCommandResult arm rendered through the real loop:
+            Assert.Contains("Usage:", output);                  // "#replace BadInput" → usage error
+            Assert.Contains("failed", output);                  // "#replace …NoSuchMethod" → engine Ok=false
+            Assert.Contains("No active patch with id", output); // "#revert 999" → revert error
+            Assert.Contains("wrapped", output);                 // "#wrap" success
+            Assert.Contains("1222", output);                    // wrapped result (orig 222 + 1000)
+            Assert.Contains("patch(es)", output);               // "#revert all" → "reverted N patch(es)."
+            Assert.Contains("No active patches.", output);      // empty "#patches" after revert-all
 
             // The committed `var` advanced the controller's remote workspace: the editor sees it afterwards.
             var completions = await roslyn.CompleteAsync("svc.", 4, cancellationToken);

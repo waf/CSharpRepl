@@ -42,6 +42,22 @@ public sealed class RemoteSession : IAsyncDisposable
     public Task<IReadOnlyList<string>> GetReferencePathsAsync(CancellationToken cancellationToken)
         => client.GetReferencePathsAsync(cancellationToken);
 
+    /// <summary>
+    /// Detours a live method in the target to a REPL-defined replacement. <paramref name="targetMethod"/> is a
+    /// fully-qualified Type.Method; <paramref name="replacement"/> is an expression (usually a delegate the user
+    /// defined) the engine evaluates against the shared state chain.
+    /// </summary>
+    public Task<ReplaceResponse> ReplaceAsync(string targetMethod, string replacement, PatchMode mode, CancellationToken cancellationToken)
+        => client.ReplaceAsync(targetMethod, replacement, mode, cancellationToken);
+
+    /// <summary>Lists the patches currently applied in the target by this session's engine.</summary>
+    public Task<PatchListResponse> ListPatchesAsync(CancellationToken cancellationToken)
+        => client.ListPatchesAsync(cancellationToken);
+
+    /// <summary>Undoes a patch by id, or every patch when <paramref name="all"/> is true.</summary>
+    public Task<RevertResponse> RevertAsync(int patchId, bool all, CancellationToken cancellationToken)
+        => client.RevertAsync(patchId, all, cancellationToken);
+
     /// <summary>Asks the inspector to end the session. The target process keeps running.</summary>
     public async Task DisconnectAsync(CancellationToken cancellationToken)
     {
