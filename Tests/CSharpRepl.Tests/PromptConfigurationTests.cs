@@ -80,13 +80,13 @@ public class PromptConfigurationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task OpenAiCompletionKeyBinding_NoApiKey_ReturnsEmptyStreamingResult()
+    public async Task AiCompletionKeyBinding_NoApiKey_ReturnsEmptyStreamingResult()
     {
         IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
         var ctrlAltSpace = new ConsoleKeyInfo(' ', ConsoleKey.Spacebar, shift: false, alt: true, control: true);
         Assert.True(configuration.TryGetKeyPressCallbacks(ctrlAltSpace, out var callback));
 
-        // With no OpenAI API key configured the completion stream yields nothing, but the callback
+        // With no AI API key configured the completion stream yields nothing, but the callback
         // still returns a (streaming) result rather than throwing.
         var result = await callback.Invoke("1 + ", 4, TestContext.Current.CancellationToken);
 

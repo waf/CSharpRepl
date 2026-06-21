@@ -92,7 +92,7 @@ public sealed class Configuration
     /// <see cref="PlainText"/>.
     /// </summary>
     public IRenderable? OutputForEarlyExit { get; }
-    public OpenAIConfiguration? OpenAIConfiguration { get; }
+    public AICompletionConfiguration? AICompletionConfiguration { get; }
     public int TabSize { get; }
 
     public KeyBindings KeyBindings { get; }
@@ -119,7 +119,7 @@ public sealed class Configuration
         string[]? newLineKeyPatterns = null,
         string[]? submitPromptKeyPatterns = null,
         string[]? submitPromptDetailedKeyPatterns = null,
-        OpenAIConfiguration? openAIConfiguration = null,
+        AICompletionConfiguration? aiCompletionConfiguration = null,
         string? cultureName = null)
     {
         References = references?.ToHashSet() ?? [];
@@ -186,7 +186,7 @@ public sealed class Configuration
         LoadScript = loadScript;
         LoadScriptArgs = loadScriptArgs ?? [];
         OutputForEarlyExit = outputForEarlyExit;
-        OpenAIConfiguration = openAIConfiguration;
+        AICompletionConfiguration = aiCompletionConfiguration;
         var triggerCompletionList =
             triggerCompletionListKeyPatterns?.Any() == true
             ? ParseKeyPressPatterns(triggerCompletionListKeyPatterns)
@@ -287,18 +287,25 @@ public sealed class Configuration
     }
 }
 
-public class OpenAIConfiguration
+/// <summary>
+/// Resolved configuration for the AI code-completion feature. Provider-agnostic: <see cref="Endpoint"/>
+/// (an OpenAI-compatible base URL, or <see langword="null"/> for the OpenAI default) plus <see cref="Model"/>
+/// and <see cref="ApiKey"/> select the provider. Built by <see cref="Completion.AICompleteService.CreateConfiguration"/>.
+/// </summary>
+public class AICompletionConfiguration
 {
-    public OpenAIConfiguration(string? apiKey, string prompt, string model, int historyCount)
+    public AICompletionConfiguration(string? apiKey, string? endpoint, string model, string prompt, int historyCount)
     {
         ApiKey = apiKey;
-        Prompt = prompt;
+        Endpoint = endpoint;
         Model = model;
+        Prompt = prompt;
         HistoryCount = historyCount;
     }
 
     public string? ApiKey { get; }
-    public string Prompt { get; }
+    public string? Endpoint { get; }
     public string Model { get; }
+    public string Prompt { get; }
     public int HistoryCount { get; }
 }

@@ -1,6 +1,6 @@
 ## What this is
 
-`csharprepl` is a cross-platform command-line C# REPL distributed as a .NET 10 global tool. It evaluates C# with Roslyn's scripting API and provides IntelliSense, syntax highlighting, NuGet/project/assembly references, object inspection, IL/lowered-C# disassembly (ILSpy), and OpenAI integration. The terminal UX (input, autocomplete menus, highlighting) comes from the separate **PrettyPrompt** library (same author, separate NuGet package/repo).
+`csharprepl` is a cross-platform command-line C# REPL distributed as a .NET 10 global tool. It evaluates C# with Roslyn's scripting API and provides IntelliSense, syntax highlighting, NuGet/project/assembly references, object inspection, IL/lowered-C# disassembly (ILSpy), and provider-agnostic AI code completion (via Microsoft.Extensions.AI). The terminal UX (input, autocomplete menus, highlighting) comes from the separate **PrettyPrompt** library (same author, separate NuGet package/repo).
 
 Everything targets **`net10.0`**. The SDK is pinned in `global.json` (10.0.0, `latestMajor`, prereleases allowed).
 

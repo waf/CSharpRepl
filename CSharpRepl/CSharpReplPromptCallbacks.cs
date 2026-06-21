@@ -35,7 +35,7 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
 {
     private const string lowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
     private static SearchValues<char> lowercaseSearchValues = SearchValues.Create(lowercaseLetters);
-    private readonly OpenAICompleteService openAIComplete = new OpenAICompleteService(configuration.OpenAIConfiguration);
+    private readonly AICompleteService aiComplete = new AICompleteService(configuration.AICompletionConfiguration);
 
     // How the F1/Ctrl+F1/F12 keybindings open a URL. Defaults to actually launching the browser; tests inject a no-op.
     private readonly Func<string, KeyPressCallbackResult?> launchBrowser = launchBrowser ?? LaunchBrowser;
@@ -72,17 +72,17 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
 
         yield return (
             new(ConsoleModifiers.Control | ConsoleModifiers.Alt, ConsoleKey.Spacebar),
-            (text, caret, cancellationToken) => OpenAICompleteAsync(text, caret, cancellationToken));
+            (text, caret, cancellationToken) => AICompleteAsync(text, caret, cancellationToken));
 
         yield return (
             new(ConsoleModifiers.Control, ConsoleKey.D),
             (text, caret, cancellationToken) => Task.FromResult<KeyPressCallbackResult?>(new ExitApplicationKeyPress()));
     }
 
-    private async Task<KeyPressCallbackResult?> OpenAICompleteAsync(string text, int caret, CancellationToken cancellationToken)
+    private async Task<KeyPressCallbackResult?> AICompleteAsync(string text, int caret, CancellationToken cancellationToken)
     {
         var submissions = await roslyn.GetPreviousSubmissionsAsync();
-        var completion = openAIComplete.CompleteAsync(submissions, text, caret, cancellationToken);
+        var completion = aiComplete.CompleteAsync(submissions, text, caret, cancellationToken);
         return new StreamingInputCallbackResult(completion);
     }
 
