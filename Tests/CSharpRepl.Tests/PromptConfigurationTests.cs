@@ -121,6 +121,49 @@ public class PromptConfigurationTests : IAsyncLifetime
         Assert.False(string.IsNullOrEmpty(result!.Output));
     }
 
+    [Theory]
+    [InlineData("exit")]
+    [InlineData("clear")]
+    [InlineData("help")]
+    [InlineData("EXIT")]    // dispatch is case-insensitive, so the menu offers (and we decline committing) "exit" here too
+    [InlineData("  exit  ")] // surrounding whitespace is trimmed before the command is dispatched
+    public async Task ConfirmCompletionCommit_FullyTypedReplKeyword_DeclinesSoEnterSubmits(string text)
+    {
+        // Pressing Enter on a fully-typed REPL command must NOT commit the (identical) completion — otherwise the
+        // Enter is swallowed and the user has to press it twice. Declining the commit lets the single Enter submit.
+        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
+        var enterKey = new KeyPress(new ConsoleKeyInfo('\0', ConsoleKey.Enter, shift: false, alt: false, control: false));
+
+        var shouldCommit = await configuration.ConfirmCompletionCommit(text, text.Length, enterKey, CancellationToken.None);
+
+        Assert.False(shouldCommit);
+    }
+
+    [Theory]
+    [InlineData("exi")]      // partially typed: Enter should still complete it to "exit"
+    [InlineData("Console")]  // ordinary code: not a REPL command
+    public async Task ConfirmCompletionCommit_NonFullyTypedKeyword_CommitsAsUsual(string text)
+    {
+        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
+        var enterKey = new KeyPress(new ConsoleKeyInfo('\0', ConsoleKey.Enter, shift: false, alt: false, control: false));
+
+        var shouldCommit = await configuration.ConfirmCompletionCommit(text, text.Length, enterKey, CancellationToken.None);
+
+        Assert.True(shouldCommit);
+    }
+
+    [Fact]
+    public async Task ConfirmCompletionCommit_FullyTypedReplKeyword_NonSubmitKey_CommitsAsUsual()
+    {
+        // Tab isn't the submit key, so committing "exit" via Tab has no double-press downside — keep default behavior.
+        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
+        var tabKey = new KeyPress(new ConsoleKeyInfo('\t', ConsoleKey.Tab, shift: false, alt: false, control: false));
+
+        var shouldCommit = await configuration.ConfirmCompletionCommit("exit", 4, tabKey, CancellationToken.None);
+
+        Assert.True(shouldCommit);
+    }
+
     public static IEnumerable<object[]> KeyPresses()
     {
         yield return new object[] { new ConsoleKeyInfo('\0', ConsoleKey.F1, shift: false, alt: false, control: false) };
