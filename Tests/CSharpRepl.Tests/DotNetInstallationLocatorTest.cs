@@ -190,7 +190,9 @@ public class DotNetInstallationLocatorTest
                 { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-arm/5.0.8/runtimes/win-arm/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
                 { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.win-arm64/5.0.8/runtimes/win-arm64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
                 { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.osx-x64/5.0.8/runtimes/osx-x64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.osx-arm64/5.0.8/runtimes/osx-arm64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
                 { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.linux-x64/5.0.8/runtimes/linux-x64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.linux-arm64/5.0.8/runtimes/linux-arm64/lib/net5.0/Microsoft.CSharp.dll", string.Empty },
             });
 
         var locator = new DotNetInstallationLocator(
@@ -211,9 +213,10 @@ public class DotNetInstallationLocatorTest
             : OperatingSystem.IsLinux() ? "linux"
             : OperatingSystem.IsMacOS() ? "osx"
             : null;
+        var architecture = RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
         // it's possible that this could also be the implementation assemblies in ~/.nuget
         Assert.Equal(
-            CrossPlatform($@"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.{platform}-x64/5.0.8/runtimes/{platform}-x64/lib/net5.0"),
+            CrossPlatform($@"/Users/bob/.nuget/packages/microsoft.netcore.app.runtime.{platform}-{architecture}/5.0.8/runtimes/{platform}-{architecture}/lib/net5.0"),
             CrossPlatform(implPath)
         );
     }
