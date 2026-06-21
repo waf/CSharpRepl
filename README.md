@@ -156,17 +156,38 @@ This will start the REPL in the target application. Some things you can try:
 - Statics: reference them by their fully-qualified name, e.g. `MyApp.Program.SomeStatic` (read and write).
 - DI services (ASP.NET Core or Generic Host apps): `services.GetRequiredService<T>()` or the shorthand `Get<T>()`. The inspector captures the application's root service provider via .NET's hosting hooks.
 
-You can also replace live methods in the target. Define a delegate, then patch a method with it:
-
-- Define a delegate matching the target. Instance methods take the instance as the first parameter:
-	- `Func<MyApp.OrderService, int, decimal, decimal> half = (svc, qty, unit) => qty * unit * 0.5m;`
-- `#replace MyApp.OrderService.CalculatePrice with half`: supplant the original.
-- `#wrap MyApp.OrderService.CalculatePrice with logged`: wrap it. The replacement's first parameter is an `orig` delegate that calls the original.
-- `#patches`: list active patches. `#revert <id>` or `#revert all`: undo them.
-
-Patches take effect immediately and persist in the target until reverted or the process exits.
-
 Type `exit` (or press <kbd>Ctrl+D</kbd>) to detach. The target application will keep running, and you can reconnect to it later.
+
+### Modifying a running process
+
+While inspecting a process, you can also replace live methods in that process. Define a method matching the target's signature. Instance methods take the instance as the first parameter:
+
+```csharp
+> decimal half(MyApp.OrderService svc, int qty, decimal unit) => qty * unit * 0.5m;
+```
+
+Then run the following (with the fully qualified target method name) to replace the original method:
+
+```csharp
+#replace MyApp.OrderService.CalculatePrice with half
+```
+
+To wrap a method instead of replacing it, define a method whose first parameter is an `orig` delegate that calls the original:
+
+```csharp
+> decimal logged(Func<MyApp.OrderService, int, decimal, decimal> orig, MyApp.OrderService svc, int qty, decimal unit)
+  {
+      var price = orig(svc, qty, unit);
+      Console.WriteLine($"CalculatePrice({qty}, {unit}) = {price}");
+      return price;
+  }
+
+> #wrap MyApp.OrderService.CalculatePrice with logged
+```
+
+To undo a modification, use `#patches` to list active patches and `#revert <id>` or `#revert all` to undo them.
+
+Patches take effect immediately and persist in the target until reverted or the process exits. Patching is done via the excellent [MonoMod](https://github.com/monomod/monomod) library
 
 **Requirements and limitations:**
 
