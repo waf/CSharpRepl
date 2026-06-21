@@ -174,9 +174,19 @@ Type `exit` (or press <kbd>Ctrl+D</kbd>) to detach. The target application will 
 - Apps published as single-files have very limited functionality:
 	- A framework-dependent single-file app's assemblies are bundled with no metadata, so strongly-typed access to the app's own types is unavailable. You need to use reflection to access the app's types.
   - A self-contained single-file app is unsupported (even the runtime is bundled, so nothing can be compiled). The inspector will refuse to start.
-- Method replacement supports `ref`/`out`/`in` parameters with `#replace` (define a matching named method). Not supported: generic methods, pointer parameters, `#wrap` on a method with by-ref parameters, and a method the JIT already inlined at a call site (which keeps its old behavior there).
+- Method replacement is not supported for generic methods, pointer parameters, and methods the JIT already inlined at a call site.
 
 See the [Injected Hook documentation](https://github.com/waf/CSharpRepl/blob/main/InjectedHook/InjectedHookReadme.md) for information on how this works under the hood.
+
+## AI Code Completion
+
+C# REPL can suggest completions using an AI model. Press <kbd>Ctrl+Alt+Space</kbd> at the caret to request a completion; the generated code streams directly into the prompt at the caret as it arrives. Suggestions are generated from the code you've typed in the current session, so they're aware of the variables, methods, and types you've already defined.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/waf/CSharpRepl/main/.github/readme_assets/ai-completions.gif" alt="AI code completion animated GIF" style="max-width:80%;">
+</p>
+
+This works with OpenAI, Anthropic, Gemini, Grok, DeepSeek, Mistral/Codestral, or any other OpenAI-compatible provider (bring your own API key). Use the `--aiProvider` option and related settings to choose and/or configure a provider; see [Configuring CSharpRepl](https://github.com/waf/CSharpRepl/wiki/Configuring-CSharpRepl) for details.
 
 ## Keyboard Shortcuts
 
