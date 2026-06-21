@@ -18,7 +18,7 @@ C# REPL provides the following features:
 - Inspect a running .NET application and run the REPL inside that application, with access to application state
 - Navigate to source via Source Link
 - IL disassembly and "lowered" C# decompilation (both Debug and Release mode, using ILSpy)
-- OpenAI integration (bring your own API key)
+- AI code completion via OpenAI, Anthropic, Gemini, Grok, DeepSeek, Mistral/Codestral, or any other OpenAI-compatible provider (bring your own API key)
 - Fast and flicker-free rendering. A "diff" algorithm is used to only render what's changed.
 
 ## Installation
@@ -179,7 +179,7 @@ CSharpRepl aims for a similar editing experience as Visual Studio (e.g. for text
   - <kbd>Ctrl+Enter</kbd> or <kbd>Ctrl+Alt+Enter</kbd> - Evaluate the current line, and return a more detailed representation of the result
   - <kbd>Shift+Enter</kbd> or <kbd>Alt+Enter</kbd> - Insert a new line without evaluating
   - <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd> - Undo / redo
-  - <kbd>Ctrl+Alt+Space</kbd> - Request an AI code completion at the caret (requires an OpenAI API key to be configured)
+  - <kbd>Ctrl+Alt+Space</kbd> - Request an AI code completion at the caret (requires an AI provider API key to be configured; OpenAI by default, see `--aiProvider`)
 - **Editing & Clipboard**
   - <kbd>Ctrl+Shift+C</kbd> - Copy the entire current input to the clipboard
   - <kbd>Ctrl+X</kbd> - Cut the highlighted text, or the current line if nothing is highlighted

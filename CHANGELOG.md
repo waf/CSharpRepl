@@ -1,3 +1,10 @@
+## Release 0.9.0 (UPCOMING, UNRELEASED)
+
+- **Breaking:** the AI code-completion feature (<kbd>Ctrl+Alt+Space</kbd>) is now provider-agnostic. The OpenAI-specific options (`--openAIApiKey`, `--openAIPrompt`, `--openAIModel`, `--openAIHistoryCount`)
+have been removed and replaced with provider-neutral options: `--aiApiKey`, `--aiPrompt`, `--aiModel`, and `--aiHistoryCount`.
+  - `--aiProvider` selects a built-in preset (`openai` (default), `anthropic`, `grok`, `deepseek`, `gemini`, `mistral`, `codestral`), each supplying a default endpoint, model, and API-key environment variable (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `XAI_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `MISTRAL_API_KEY`, `CODESTRAL_API_KEY`). Point `--aiEndpoint` at any other OpenAI-compatible API to use a provider that isn't listed.
+  - The default OpenAI model is now `gpt-5.4-mini` (was `gpt-4o`).
+
 ## Release 0.8.1
 
 - On Windows, new installations store the config file, prompt history, and NuGet/symbol caches in the local profile (`%LOCALAPPDATA%\.csharprepl`) instead of the roaming profile (`%APPDATA%`), so the package cache is no longer synchronized across machines.

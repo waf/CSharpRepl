@@ -107,24 +107,34 @@ internal static class CommandLine
         DefaultValueFactory = _ => 4
     };
 
-    private static readonly Option<string> OpenAIApiKey = new("--openAIApiKey")
+    private static readonly Option<string> AIProvider = new("--aiProvider")
     {
-        Description = $"OpenAI API key. Alternatively, set the {OpenAICompleteService.ApiKeyEnvironmentVariableName} environment variable."
+        Description = "AI provider preset (default: openai, use [green]--aiEndpoint[/] for other OpenAI-compatible APIs):"
     };
 
-    private static readonly Option<string> OpenAIPrompt = new("--openAIPrompt")
+    private static readonly Option<string> AIApiKey = new("--aiApiKey")
     {
-        Description = "OpenAI prompt to prefix to all code submissions"
+        Description = "API key for the AI provider. Alternatively, set its environment variable above."
     };
 
-    private static readonly Option<string> OpenAIModel = new("--openAIModel")
+    private static readonly Option<string> AIEndpoint = new("--aiEndpoint")
     {
-        Description = "OpenAI model configuration"
+        Description = "Base URL of an OpenAI-compatible API. Overrides the selected provider's default endpoint."
     };
 
-    private static readonly Option<int?> OpenAIHistoryCount = new("--openAIHistoryCount")
+    private static readonly Option<string> AIModel = new("--aiModel")
     {
-        Description = "Maximum number of previous REPL entries to send to OpenAI as context."
+        Description = "Model to use for AI completions. Overrides the selected provider's default model."
+    };
+
+    private static readonly Option<string> AIPrompt = new("--aiPrompt")
+    {
+        Description = "System prompt to prefix to all code submissions"
+    };
+
+    private static readonly Option<int?> AIHistoryCount = new("--aiHistoryCount")
+    {
+        Description = "Number of previous REPL entries to send to the AI provider as context (default: 5)."
     };
 
     private static readonly Option<string[]?> TriggerCompletionListKeyBindings = new("--triggerCompletionListKeys")
@@ -236,7 +246,7 @@ internal static class CommandLine
         {
             References, Usings, Framework, Theme, UseTerminalPaletteTheme, Prompt, UseUnicode, UsePrereleaseNugets,
             StreamPipedInput, Eval, EvalFile, Trace, Version, Help, TabSize,
-            OpenAIApiKey, OpenAIPrompt, OpenAIModel, OpenAIHistoryCount,
+            AIProvider, AIApiKey, AIEndpoint, AIModel, AIPrompt, AIHistoryCount,
             TriggerCompletionListKeyBindings, NewLineKeyBindings, SubmitPromptKeyBindings, SubmitPromptDetailedKeyBindings,
             Configure, Culture,
         })
@@ -350,11 +360,13 @@ internal static class CommandLine
             newLineKeyPatterns: commandLine.GetValue(NewLineKeyBindings),
             submitPromptKeyPatterns: commandLine.GetValue(SubmitPromptKeyBindings),
             submitPromptDetailedKeyPatterns: commandLine.GetValue(SubmitPromptDetailedKeyBindings),
-            openAIConfiguration: new OpenAIConfiguration(
-                apiKey: commandLine.GetValue(OpenAIApiKey) ?? OpenAICompleteService.ApiKey,
-                prompt: commandLine.GetValue(OpenAIPrompt) ?? OpenAICompleteService.DefaultPrompt,
-                model: commandLine.GetValue(OpenAIModel) ?? OpenAICompleteService.DefaultModel,
-                historyCount: commandLine.GetValue(OpenAIHistoryCount) ?? OpenAICompleteService.DefaultHistoryEntryCount
+            aiCompletionConfiguration: AICompleteService.CreateConfiguration(
+                provider: commandLine.GetValue(AIProvider),
+                apiKey: commandLine.GetValue(AIApiKey),
+                endpoint: commandLine.GetValue(AIEndpoint),
+                model: commandLine.GetValue(AIModel),
+                prompt: commandLine.GetValue(AIPrompt),
+                historyCount: commandLine.GetValue(AIHistoryCount)
             ),
             cultureName: commandLine.GetValue(Culture)
         );
@@ -657,13 +669,16 @@ internal static class CommandLine
             $"  [green]--submitPromptKeys[/] [cyan]<key-binding>[/]:           {SubmitPromptKeyBindings.Description}" + NewLine +
             $"  [green]--submitPromptDetailedKeys[/] [cyan]<key-binding>[/]:   {SubmitPromptDetailedKeyBindings.Description}" + NewLine +
             NewLine +
-            $"  Open AI" + NewLine +
-            $"  [green]--openAIApiKey[/]:                             {OpenAIApiKey.Description}" + NewLine +
-            $"  [green]--openAIPrompt[/]:                             {OpenAIPrompt.Description}" + NewLine +
-            $"  [green]--openAIModel[/]:                              {OpenAIModel.Description}" + NewLine +
-            $"  [green]--openAIHistoryCount[/]:                       {OpenAIHistoryCount.Description}" + NewLine +
+            $"  AI Completions:" + NewLine +
+            $"  [green]--aiProvider[/]:                               {AIProvider.Description}" + NewLine + GetAIProviderPresets(
+            $"                                               ") + NewLine +
+            $"  [green]--aiApiKey[/]:                                 {AIApiKey.Description}" + NewLine +
+            $"  [green]--aiEndpoint[/]:                               {AIEndpoint.Description}" + NewLine +
+            $"  [green]--aiModel[/]:                                  {AIModel.Description}" + NewLine +
+            $"  [green]--aiPrompt[/]:                                 {AIPrompt.Description}" + NewLine +
+            $"  [green]--aiHistoryCount[/]:                           {AIHistoryCount.Description}" + NewLine +
             NewLine +
-            $"  Help and Diagnostics" + NewLine +
+            $"  Help and Diagnostics:" + NewLine +
             $"  [green]--trace[/]:                                    {Trace.Description}" + NewLine +
             $"  [green]-v[/] or [green]--version[/]:                            {Version.Description}" + NewLine +
             $"  [green]-h[/] or [green]--help[/]:                               {Help.Description}" + NewLine + NewLine +
@@ -702,6 +717,14 @@ internal static class CommandLine
     /// <summary>
     /// In the help text, lists the available frameworks and marks one as default.
     /// </summary>
+    private static string GetAIProviderPresets(string leftPadding)
+    {
+        var nameWidth = KnownAIProviders.All.Max(p => p.Name.Length);
+        var presets = KnownAIProviders.All
+            .Select(p => $"{leftPadding}- [cyan]{p.Name.PadRight(nameWidth)}[/]   [grey]({p.ApiKeyEnvironmentVariable})[/]");
+        return string.Join(NewLine, presets);
+    }
+
     private static string GetInstalledFrameworks(string leftPadding)
     {
         var frameworkList = SharedFramework
