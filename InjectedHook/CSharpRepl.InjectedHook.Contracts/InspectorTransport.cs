@@ -26,7 +26,8 @@ namespace CSharpRepl.InjectedHook.Contracts;
 /// </summary>
 public static class InspectorTransport
 {
-    public const int ProtocolVersion = 1;
+    // v2: added live method replacement (ReplaceRequest/PatchListRequest/RevertRequest).
+    public const int ProtocolVersion = 2;
 
     // The endpoint name embeds the target's process id. These are the single source of truth for that
     // convention: PipeName/SocketPath build it, and TryParseProcessId/EnumerateListeningProcessIds reverse it

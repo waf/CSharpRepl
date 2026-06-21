@@ -93,9 +93,21 @@ When attached, csharprepl is a thin **controller**: it compiles nothing for eval
 
 A single duplex connection (named pipe on Windows, Unix domain socket elsewhere, **current-user only**). Every frame is a 4-byte little-endian length prefix + UTF-8 JSON body; messages are a `System.Text.Json` **polymorphic** `WireMessage` hierarchy keyed on a `$kind` discriminator (`MessageChannel`). Security model mirrors the .NET diagnostic port — OS access control, no secret. An inspector-enabled process is RCE-equivalent for same-user code and must never run in production.
 
+### Live method replacement
+
+`#replace`/`#wrap`/`#patches`/`#revert` (controller commands in `RemoteReadEvalPrintLoop`) detour a live method in the target to a REPL-defined delegate.
+
+- Engine side: `InspectorPatcher` (in `CSharpRepl.InjectedHook.ScriptEngine`) over `MonoMod.RuntimeDetour`. Resolves the target by name, matches the overload from the delegate's signature, coerces a bare method group via a generated cast, applies a `Hook`, tracks it by id for revert.
+- Wire (protocol v2): `ReplaceRequest`/`ReplaceResponse`, `PatchListRequest`/`PatchListResponse`, `RevertRequest`/`RevertResponse`, plus three `IInspectorEngine` methods served in `InspectorServer`.
+- Replacement shape: instance methods take the instance as the first parameter; `#wrap` prepends an `orig` delegate the body can call.
+- Detours repoint native code, so they cross the engine-ALC/target-ALC boundary: the replacement compiles in the engine ALC, the target method lives in the default ALC.
+- `ref`/`out`/`in` work in Replace mode: `BuildCastDelegate` emits a delegate type carrying the modifiers (Func can't), which the engine prepends to the probe submission before the method-group cast. Not supported: generic methods, pointer parameters, Wrap + by-ref (the `orig` delegate can't be a shared type).
+- Limits: JIT-inlined call sites keep old behavior. Patches persist after detach until reverted.
+- Tests: `InspectorEngineTests.ReplaceMethod_*` (in-process engine) and `RemoteReadEvalPrintLoopTests` (cross-process, real hooked child).
+
 ### Packaging
 
-`CSharpRepl.csproj`'s `IncludeInspectorPayload` target stages the full inspector payload (bootstrap + contracts + engine + Roslyn closure + `.deps.json`) into an **`inspector/` subdirectory** next to the tool (both on `dotnet run` and in the packed global tool), isolated so the engine's Roslyn never shadows the tool's. `inspect init` points `DOTNET_STARTUP_HOOKS` at `inspector/CSharpRepl.InjectedHook.dll`. The bootstrap is a `ProjectReference` with `ReferenceOutputAssembly="false"` (the tool must not link it).
+`CSharpRepl.csproj`'s `IncludeInspectorPayload` target stages the full inspector payload (bootstrap + contracts + engine + Roslyn closure + `MonoMod.RuntimeDetour` closure + `.deps.json`) into an **`inspector/` subdirectory** next to the tool (both on `dotnet run` and in the packed global tool), isolated so the engine's Roslyn never shadows the tool's. `inspect init` points `DOTNET_STARTUP_HOOKS` at `inspector/CSharpRepl.InjectedHook.dll`. The bootstrap is a `ProjectReference` with `ReferenceOutputAssembly="false"` (the tool must not link it).
 
 ## Gotchas
 

@@ -15,7 +15,7 @@ C# REPL provides the following features:
 - Nuget package installation
 - Reference local assemblies, solutions, and projects
 - Dump and explore objects with syntax highlighting and rich Spectre.Console formatting
-- Inspect a running .NET application and run the REPL inside that application, with access to application state
+- Inspect a running .NET application and run the REPL inside that application, with access to application state and the ability to replace live methods
 - Navigate to source via Source Link
 - IL disassembly and "lowered" C# decompilation (both Debug and Release mode, using ILSpy)
 - AI code completion via OpenAI, Anthropic, Gemini, Grok, DeepSeek, Mistral/Codestral, or any other OpenAI-compatible provider (bring your own API key)
@@ -156,6 +156,16 @@ This will start the REPL in the target application. Some things you can try:
 - Statics: reference them by their fully-qualified name, e.g. `MyApp.Program.SomeStatic` (read and write).
 - DI services (ASP.NET Core or Generic Host apps): `services.GetRequiredService<T>()` or the shorthand `Get<T>()`. The inspector captures the application's root service provider via .NET's hosting hooks.
 
+You can also replace live methods in the target. Define a delegate, then patch a method with it:
+
+- Define a delegate matching the target. Instance methods take the instance as the first parameter:
+	- `Func<MyApp.OrderService, int, decimal, decimal> half = (svc, qty, unit) => qty * unit * 0.5m;`
+- `#replace MyApp.OrderService.CalculatePrice with half`: supplant the original.
+- `#wrap MyApp.OrderService.CalculatePrice with logged`: wrap it. The replacement's first parameter is an `orig` delegate that calls the original.
+- `#patches`: list active patches. `#revert <id>` or `#revert all`: undo them.
+
+Patches take effect immediately and persist in the target until reverted or the process exits.
+
 Type `exit` (or press <kbd>Ctrl+D</kbd>) to detach. The target application will keep running, and you can reconnect to it later.
 
 **Requirements and limitations:**
@@ -164,6 +174,7 @@ Type `exit` (or press <kbd>Ctrl+D</kbd>) to detach. The target application will 
 - Apps published as single-files have very limited functionality:
 	- A framework-dependent single-file app's assemblies are bundled with no metadata, so strongly-typed access to the app's own types is unavailable. You need to use reflection to access the app's types.
   - A self-contained single-file app is unsupported (even the runtime is bundled, so nothing can be compiled). The inspector will refuse to start.
+- Method replacement supports `ref`/`out`/`in` parameters with `#replace` (define a matching named method). Not supported: generic methods, pointer parameters, `#wrap` on a method with by-ref parameters, and a method the JIT already inlined at a call site (which keeps its old behavior there).
 
 See the [Injected Hook documentation](https://github.com/waf/CSharpRepl/blob/main/InjectedHook/InjectedHookReadme.md) for information on how this works under the hood.
 

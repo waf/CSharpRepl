@@ -13,6 +13,7 @@ using CSharpRepl.Services.Roslyn.References;
 using CSharpRepl.Services.Roslyn.Scripting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
 
@@ -44,13 +45,13 @@ internal sealed class WorkspaceManager
 
     public Document CurrentDocument { get; private set; }
 
-    public WorkspaceManager(CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceAssemblyService, ITraceLogger logger, Type? hostObjectType = null)
+    public WorkspaceManager(CSharpCompilationOptions compilationOptions, AssemblyReferenceService referenceAssemblyService, ITraceLogger logger, Type? hostObjectType = null, HostServices? hostServices = null)
     {
         this.compilationOptions = compilationOptions;
         this.referenceAssemblyService = referenceAssemblyService;
         this.logger = logger;
         this.hostObjectType = hostObjectType;
-        this.workspace = new AdhocWorkspace(MefHostServices.DefaultHost);
+        this.workspace = new AdhocWorkspace(hostServices ?? MefHostServices.DefaultHost);
 
         logger.Log(() => "MEF Default Assemblies: " + string.Join(", ", MefHostServices.DefaultAssemblies.Select(a => a.Location)));
 

@@ -5,6 +5,9 @@
 using System;
 using System.Collections.Generic;
 using CSharpRepl.InjectedHook.Contracts;
+using CSharpRepl.Services.Completion;
+using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.Host.Mef;
 
 namespace CSharpRepl.Services.Remote;
 
@@ -27,8 +30,22 @@ public sealed class RemoteEditorContext
         GlobalsType = globalsType;
     }
 
+    // The default Roslyn MEF host plus this assembly, so the inspect-only completion provider
+    // (ReplaceMethodCompletionProvider, which powers #replace/#wrap autocomplete) is discovered. A process-wide
+    // singleton built on first use: reconnects don't recompose the MEF catalog, and the local REPL (which uses the
+    // cached MefHostServices.DefaultHost) never pays for it.
+    private static readonly Lazy<HostServices> editorHostServices = new(() =>
+        MefHostServices.Create(MefHostServices.DefaultAssemblies.Add(typeof(ReplaceMethodCompletionProvider).Assembly)));
+
     /// <summary>The target's loaded-assembly file paths, as reported by the inspector engine.</summary>
     public IReadOnlyList<string> ReferencePaths { get; }
+
+    /// <summary>
+    /// The Roslyn workspace host the editor services should use in inspect mode: the default providers plus the
+    /// inspect-only command-completion provider. Supplied to the <c>WorkspaceManager</c>; local sessions pass no
+    /// host and fall back to <see cref="MefHostServices.DefaultHost"/>.
+    /// </summary>
+    internal HostServices EditorHostServices => editorHostServices.Value;
 
     /// <summary>
     /// The globals type whose members (e.g. <c>services</c>, <c>Get&lt;T&gt;()</c>) are in scope for every

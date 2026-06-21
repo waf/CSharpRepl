@@ -4,6 +4,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -55,4 +56,9 @@ public sealed class Service
     public int Value { get; set; } = 41;
 
     public int Next() => ++Value;
+
+    // A patchable method for the live method-replacement end-to-end test. NoInlining so a fresh REPL submission
+    // calling it goes through a real call site the detour can repoint (an inlined copy wouldn't see the patch).
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public int Compute(int input) => input * 2;
 }

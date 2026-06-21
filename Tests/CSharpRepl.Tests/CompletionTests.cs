@@ -46,6 +46,44 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     }
 
     [Fact]
+    public async Task Complete_ReplaceCommand_IsInspectModeOnly()
+    {
+        // #replace is an inspect-mode command. Its completion provider is registered only in the remote
+        // workspace, so a #replace line in the local REPL yields no type/member completions.
+        const string text = "#replace System.Console.";
+        var completions = await this.services.CompleteAsync(text, text.Length, TestContext.Current.CancellationToken);
+        Assert.DoesNotContain("WriteLine", completions.Select(c => c.Item.DisplayText));
+    }
+
+    [Fact]
+    public async Task Complete_InspectCommandNames_AreInspectModeOnly()
+    {
+        // The local REPL isn't inspect mode, so #replace/#wrap/etc. aren't offered as command-name completions.
+        var completions = await promptCallbacks.GetCompletionItemsCoreAsync("#re", 3, TestContext.Current.CancellationToken);
+        Assert.DoesNotContain(completions, c => c.DisplayText == "#replace");
+    }
+
+    [Theory]
+    [InlineData("#re", 3, 0, 3)]
+    [InlineData("  #rep", 6, 2, 4)]
+    [InlineData("#replace", 8, 0, 8)]
+    public void InspectorCommandSpan_CoversTheHashToken(string text, int caret, int expectedStart, int expectedLength)
+    {
+        Assert.True(CSharpReplPromptCallbacks.TryGetInspectorCommandSpan(text, caret, out var span));
+        Assert.Equal(expectedStart, span.Start);
+        Assert.Equal(expectedLength, span.Length);
+    }
+
+    [Theory]
+    [InlineData("#replace Foo.", 13)] // a space → argument position, handled by the completion provider, not the command list
+    [InlineData("hello", 5)]          // no leading '#'
+    [InlineData("   ", 3)]            // whitespace only
+    public void InspectorCommandSpan_RejectsNonCommandLines(string text, int caret)
+    {
+        Assert.False(CSharpReplPromptCallbacks.TryGetInspectorCommandSpan(text, caret, out _));
+    }
+
+    [Fact]
     public async Task Complete_GivenLinq_ReturnsCompletions()
     {
         // LINQ tends to be a good canary for whether or not our reference / implementation assemblies are correct.

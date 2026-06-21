@@ -54,11 +54,13 @@ public sealed class InspectorEngine : IInspectorEngine
     private const int MaxScalarTextLength = 10_000;
 
     private readonly SemaphoreSlim gate = new(1, 1);
+    private readonly InspectorPatcher patcher = new();
     private InteractiveAssemblyLoader assemblyLoader = null!;
     private ScriptOptions scriptOptions = null!;
     private string[] referencePaths = [];
     private ScriptState<object>? state;
     private bool initialized;
+    private int castSalt; // monotonic suffix for the temporary delegate types emitted during method-group coercion
 
     public async Task<EvalResponse> EvalAsync(string code, bool detailed, CancellationToken cancellationToken)
     {
@@ -135,6 +137,145 @@ public sealed class InspectorEngine : IInspectorEngine
         }
     }
 
+    public async Task<ReplaceResponse> ReplaceMethodAsync(string targetMethod, string replacement, PatchMode mode, CancellationToken cancellationToken)
+    {
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            EnsureInitialized();
+
+            var candidates = patcher.ResolveCandidates(targetMethod, out var resolveError);
+            if (candidates.Count == 0)
+            {
+                return new ReplaceResponse { Ok = false, Error = resolveError ?? $"Could not resolve '{targetMethod}'." };
+            }
+
+            // Path 1: the replacement is already a delegate value (a Func/Action variable the user defined, or an
+            // explicit cast). Evaluate it once and disambiguate the overload from its signature.
+            var (del, evalError) = await EvalToDelegateAsync(replacement, cancellationToken).ConfigureAwait(false);
+            MethodInfo? target = null;
+            if (del is not null)
+            {
+                target = patcher.MatchOverload(candidates, del, mode);
+                if (target is null)
+                {
+                    return new ReplaceResponse
+                    {
+                        Ok = false,
+                        Error = $"The replacement's signature doesn't match any overload of '{targetMethod}' " +
+                                $"(for an instance method the delegate's first parameter must be the declaring type).",
+                    };
+                }
+            }
+            else
+            {
+                // Path 2: a bare method group can't be evaluated as a value. Coerce it per candidate by casting to
+                // the delegate type that candidate expects; the first that compiles selects the overload too. For
+                // ref/out/in targets the cast needs a delegate TYPE declaration (Func can't carry by-ref), which we
+                // prepend to the probe submission; the unique salt keeps the temporary type name collision-free.
+                foreach (var candidate in candidates)
+                {
+                    var cast = patcher.BuildCastDelegate(candidate, mode, ++castSalt);
+                    if (cast is null)
+                    {
+                        continue; // this candidate's shape isn't expressible (e.g. Wrap + by-ref, or a ref-return)
+                    }
+
+                    var (declaration, typeName) = cast.Value;
+                    var castExpression = $"{declaration}\n({typeName})({replacement})";
+                    var (coerced, _) = await EvalToDelegateAsync(castExpression, cancellationToken).ConfigureAwait(false);
+                    if (coerced is not null)
+                    {
+                        del = coerced;
+                        target = candidate;
+                        break;
+                    }
+                }
+
+                if (del is null || target is null)
+                {
+                    return new ReplaceResponse
+                    {
+                        Ok = false,
+                        Error = evalError ?? $"Could not turn '{replacement}' into a delegate compatible with '{targetMethod}'.",
+                    };
+                }
+            }
+
+            try
+            {
+                var id = patcher.Apply(target, del, replacement, mode);
+                return new ReplaceResponse { Ok = true, PatchId = id, ResolvedMethod = patcher.List().Single(p => p.Id == id).Method };
+            }
+            catch (Exception ex)
+            {
+                return new ReplaceResponse { Ok = false, Error = $"Detour failed: {ex.Message}" };
+            }
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    public async Task<PatchListResponse> ListPatchesAsync(CancellationToken cancellationToken)
+    {
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return new PatchListResponse { Patches = patcher.List() };
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    public async Task<RevertResponse> RevertAsync(int patchId, bool all, CancellationToken cancellationToken)
+    {
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (all)
+            {
+                return new RevertResponse { Ok = true, RevertedCount = patcher.RevertAll() };
+            }
+            return patcher.Revert(patchId)
+                ? new RevertResponse { Ok = true, RevertedCount = 1 }
+                : new RevertResponse { Ok = false, Error = $"No active patch with id {patchId}." };
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Evaluates an expression against the current state to obtain a delegate, WITHOUT committing it to the
+    /// persisted chain (the probe state is discarded; the returned delegate keeps its submission alive). Returns
+    /// a null delegate plus a message on compile failure (e.g. a bare method group, which isn't a value).
+    /// </summary>
+    private async Task<(Delegate? Delegate, string? Error)> EvalToDelegateAsync(string expression, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var probe = state is null
+                ? await CSharpScript
+                    .Create(expression, scriptOptions, globalsType: typeof(InspectorGlobals), assemblyLoader: assemblyLoader)
+                    .RunAsync(globals: new InspectorGlobals(), cancellationToken).ConfigureAwait(false)
+                : await state.ContinueWithAsync(expression, scriptOptions, cancellationToken).ConfigureAwait(false);
+            return (probe.ReturnValue as Delegate, null);
+        }
+        catch (CompilationErrorException compileError)
+        {
+            return (null, string.Join("; ", compileError.Diagnostics.Select(d => d.ToString())));
+        }
+        catch (Exception ex)
+        {
+            return (null, ex.Message);
+        }
+    }
+
     private void EnsureInitialized()
     {
         if (initialized)
@@ -146,9 +287,9 @@ public sealed class InspectorEngine : IInspectorEngine
         var references = new List<MetadataReference>();
         var paths = new List<string>();
 
-        // Snapshot the target's live, loaded assemblies once (re-enumerating the default ALC each round would picksup accumulating submission
-        // assemblies). Late-loaded target assemblies/#r are best-effort refreshed later. By the time a controller connects, the target's Main
-        // is running, so its own assemblies are loaded and reachable here.
+        // Snapshot the target's live, loaded assemblies once; re-enumerating the default ALC each round would pick up
+        // the accumulating per-submission assemblies. By the time a controller connects the target's Main is running, so
+        // its own assemblies are loaded and reachable. (Late-loaded assemblies / #r are best-effort refreshed later.)
         foreach (var assembly in AssemblyLoadContext.Default.Assemblies)
         {
             if (assembly.IsDynamic)
