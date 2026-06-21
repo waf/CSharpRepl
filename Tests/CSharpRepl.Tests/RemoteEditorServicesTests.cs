@@ -14,6 +14,8 @@ using CSharpRepl.Services.Remote;
 using CSharpRepl.Services.Roslyn;
 using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Text;
+using PrettyPrompt;
+using PrettyPrompt.Consoles;
 using Xunit;
 
 namespace CSharpRepl.Tests;
@@ -88,6 +90,28 @@ public class RemoteEditorServicesTests
             var replaceExpr = await CompletionDisplayTextsAsync(services, $"#replace {TargetNamespace}.Service.Compute with s.");
             Assert.Contains("Value", replaceExpr);
             Assert.Contains("Compute", replaceExpr);
+
+            // --- Typing into a #replace argument opens the completion window (ReplaceMethodCompletionProvider
+            //     .ShouldTriggerCompletion): built-in providers don't engage on the bad-directive line, so ours does ---
+            var dotKey = new KeyPress(new ConsoleKeyInfo('.', ConsoleKey.OemPeriod, shift: false, alt: false, control: false));
+            var afterDot = $"#replace {TargetNamespace}.Service.";
+            Assert.True(await services.ShouldOpenCompletionWindowAsync(afterDot, afterDot.Length, dotKey, TestContext.Current.CancellationToken));
+
+            var letterKey = new KeyPress(new ConsoleKeyInfo('i', ConsoleKey.I, shift: false, alt: false, control: false));
+            var afterLetter = $"#replace {TargetNamespace}.Servi";
+            Assert.True(await services.ShouldOpenCompletionWindowAsync(afterLetter, afterLetter.Length, letterKey, TestContext.Current.CancellationToken));
+
+            // A non-command line: the inspect provider declines (TryRewrite false), leaving the decision to others.
+            var ordinaryLine = $"{TargetNamespace}.Servi";
+            await services.ShouldOpenCompletionWindowAsync(ordinaryLine, ordinaryLine.Length, letterKey, TestContext.Current.CancellationToken);
+
+            // --- A #replace member completion produces a tooltip (ReplaceMethodCompletionProvider.GetDescriptionAsync,
+            //     which rebuilds the synthetic document and forwards to the real member's description) ---
+            var describeLine = $"#replace {TargetNamespace}.Service.";
+            var memberItems = await services.CompleteAsync(describeLine, describeLine.Length, TestContext.Current.CancellationToken);
+            var computeItem = memberItems.First(c => c.Item.DisplayText == "Compute");
+            var description = await computeItem.GetDescriptionAsync(TestContext.Current.CancellationToken);
+            Assert.Contains("Compute", description.Text);
 
             // --- The inspect commands themselves complete (with help text), via the prompt callbacks ---
             var promptCallbacks = new CSharpReplPromptCallbacks(console, services, new Configuration(theme: "Data/theme.json"));
