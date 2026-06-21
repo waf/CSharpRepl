@@ -1,8 +1,14 @@
-## Release 0.9.0 (UPCOMING, UNRELEASED)
+## Release 0.9.0
 
-- **Breaking:** the AI code-completion feature (<kbd>Ctrl+Alt+Space</kbd>) is now provider-agnostic. The OpenAI-specific options (`--openAIApiKey`, `--openAIPrompt`, `--openAIModel`, `--openAIHistoryCount`)
-have been removed and replaced with provider-neutral options: `--aiApiKey`, `--aiPrompt`, `--aiModel`, and `--aiHistoryCount`.
-  - `--aiProvider` selects a built-in preset (`openai` (default), `anthropic`, `grok`, `deepseek`, `gemini`, `mistral`, `codestral`), each supplying a default endpoint, model, and API-key environment variable (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `XAI_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `MISTRAL_API_KEY`, `CODESTRAL_API_KEY`). Point `--aiEndpoint` at any other OpenAI-compatible API to use a provider that isn't listed.
+- Live method replacement when inspecting a running process: replace a live function in the target application with a REPL-defined function ([#493](https://github.com/waf/CSharpRepl/pull/493)).
+  - `#replace <method> with <replFunction>` replaces the original method
+  - `#wrap <method> with <replFunction>` wraps the original method (the replacement's first parameter is an `orig` delegate that calls the original),
+  - `#patches` lists active patches
+  - `#revert <id>`/`#revert all` undoes them. Instance methods take the instance as their first parameter; patches take effect immediately and persist in the target until reverted or the process exits.
+  - Generic methods and pointer parameters are not supported, as well as call sites the JIT already inlined.
+- Typing a built-in command (`exit`, `clear`, `help`) in full now submits it immediately, instead of requiring a second <kbd>Enter</kbd> to first accept the completion-menu item and then submit ([#495](https://github.com/waf/CSharpRepl/pull/495)).
+- **Breaking:** the AI code-completion feature (<kbd>Ctrl+Alt+Space</kbd>) is now provider-agnostic. The OpenAI-specific options (`--openAIApiKey`, `--openAIPrompt`, `--openAIModel`, `--openAIHistoryCount`) have been removed and replaced with provider-neutral options: `--aiApiKey`, `--aiPrompt`, `--aiModel`, and `--aiHistoryCount` ([#494](https://github.com/waf/CSharpRepl/pull/494)).
+  - `--aiProvider` selects a built-in preset (`openai` (default), `anthropic`, `grok`, `deepseek`, `gemini`, `mistral`, `codestral`), which includes a default endpoint, model, and API-key environment variable (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `XAI_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `MISTRAL_API_KEY`, `CODESTRAL_API_KEY`). Point `--aiEndpoint` at any other OpenAI-compatible API to use a provider that isn't listed.
   - The default OpenAI model is now `gpt-5.4-mini` (was `gpt-4o`).
 
 ## Release 0.8.1
