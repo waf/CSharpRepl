@@ -283,7 +283,19 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
     }
 
     protected override Task<bool> ConfirmCompletionCommit(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
-        => roslyn.ConfirmCompletionCommit(text, caret, keyPress, cancellationToken);
+    {
+        // When a REPL command (exit/clear/help) is already fully typed and the user presses the submit key,
+        // committing the open completion would just re-insert the identical text — a no-op that swallows the
+        // Enter and forces a second press to actually run the command. Decline the commit so a single Enter
+        // submits straight away. Partially-typed input (e.g. "exi") still commits, completing it to the keyword.
+        if (configuration.KeyBindings.SubmitPrompt.Matches(keyPress.ConsoleKeyInfo) &&
+            ReplKeywordCompletionItems.IsFullyTypedKeyword(text))
+        {
+            return Task.FromResult(false);
+        }
+
+        return roslyn.ConfirmCompletionCommit(text, caret, keyPress, cancellationToken);
+    }
 
     protected override async Task<(string Text, int Caret)> FormatInput(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
     {
@@ -490,7 +502,12 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
             displayText: clearFormattedString,
             getExtendedDescription: _ => Task.FromResult(new FormattedString("Clear the terminal screen.")));
 
-        public static IReadOnlyList<CompletionItem> AllItems = [Help, Exit, Clear];
+        public static IReadOnlyCollection<CompletionItem> AllItems = [Help, Exit, Clear];
+
+        private static readonly HashSet<string> replacementTexts =
+            AllItems.Select(i => i.ReplacementText).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        public static bool IsFullyTypedKeyword(string text) => replacementTexts.Contains(text.Trim());
     }
 }
 
