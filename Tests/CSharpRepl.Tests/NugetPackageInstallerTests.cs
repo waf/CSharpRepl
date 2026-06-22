@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Nuget;
@@ -18,10 +19,13 @@ namespace CSharpRepl.Tests;
 public class NugetPackageInstallerTests : IAsyncLifetime
 {
     private readonly NugetPackageInstaller installer;
+    private readonly StringBuilder stdout;
 
     public NugetPackageInstallerTests()
     {
-        installer = new NugetPackageInstaller(FakeConsole.CreateStubbedOutput().console, new Configuration());
+        var (console, stdout) = FakeConsole.CreateStubbedOutput();
+        this.stdout = stdout;
+        installer = new NugetPackageInstaller(console, new Configuration());
     }
 
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
@@ -47,12 +51,15 @@ public class NugetPackageInstallerTests : IAsyncLifetime
     [Fact]
     public async Task InstallPackageWithSupportedButEmptyTargets()
     {
-        var references = await installer.InstallAsync("Microsoft.CSharp", "4.7.0", TestContext.Current.CancellationToken); //some targets contains only empty file '_._'
+        // Microsoft.CSharp's nearest target is an empty '_._' placeholder because it's provided by the shared
+        // framework on modern .NET. A correct restore therefore contributes no package references of its own, and
+        // must still report success rather than treating "no assets" as a failed install.
+        var references = await installer.InstallAsync("Microsoft.CSharp", "4.7.0", TestContext.Current.CancellationToken);
 
-        Assert.True(references.Length >= 1);
-        var reference = references.FirstOrDefault(r => r.FilePath.EndsWith("Microsoft.CSharp.dll", StringComparison.OrdinalIgnoreCase));
-        Assert.NotNull(reference);
-        Assert.True(reference.FilePath.Contains("lib", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(references);
+        var output = stdout.ToString().RemoveFormatting();
+        Assert.Contains("Adding references for 'Microsoft.CSharp", output);
+        Assert.DoesNotContain("Could not restore", output);
     }
 
     [Fact]

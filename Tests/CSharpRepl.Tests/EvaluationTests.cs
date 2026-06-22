@@ -11,6 +11,8 @@ using CSharpRepl.Services;
 using CSharpRepl.Services.Dotnet;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 
 namespace CSharpRepl.Tests;
@@ -189,6 +191,83 @@ public class EvaluationTests : IAsyncLifetime
 
         var success = Assert.IsType<EvaluationResult.Success>(result);
         Assert.Equal(@"{""a"":1} v13.0.0.0", success.ReturnValue.Value);
+    }
+
+    [Fact] // https://github.com/waf/CSharpRepl/issues/355 (runtime side of an #r dll version conflict)
+    public async Task Evaluate_ConflictingAssemblyReferenceVersions_BindToHighestAtRuntime()
+    {
+        // Two #r'd DLLs share an assembly identity at different versions. Compile-time unification
+        // (RemoveDuplicateReferences) keeps the highest; at runtime the loader must bind to that same highest
+        // version, or the method runs against the lower one. This pins the runtime half of the #r-dll conflict
+        // case - today served by unifiedAssemblyPathsByIdentity / the by-name resolver fallback - which has no
+        // other automated guard, so the loading-layer refactor can't silently regress it.
+        var older = EmitVersionedLib(new Version(1, 0, 0, 0));
+        var newer = EmitVersionedLib(new Version(2, 0, 0, 0));
+
+        await services.EvaluateAsync(@$"#r ""{older}""", cancellationToken: TestContext.Current.CancellationToken);
+        await services.EvaluateAsync(@$"#r ""{newer}""", cancellationToken: TestContext.Current.CancellationToken);
+        var result = await services.EvaluateAsync(
+            "RuntimeConflictLib.VersionMarker.Version()",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var success = Assert.IsType<EvaluationResult.Success>(result);
+        Assert.Equal("2.0.0.0", success.ReturnValue.Value);
+    }
+
+    /// <summary>
+    /// Emits a tiny library whose <c>VersionMarker.Version()</c> reports its own assembly version, so a test can
+    /// observe which physical version was bound at run time. Two emits at different versions share one identity.
+    /// </summary>
+    private static string EmitVersionedLib(Version version)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"CSharpRepl_RuntimeConflictLib_{version.ToString().Replace('.', '_')}_{Guid.NewGuid():N}.dll");
+        var source =
+            $"[assembly: System.Reflection.AssemblyVersion(\"{version}\")] " +
+            "namespace RuntimeConflictLib { public static class VersionMarker { " +
+            "public static string Version() => typeof(VersionMarker).Assembly.GetName().Version.ToString(); } }";
+        var compilation = CSharpCompilation.Create(
+            "CSharpRepl_RuntimeConflictLib",
+            [CSharpSyntaxTree.ParseText(source)],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var emit = compilation.Emit(path);
+        Assert.True(emit.Success, string.Join(Environment.NewLine, emit.Diagnostics));
+        return path;
+    }
+
+    [Fact] // https://github.com/waf/CSharpRepl/issues/355
+    public async Task Evaluate_TransitiveLowerVersionDependency_BindsToSingleRuntimeInstance()
+    {
+        // The runtime half of #355, which (unlike Evaluate_ConflictingPackageVersions, the compile-time half) has had
+        // no automated guard. Npgsql.EntityFrameworkCore.PostgreSQL 8.0.2's binary references EF Core 8.0.2, but the
+        // explicit EF Core 8.0.3 reference unifies the closure upward to 8.0.3 (which is what's on disk). If the
+        // scripting loader and the runtime assembly resolver each load their own copy of EF Core, the script's
+        // DbContextOptionsBuilder and the one UseNpgsql expects come from two assembly identities and the call throws
+        // MissingMethodException at JIT. PinReferencesForRuntimeBinding (one pinned instance) is what makes it bind.
+        // This is the heaviest test in the suite - it restores two real package closures.
+        await services.EvaluateAsync(@"#r ""nuget: Microsoft.EntityFrameworkCore, 8.0.3""", cancellationToken: TestContext.Current.CancellationToken);
+        await services.EvaluateAsync(@"#r ""nuget: Npgsql.EntityFrameworkCore.PostgreSQL, 8.0.2""", cancellationToken: TestContext.Current.CancellationToken);
+        await services.EvaluateAsync(@"using Microsoft.EntityFrameworkCore;", cancellationToken: TestContext.Current.CancellationToken);
+
+        // UseNpgsql only configures options (no connection is opened), so this needs no database - but it crosses the
+        // EF Core type boundary, which is exactly where a type-identity split surfaces.
+        var result = await services.EvaluateAsync(
+            @"new DbContextOptionsBuilder().UseNpgsql(""Host=localhost;Database=db;Username=u;Password=p"").Options.Extensions.Any()",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var success = Assert.IsType<EvaluationResult.Success>(result);
+        Assert.Equal(true, success.ReturnValue.Value);
+
+        // T2: the same invariant, asserted directly on the loaded set - exactly one runtime instance per simple name
+        // across the whole EF Core / Npgsql closure. A second instance under any name is the split this test guards.
+        var splits = LoadedAssemblyInspector.FindSplits(
+            name => name.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)
+                 || name.StartsWith("Npgsql", StringComparison.Ordinal));
+        Assert.True(splits.Count == 0,
+            "Expected exactly one runtime instance per assembly, but found a split:" + Environment.NewLine +
+            LoadedAssemblyInspector.Describe(
+                name => name.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)
+                     || name.StartsWith("Npgsql", StringComparison.Ordinal)));
     }
 
     [Fact]
