@@ -11,13 +11,12 @@ using System.Threading;
 namespace CSharpRepl.Services.Roslyn.References;
 
 /// <summary>
-/// Attaches a per-context handler (e.g. <see cref="AssemblyLoadContext.Resolving"/> or
+/// Attaches a per-assembly-load-context handler (e.g. <see cref="AssemblyLoadContext.Resolving"/> or
 /// <see cref="AssemblyLoadContext.ResolvingUnmanagedDll"/>) to every load context in the process, including
-/// ones created later. Used by both the managed (<see cref="ReplAssemblyLoader"/>, #355) and native
-/// (<see cref="Nuget.NativeAssemblyResolver"/>, #375) resolve fallbacks: the context that needs the fallback -
-/// notably Roslyn's submission context - is typically created after the fallback is set up, so hooking the
-/// existing contexts isn't enough; the <see cref="AppDomain.AssemblyLoad"/> subscription catches the rest as
-/// they appear.
+/// ones created later.
+/// Used by both the managed (<see cref="ReplAssemblyLoader"/>, #355) and native (<see cref="Nuget.NativeAssemblyResolver"/>.
+/// Roslyn's submission context is created after our infrastructure / this class is set up, so hooking the existing contexts
+/// at time of instantiation isn't enough; the <see cref="AppDomain.AssemblyLoad"/> subscription catches the rest as they appear.
 /// </summary>
 internal sealed class AssemblyLoadContextHook(Action<AssemblyLoadContext> attachHandler)
 {

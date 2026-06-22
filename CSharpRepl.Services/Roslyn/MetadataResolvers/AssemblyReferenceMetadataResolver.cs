@@ -18,8 +18,7 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 /// As a side of resolution it reads two adjacent files when present: <c>*.runtimeconfig.json</c>, to pull in any
 /// required Shared Frameworks (https://natemcmaster.com/blog/2018/08/29/netcore-primitives-2/), and <c>*.deps.json</c>,
 /// which it hands to <see cref="ReplAssemblyLoader.RegisterDepsClosure"/> so the DLL's transitive dependencies can be
-/// resolved to the correct RID-specific runtime file when the script runs. Run-time loading itself lives in
-/// <see cref="ReplAssemblyLoader"/>; this type no longer installs any runtime resolve hook.
+/// resolved to the correct RID-specific runtime file when the script runs.
 /// </summary>
 internal sealed class AssemblyReferenceMetadataResolver(AssemblyReferenceService referenceAssemblyService, ReplAssemblyLoader assemblyLoader) : IIndividualMetadataReferenceResolver
 {
