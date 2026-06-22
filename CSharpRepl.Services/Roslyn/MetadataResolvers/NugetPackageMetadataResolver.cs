@@ -15,16 +15,11 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 /// <summary>
 /// Resolves nuget references, e.g. #r "nuget: Newtonsoft.Json" or #r "nuget: Newtonsoft.Json, 13.0.1"
 /// </summary>
-internal sealed class NugetPackageMetadataResolver : AlternativeReferenceResolver
+internal sealed class NugetPackageMetadataResolver(IConsoleService console, Configuration configuration, AssemblyReferenceService referenceAssemblyService, ReplAssemblyLoader? assemblyLoader = null) : AlternativeReferenceResolver
 {
     private const string NugetPrefix = "nuget:";
     private const string NugetPrefixWithHashR = "#r \"" + NugetPrefix;
-    private readonly NugetPackageInstaller nugetInstaller;
-
-    public NugetPackageMetadataResolver(IConsoleService console, Configuration configuration, AssemblyReferenceService referenceAssemblyService)
-    {
-        this.nugetInstaller = new NugetPackageInstaller(console, configuration, referenceAssemblyService);
-    }
+    private readonly NugetPackageInstaller nugetInstaller = new(console, configuration, referenceAssemblyService, assemblyLoader);
 
     public override bool CanResolve(string reference) =>
         reference.StartsWith(NugetPrefix, StringComparison.OrdinalIgnoreCase) ||
@@ -35,7 +30,7 @@ internal sealed class NugetPackageMetadataResolver : AlternativeReferenceResolve
         // we can be a bit loose in our parsing here, because we were more strict in IsNugetReference.
         // the 0th element will be the "nuget" keyword, which we ignore.
         var packageParts = reference.Split(
-            new[] { "#r", "\"", ":", " ", ",", "/", "\\" },
+            ["#r", "\"", ":", " ", ",", "/", "\\"],
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
         );
 

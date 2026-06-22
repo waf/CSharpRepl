@@ -55,7 +55,6 @@
 	https://github.com/OmniSharp/omnisharp-roslyn/commit/efeafeca33abe1d19659ed8c7ebab1d7c3481188
 	-->
   <ItemGroup>
-    <PackageReference Include="NuGet.PackageManagement" Version="7.6.0" />
     <PackageReference Include="NuGet.Common" Version="7.6.0" PrivateAssets="all" />
     <PackageReference Include="NuGet.Commands" Version="7.6.0" PrivateAssets="all" />
     <PackageReference Include="NuGet.Credentials" Version="7.6.0" PrivateAssets="all" />
