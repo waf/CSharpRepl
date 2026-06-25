@@ -270,6 +270,93 @@ public class EvaluationTests : IAsyncLifetime
                      || name.StartsWith("Npgsql", StringComparison.Ordinal)));
     }
 
+    [Fact] // https://github.com/waf/CSharpRepl/issues/184
+    public async Task Evaluate_TransitiveAssemblyReference_IsAccessibleAfterReferencingDependent()
+    {
+        // A.dll references B.dll, and both sit in the same directory. #r'ing only A should make B's types
+        // usable too (csi.exe does this): #r'ing A adds its directory to the search path, so when the
+        // compilation binds against the assembly B that A references, B.dll resolves out of that directory.
+        var directReferencePath = EmitTransitiveReferenceLibs();
+
+        var referenceResult = await services.EvaluateAsync(@$"#r ""{directReferencePath}""", cancellationToken: TestContext.Current.CancellationToken);
+        // The crux of #184: B's namespace must be importable even though only A was #r'd.
+        var usingTransitive = await services.EvaluateAsync(@"using TransitiveDependency;", cancellationToken: TestContext.Current.CancellationToken);
+        // B's type is then usable directly (constructed here)...
+        var useTransitiveType = await services.EvaluateAsync(@"new Widget().Value", cancellationToken: TestContext.Current.CancellationToken);
+        // ...and as the return type of A's own public API - the canonical real-world shape of this bug.
+        var useViaDirectApi = await services.EvaluateAsync(@"DirectReference.Gadget.MakeWidget().Value", cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.IsType<EvaluationResult.Success>(referenceResult);
+        Assert.True(usingTransitive is EvaluationResult.Success, "using failed: " + Describe(usingTransitive));
+        var success = Assert.IsType<EvaluationResult.Success>(useTransitiveType);
+        Assert.Equal(42, success.ReturnValue.Value);
+        Assert.True(useViaDirectApi is EvaluationResult.Success, "API call failed: " + Describe(useViaDirectApi));
+        Assert.Equal(42, ((EvaluationResult.Success)useViaDirectApi).ReturnValue.Value);
+    }
+
+    [Fact] // https://github.com/waf/CSharpRepl/issues/184 (runtime half)
+    public async Task Evaluate_TransitiveAssemblyReference_LoadsAtRuntimeWhenSignatureHidesIt()
+    {
+        // A.dll references B.dll (same directory). Gadget.WidgetValue()'s signature returns int (no B type), so
+        // the call compiles against A alone - but its body constructs B.Widget, so B.dll must *load* at run time.
+        var directReferencePath = EmitTransitiveReferenceLibs();
+
+        var referenceResult = await services.EvaluateAsync(@$"#r ""{directReferencePath}""", cancellationToken: TestContext.Current.CancellationToken);
+        var useResult = await services.EvaluateAsync(@"DirectReference.Gadget.WidgetValue()", cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.IsType<EvaluationResult.Success>(referenceResult);
+        Assert.True(useResult is EvaluationResult.Success, "call failed: " + Describe(useResult));
+        var success = Assert.IsType<EvaluationResult.Success>(useResult);
+        Assert.Equal(42, success.ReturnValue.Value);
+    }
+
+    private static string Describe(EvaluationResult result) => result switch
+    {
+        EvaluationResult.Error e => "ERROR: " + e.Exception,
+        EvaluationResult.Success => "SUCCESS",
+        _ => result.GetType().Name,
+    };
+
+    /// <summary>
+    /// Emits two libraries into a shared temp directory: a transitive dependency (assembly
+    /// <c>TransitiveDependencyLib</c>, namespace <c>TransitiveDependency</c>, type <c>Widget</c>) and a directly
+    /// referenced assembly (<c>DirectReferenceLib</c>, namespace <c>DirectReference</c>) whose public surface uses
+    /// <c>Widget</c>. Returns the path to the directly referenced DLL; the dependency sits next to it. The caller
+    /// only ever <c>#r</c>'s the returned DLL - the dependency must be discovered transitively (#184).
+    /// </summary>
+    private static string EmitTransitiveReferenceLibs()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"CSharpRepl_TransitiveRef_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+
+        var corlib = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+
+        var dependencyPath = Path.Combine(dir, "TransitiveDependencyLib.dll");
+        var dependency = CSharpCompilation.Create(
+            "TransitiveDependencyLib",
+            [CSharpSyntaxTree.ParseText("namespace TransitiveDependency { public class Widget { public int Value => 42; } }")],
+            [corlib],
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var dependencyEmit = dependency.Emit(dependencyPath);
+        Assert.True(dependencyEmit.Success, string.Join(Environment.NewLine, dependencyEmit.Diagnostics));
+
+        var directReferencePath = Path.Combine(dir, "DirectReferenceLib.dll");
+        var directReference = CSharpCompilation.Create(
+            "DirectReferenceLib",
+            [CSharpSyntaxTree.ParseText(
+                "namespace DirectReference { public static class Gadget { " +
+                // MakeWidget's signature exposes B's type -> needs B at *compile* time to even call it.
+                "public static TransitiveDependency.Widget MakeWidget() => new TransitiveDependency.Widget(); " +
+                // WidgetValue's signature hides B (returns int); its body touches B -> needs B only at *run* time.
+                "public static int WidgetValue() => new TransitiveDependency.Widget().Value; } }")],
+            [corlib, MetadataReference.CreateFromFile(dependencyPath)],
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var directReferenceEmit = directReference.Emit(directReferencePath);
+        Assert.True(directReferenceEmit.Success, string.Join(Environment.NewLine, directReferenceEmit.Diagnostics));
+
+        return directReferencePath;
+    }
+
     [Fact]
     public async Task Evaluate_SolutionReference_ReferencesAllProjects()
     {

@@ -50,6 +50,16 @@ internal sealed class AssemblyReferenceMetadataResolver(AssemblyReferenceService
         return references;
     }
 
+    /// <summary>
+    /// Resolves a transitive reference (an assembly that a #r'd DLL depends on but that wasn't itself
+    /// #r'd) so its types bind at compile time. https://github.com/waf/CSharpRepl/issues/184.
+    /// The matching run-time load is handled independently by <see cref="ReplAssemblyLoader"/>, which keys off the same search paths.
+    /// </summary>
+    public PortableExecutableReference? ResolveMissingAssembly(MetadataReference definition, AssemblyIdentity referenceIdentity)
+        => ScriptMetadataResolver.Default
+            .WithSearchPaths(referenceAssemblyService.ImplementationAssemblyPaths)
+            .ResolveMissingAssembly(definition, referenceIdentity);
+
     private void LoadSharedFramework(PortableExecutableReference reference)
     {
         if (TryGetRuntimeConfigJsonPath(reference.FilePath, out var configPath))

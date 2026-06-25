@@ -112,6 +112,23 @@ References accumulate in two places: `scriptOptions.MetadataReferences` and, aft
 eval, `AssemblyReferenceService.LoadedImplementationAssemblies` (via `AddImplementationAssemblyReferences`,
 which records each reference's **directory** into `implementationAssemblyPaths`).
 
+### 3c. `ResolveMissingAssembly` (the transitive-reference path)
+A `#r`'d DLL only adds *itself* to the compile closure, not the assemblies it references. So when you
+`#r "A.dll"` and A references B, B's types aren't bound unless B is resolved too — historically they
+weren't, so `using <namespace-in-B>` failed with CS0246 even though `csi.exe` allows it
+([#184](https://github.com/waf/CSharpRepl/issues/184)). Roslyn's fix-up hook for this is
+`MetadataReferenceResolver.ResolveMissingAssembly`: when the binder hits a reference to an assembly that
+isn't in the closure, it asks the resolver to produce one. `CompositeMetadataReferenceResolver` opts in
+(`ResolveMissingAssemblies => true`) and forwards to `AssemblyReferenceMetadataResolver`, which delegates
+to the **same** `ScriptMetadataResolver.Default.WithSearchPaths(ImplementationAssemblyPaths)` it uses for
+direct resolution (§3a). That resolver probes the referencing assembly's own directory plus the
+accumulated impl-search paths — and because `#r "A.dll"` records A's directory into
+`implementationAssemblyPaths` after it succeeds (§3b), a later submission's bind against a B type finds
+`B.dll` sitting next to `A.dll`. This is **compile-time only**: the matching run-time load is handled
+independently by `ReplAssemblyLoader`'s by-name scan over the same `ImplementationAssemblyPaths` (§6), so
+the two paths agree by keying off one set rather than by coupling. Guarded by
+`Evaluate_TransitiveAssemblyReference_*`.
+
 ---
 
 ## 4. NuGet resolution: restore, not a hand-rolled walk
@@ -337,7 +354,8 @@ Key regression tests: `Evaluate_ResolveCorrectRuntimeVersionOfReferencedAssembly
 assembly), `Evaluate_ConflictingAssemblyReferenceVersions_BindToHighestAtRuntime` (#r DLL conflict),
 `Evaluate_ConflictingPackageVersions_UnifiesToHighestVersion` (compile-time unification),
 `Evaluate_SolutionReference_*`, `Evaluate_RunSharedFrameworkCode_DoesNotThrowAssemblyLoadException` (#414),
-and `NugetPackageInstallerTests.*`.
+`Evaluate_TransitiveAssemblyReference_*` (#184, transitive compile-time + run-time resolution of an `#r`'d
+DLL's dependency), and `NugetPackageInstallerTests.*`.
 
 ---
 
