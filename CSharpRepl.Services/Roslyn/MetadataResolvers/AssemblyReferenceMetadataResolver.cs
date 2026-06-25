@@ -2,46 +2,27 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Runtime.Loader;
 using System.Text.Json;
-using CSharpRepl.Services.Nuget;
 using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Extensions.DependencyModel;
-using Spectre.Console;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 
 /// <summary>
-/// Resolves absolute and relative assembly references. If the assembly has an adjacent
-/// assembly.runtimeconfig.json file, the file will be read in order to determine required
-/// Shared Frameworks. https://natemcmaster.com/blog/2018/08/29/netcore-primitives-2/
+/// Resolves absolute and relative assembly references at compile time (path -> <see cref="PortableExecutableReference"/>).
+/// As a side of resolution it reads two adjacent files when present: <c>*.runtimeconfig.json</c>, to pull in any
+/// required Shared Frameworks (https://natemcmaster.com/blog/2018/08/29/netcore-primitives-2/), and <c>*.deps.json</c>,
+/// which it hands to <see cref="ReplAssemblyLoader.RegisterDepsClosure"/> so the DLL's transitive dependencies can be
+/// resolved to the correct RID-specific runtime file when the script runs.
 /// </summary>
-internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataReferenceResolver
+internal sealed class AssemblyReferenceMetadataResolver(AssemblyReferenceService referenceAssemblyService, ReplAssemblyLoader assemblyLoader) : IIndividualMetadataReferenceResolver
 {
-    private readonly AssemblyReferenceService referenceAssemblyService;
-    private readonly AssemblyLoadContext loadContext;
     private readonly DependencyContextJsonReader dependencyContextJsonReader = new();
-    private readonly IConsoleService console;
-    private readonly Dictionary<string, DependenciesInfo> dependencyContextsPerAssemblyName = [];
-
-    public AssemblyReferenceMetadataResolver(IConsoleService console, AssemblyReferenceService referenceAssemblyService)
-    {
-        this.console = console;
-        this.referenceAssemblyService = referenceAssemblyService;
-        this.loadContext = new AssemblyLoadContext(nameof(CSharpRepl) + "LoadContext");
-
-        AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(ResolveByAssemblyName);
-    }
 
     public ImmutableArray<PortableExecutableReference> ResolveReference(
         string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
@@ -57,18 +38,27 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
 
         foreach (var loadedReference in references)
         {
-            if (TryGetDepsJsonPath(loadedReference.FilePath, out var runtimeConfigJsonPath))
+            if (TryGetDepsJsonPath(loadedReference.FilePath, out var depsJsonPath))
             {
-                var path = loadedReference.FilePath!;
-                using var fs = File.OpenRead(runtimeConfigJsonPath);
-                var cfg = dependencyContextJsonReader.Read(fs);
-                dependencyContextsPerAssemblyName.Add(AssemblyLoadContext.GetAssemblyName(path).FullName, new(cfg, path));
+                using var fs = File.OpenRead(depsJsonPath);
+                var dependencyContext = dependencyContextJsonReader.Read(fs);
+                assemblyLoader.RegisterDepsClosure(loadedReference.FilePath!, dependencyContext);
             }
             LoadSharedFramework(loadedReference);
         }
 
         return references;
     }
+
+    /// <summary>
+    /// Resolves a transitive reference (an assembly that a #r'd DLL depends on but that wasn't itself
+    /// #r'd) so its types bind at compile time. https://github.com/waf/CSharpRepl/issues/184.
+    /// The matching run-time load is handled independently by <see cref="ReplAssemblyLoader"/>, which keys off the same search paths.
+    /// </summary>
+    public PortableExecutableReference? ResolveMissingAssembly(MetadataReference definition, AssemblyIdentity referenceIdentity)
+        => ScriptMetadataResolver.Default
+            .WithSearchPaths(referenceAssemblyService.ImplementationAssemblyPaths)
+            .ResolveMissingAssembly(definition, referenceIdentity);
 
     private void LoadSharedFramework(PortableExecutableReference reference)
     {
@@ -114,82 +104,6 @@ internal sealed class AssemblyReferenceMetadataResolver : IIndividualMetadataRef
             return false;
         }
         return true;
-    }
-
-    /// <summary>
-    /// If we're missing an assembly (by exact match), try to find an assembly with the same name but different version.
-    /// </summary>
-    private Assembly? ResolveByAssemblyName(object? sender, ResolveEventArgs args)
-    {
-        var assemblyName = new AssemblyName(args.Name);
-        Assembly? located = null;
-
-        if (args.RequestingAssembly?.FullName != null &&
-            dependencyContextsPerAssemblyName.TryGetValue(args.RequestingAssembly.FullName, out var depsInfo))
-        {
-            var runtimeGraph = NugetHelper.GetRuntimeGraph(error: null);
-            foreach (var runtimeLib in depsInfo.DependencyContext.RuntimeLibraries)
-            {
-                if (runtimeLib.Name == assemblyName.Name)
-                {
-                    foreach (var assemblyGroup in runtimeLib.RuntimeAssemblyGroups)
-                    {
-                        if (runtimeGraph.AreCompatible(RuntimeInformation.RuntimeIdentifier, assemblyGroup.Runtime ?? ""))
-                        {
-                            foreach (var runtimeFile in assemblyGroup.RuntimeFiles)
-                            {
-                                if (Path.GetFileNameWithoutExtension(runtimeFile.Path) == assemblyName.Name)
-                                {
-                                    var path = Path.Combine(Path.GetDirectoryName(depsInfo.AssemblyPath)!, runtimeFile.Path);
-                                    located = loadContext.LoadFromAssemblyPath(path);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Bind to the same version the compilation unified on, so runtime type identity matches compile-time
-        // (otherwise we'd trade a compile error for a runtime TypeLoad/MissingMethod). https://github.com/waf/CSharpRepl/issues/355
-        if (located is null && referenceAssemblyService.TryGetUnifiedAssemblyPath(assemblyName, out var unifiedPath))
-        {
-            located = loadContext.LoadFromAssemblyPath(unifiedPath);
-        }
-
-        located ??= referenceAssemblyService.ImplementationAssemblyPaths
-                .SelectMany(path => Directory.GetFiles(path, "*.dll"))
-                .Where(file => Path.GetFileNameWithoutExtension(file) == assemblyName.Name)
-                .Select(loadContext.LoadFromAssemblyPath)
-                .FirstOrDefault();
-
-        if (located?.FullName is not null && new AssemblyName(located.FullName).Version != assemblyName.Version)
-        {
-            console.WriteLine($"Warning: Missing assembly: {args.Name}");
-            console.WriteLine($"            Using instead: {located.FullName}");
-            if (args.RequestingAssembly is not null)
-            {
-                console.WriteLine($"             Requested by: {args.RequestingAssembly.FullName}");
-            }
-        }
-
-        return located;
-    }
-
-    private readonly struct DependenciesInfo
-    {
-        public readonly DependencyContext DependencyContext;
-
-        /// <summary>
-        /// This holds original assembly location. When '#load "x.dll"' is executed the script engine copies dll to temp dir and loads it from there.
-        /// </summary>
-        public readonly string AssemblyPath;
-
-        public DependenciesInfo(DependencyContext dependencyContext, string assemblyPath)
-        {
-            DependencyContext = dependencyContext;
-            AssemblyPath = assemblyPath;
-        }
     }
 }
 

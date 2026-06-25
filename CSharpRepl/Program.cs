@@ -235,7 +235,8 @@ internal static class Program
 
     /// <summary>
     /// Create application storage directory and return its path.
-    /// This is where prompt history and nuget packages are stored.
+    /// This is where prompt history and caches are stored (nuget packages restore to the
+    /// global packages folder, honoring NUGET_PACKAGES / nuget.config).
     /// </summary>
     private static string CreateApplicationStorageDirectory()
     {

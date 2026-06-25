@@ -8,8 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Runtime.Loader;
-using System.Threading;
+using CSharpRepl.Services.Roslyn.References;
 
 namespace CSharpRepl.Services.Nuget;
 
@@ -25,8 +24,13 @@ namespace CSharpRepl.Services.Nuget;
 internal sealed class NativeAssemblyResolver
 {
     private readonly ConcurrentDictionary<string, byte> searchDirectories = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<AssemblyLoadContext> hookedContexts = new();
-    private int initialized;
+
+    // Scripting's load context is typically created after the first search directory is registered, so we
+    // discover-and-hook contexts as they appear rather than only the ones that exist now.
+    private readonly AssemblyLoadContextHook hook;
+
+    public NativeAssemblyResolver()
+        => hook = new AssemblyLoadContextHook(context => context.ResolvingUnmanagedDll += Resolve);
 
     /// <summary>
     /// Registers a directory (e.g. a package's <c>runtimes/&lt;rid&gt;/native</c> folder) to be searched
@@ -40,45 +44,7 @@ internal sealed class NativeAssemblyResolver
         }
 
         searchDirectories.TryAdd(directory, 0);
-        EnsureHooksInstalled();
-    }
-
-    private void EnsureHooksInstalled()
-    {
-        if (Interlocked.Exchange(ref initialized, 1) != 0)
-        {
-            return;
-        }
-
-        // Hook the contexts that already exist, then keep hooking new ones as they appear. Scripting's
-        // load context is typically created after this point (when the first submission is executed),
-        // so the AssemblyLoad subscription is what actually catches it.
-        AppDomain.CurrentDomain.AssemblyLoad += (_, e) => HookContextOf(e.LoadedAssembly);
-        HookContext(AssemblyLoadContext.Default);
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            HookContextOf(assembly);
-        }
-    }
-
-    private void HookContextOf(Assembly assembly)
-    {
-        var context = AssemblyLoadContext.GetLoadContext(assembly);
-        if (context is not null)
-        {
-            HookContext(context);
-        }
-    }
-
-    private void HookContext(AssemblyLoadContext context)
-    {
-        lock (hookedContexts)
-        {
-            if (hookedContexts.Add(context))
-            {
-                context.ResolvingUnmanagedDll += Resolve;
-            }
-        }
+        hook.EnsureInstalled();
     }
 
     private IntPtr Resolve(Assembly assembly, string unmanagedDllName)

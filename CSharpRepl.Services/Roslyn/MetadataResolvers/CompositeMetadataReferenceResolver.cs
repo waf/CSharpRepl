@@ -17,6 +17,12 @@ namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
 internal interface IIndividualMetadataReferenceResolver
 {
     ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver);
+
+    /// <summary>
+    /// Resolves an assembly that an already-referenced assembly depends on but that wasn't itself referenced
+    /// (a transitive reference). Returns null when this resolver doesn't handle it, so the next resolver gets a chance.
+    /// </summary>
+    PortableExecutableReference? ResolveMissingAssembly(MetadataReference definition, AssemblyIdentity referenceIdentity) => null;
 }
 
 /// <summary>
@@ -44,6 +50,21 @@ internal sealed class CompositeMetadataReferenceResolver : MetadataReferenceReso
         }
 
         return [];
+    }
+
+    public override bool ResolveMissingAssemblies => true;
+
+    public override PortableExecutableReference? ResolveMissingAssembly(MetadataReference definition, AssemblyIdentity referenceIdentity)
+    {
+        foreach (var resolver in resolvers)
+        {
+            if (resolver.ResolveMissingAssembly(definition, referenceIdentity) is PortableExecutableReference resolved)
+            {
+                return resolved;
+            }
+        }
+
+        return null;
     }
 
     public override bool Equals(object? other) =>

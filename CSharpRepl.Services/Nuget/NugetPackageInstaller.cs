@@ -1,4 +1,4 @@
-﻿// This Source Code Form is subject to the terms of the Mozilla Public
+// This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
@@ -12,36 +12,57 @@ using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
-using NuGet.Client;
+using NuGet.Commands;
+using NuGet.Common;
 using NuGet.Configuration;
-using NuGet.ContentModel;
 using NuGet.Frameworks;
-using NuGet.PackageManagement;
+using NuGet.LibraryModel;
 using NuGet.Packaging;
-using NuGet.Packaging.Core;
-using NuGet.Packaging.PackageExtraction;
 using NuGet.Packaging.Signing;
-using NuGet.ProjectManagement;
+using NuGet.ProjectModel;
+using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
-using NuGet.Resolver;
-using NuGet.RuntimeModel;
 using NuGet.Versioning;
 
 namespace CSharpRepl.Services.Nuget;
 
+/// <summary>
+/// Installs nuget packages requested via <c>#r "nuget: Id, Version"</c> by running a real, in-process
+/// NuGet <see cref="RestoreCommand"/> - the same engine <c>dotnet restore</c> uses.
+/// <para>
+/// Every <c>#r "nuget:"</c> in a session accumulates into a single logical project, and each install
+/// re-restores the whole set. This means transitive versions are unified across packages exactly the way
+/// a built app's restore unifies them (highest-applicable, honoring version ranges), instead of the
+/// previous per-package, min-version dependency walk which could leave two versions of the same assembly
+/// in the reference set. https://github.com/waf/CSharpRepl/issues/355
+/// </para>
+/// </summary>
 internal sealed class NugetPackageInstaller
 {
-    private static readonly Mutex MultipleNuspecPatchMutex = new(false, $"CSharpRepl_{nameof(MultipleNuspecPatchMutex)}");
-
     private readonly ConsoleNugetLogger logger;
     private readonly bool usePrereleaseNugets;
     private readonly AssemblyReferenceService? referenceAssemblyService;
 
-    public NugetPackageInstaller(IConsoleService console, Configuration configuration, AssemblyReferenceService? referenceAssemblyService = null)
+    // Owns runtime loading; pins each resolved package assembly to one runtime instance (ReplAssemblyLoader.Pin).
+    // Null when there's no script engine to bind into (e.g. unit tests that only assert on the returned references).
+    private readonly ReplAssemblyLoader? assemblyLoader;
+
+    // The session's accumulated top-level package references (the equivalent of a project's <PackageReference>s).
+    // Each #r adds/updates an entry, and we restore the whole set so versions unify across packages.
+    private readonly Dictionary<string, VersionRange> topLevelPackages = new(StringComparer.OrdinalIgnoreCase);
+    private readonly SemaphoreSlim restoreLock = new(1, 1);
+
+    // A per-instance obj directory for the restore (the assets/cache file are written here). RestoreCommand
+    // requires the output directory to exist even though we read the resulting lock file in-memory.
+    private readonly string restoreOutputPath =
+        Path.Combine(Path.GetTempPath(), "csharprepl-restore", Guid.NewGuid().ToString("N"));
+
+    public NugetPackageInstaller(IConsoleService console, Configuration configuration, AssemblyReferenceService? referenceAssemblyService = null, ReplAssemblyLoader? assemblyLoader = null)
     {
         this.logger = new ConsoleNugetLogger(console, configuration);
         this.usePrereleaseNugets = configuration.UsePrereleaseNugets;
         this.referenceAssemblyService = referenceAssemblyService;
+        this.assemblyLoader = assemblyLoader;
     }
 
     public async Task<ImmutableArray<PortableExecutableReference>> InstallAsync(
@@ -51,326 +72,250 @@ internal sealed class NugetPackageInstaller
     {
         logger.Reset();
 
+        await restoreLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var hadPrevious = topLevelPackages.TryGetValue(packageId, out var previousRange);
         try
         {
-            if (!NugetHelper.TryGetCurrentFramework(out var targetFramework))
+            topLevelPackages[packageId] = ParseRequestedRange(version);
+            var outcome = await RestoreAsync(packageId, cancellationToken).ConfigureAwait(false);
+            if (outcome.Succeeded)
             {
-                logger.LogFinish($"Unable to get current target framework.", success: false);
-                return [];
+                // The package may legitimately contribute no references of its own (e.g. it's provided by the
+                // shared framework, or it's a metapackage), so success is the restore succeeding, not a count.
+                var resolved = outcome.ResolvedVersion is null ? packageId : $"{packageId}.{outcome.ResolvedVersion}";
+                logger.LogInformationSummary($"Adding references for '{resolved}'");
+                logger.LogFinish($"Package '{resolved}' was successfully installed.", success: true);
+                return outcome.References;
             }
 
-            var nuGetProject = CreateFolderProject(targetFramework, Path.Combine(Configuration.ApplicationDirectory, "packages"));
-            var settings = ReadSettings();
-            var sourceRepositoryProvider = new SourceRepositoryProvider(new PackageSourceProvider(settings), Repository.Provider.GetCoreV3());
-            var packageManager = CreatePackageManager(settings, nuGetProject, sourceRepositoryProvider);
-
-            using var sourceCacheContext = new SourceCacheContext();
-            var resolutionContext = new ResolutionContext(
-                DependencyBehavior.Lowest,
-                includePrelease: usePrereleaseNugets,
-                includeUnlisted: usePrereleaseNugets,
-                VersionConstraints.None,
-                new GatherCache(),
-                sourceCacheContext);
-
-            var primarySourceRepositories = GetSourceRepositoriesForPackage(sourceRepositoryProvider, settings, packageId);
-            var packageIdentity = string.IsNullOrEmpty(version)
-                ? await QueryLatestPackageVersion(packageId, nuGetProject, resolutionContext, primarySourceRepositories, cancellationToken)
-                : new PackageIdentity(packageId, new NuGetVersion(version));
-
-            if (!packageIdentity.HasVersion)
-            {
-                logger.LogFinish($"Could not find package '{packageIdentity}'", success: false);
-                return [];
-            }
-
-            var skipInstall = nuGetProject.PackageExists(packageIdentity);
-            if (!skipInstall)
-            {
-                await DownloadPackageAsync(packageIdentity, packageManager, resolutionContext, primarySourceRepositories, settings, cancellationToken);
-            }
-
-            logger.LogInformationSummary($"Adding references for '{packageIdentity}'");
-
-            var references = await GetAssemblyReferenceWithDependencies(targetFramework, nuGetProject, packageIdentity, cancellationToken);
-            if (references.Length > 0)
-            {
-                logger.LogFinish($"Package '{packageIdentity}' was successfully installed.", success: true);
-            }
-            else
-            {
-                logger.LogFinish($"No applicable references were found inside '{packageIdentity}' package.", success: false);
-            }
-
-            return references;
+            // Don't let a bad package id poison every subsequent restore in the session.
+            RevertTopLevel(packageId, hadPrevious, previousRange);
+            logger.LogFinish($"Could not restore package '{packageId}'.", success: false);
+            return [];
         }
         catch (Exception ex)
         {
-            logger.LogFinish($"Could not find package '{packageId}'. Error: {ex}", success: false);
+            RevertTopLevel(packageId, hadPrevious, previousRange);
+            logger.LogFinish($"Could not restore package '{packageId}'. Error: {ex.Message}", success: false);
             return [];
-        }
-    }
-
-    private async Task<ImmutableArray<PortableExecutableReference>> GetAssemblyReferenceWithDependencies(
-        NuGetFramework targetFramework,
-        FolderNuGetProject nuGetProject,
-        PackageIdentity packageIdentity,
-        CancellationToken cancellationToken)
-    {
-        var runtimeGraph = GetRuntimeGraph();
-        var managedCodeConventions = new ManagedCodeConventions(runtimeGraph);
-        var referencesPerPackage = await GetDependencies(targetFramework, nuGetProject, packageIdentity, managedCodeConventions, cancellationToken);
-        return referencesPerPackage.Values.SelectMany(r => r).ToImmutableArray();
-    }
-
-    private async Task<Dictionary<PackageIdentity, List<PortableExecutableReference>>> GetDependencies(
-        NuGetFramework targetFramework,
-        FolderNuGetProject nuGetProject,
-        PackageIdentity packageIdentity,
-        ManagedCodeConventions managedCodeConventions,
-        CancellationToken cancellationToken)
-    {
-        var aggregatedReferences = new Dictionary<PackageIdentity, List<PortableExecutableReference>>();
-        await GetDependencies(targetFramework, nuGetProject, packageIdentity, managedCodeConventions, aggregatedReferences, cancellationToken);
-        return aggregatedReferences;
-    }
-
-    private async Task GetDependencies(
-        NuGetFramework targetFramework,
-        FolderNuGetProject nuGetProject,
-        PackageIdentity packageIdentity,
-        ManagedCodeConventions managedCodeConventions,
-        Dictionary<PackageIdentity, List<PortableExecutableReference>> aggregatedReferences,
-        CancellationToken cancellationToken)
-    {
-        var installedPath = nuGetProject.GetInstalledPath(packageIdentity);
-        if (!Directory.Exists(installedPath))
-        {
-            logger.LogError($"'{installedPath}' not found for package {packageIdentity}");
-            return;
-        }
-
-        lock (aggregatedReferences)
-        {
-            if (aggregatedReferences.ContainsKey(packageIdentity))
-                return;
-        }
-
-        CheckAndFixMultipleNuspecFilesExistance(installedPath);
-        var reader = new PackageFolderReader(installedPath);
-        var collection = new ContentItemCollection();
-        collection.Load(await reader.GetFilesAsync(cancellationToken));
-        string[] FindDlls(NuGetFramework framework) =>
-            collection.FindBestItemGroup(
-                managedCodeConventions.Criteria.ForFrameworkAndRuntime(framework, RuntimeInformation.RuntimeIdentifier),
-                managedCodeConventions.Patterns.RuntimeAssemblies)
-            ?.Items
-            .Select(i => i.Path)
-            .Where(p => p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-            .ToArray()
-            ?? [];
-
-        string[] FindNativeLibraries(NuGetFramework framework) =>
-            collection.FindBestItemGroup(
-                managedCodeConventions.Criteria.ForFrameworkAndRuntime(framework, RuntimeInformation.RuntimeIdentifier),
-                managedCodeConventions.Patterns.NativeLibraries)
-            ?.Items
-            .Select(i => i.Path)
-            .ToArray()
-            ?? [];
-
-        var supportedFrameworks = (await reader.GetSupportedFrameworksAsync(cancellationToken))
-            .Where(f => FindDlls(f).Any()) //Not all supported frameworks contains dlls. E.g. Microsoft.CSharp.4.7.0\lib\netcoreapp2.0 contains only empty file '_._'.
-            .ToList();
-
-        var frameworkReducer = new FrameworkReducer();
-        var selectedFramework = frameworkReducer.GetNearest(targetFramework, supportedFrameworks);
-        if (selectedFramework == null)
-        {
-            if (supportedFrameworks.Any())
-            {
-                logger.LogError($"Could not find compatible framework for '{packageIdentity}'. Current framework is '{targetFramework}'. Frameworks supported by package are: {string.Join(" / ", supportedFrameworks.Select(f => f.DotNetFrameworkName))}.");
-                return;
-            }
-            selectedFramework = NuGetFramework.AnyFramework;
-        }
-
-        var dlls = FindDlls(selectedFramework)
-                .Select(path => MetadataReference.CreateFromFile(Path.GetFullPath(Path.Combine(installedPath, path)))) //GetFullPath will normalize separators
-                .ToList();
-
-        // Make any native assets (runtimes/<rid>/native/*) loadable at p/invoke time. These aren't added as
-        // metadata references (they're not managed assemblies), but their containing directory has to be on the
-        // native search path or the managed binding fails to load. https://github.com/waf/CSharpRepl/issues/375
-        foreach (var nativeLibrary in FindNativeLibraries(selectedFramework))
-        {
-            var nativeLibraryDirectory = Path.GetDirectoryName(Path.GetFullPath(Path.Combine(installedPath, nativeLibrary)));
-            if (nativeLibraryDirectory is not null)
-            {
-                referenceAssemblyService?.AddNativeSearchDirectory(nativeLibraryDirectory);
-            }
-        }
-
-        if (!dlls.Any())
-        {
-            logger.LogWarning($"No applicable references were found inside '{packageIdentity}' package.");
-        }
-        lock (aggregatedReferences)
-        {
-            aggregatedReferences[packageIdentity] = dlls;
-        }
-
-        // The dependency group to recurse into is chosen independently of which lib/ folder supplied
-        // this package's own dlls. A metapackage (e.g. Microsoft.Data.Sqlite or System.Data.SQLite) has
-        // no dlls of its own, so 'selectedFramework' collapses to AnyFramework above - but its dependencies
-        // are declared under a framework-specific group (e.g. .NETStandard2.0). https://github.com/waf/CSharpRepl/issues/392
-        var dependencyGroups = (await reader.GetPackageDependenciesAsync(cancellationToken)).ToList();
-        var nearestDependencyFramework = frameworkReducer.GetNearest(targetFramework, dependencyGroups.Select(g => g.TargetFramework));
-        var dependencyGroup = nearestDependencyFramework is null
-            ? null
-            : dependencyGroups.FirstOrDefault(g => g.TargetFramework.Equals(nearestDependencyFramework));
-
-        if (dependencyGroup is null)
-            return;
-
-        var firstLevelDependencies = dependencyGroup
-            .Packages
-            .Select(p => new PackageIdentity(p.Id, p.VersionRange.MinVersion));
-
-        await Task.WhenAll(
-            firstLevelDependencies.Select(p => GetDependencies(targetFramework, nuGetProject, p, managedCodeConventions, aggregatedReferences, cancellationToken))
-        );
-    }
-
-    private async Task DownloadPackageAsync(
-        PackageIdentity packageIdentity,
-        NuGetPackageManager packageManager,
-        ResolutionContext resolutionContext,
-        IEnumerable<SourceRepository> primarySourceRepositories,
-        ISettings settings,
-        CancellationToken cancellationToken)
-    {
-        var clientPolicyContext = ClientPolicyContext.GetClientPolicy(settings, logger);
-        var projectContext = new ConsoleProjectContext(logger)
-        {
-            PackageExtractionContext = new PackageExtractionContext(
-                PackageSaveMode.Defaultv3,
-                PackageExtractionBehavior.XmlDocFileSaveMode,
-                clientPolicyContext,
-                logger)
-            {
-                CopySatelliteFiles = false
-            }
-        };
-
-        await packageManager.InstallPackageAsync(packageManager.PackagesFolderNuGetProject,
-            packageIdentity, resolutionContext, projectContext,
-            primarySourceRepositories, [], cancellationToken);
-    }
-
-    private async Task<PackageIdentity> QueryLatestPackageVersion(
-        string packageId,
-        FolderNuGetProject nuGetProject,
-        ResolutionContext resolutionContext,
-        IEnumerable<SourceRepository> primarySourceRepositories,
-        CancellationToken cancellationToken)
-    {
-        var resolvePackage = await NuGetPackageManager.GetLatestVersionAsync(
-            packageId, nuGetProject,
-            resolutionContext, primarySourceRepositories,
-            logger, cancellationToken
-        );
-        return new PackageIdentity(packageId, resolvePackage.LatestVersion);
-    }
-
-    private static NuGetPackageManager CreatePackageManager(
-        ISettings settings,
-        FolderNuGetProject nuGetProject,
-        SourceRepositoryProvider sourceRepositoryProvider)
-    {
-        var packageManager = new NuGetPackageManager(sourceRepositoryProvider, settings, nuGetProject.Root)
-        {
-            PackagesFolderNuGetProject = nuGetProject
-        };
-        return packageManager;
-    }
-
-    /// <summary>
-    /// Returns the source repositories that should be queried for <paramref name="packageId"/>,
-    /// honoring any packageSourceMapping configured in NuGet.config.
-    /// </summary>
-    private static IReadOnlyList<SourceRepository> GetSourceRepositoriesForPackage(
-        SourceRepositoryProvider sourceRepositoryProvider,
-        ISettings settings,
-        string packageId)
-    {
-        var allRepositories = sourceRepositoryProvider.GetRepositories().ToList();
-
-        var sourceMapping = PackageSourceMapping.GetPackageSourceMapping(settings);
-        if (!sourceMapping.IsEnabled)
-        {
-            return allRepositories;
-        }
-
-        var mappedSourceNames = sourceMapping.GetConfiguredPackageSources(packageId);
-        var mappedRepositories = allRepositories
-            .Where(repo => mappedSourceNames.Contains(repo.PackageSource.Name, StringComparer.OrdinalIgnoreCase))
-            .ToList();
-
-        return mappedRepositories.Count > 0 ? mappedRepositories : allRepositories;
-    }
-
-    private static FolderNuGetProject CreateFolderProject(NuGetFramework targetFramework, string directory)
-    {
-        string projectRoot = Path.GetFullPath(directory);
-        Directory.CreateDirectory(projectRoot);
-        if (!Directory.Exists(projectRoot)) Directory.CreateDirectory(projectRoot);
-        var nuGetProject = new FolderNuGetProject(
-            projectRoot,
-            packagePathResolver: new PackagePathResolver(projectRoot),
-            targetFramework
-        );
-        return nuGetProject;
-    }
-
-    private static ISettings ReadSettings()
-    {
-        var curDir = Directory.GetCurrentDirectory();
-        ISettings settings = File.Exists(Path.Combine(curDir, Settings.DefaultSettingsFileName))
-            ? Settings.LoadSpecificSettings(curDir, Settings.DefaultSettingsFileName)
-            : Settings.LoadDefaultSettings(curDir);
-        return settings;
-    }
-
-    public RuntimeGraph GetRuntimeGraph()
-        => NugetHelper.GetRuntimeGraph(e => logger.LogError(e));
-
-    /// <summary>
-    /// This is a patch for https://github.com/waf/CSharpRepl/issues/52.
-    /// The problem emerges on systems with case-sensitive file system.
-    /// There can be multiple nuspec files differing only in name casing in the package folder.lder.
-    /// Not sure why this happens (I suspect there is a bug in NuGet.PackageManagement).
-    /// </summary>
-    private static void CheckAndFixMultipleNuspecFilesExistance(string packageDirectoryPath)
-    {
-        MultipleNuspecPatchMutex.WaitOne();
-        try
-        {
-            var nuspecFileGroups = Directory.EnumerateFiles(packageDirectoryPath)
-                .Where(f => f.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase))
-                .GroupBy(f => f, StringComparer.OrdinalIgnoreCase);
-
-            foreach (var nuspecsWithSameName in nuspecFileGroups)
-            {
-                foreach (var duplicateNuspec in nuspecsWithSameName.Skip(1))
-                {
-                    File.Delete(duplicateNuspec);
-                }
-            }
         }
         finally
         {
-            MultipleNuspecPatchMutex.ReleaseMutex();
+            restoreLock.Release();
         }
+    }
+
+    private void RevertTopLevel(string packageId, bool hadPrevious, VersionRange? previousRange)
+    {
+        if (hadPrevious) topLevelPackages[packageId] = previousRange!;
+        else topLevelPackages.Remove(packageId);
+    }
+
+    /// <summary>
+    /// A specified version (e.g. <c>#r "nuget: X, 1.2.3"</c>) is treated as a minimum, the same as a project's
+    /// <c>&lt;PackageReference Version="1.2.3" /&gt;</c>, so it can unify upward when another package needs more.
+    /// No version means "latest", expressed as a floating range.
+    /// </summary>
+    private VersionRange ParseRequestedRange(string? version)
+        => string.IsNullOrWhiteSpace(version)
+            ? VersionRange.Parse(usePrereleaseNugets ? "*-*" : "*")
+            : VersionRange.Parse(version);
+
+    private readonly record struct RestoreOutcome(bool Succeeded, ImmutableArray<PortableExecutableReference> References, string? ResolvedVersion)
+    {
+        public static readonly RestoreOutcome Failed = new(false, [], null);
+    }
+
+    private async Task<RestoreOutcome> RestoreAsync(string requestedPackageId, CancellationToken cancellationToken)
+    {
+        if (!NugetHelper.TryGetCurrentFramework(out var targetFramework))
+        {
+            logger.LogError("Unable to determine the current target framework.");
+            return RestoreOutcome.Failed;
+        }
+
+        var runtimeIdentifier = RuntimeInformation.RuntimeIdentifier;
+        var settings = ReadSettings();
+        var globalPackagesFolder = SettingsUtility.GetGlobalPackagesFolder(settings);
+        var fallbackFolders = SettingsUtility.GetFallbackPackageFolders(settings).ToList();
+        var sourceRepositories = GetSourceRepositories(settings);
+
+        Directory.CreateDirectory(restoreOutputPath);
+
+        var packageSpec = BuildPackageSpec(targetFramework, globalPackagesFolder, fallbackFolders, settings);
+
+        using var sourceCacheContext = new SourceCacheContext();
+        var providers = new RestoreCommandProvidersCache().GetOrCreate(
+            globalPackagesFolder,
+            fallbackFolders,
+            sourceRepositories,
+            sourceCacheContext,
+            logger);
+
+        var request = new RestoreRequest(
+            packageSpec,
+            providers,
+            sourceCacheContext,
+            ClientPolicyContext.GetClientPolicy(settings, logger),
+            PackageSourceMapping.GetPackageSourceMapping(settings),
+            logger,
+            new LockFileBuilderCache())
+        {
+            ProjectStyle = ProjectStyle.PackageReference,
+            AllowNoOp = false,
+        };
+        request.RequestedRuntimes.Add(runtimeIdentifier);
+
+        var dependencyGraph = new DependencyGraphSpec();
+        dependencyGraph.AddProject(packageSpec);
+        dependencyGraph.AddRestore(packageSpec.RestoreMetadata.ProjectUniqueName);
+        request.DependencyGraphSpec = dependencyGraph;
+
+        var result = await new RestoreCommand(request).ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        if (!result.Success)
+        {
+            foreach (var message in result.LogMessages.Where(m => m.Level >= LogLevel.Warning))
+            {
+                logger.LogError(message.Message);
+            }
+            return RestoreOutcome.Failed;
+        }
+
+        var runtimeTarget = result.LockFile.GetTarget(targetFramework, runtimeIdentifier);
+        if (runtimeTarget is null)
+        {
+            logger.LogError($"Restore produced no assets for {targetFramework.GetShortFolderName()}/{runtimeIdentifier}.");
+            return RestoreOutcome.Failed;
+        }
+
+        var references = CollectReferences(result.LockFile, runtimeTarget);
+        assemblyLoader?.RegisterPinned(references);
+        var resolvedVersion = runtimeTarget.Libraries
+            .FirstOrDefault(l => string.Equals(l.Name, requestedPackageId, StringComparison.OrdinalIgnoreCase))?
+            .Version?.ToNormalizedString();
+        return new RestoreOutcome(Succeeded: true, references, resolvedVersion);
+    }
+
+    private PackageSpec BuildPackageSpec(
+        NuGetFramework targetFramework,
+        string globalPackagesFolder,
+        List<string> fallbackFolders,
+        ISettings settings)
+    {
+        var dependencies = topLevelPackages
+            .Select(p => new LibraryDependency
+            {
+                LibraryRange = new LibraryRange(p.Key, p.Value, LibraryDependencyTarget.Package),
+            })
+            .ToImmutableArray();
+
+        var targetFrameworkInformation = new TargetFrameworkInformation
+        {
+            FrameworkName = targetFramework,
+            Dependencies = dependencies,
+            // Point the restore at a RID graph so RID-specific assets (runtimes/<rid>/lib, runtimes/<rid>/native)
+            // are selected for the current runtime, e.g. System.Management's win build. Without this the restore
+            // only ever picks the RID-agnostic lib/ assets. We reuse the runtime.json the tool already ships.
+            RuntimeIdentifierGraphPath = NugetHelper.RuntimeGraphPath,
+        };
+
+        var projectPath = Path.Combine(restoreOutputPath, "csharprepl.csproj");
+        return new PackageSpec(new List<TargetFrameworkInformation> { targetFrameworkInformation })
+        {
+            Name = "csharprepl",
+            FilePath = projectPath,
+            // The shipped runtime.json lets the restore resolve RID-specific (runtimes/<rid>/...) assets,
+            // mirroring how the framework's RID graph fans out (e.g. win-x64 -> win -> any).
+            RuntimeGraph = NugetHelper.GetRuntimeGraph(logger.LogError),
+            RestoreMetadata = new ProjectRestoreMetadata
+            {
+                ProjectStyle = ProjectStyle.PackageReference,
+                ProjectName = "csharprepl",
+                ProjectUniqueName = projectPath,
+                ProjectPath = projectPath,
+                OutputPath = restoreOutputPath,
+                CacheFilePath = Path.Combine(restoreOutputPath, "csharprepl.csproj.nuget.cache"),
+                ConfigFilePaths = settings.GetConfigFilePaths(),
+                Sources = SettingsUtility.GetEnabledSources(settings).ToList(),
+                PackagesPath = globalPackagesFolder,
+                FallbackFolders = fallbackFolders,
+                OriginalTargetFrameworks = new List<string> { targetFramework.GetShortFolderName() },
+            },
+        };
+    }
+
+    /// <summary>
+    /// Reads the resolved, unified set of assemblies out of the restore's lock file. We take the runtime
+    /// (implementation) assemblies from the RID-specific target - that's both what the REPL loads at runtime
+    /// and what historically backed compilation (the implementation-vs-reference-assembly choice in
+    /// <see cref="AssemblyReferenceService"/>). Native asset directories are registered for p/invoke (#375).
+    /// </summary>
+    private ImmutableArray<PortableExecutableReference> CollectReferences(LockFile lockFile, LockFileTarget runtimeTarget)
+    {
+        var pathResolver = new FallbackPackagePathResolver(
+            lockFile.PackageFolders.Select(f => f.Path).First(),
+            lockFile.PackageFolders.Skip(1).Select(f => f.Path));
+
+        var references = ImmutableArray.CreateBuilder<PortableExecutableReference>();
+        foreach (var library in runtimeTarget.Libraries.Where(l => string.Equals(l.Type, "package", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (library.Name is null || library.Version is null)
+                continue;
+
+            var packageDirectory = pathResolver.GetPackageDirectory(library.Name, library.Version);
+            if (packageDirectory is null)
+                continue;
+
+            // Prefer runtime assemblies; fall back to compile-time assemblies for ref-only packages.
+            var assemblyItems = library.RuntimeAssemblies.Count > 0 ? library.RuntimeAssemblies : library.CompileTimeAssemblies;
+            foreach (var item in assemblyItems)
+            {
+                var fullPath = ToFullPath(packageDirectory, item.Path);
+                if (fullPath is not null)
+                {
+                    references.Add(MetadataReference.CreateFromFile(fullPath));
+                }
+            }
+
+            // Native libraries aren't metadata references, but their directory must be on the p/invoke search
+            // path or the managed binding that needs them fails to load at runtime. https://github.com/waf/CSharpRepl/issues/375
+            foreach (var native in library.NativeLibraries)
+            {
+                var fullPath = ToFullPath(packageDirectory, native.Path);
+                var directory = fullPath is null ? null : Path.GetDirectoryName(fullPath);
+                if (directory is not null)
+                {
+                    referenceAssemblyService?.AddNativeSearchDirectory(directory);
+                }
+            }
+        }
+
+        return references.ToImmutable();
+    }
+
+    /// <summary>
+    /// Lock-file item paths are forward-slash relative paths (e.g. <c>lib/net8.0/Foo.dll</c>). <c>_._</c>
+    /// placeholders mark "compatible but no assets" and must be skipped.
+    /// </summary>
+    private static string? ToFullPath(string packageDirectory, string itemPath)
+    {
+        if (string.IsNullOrEmpty(itemPath) || Path.GetFileName(itemPath) == "_._")
+            return null;
+
+        var normalized = itemPath.Replace('/', Path.DirectorySeparatorChar);
+        return Path.GetFullPath(Path.Combine(packageDirectory, normalized));
+    }
+
+    private static IReadOnlyList<SourceRepository> GetSourceRepositories(ISettings settings)
+        => new SourceRepositoryProvider(new PackageSourceProvider(settings), Repository.Provider.GetCoreV3())
+            .GetRepositories()
+            .ToList();
+
+    private static ISettings ReadSettings()
+    {
+        var currentDirectory = Directory.GetCurrentDirectory();
+        return File.Exists(Path.Combine(currentDirectory, Settings.DefaultSettingsFileName))
+            ? Settings.LoadSpecificSettings(currentDirectory, Settings.DefaultSettingsFileName)
+            : Settings.LoadDefaultSettings(currentDirectory);
     }
 }

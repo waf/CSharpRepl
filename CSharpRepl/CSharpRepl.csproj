@@ -86,12 +86,9 @@
 
   <!--
     crossgen2 needs the full reference closure, but this project intentionally ships an incomplete one:
-    MSBuild assemblies are loaded from the SDK via MSBuildLocator (see MSBL001 above), and
-    NuGet.PackageManagement/Resolver chain to a NuGet.Packaging that isn't in the output. Exclude those from R2R.
+    MSBuild assemblies are loaded from the SDK via MSBuildLocator (see MSBL001 above). Exclude it from R2R.
   -->
   <ItemGroup Condition="'$(PackRidSpecific)' == 'true'">
-    <PublishReadyToRunExclude Include="NuGet.PackageManagement.dll" />
-    <PublishReadyToRunExclude Include="NuGet.Resolver.dll" />
     <PublishReadyToRunExclude Include="Microsoft.CodeAnalysis.Workspaces.MSBuild.dll" />
   </ItemGroup>
 

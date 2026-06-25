@@ -43,7 +43,6 @@ internal sealed class AssemblyReferenceService
     // The session's resolved-asset model, shared between the managed (#355) and native (#375) resolution paths.
     private readonly NativeAssemblyResolver nativeAssemblyResolver = new();
     private readonly ConcurrentDictionary<string, AssemblyName?> assemblyIdentitiesByPath = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, string> unifiedAssemblyPathsByIdentity = new();
     private readonly HashSet<string> warnedOverriddenIdentities = [];
 
     public IReadOnlySet<string> ImplementationAssemblyPaths => implementationAssemblyPaths;
@@ -143,12 +142,14 @@ internal sealed class AssemblyReferenceService
 
     /// <summary>
     /// Collapses references that share an assembly identity (simple name + culture + public key token) down to a
-    /// single highest-version reference, mirroring what NuGet restore does for a built app. Without this, separate
-    /// #r closures can each contribute a different version of the same assembly (e.g. a project's transitive
-    /// Microsoft.EntityFrameworkCore plus an explicit `#r "nuget: Microsoft.EntityFrameworkCore"`), and Roslyn
-    /// then sees two distinct identities for the same type, producing confusing errors such as CS1929, where an
-    /// extension method's receiver "isn't the same type". https://github.com/waf/CSharpRepl/issues/355
+    /// single highest-version reference, mirroring what NuGet restore does for a built app.
     /// </summary>
+    /// <remarks>
+    /// Without this, separate #r closures can each contribute a different version of the same assembly (e.g. a project's transitive
+    /// Microsoft.EntityFrameworkCore plus an explicit `#r "nuget: Microsoft.EntityFrameworkCore"`), and Roslyn then sees two
+    /// distinct identities for the same type, producing confusing errors such as CS1929, where an extension method's receiver
+    /// "isn't the same type". https://github.com/waf/CSharpRepl/issues/355
+    /// </remarks>
     internal IReadOnlyList<MetadataReference> RemoveDuplicateReferences(IEnumerable<MetadataReference> references)
     {
         var result = new List<MetadataReference>();
@@ -178,7 +179,7 @@ internal sealed class AssemblyReferenceService
 
             // Only intervene on a genuine version conflict. When every copy is the same version (e.g. the same
             // assembly resolved from multiple paths), keep them all and let Roslyn deduplicate identical identities
-            // itself - collapsing them here can swap in a different physical file than the host already loaded.
+            // itself, collapsing them here can swap in a different physical file than the host already loaded.
             if (group.All(member => GetVersion(member.Identity) == highestVersion))
             {
                 result.AddRange(group.Select(member => member.Reference));
@@ -192,11 +193,6 @@ internal sealed class AssemblyReferenceService
                 if (GetVersion(identity) == highestVersion)
                 {
                     result.Add(reference);
-                    // Record the winner so the runtime assembly resolver binds to the same version the compilation used.
-                    if (reference is PortableExecutableReference { FilePath: { } winnerPath })
-                    {
-                        unifiedAssemblyPathsByIdentity[key] = winnerPath;
-                    }
                 }
                 else
                 {
@@ -206,20 +202,6 @@ internal sealed class AssemblyReferenceService
         }
 
         return result;
-    }
-
-    /// <summary>
-    /// Returns the path of the unified (highest-version) assembly chosen for <paramref name="name"/>'s identity, if
-    /// one has been resolved during this session. Lets the runtime loader bind to the same version the compilation used.
-    /// </summary>
-    internal bool TryGetUnifiedAssemblyPath(AssemblyName name, [NotNullWhen(true)] out string? path)
-    {
-        if (name.Name is not null && unifiedAssemblyPathsByIdentity.TryGetValue(GetIdentityKey(name), out path))
-        {
-            return true;
-        }
-        path = null;
-        return false;
     }
 
     private AssemblyName? GetAssemblyIdentity(MetadataReference reference)

@@ -10,18 +10,11 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
-internal sealed class CompositeAlternativeReferenceResolver
+internal sealed class CompositeAlternativeReferenceResolver(params AlternativeReferenceResolver[] alternativeResolvers)
 {
-    private readonly AlternativeReferenceResolver[] alternativeResolvers;
-
-    public CompositeAlternativeReferenceResolver(params AlternativeReferenceResolver[] alternativeResolvers)
-    {
-        this.alternativeResolvers = alternativeResolvers;
-    }
-
     public async Task<ImmutableArray<PortableExecutableReference>> GetAllAlternativeReferences(string code, CancellationToken cancellationToken)
     {
-        var splitCommands = code.Split(new[] { '\r', '\n' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        var splitCommands = code.Split(['\r', '\n'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
         var resolveReferencesTasks =
             from cmd in splitCommands

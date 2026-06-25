@@ -53,10 +53,14 @@ internal sealed class ScriptRunner
         // over `services` resolve. The live-evaluation path below always uses ScriptGlobals (it's local-only).
         this.globalsType = globalsType ?? typeof(ScriptGlobals);
         this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());
+        // Owns runtime loading of #r'd assemblies (one load context + the resolve fallback). Threaded into both the
+        // nuget resolver (to pin each restored assembly to one instance, #355) and the assembly-reference resolver
+        // (to record #r'd DLLs' deps.json for runtime resolution of their transitive deps).
+        var replAssemblyLoader = new ReplAssemblyLoader(assemblyLoader, referenceAssemblyService, console);
 
         var dotnetBuilder = new DotnetBuilder(console);
         var solutionFileMetadataResolver = new SolutionFileMetadataResolver(dotnetBuilder, console);
-        var nugetResolver = new NugetPackageMetadataResolver(console, configuration, referenceAssemblyService);
+        var nugetResolver = new NugetPackageMetadataResolver(console, configuration, referenceAssemblyService, replAssemblyLoader);
 
         this.alternativeReferenceResolver = new CompositeAlternativeReferenceResolver(
             nugetResolver,
@@ -66,7 +70,7 @@ internal sealed class ScriptRunner
         this.metadataResolver = new CompositeMetadataReferenceResolver(
             nugetResolver,
             solutionFileMetadataResolver,
-            new AssemblyReferenceMetadataResolver(console, referenceAssemblyService)
+            new AssemblyReferenceMetadataResolver(referenceAssemblyService, replAssemblyLoader)
         );
         this.scriptOptions = ScriptOptions.Default
             .WithMetadataResolver(metadataResolver)

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
+
 /// <summary>
 /// An alternative to MetadataReferenceResolver.ResolveReference. <br/>
 /// This can be used when multiple references can be added from a single ResolveReference call, as Roslyn does not yet support it (https://github.com/dotnet/roslyn/issues/6900).
@@ -19,7 +20,7 @@ public abstract class AlternativeReferenceResolver : IIndividualMetadataReferenc
     public ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string? baseFilePath, MetadataReferenceProperties properties, MetadataReferenceResolver compositeResolver)
     {
         if (CanResolve(reference))
-            return ImmutableArray.Create(DummyReference);
+            return [DummyReference];
 
         return [];
     }

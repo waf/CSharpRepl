@@ -548,9 +548,7 @@ internal static class CommandLine
             var arg = args[i];
 
             // Everything after "--" is forwarded to the load script as arguments (see
-            // GetLoadScriptArgs), so stop handing tokens to the parser here. System.CommandLine v3
-            // no longer has a dedicated "unparsed tokens" bucket for these and would otherwise
-            // report them as unrecognized arguments.
+            // GetLoadScriptArgs), so stop handing tokens to the parser here.
             if (arg == DisableFurtherOptionParsing) yield break;
 
             // We allow csx files to be specified, sometimes in ambiguous scenarios that

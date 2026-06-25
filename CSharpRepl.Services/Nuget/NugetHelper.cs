@@ -16,19 +16,31 @@ internal static class NugetHelper
 {
     private const string RuntimeFileName = "runtime.json";
 
+    /// <summary>
+    /// Absolute path to the shipped <c>runtime.json</c> RID graph, or <c>null</c> if it isn't present. Used as the
+    /// restore's <see cref="NuGet.ProjectModel.TargetFrameworkInformation.RuntimeIdentifierGraphPath"/> so that
+    /// RID-specific package assets (runtimes/&lt;rid&gt;/...) resolve.
+    /// </summary>
+    public static string? RuntimeGraphPath
+    {
+        get
+        {
+            var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            if (dir is null) return null;
+            var path = Path.Combine(dir, RuntimeFileName);
+            return File.Exists(path) ? path : null;
+        }
+    }
+
     public static RuntimeGraph GetRuntimeGraph(Action<string>? error)
     {
-        var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        if (dir != null)
+        var path = RuntimeGraphPath;
+        if (path != null)
         {
-            var path = Path.Combine(dir, RuntimeFileName);
-            if (File.Exists(path))
-            {
-                using var stream = File.OpenRead(path);
-                return JsonRuntimeFormat.ReadRuntimeGraph(stream);
-            }
+            using var stream = File.OpenRead(path);
+            return JsonRuntimeFormat.ReadRuntimeGraph(stream);
         }
-        error?.Invoke($"Cannot find '{RuntimeFileName}' in '{dir}'");
+        error?.Invoke($"Cannot find '{RuntimeFileName}'");
         return new RuntimeGraph();
     }
 
