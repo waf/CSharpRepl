@@ -214,11 +214,13 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
 
     protected override async Task<KeyPress> TransformKeyPressAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
     {
-        // user submitted the prompt but it's incomplete. Insert a newline automatically with the correct level of indentation.
+        // User submitted the prompt but it's incomplete. Insert a newline automatically with the correct level of indentation.
+        // A single-line statement the user didn't terminate (e.g. `int i = 0`) counts as submittable, we'll auto-insert the semicolon for them.
         if (keyPress.ConsoleKeyInfo.Key == ConsoleKey.Enter &&
             keyPress.ConsoleKeyInfo.Modifiers == default &&
             configuration.KeyBindings.SubmitPrompt.Matches(keyPress.ConsoleKeyInfo) &&
-            !await roslyn.IsTextCompleteStatementAsync(text).ConfigureAwait(false))
+            !await roslyn.IsTextCompleteStatementAsync(text).ConfigureAwait(false) &&
+            roslyn.TryAutoInsertSemicolon(text) is null)
         {
             return NewLineWithIndentation(GetSmartIndentationLevel(text, caret));
         }
@@ -300,6 +302,13 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
     protected override async Task<(string Text, int Caret)> FormatInput(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
     {
         var keyChar = keyPress.ConsoleKeyInfo.KeyChar;
+
+        // user submitted the prompt but it's incomplete. Auto-insert a semicolon.
+        if (configuration.KeyBindings.SubmitPrompt.Matches(keyPress.ConsoleKeyInfo) &&
+            roslyn.TryAutoInsertSemicolon(text) is string textWithSemicolon)
+        {
+            return await roslyn.FormatInput(textWithSemicolon, textWithSemicolon.Length, formatParentNodeOnly: false, cancellationToken).ConfigureAwait(false);
+        }
 
         if (caret > 0)
         {
