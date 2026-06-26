@@ -204,7 +204,55 @@ public class PromptConfigurationTests : IAsyncLifetime
         Assert.NotEmpty(spans);
     }
 
-    /// <summary>Exposes the protected highlight callback so the REPL-keyword highlighting can be tested.</summary>
+    [Fact]
+    public async Task TransformKeyPress_EnterOnUnterminatedDeclaration_Submits()
+    {
+        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
+        var enterKey = new KeyPress(new ConsoleKeyInfo('\r', ConsoleKey.Enter, shift: false, alt: false, control: false));
+
+        var transformed = await configuration.TransformKeyPressAsync("int i = 0", caret: 9, enterKey, CancellationToken.None);
+
+        // submittable -> Enter passes through unchanged (it is not turned into an indented newline)
+        Assert.Null(transformed.PastedText);
+    }
+
+    [Fact]
+    public async Task TransformKeyPress_EnterOnIncompleteStatement_InsertsNewline()
+    {
+        IPromptCallbacks configuration = new CSharpReplPromptCallbacks(console, services, new Configuration());
+        var enterKey = new KeyPress(new ConsoleKeyInfo('\r', ConsoleKey.Enter, shift: false, alt: false, control: false));
+
+        var transformed = await configuration.TransformKeyPressAsync("if (x == 4)", caret: 11, enterKey, CancellationToken.None);
+
+        Assert.Equal("\n", transformed.PastedText);
+    }
+
+    [Fact]
+    public async Task FormatInput_SubmitOnUnterminatedDeclaration_InsertsSemicolon()
+    {
+        var callbacks = new TestableCallbacks(console, services, new Configuration());
+        var enter = new KeyPress(new ConsoleKeyInfo('\r', ConsoleKey.Enter, shift: false, alt: false, control: false));
+
+        var (text, caret) = await callbacks.Format("int i = 0", caret: 9, enter);
+
+        Assert.Equal("int i = 0;", text);
+        Assert.Equal(text.Length, caret);
+    }
+
+    [Theory]
+    [InlineData("1 + 1")]        // already complete - no semicolon to add
+    [InlineData("if (x == 4)")]  // not a single-line declaration the user merely didn't terminate
+    public async Task FormatInput_SubmitOnNonAppendable_LeavesTextUnchanged(string code)
+    {
+        var callbacks = new TestableCallbacks(console, services, new Configuration());
+        var enter = new KeyPress(new ConsoleKeyInfo('\r', ConsoleKey.Enter, shift: false, alt: false, control: false));
+
+        var (text, _) = await callbacks.Format(code, caret: code.Length, enter);
+
+        Assert.Equal(code, text);
+    }
+
+    /// <summary>Exposes the protected highlight and format callbacks for testing.</summary>
     private sealed class TestableCallbacks : CSharpReplPromptCallbacks
     {
         public TestableCallbacks(IConsoleService console, RoslynServices roslyn, Configuration configuration)
@@ -212,5 +260,8 @@ public class PromptConfigurationTests : IAsyncLifetime
 
         public async Task<IReadOnlyCollection<FormatSpan>> Highlight(string text)
             => await HighlightCallbackAsync(text, default);
+
+        public Task<(string Text, int Caret)> Format(string text, int caret, KeyPress key)
+            => FormatInput(text, caret, key, default);
     }
 }

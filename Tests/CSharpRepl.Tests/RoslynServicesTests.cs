@@ -42,6 +42,7 @@ public partial class RoslynServicesTests : IAsyncLifetime, IClassFixture<RoslynS
     [InlineData("if (x == 4)", false)]
     [InlineData("if (x == 4) return;", true)]
     [InlineData("if you're happy and you know it, syntax error!", false)]
+    [InlineData("int i = 0", false)] // A single-line declaration without a trailing semicolon is NOT a complete submission at this level. It's an editor-only convenience to automatically append the semicolon.
     public async Task IsCompleteStatement(string code, bool shouldBeCompleteStatement)
     {
         bool isCompleteStatement = await services.IsTextCompleteStatementAsync(code);

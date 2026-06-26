@@ -340,6 +340,13 @@ public sealed partial class RoslynServices
         return root is null || SyntaxFactory.IsCompleteSubmission(root.SyntaxTree); // if something's wrong and we can't get the syntax tree, we don't want to prevent evaluation.
     }
 
+    /// <summary>
+    /// When <paramref name="text"/> is a single-line statement the user didn't terminate (e.g. <c>int i = 0</c>),
+    /// returns it with the missing semicolon appended; otherwise <see langword="null"/>.
+    /// It is deliberately editor-only; piped input is not auto-terminated.
+    /// </summary>
+    public string? TryAutoInsertSemicolon(string text) => AutoInsertSemicolon.TryAppend(text, parseOptions);
+
     public async Task<PrettyPromptTextSpan> GetSpanToReplaceByCompletionAsync(string text, int caret, CancellationToken cancellationToken)
     {
         await Initialization.ConfigureAwait(false);
