@@ -100,14 +100,51 @@ public class AICompleteService
         }
         messages.Add(new(ChatRole.User, code));
 
-        await foreach (var update in client.GetStreamingResponseAsync(messages, cancellationToken: cancellationToken))
+        await using var updates = client.GetStreamingResponseAsync(messages, cancellationToken: cancellationToken).GetAsyncEnumerator(cancellationToken);
+
+        while (true) // while(true) because MoveNextAsync can throw (due to API errors), and we can't have a yield return inside a try block that has a catch clause (CS1626/CS1631)
         {
-            var content = update.Text;
-            if (string.IsNullOrEmpty(content))
+            string? content;
+            string? error = null;
+            try
             {
-                continue;
+                if (!await updates.MoveNextAsync())
+                {
+                    break;
+                }
+                content = updates.Current.Text;
             }
-            yield return content.Replace("\t", "    ");
+            catch (OperationCanceledException)
+            {
+                // The user cancelled; stop quietly without inserting anything.
+                yield break;
+            }
+            catch (Exception ex)
+            {
+                // some exception like an HTTP 429 when the AI provider's quota is exceeded
+                content = null;
+                error = FormatError(ex);
+            }
+
+            if (error is not null)
+            {
+                yield return error;
+                yield break;
+            }
+
+            if (!string.IsNullOrEmpty(content))
+            {
+                yield return content.Replace("\t", "    ");
+            }
         }
+    }
+
+    /// <summary>
+    /// Renders a streaming-completion failure as a C# comment so it can be safely inserted into the prompt input. 
+    /// </summary>
+    private static string FormatError(Exception ex)
+    {
+        var message = string.Join(' ', ex.Message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        return $"{Environment.NewLine}// AI completion failed: {message}";
     }
 }
