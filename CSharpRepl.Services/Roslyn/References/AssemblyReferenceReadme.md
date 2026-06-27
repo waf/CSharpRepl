@@ -327,8 +327,10 @@ A `.csx` driven with `csharprepl --eval-file x.csx` (or piped stdin) is the fast
 - Heavy reflection (`type.GetMethods()`) force-loads every parameter/return type and can surface a
   deeper `TypeLoadException` ("… does not have an implementation") that the plain call wouldn't — useful
   signal, but don't mistake it for the original failure.
-- Run the test suite *in full* (or alongside a `RoslynServices` test) so `MSBuildLocator` is registered
-  before NuGet types load (see §4 build note).
+- `MSBuildLocator` is registered for the whole test assembly by a `[ModuleInitializer]`
+  (`TestAssemblyInitializer`), so NuGet/MSBuild types resolve from the SDK even when a single test class is
+  run in isolation. (Historically you had to run the suite *in full*, or alongside a `RoslynServices` test,
+  to get this — that's no longer required just for `MSBuildLocator`.) See §4 build note.
 
 ---
 

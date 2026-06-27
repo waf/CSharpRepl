@@ -265,6 +265,11 @@ public abstract class FakeConsoleAbstract : IConsoleService
 
     IAnsiConsole IConsoleService.Ansi => AnsiConsole;
 
+    // Overrides the IConsoleService default (which reads the process-global Console.IsOutputRedirected) so
+    // tests can choose interactive vs. redirected behavior. NSubstitute defaults this to false (redirected /
+    // non-interactive), matching how the suite runs headless; flip with .IsInteractive.Returns(true).
+    public abstract bool IsInteractive { get; }
+
     // Substitutable (not routed to the TestConsole) so tests can verify the screen was cleared via
     // console.Received().Clear().
     public abstract void Clear();

@@ -70,14 +70,15 @@ internal sealed class NugetPackageInstaller
         string? version = null,
         CancellationToken cancellationToken = default)
     {
-        logger.Reset();
-
         await restoreLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         var hadPrevious = topLevelPackages.TryGetValue(packageId, out var previousRange);
         try
         {
             topLevelPackages[packageId] = ParseRequestedRange(version);
-            var outcome = await RestoreAsync(packageId, cancellationToken).ConfigureAwait(false);
+
+            var outcome = await logger
+                .WithStatusAsync(packageId, () => RestoreAsync(packageId, cancellationToken))
+                .ConfigureAwait(false);
             if (outcome.Succeeded)
             {
                 // The package may legitimately contribute no references of its own (e.g. it's provided by the
@@ -134,6 +135,8 @@ internal sealed class NugetPackageInstaller
             return RestoreOutcome.Failed;
         }
 
+        logger.LogInformation("");
+        logger.LogInformation(Environment.NewLine + $"Installing package '{requestedPackageId}'");
         var runtimeIdentifier = RuntimeInformation.RuntimeIdentifier;
         var settings = ReadSettings();
         var globalPackagesFolder = SettingsUtility.GetGlobalPackagesFolder(settings);
