@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    These are throwaway test-fixture/demo projects (sln/slnx/csproj inputs that the unit/integration
+    tests build on demand), NOT part of the shipped solution. They pin their own PackageReference
+    versions inline, so opt this whole subtree out of Central Package Management. NuGet uses the nearest
+    Directory.Packages.props walking up (it does not merge), so this shadows the repo-root one and stops
+    it from forcing CPM (and the resulting NU1008) onto the fixtures.
+
+    This file is copied alongside the fixtures into bin\...\Data\ via the test project's
+    Content Include="Data\**", so it also covers the copies built in-place at test time
+    (e.g. InspectorTestSupport.BuildTestTarget against the TestTarget under bin\...\Data\).
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

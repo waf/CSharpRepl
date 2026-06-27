@@ -1,20 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ben.Demystifier" Version="0.4.1" />
-    <PackageReference Include="ICSharpCode.Decompiler" Version="10.1.0.8386" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.3.0">
+    <PackageReference Include="Ben.Demystifier" />
+    <PackageReference Include="ICSharpCode.Decompiler" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.3.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.3.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.3.0" />
-    <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
+    <PackageReference Include="Microsoft.Build.Locator" />
     <!--
       Microsoft.Build.Framework arrives transitively via Microsoft.CodeAnalysis.Workspaces.MSBuild.
       We use MSBuildLocator (RegisterDefaults) to load MSBuild from the installed .NET SDK at
@@ -24,28 +24,28 @@
       The same is required for Microsoft.NET.StringTools, a dependency of Microsoft.Build.Framework.
       See https://aka.ms/msbuild/locator/diagnostics/MSBL001
     -->
-    <PackageReference Include="Microsoft.Build.Framework" Version="18.7.1" ExcludeAssets="runtime" PrivateAssets="all">
+    <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all">
       <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.StringTools" Version="18.7.1" ExcludeAssets="runtime" PrivateAssets="all">
+    <PackageReference Include="Microsoft.NET.StringTools" ExcludeAssets="runtime" PrivateAssets="all">
       <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9" />
-    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" />
     <!--
       Microsoft.CodeAnalysis.Workspaces.MSBuild depends on Microsoft.Extensions.{Logging, DependencyInjection} at 9.0. When a user references a shared framework
       (e.g. `-f Microsoft.AspNetCore.App`) their code requests 10.0, our copies are found it throws a FileLoadException. Set these at 10.0 to fix that. See issue #414.
     -->
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.9" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
-    <PackageReference Include="Microsoft.SymbolStore" Version="1.0.731901" />
-    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.7.0" />
-    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.7.0" />
-    <PackageReference Include="PrettyPrompt" Version="6.0.3" />
-    <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
-    <PackageReference Include="Spectre.Console.Ansi" Version="0.57.1" />
-    <PackageReference Include="System.IO.Abstractions" Version="22.1.1" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.SymbolStore" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+    <PackageReference Include="PrettyPrompt" />
+    <PackageReference Include="Spectre.Console.Cli" />
+    <PackageReference Include="Spectre.Console.Ansi" />
+    <PackageReference Include="System.IO.Abstractions" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" />
   </ItemGroup>
 
   <!--
@@ -55,17 +55,17 @@
 	https://github.com/OmniSharp/omnisharp-roslyn/commit/efeafeca33abe1d19659ed8c7ebab1d7c3481188
 	-->
   <ItemGroup>
-    <PackageReference Include="NuGet.Common" Version="7.6.0" PrivateAssets="all" />
-    <PackageReference Include="NuGet.Commands" Version="7.6.0" PrivateAssets="all" />
-    <PackageReference Include="NuGet.Credentials" Version="7.6.0" PrivateAssets="all" />
-    <PackageReference Include="NuGet.Configuration" Version="7.6.0" PrivateAssets="all" />
-    <PackageReference Include="NuGet.DependencyResolver.Core" Version="7.6.0" PrivateAssets="all" />
-    <PackageReference Include="NuGet.Frameworks" Version="7.6.0" PrivateAssets="all" ExcludeAssets="runtime" />
-    <PackageReference Include="NuGet.LibraryModel" Version="7.6.0" PrivateAssets="all" />
-    <PackageReference Include="NuGet.Packaging" Version="7.6.0" PrivateAssets="all" />
-    <PackageReference Include="NuGet.ProjectModel" Version="7.6.0" PrivateAssets="all" />
-    <PackageReference Include="NuGet.Protocol" Version="7.6.0" PrivateAssets="all" />
-    <PackageReference Include="NuGet.Versioning" Version="7.6.0" PrivateAssets="all" />
+    <PackageReference Include="NuGet.Common" PrivateAssets="all" />
+    <PackageReference Include="NuGet.Commands" PrivateAssets="all" />
+    <PackageReference Include="NuGet.Credentials" PrivateAssets="all" />
+    <PackageReference Include="NuGet.Configuration" PrivateAssets="all" />
+    <PackageReference Include="NuGet.DependencyResolver.Core" PrivateAssets="all" />
+    <PackageReference Include="NuGet.Frameworks" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="NuGet.LibraryModel" PrivateAssets="all" />
+    <PackageReference Include="NuGet.Packaging" PrivateAssets="all" />
+    <PackageReference Include="NuGet.ProjectModel" PrivateAssets="all" />
+    <PackageReference Include="NuGet.Protocol" PrivateAssets="all" />
+    <PackageReference Include="NuGet.Versioning" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
