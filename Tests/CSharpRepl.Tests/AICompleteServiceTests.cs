@@ -77,6 +77,67 @@ public class AICompleteServiceTests
         Assert.Equal(new[] { "var x", "    = 1;" }, results);
     }
 
+    [Fact]
+    public async Task CompleteAsync_WhenProviderThrows_YieldsErrorCommentInsteadOfThrowing()
+    {
+        // A provider failure (e.g. HTTP 429 quota exceeded) must not crash the REPL: it surfaces as a C# comment.
+        var fake = new ThrowingChatClient(new InvalidOperationException("HTTP 429 (insufficient_quota)\n\nYou exceeded your current quota."));
+        var service = new AICompleteService(
+            new AICompletionConfiguration(apiKey: "key", endpoint: null, model: "any", prompt: "p", historyCount: 5),
+            fake);
+
+        var results = new List<string>();
+        await foreach (var chunk in service.CompleteAsync([], "var ", caret: 4, cancellationToken: TestContext.Current.CancellationToken))
+        {
+            results.Add(chunk);
+        }
+
+        var combined = string.Concat(results);
+        Assert.Contains("// AI completion failed:", combined);
+        Assert.Contains("HTTP 429 (insufficient_quota)", combined);
+        Assert.DoesNotContain("\n//", combined.TrimStart()); // multi-line message collapsed to a single comment line
+    }
+
+    [Fact]
+    public async Task CompleteAsync_WhenProviderThrowsMidStream_YieldsPartialOutputThenErrorComment()
+    {
+        var fake = new ThrowingChatClient(new InvalidOperationException("boom"), "var x", "= 1;");
+        var service = new AICompleteService(
+            new AICompletionConfiguration(apiKey: "key", endpoint: null, model: "any", prompt: "p", historyCount: 5),
+            fake);
+
+        var results = new List<string>();
+        await foreach (var chunk in service.CompleteAsync([], "var ", caret: 4, cancellationToken: TestContext.Current.CancellationToken))
+        {
+            results.Add(chunk);
+        }
+
+        Assert.Equal("var x", results[0]);
+        Assert.Equal("= 1;", results[1]);
+        Assert.EndsWith("// AI completion failed: boom", results[^1]);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_WhenCancelled_YieldsNothing()
+    {
+        // Cancellation is a normal stop, not an error: it must not insert an error comment.
+        var fake = new FakeChatClient("var x", "= 1;");
+        var service = new AICompleteService(
+            new AICompletionConfiguration(apiKey: "key", endpoint: null, model: "any", prompt: "p", historyCount: 5),
+            fake);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var results = new List<string>();
+        await foreach (var chunk in service.CompleteAsync([], "var ", caret: 4, cancellationToken: cts.Token))
+        {
+            results.Add(chunk);
+        }
+
+        Assert.Empty(results);
+    }
+
     [Theory]
     [InlineData(null, null, null)]            // unspecified provider defaults to OpenAI's default model/endpoint
     [InlineData("openai", null, null)]
@@ -135,6 +196,31 @@ public class AICompleteServiceTests
                 yield return new ChatResponseUpdate(ChatRole.Assistant, chunk);
                 await Task.Yield();
             }
+        }
+
+        public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose() { }
+    }
+
+    private sealed class ThrowingChatClient(Exception toThrow, params string[] chunksBeforeThrow) : IChatClient
+    {
+        public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+            => Stream();
+
+        private async IAsyncEnumerable<ChatResponseUpdate> Stream()
+        {
+            foreach (var chunk in chunksBeforeThrow)
+            {
+                yield return new ChatResponseUpdate(ChatRole.Assistant, chunk);
+                await Task.Yield();
+            }
+            await Task.Yield();
+            throw toThrow;
         }
 
         public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
