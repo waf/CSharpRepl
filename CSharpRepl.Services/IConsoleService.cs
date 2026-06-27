@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+using System;
+using System.Threading.Tasks;
 using PrettyPrompt.Consoles;
 using PrettyPrompt.Highlighting;
 using Spectre.Console;
@@ -20,6 +22,13 @@ public interface IConsoleService
     // The underlying Spectre console that provides e.g. color coded / wrapped output.
     protected IAnsiConsole Ansi { get; }
 
+    /// <summary>
+    /// Whether the console is an interactive terminal. False when output is redirected (piped, <c>--eval</c>,
+    /// captured by a tool), where cursor movement and live displays (e.g. status spinners) can't render and
+    /// must degrade to plain text. Mirrors <c>!Console.IsOutputRedirected</c>; overridable so it can be faked in tests.
+    /// </summary>
+    bool IsInteractive => !Console.IsOutputRedirected;
+
     /// <summary>Width, in characters, of the console buffer — for layout/wrapping math.</summary>
     int BufferWidth => PrettyPromptConsole.BufferWidth;
 
@@ -35,6 +44,17 @@ public interface IConsoleService
     void Write(IRenderable renderable) => Ansi.Write(renderable);
     void Write(string text) => Ansi.Write(text);
     void Write(FormattedString text) => PrettyPromptConsole.Write(text);
+
+    /// <summary>Writes a line of Spectre.Console markup. During a live display (e.g. a status spinner) it renders above the live region.</summary>
+    void WriteMarkupLine(string markup) => Ansi.MarkupLine(markup);
+
+    /// <summary>
+    /// Runs <paramref name="action"/> while displaying an animated status spinner labelled <paramref name="status"/>
+    /// (Spectre markup), returning the action's result. Output written to this console during the action - e.g. via
+    /// <see cref="WriteMarkupLine"/> - is rendered above the live spinner and remains after it disappears.
+    /// </summary>
+    Task<T> RunWithStatusAsync<T>(string status, Spinner spinner, string color, Func<Task<T>> action)
+        => Ansi.Status().Spinner(spinner).SpinnerStyle(Style.Parse(color)).StartAsync(status, _ => action());
 
     void WriteLine(string text) => Ansi.WriteLine(text);
     void WriteLine() => Ansi.WriteLine();

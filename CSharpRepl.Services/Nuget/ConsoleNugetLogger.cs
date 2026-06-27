@@ -1,48 +1,67 @@
-﻿// This Source Code Form is subject to the terms of the Mozilla Public
+// This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Classification;
 using NuGet.Common;
-using PrettyPrompt.Consoles;
-using PrettyPrompt.Highlighting;
+using Spectre.Console;
 
 namespace CSharpRepl.Services.Nuget;
 
 /// <summary>
-/// Implementation of <see cref="ILogger"/> that logs minimal output to the console.
+/// Implementation of <see cref="ILogger"/> that renders NuGet restore output in the REPL.
+/// When the console is interactive, a restore runs under an animated Spectre.Console status spinner with
+/// log lines rendered above it.
+///
+/// When stdout is redirected (piped, <c>--eval</c>, captured by a tool) we fall back to plain, line-by-line text.
 /// </summary>
-internal sealed class ConsoleNugetLogger : ILogger
+internal sealed partial class ConsoleNugetLogger : ILogger
 {
-    private const int NumberOfMessagesToShow = 6;
+    // Segments worth highlighting within a line: 'quoted' text (group 1, usually a package id) and URLs
+    // (group 2). Everything else is rendered in the line's body color.
+    private static readonly Regex HighlightRegex = HighlightRegexGenerator();
+
+    private const string LinkStyle = "blue";
 
     private readonly IConsoleService console;
-    private readonly Configuration configuration;
-    private readonly string successPrefix;
+    private readonly bool useUnicode;
     private readonly string errorPrefix;
-    private readonly List<Line> lines = [];
-    private readonly object linesLock = new(); // Lock for the lines list
-    private int linesRendered;
 
-    // The normal 'pretty' rendering uses cursor movement and the console buffer width, which only
-    // work against a real terminal. When stdout is redirected (e.g. piped, --eval, or captured by a
-    // tool) those operations throw "The handle is invalid", so if we're non-interactive we should
-    // just write plain text.
-    private readonly bool interactive;
+    // The theme's string-literal color, as Spectre markup (e.g. "yellow"), used to highlight 'quoted'
+    // package ids; empty when the theme defines no such color.
+    private readonly string quoteStyle;
+
+    private readonly bool interactive; // are we running in an interactive terminal, or is stdout redirected to a file/pipe?
 
     public ConsoleNugetLogger(IConsoleService console, Configuration configuration)
     {
         this.console = console;
-        this.configuration = configuration;
-        this.interactive = !Console.IsOutputRedirected;
+        this.interactive = console.IsInteractive;
+        this.useUnicode = configuration.UseUnicode;
 
-        successPrefix = configuration.UseUnicode ? "✅ " : "";
-        errorPrefix = configuration.UseUnicode ? "❌ " : "";
+        errorPrefix = useUnicode ? "❌ " : "";
+        quoteStyle = configuration.Theme.GetSyntaxHighlightingSpectreColor(ClassificationTypeNames.StringLiteral)?.ToMarkup() ?? "";
+    }
+
+    /// <summary>
+    /// Runs <paramref name="operation"/> under an animated status spinner labelled with the package being
+    /// installed. Falls back to running the operation as-is (with plain, line-by-line output) when the
+    /// console is non-interactive.
+    /// </summary>
+    public Task<T> WithStatusAsync<T>(string packageId, Func<Task<T>> operation)
+    {
+        if (!interactive)
+        {
+            return operation();
+        }
+
+        var name = quoteStyle.Length > 0 ? $"[{quoteStyle}]{Markup.Escape(packageId)}[/]" : Markup.Escape(packageId);
+        var spinner = useUnicode ? Spinner.Known.Dots : Spinner.Known.Ascii;
+        return console.RunWithStatusAsync($"Installing NuGet package {name}", spinner, "green", operation);
     }
 
     public void Log(ILogMessage message) => Log(message.Level, message.Message);
@@ -51,208 +70,138 @@ internal sealed class ConsoleNugetLogger : ILogger
     {
         switch (level)
         {
-            case LogLevel.Debug: LogDebug(data); return;
-            case LogLevel.Verbose: LogVerbose(data); return;
-            case LogLevel.Information: LogInformation(data); return;
-            case LogLevel.Minimal: LogMinimal(data); return;
-            case LogLevel.Warning: LogWarning(data); return;
-            case LogLevel.Error: LogError(data); return;
+            case LogLevel.Information:
+            case LogLevel.Minimal: LogProgress(data); return;
+            case LogLevel.Warning: LogIssue(data, isError: false); return;
+            case LogLevel.Error: LogIssue(data, isError: true); return;
+            // Debug/Verbose are far too chatty for the REPL.
             default: return;
         }
     }
 
-    public void LogMinimal(string data)
+    public void LogDebug(string data) { }
+    public void LogVerbose(string data) { }
+    public void LogInformation(string data) => LogProgress(data);
+    public void LogMinimal(string data) => LogProgress(data);
+    public void LogInformationSummary(string data) => LogProgress(data);
+    public void LogWarning(string data) => LogIssue(data, isError: false);
+    public void LogError(string data) => LogIssue(data, isError: true);
+
+    public Task LogAsync(LogLevel level, string data)
     {
-        var line = CreateLine(data, isError: false);
-        if (line.IsEmpty) return;
-
-        if (!interactive)
-        {
-            NonInteractiveAppendLine(line);
-            return;
-        }
-
-        lock (linesLock)
-        {
-            lines.Add(line);
-            if (lines.Count(l => !l.IsError) > NumberOfMessagesToShow)
-            {
-                for (int i = 0; i < lines.Count; i++)
-                {
-                    if (!lines[i].IsError)
-                    {
-                        lines.RemoveAt(i);
-                        break;
-                    }
-                }
-            }
-        }
-
-        RenderLines();
+        Log(level, data);
+        return Task.CompletedTask;
     }
 
-    public void LogWarning(string data) => LogMinimal(data);
-    public void LogInformationSummary(string data) => LogMinimal(data);
-
-    public void LogError(string data)
+    public Task LogAsync(ILogMessage message)
     {
-        var line = CreateLine(data, isError: true);
-
-        if (!interactive)
-        {
-            NonInteractiveAppendLine(line);
-            return;
-        }
-
-        lock (linesLock)
-        {
-            lines.Add(line);
-        }
-        RenderLines();
+        Log(message);
+        return Task.CompletedTask;
     }
 
-    public void Reset()
-    {
-        lock (linesLock)
-        {
-            lines.Clear();
-        }
-        linesRendered = 0;
-    }
-
+    /// <summary>Writes the final outcome line of a restore. Called after the spinner has stopped.</summary>
     public void LogFinish(string text, bool success)
     {
+        var data = Truncate(text);
+        if (data.Length == 0) return;
+
+        var prefix = success ? "" : errorPrefix;
         if (!interactive)
         {
-            var summary = CreateLine(text, isError: !success);
-            if (!summary.IsEmpty)
-            {
-                NonInteractiveAppendLine(summary);
-            }
-
+            console.WriteLine();
+            console.WriteStandardOutputLine(prefix + data);
             return;
         }
 
-        //delete rendered lines
-        for (int i = 0; i < linesRendered; i++)
-        {
-            console.Write(AnsiEscapeCodes.GetMoveCursorUp(1));
-            console.Write(AnsiEscapeCodes.ClearLine);
-        }
-        linesRendered = 0;
-
-        lock (linesLock)
-        {
-            //keep only errors
-            lines.RemoveAll(line => !line.IsError);
-            //add final summary
-            lines.Add(CreateLine(text, isError: !success));
-        }
-
-        //render summary + potential errors
-        RenderLines();
+        console.WriteMarkupLine(Markup.Escape(prefix) + ToMarkup(data, success ? "green" : "red"));
     }
 
-    // unused
-    public Task LogAsync(LogLevel level, string data) => Task.CompletedTask;
-    public Task LogAsync(ILogMessage message) => Task.CompletedTask;
-    public void LogDebug(string data) { /* ignore, we don't need this much output */ }
-    public void LogVerbose(string data) { /* ignore, we don't need this much output */ }
-    public void LogInformation(string data) { /* ignore, we don't need this much output */ }
+    // Information/Minimal/InformationSummary: progress detail, written as a persistent log line. While the
+    // spinner is live Spectre renders these lines above it (they stay in the scrollback after it disappears).
+    private void LogProgress(string data)
+    {
+        var text = Truncate(data);
+        if (text.Length == 0) return;
 
-    private Line CreateLine(string data, bool isError) => new(data, isError, isError ? errorPrefix : successPrefix, configuration);
+        if (interactive)
+        {
+            console.WriteMarkupLine(ToMarkup(text, "white"));
+        }
+        else
+        {
+            console.WriteStandardOutputLine(text);
+        }
+    }
+
+    // Warnings/errors are worth keeping in the scrollback, so they're written as persistent lines even
+    // while the spinner is live (Spectre renders them above it).
+    private void LogIssue(string data, bool isError)
+    {
+        var text = Truncate(data);
+        if (text.Length == 0) return;
+
+        if (!interactive)
+        {
+            console.WriteStandardOutputLine((isError ? errorPrefix : "") + text);
+            return;
+        }
+
+        var prefix = isError ? errorPrefix : "";
+        console.WriteMarkupLine(Markup.Escape(prefix) + ToMarkup(text, isError ? "red" : "yellow"));
+    }
+
+    private string ToMarkup(string text, string bodyStyle) => Highlight(text, bodyStyle, quoteStyle);
 
     /// <summary>
-    /// Write the message as plain text. No cursor movement and no ANSI color.
+    /// Builds a Spectre markup string from raw NuGet text: escapes markup metacharacters (so a version
+    /// range like "[1.0,2.0)" isn't parsed as markup) and highlights 'quoted' segments - usually package
+    /// ids - with <paramref name="quoteStyle"/> (the theme's string-literal color), and URLs in blue.
+    /// Everything else is rendered in <paramref name="bodyStyle"/>.
     /// </summary>
-    private void NonInteractiveAppendLine(Line line) => console.WriteStandardOutputLine(line.Text.Text ?? "");
-
-    private void RenderLines()
+    internal static string Highlight(string text, string bodyStyle, string quoteStyle)
     {
-        try
+        var sb = new StringBuilder();
+        int pos = 0;
+        foreach (Match match in HighlightRegex.Matches(text))
         {
-            console.Cursor.Show(false);
-            for (int i = 0; i < linesRendered; i++)
-            {
-                console.Write(AnsiEscapeCodes.GetMoveCursorUp(1));
-                console.Write(AnsiEscapeCodes.ClearLine);
-            }
-
-            lock (linesLock)
-            {
-                linesRendered = 0;
-                foreach (var line in lines)
-                {
-                    if (line.IsError)
-                    {
-                        console.Write(AnsiColor.Red.GetEscapeSequence());
-                        console.WriteLine(line.Text.Text ?? "");
-                        console.Write(AnsiEscapeCodes.Reset);
-                    }
-                    else
-                    {
-                        console.WriteLine(line.Text);
-                    }
-
-                    linesRendered += Math.DivRem(line.Text.Length, console.BufferWidth, out var remainder) + (remainder == 0 ? 0 : 1);
-                }
-            }
+            Append(text[pos..match.Index], bodyStyle);
+            var isUrl = match.Groups[2].Success;
+            var style = isUrl ? LinkStyle : (quoteStyle.Length > 0 ? quoteStyle : bodyStyle);
+            Append(match.Value, style);
+            pos = match.Index + match.Length;
         }
-        finally
+        Append(text[pos..], bodyStyle);
+        return sb.ToString();
+
+        void Append(string part, string style)
         {
-            console.Cursor.Show(true);
+            if (part.Length == 0) return;
+            sb.Append('[').Append(style).Append(']').Append(Markup.Escape(part)).Append("[/]");
         }
     }
 
-    private readonly struct Line
+    /// <summary>
+    /// NuGet output can be a bit overwhelming. Truncate some of the longer lines.
+    /// </summary>
+    private static string Truncate(string data)
     {
-        private static readonly Regex QuotesRegex = new(@"'.*?'");
+        if (string.IsNullOrWhiteSpace(data)) return "";
 
-        public readonly FormattedString Text;
-        public readonly bool IsError;
-        public readonly bool IsEmpty;
+        if (data.StartsWith("Successfully installed", StringComparison.Ordinal))
+            return ""; // ignore; NugetPackageInstaller will log success on its own
 
-        public Line(string data, bool isError, string prefix, Configuration configuration)
-        {
-            data = Truncate(data);
-            IsEmpty = data.Length == 0;
-            Text = IsEmpty ? prefix : Format(data, prefix, configuration);
-            IsError = isError;
-        }
+        if (data.IndexOf(" to folder", StringComparison.Ordinal) is int discard1 and >= 0)
+            return data[..discard1];
 
-        /// <summary>
-        /// Nuget output can be a bit overwhelming. Truncate some of the longer lines
-        /// </summary>
-        private static string Truncate(string data)
-        {
-            if (string.IsNullOrWhiteSpace(data)) return "";
+        if (data.IndexOf(" with respect to project", StringComparison.Ordinal) is int discard2 and >= 0)
+            return data[..discard2];
 
-            if (data.IndexOf(" to folder") is int discard1 and >= 0)
-                return data.Substring(0, discard1);
+        if (data.IndexOf(" with content hash ", StringComparison.Ordinal) is int discard3 and >= 0)
+            return data[..discard3];
 
-            if (data.IndexOf(" with respect to project") is int discard2 and >= 0)
-                return data.Substring(0, discard2);
-
-            if (data.StartsWith("Successfully installed"))
-                return ""; //ignore; NugetPackageInstaller will log success on its own
-
-            return data;
-        }
-
-        private static FormattedString Format(string text, string prefix, Configuration configuration)
-        {
-            text = prefix + text;
-            if (configuration.Theme.TryGetSyntaxHighlightingAnsiColor(ClassificationTypeNames.StringLiteral, out var color))
-            {
-                var formattings = new List<FormatSpan>(1);
-                foreach (Match match in QuotesRegex.Matches(text))
-                {
-                    formattings.Add(new FormatSpan(match.Index, match.Length, color));
-                }
-                return new FormattedString(text, formattings.ToArray());
-            }
-
-            return text;
-        }
+        return data;
     }
+
+    [GeneratedRegex(@"('.*?')|(https?://\S+)", RegexOptions.Compiled)]
+    private static partial Regex HighlightRegexGenerator();
 }
