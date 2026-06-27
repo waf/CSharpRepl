@@ -43,7 +43,7 @@
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.7.0" />
     <PackageReference Include="PrettyPrompt" Version="6.0.3" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
-    <PackageReference Include="Spectre.Console.Ansi" Version="0.57.0" />
+    <PackageReference Include="Spectre.Console.Ansi" Version="0.57.1" />
     <PackageReference Include="System.IO.Abstractions" Version="22.1.1" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.9" />
   </ItemGroup>
