@@ -1,3 +1,11 @@
+## Release 0.9.1
+
+- Simple variable declarations no longer require a trailing semicolon: typing `int i = 0` and pressing <kbd>Enter</kbd> now auto-inserts a semicolon ([#499](https://github.com/waf/CSharpRepl/pull/499)).
+- Improved NuGet installation output, using a Spectre.Console status display with log lines rendered above it ([#500](https://github.com/waf/CSharpRepl/pull/500)).
+- Autocomplete menu: replaced the colored unicode circles/squares with more meaningful characters like Ⓕ for fields and Ⓟ for properties, ([#503](https://github.com/waf/CSharpRepl/pull/503)).
+- Reworked assembly and NuGet loading so that all references load through a single, dedicated `AssemblyLoadContext`. Fixes a class of assembly and nuget loading errors ([#498](https://github.com/waf/CSharpRepl/pull/498)).
+- AI code-completion errors (for example network or HTTP failures) are now caught and surfaced as REPL feedback instead of crashing the REPL ([#501](https://github.com/waf/CSharpRepl/pull/501)).
+
 ## Release 0.9.0
 
 - Live method replacement when inspecting a running process: replace a live function in the target application with a REPL-defined function ([#493](https://github.com/waf/CSharpRepl/pull/493)).
