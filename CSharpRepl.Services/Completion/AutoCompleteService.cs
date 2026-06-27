@@ -3,14 +3,14 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
-using System.Diagnostics;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.SyntaxHighlighting;
+using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt.Highlighting;
@@ -73,44 +73,15 @@ internal sealed class AutoCompleteService
                 var classification = RoslynExtensions.TextTagToClassificationTypeName(item.Tags.First());
                 if (highlighter.TryGetFormat(classification, out var format))
                 {
-                    var prefix = GetCompletionItemSymbolPrefix(classification, configuration.UseUnicode);
-                    return new FormattedString($"{prefix}{text}", new FormatSpan(prefix.Length, text.Length, format));
+                    var symbol = CompletionItemSymbols.Get(classification, configuration.UseUnicode);
+                    var spans = new List<FormatSpan>(2);
+                    if (CompletionItemSymbols.GetIconAnsiColor(symbol.Color) is { } iconColor)
+                        spans.Add(new FormatSpan(0, symbol.GlyphLength, new ConsoleFormat(Foreground: iconColor)));
+                    spans.Add(new FormatSpan(symbol.Prefix.Length, text.Length, format));
+                    return new FormattedString($"{symbol.Prefix}{text}", spans);
                 }
             }
             return text;
-        }
-    }
-
-    public static string GetCompletionItemSymbolPrefix(string? classification, bool useUnicode)
-    {
-        Span<char> prefix = stackalloc char[3];
-        if (useUnicode)
-        {
-            var symbol = classification switch
-            {
-                ClassificationTypeNames.Keyword => "🔑",
-                ClassificationTypeNames.MethodName or ClassificationTypeNames.ExtensionMethodName => "🟣",
-                ClassificationTypeNames.PropertyName => "🟡",
-                ClassificationTypeNames.FieldName or ClassificationTypeNames.ConstantName or ClassificationTypeNames.EnumMemberName => "🔵",
-                ClassificationTypeNames.EventName => "⚡",
-                ClassificationTypeNames.ClassName or ClassificationTypeNames.RecordClassName => "🟨",
-                ClassificationTypeNames.InterfaceName => "🔷",
-                ClassificationTypeNames.StructName or ClassificationTypeNames.RecordStructName => "🟦",
-                ClassificationTypeNames.EnumName => "🟧",
-                ClassificationTypeNames.DelegateName => "💼",
-                ClassificationTypeNames.NamespaceName => "⬜",
-                ClassificationTypeNames.TypeParameterName => "⬛",
-                _ => "⚫",
-            };
-            Debug.Assert(symbol.Length <= prefix.Length);
-            symbol.CopyTo(prefix);
-            prefix[symbol.Length] = ' ';
-            prefix = prefix[..(symbol.Length + 1)];
-            return prefix.ToString();
-        }
-        else
-        {
-            return "";
         }
     }
 

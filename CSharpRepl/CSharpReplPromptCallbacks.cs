@@ -19,6 +19,7 @@ using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Scripting;
 using CSharpRepl.Services.SymbolExploration;
 using CSharpRepl.Services.SyntaxHighlighting;
+using Microsoft.CodeAnalysis.Classification;
 using PrettyPrompt;
 using PrettyPrompt.Completion;
 using PrettyPrompt.Consoles;
@@ -37,6 +38,9 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
     private const string lowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
     private static SearchValues<char> lowercaseSearchValues = SearchValues.Create(lowercaseLetters);
     private readonly AICompleteService aiComplete = new AICompleteService(configuration.AICompletionConfiguration);
+
+    // Built once per session because the keyword glyph depends on configuration.UseUnicode, which is fixed.
+    private readonly IReadOnlyCollection<CompletionItem> replKeywordCompletionItems = ReplKeywordCompletionItems.Build(configuration.UseUnicode);
 
     // How the F1/Ctrl+F1/F12 keybindings open a URL. Defaults to actually launching the browser; tests inject a no-op.
     private readonly Func<string, KeyPressCallbackResult?> launchBrowser = launchBrowser ?? LaunchBrowser;
@@ -140,7 +144,7 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
                 return [];
             }
 
-            return ReplKeywordCompletionItems.AllItems;
+            return replKeywordCompletionItems;
         }
     }
 
@@ -422,9 +426,12 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
         return new(word, EntireWordFormatSpan(word, color));
     }
 
-    private static FormattedString EntireWordFormatString(ReadEvalPrintLoop.Keywords.KeywordInfo keywordInfo)
+    // Like EntireWordFormatString, but prepends the keyword kind glyph (uncolored) so REPL commands
+    // line up with the keyword completions in the menu. The glyph is empty when not using unicode.
+    private static FormattedString KeywordCommandFormatString(ReadEvalPrintLoop.Keywords.KeywordInfo keywordInfo, bool useUnicode)
     {
-        return EntireWordFormatString(keywordInfo.Text, keywordInfo.Color);
+        var prefix = CompletionItemSymbols.Get(ClassificationTypeNames.Keyword, useUnicode).Prefix;
+        return new FormattedString(prefix + keywordInfo.Text, new FormatSpan(prefix.Length, keywordInfo.Text.Length, keywordInfo.Color));
     }
 
     /// <summary>
@@ -492,29 +499,27 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
 
     private static class ReplKeywordCompletionItems
     {
-        private static readonly FormattedString helpFormattedString = EntireWordFormatString(ReadEvalPrintLoop.Keywords.HelpInfo);
-        private static readonly FormattedString exitFormattedString = EntireWordFormatString(ReadEvalPrintLoop.Keywords.ExitInfo);
-        private static readonly FormattedString clearFormattedString = EntireWordFormatString(ReadEvalPrintLoop.Keywords.ClearInfo);
+        // help/exit/clear are REPL commands rather than C# keywords, but we show them with the keyword
+        // glyph so they read as keywords in the completion menu. The word keeps its own color; the
+        // glyph stays uncolored (matching how the keyword classification is tinted).
+        public static IReadOnlyCollection<CompletionItem> Build(bool useUnicode) =>
+        [
+            Create(ReadEvalPrintLoop.Keywords.HelpInfo, "Show help and usage information for the C# REPL.", useUnicode),
+            Create(ReadEvalPrintLoop.Keywords.ExitInfo, "Exit the REPL. You can also press Ctrl + d.", useUnicode),
+            Create(ReadEvalPrintLoop.Keywords.ClearInfo, "Clear the terminal screen.", useUnicode),
+        ];
 
-        public static CompletionItem Help { get; } = new(
+        private static CompletionItem Create(ReadEvalPrintLoop.Keywords.KeywordInfo info, string description, bool useUnicode) => new(
+            info.Text,
+            displayText: KeywordCommandFormatString(info, useUnicode),
+            getExtendedDescription: _ => Task.FromResult(new FormattedString(description)));
+
+        private static readonly HashSet<string> replacementTexts = new(StringComparer.OrdinalIgnoreCase)
+        {
             ReadEvalPrintLoop.Keywords.HelpText,
-            displayText: helpFormattedString,
-            getExtendedDescription: _ => Task.FromResult(new FormattedString("Show help and usage information for the C# REPL.")));
-
-        public static CompletionItem Exit { get; } = new(
             ReadEvalPrintLoop.Keywords.ExitText,
-            displayText: exitFormattedString,
-            getExtendedDescription: _ => Task.FromResult(new FormattedString("Exit the REPL. You can also press Ctrl + d.")));
-
-        public static CompletionItem Clear { get; } = new(
             ReadEvalPrintLoop.Keywords.ClearText,
-            displayText: clearFormattedString,
-            getExtendedDescription: _ => Task.FromResult(new FormattedString("Clear the terminal screen.")));
-
-        public static IReadOnlyCollection<CompletionItem> AllItems = [Help, Exit, Clear];
-
-        private static readonly HashSet<string> replacementTexts =
-            AllItems.Select(i => i.ReplacementText).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        };
 
         public static bool IsFullyTypedKeyword(string text) => replacementTexts.Contains(text.Trim());
     }

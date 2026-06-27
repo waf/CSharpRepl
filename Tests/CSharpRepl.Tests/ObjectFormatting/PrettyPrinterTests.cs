@@ -255,6 +255,29 @@ public class PrettyPrinterTests : IClassFixture<RoslynServicesFixture>
         }
     }
 
+    [Fact]
+    public void FormatMembers_WithUnicode_PrependsKindGlyphToEachMemberName()
+    {
+        // The object inspector shares the glyph logic with the completion menu (CompletionItemSymbols),
+        // reached here through PrettyPrinter.Members.GetMemberDefaultName → StyledString. This guards
+        // that interaction: with unicode on, member names gain the kind glyph + padding, aligned the
+        // same way the non-unicode TestObjectMembersFormatting expects without it.
+        var unicodePrettyPrinter = new PrettyPrinter(
+            console.AnsiConsole.Profile,
+            new SyntaxHighlighter(
+                new MemoryCache(new MemoryCacheOptions()),
+                new Theme(null, null, null, null, [])),
+            new Configuration(useUnicode: true));
+
+        var outputs = unicodePrettyPrinter
+            .FormatMembers(new TestClassWithMembers(), Level.FirstDetailed, includeNonPublic: true)
+            .Select(o => ToString(o.Renderable))
+            .ToArray();
+
+        Assert.Contains("Ⓕ  FieldInt32: 2", outputs);            // field kind glyph
+        Assert.Contains("Ⓟ  PropertyString: \"abcd\"", outputs);  // property kind glyph
+    }
+
     private class TestClassWithMembers
     {
 #pragma warning disable IDE0051, IDE0052 // Remove unread private members
