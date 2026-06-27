@@ -38,7 +38,7 @@
     -->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
-    <PackageReference Include="Microsoft.SymbolStore" Version="1.0.731401" />
+    <PackageReference Include="Microsoft.SymbolStore" Version="1.0.731901" />
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.7.0" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.7.0" />
     <PackageReference Include="PrettyPrompt" Version="6.0.3" />
