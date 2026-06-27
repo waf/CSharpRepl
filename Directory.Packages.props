@@ -1,0 +1,52 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Ben.Demystifier" Version="0.4.1" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageVersion Include="ICSharpCode.Decompiler" Version="10.1.0.8386" />
+    <PackageVersion Include="Microsoft.Build.Framework" Version="18.7.1" />
+    <PackageVersion Include="Microsoft.Build.Locator" Version="1.11.2" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.3.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.3.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.3.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.3.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.7.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.7.0" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.NET.StringTools" Version="18.7.1" />
+    <PackageVersion Include="Microsoft.SymbolStore" Version="1.0.731901" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.8.0" />
+    <PackageVersion Include="MonoMod.RuntimeDetour" Version="25.3.4" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageVersion Include="NSubstitute" Version="5.3.0" />
+    <PackageVersion Include="NuGet.Commands" Version="7.6.0" />
+    <PackageVersion Include="NuGet.Common" Version="7.6.0" />
+    <PackageVersion Include="NuGet.Configuration" Version="7.6.0" />
+    <PackageVersion Include="NuGet.Credentials" Version="7.6.0" />
+    <PackageVersion Include="NuGet.DependencyResolver.Core" Version="7.6.0" />
+    <PackageVersion Include="NuGet.Frameworks" Version="7.6.0" />
+    <PackageVersion Include="NuGet.LibraryModel" Version="7.6.0" />
+    <PackageVersion Include="NuGet.Packaging" Version="7.6.0" />
+    <PackageVersion Include="NuGet.ProjectModel" Version="7.6.0" />
+    <PackageVersion Include="NuGet.Protocol" Version="7.6.0" />
+    <PackageVersion Include="NuGet.Versioning" Version="7.6.0" />
+    <PackageVersion Include="PrettyPrompt" Version="6.0.3" />
+    <PackageVersion Include="Spectre.Console.Ansi" Version="0.57.1" />
+    <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
+    <PackageVersion Include="Spectre.Console.Testing" Version="0.57.1" />
+    <PackageVersion Include="System.CommandLine" Version="3.0.0-preview.5.26302.115" />
+    <PackageVersion Include="System.Configuration.ConfigurationManager" Version="10.0.9" />
+    <PackageVersion Include="System.IO.Abstractions" Version="22.1.1" />
+    <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
+    <PackageVersion Include="System.Management" Version="10.0.0" />
+    <PackageVersion Include="System.Reflection.MetadataLoadContext" Version="10.0.9" />
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.0-pre.128" />
+  </ItemGroup>
+</Project>

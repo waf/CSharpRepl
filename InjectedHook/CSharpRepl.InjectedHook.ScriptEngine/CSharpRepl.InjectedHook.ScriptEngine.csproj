@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <!--
     The Roslyn scripting engine. Loaded into the isolated EngineALC (never the target's default ALC), so
@@ -15,14 +15,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.3.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" />
     <!--
       Live method replacement (#replace). Detours target methods to REPL-defined delegates. Loaded into the
       isolated EngineALC; its closure (MonoMod.Core/Utils/Backports/ILHelpers) is staged with the engine and
       resolved by EngineLoadContext. Detours redirect native code, so they cross the engine-ALC/target-ALC
       boundary — the detour rewrites native code, not managed references.
     -->
-    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.3.4" />
+    <PackageReference Include="MonoMod.RuntimeDetour" />
   </ItemGroup>
 
   <ItemGroup>

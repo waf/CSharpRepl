@@ -6,6 +6,10 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/Solution Items/.github/">
+    <File Path=".github/codecov.yml" />
+    <File Path=".github/dependabot.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/.github/workflows/">
     <File Path=".github/workflows/main.yml" />
     <File Path=".github/workflows/release.yml" />
   </Folder>
