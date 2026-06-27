@@ -12,6 +12,7 @@ using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.Roslyn.Formatting.Rendering;
 using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
+using Spectre.Console;
 using Spectre.Console.Rendering;
 
 namespace CSharpRepl.Services.Roslyn.Formatting;
@@ -64,9 +65,18 @@ internal sealed partial class PrettyPrinter
     private StyledString GetMemberDefaultName(MemberInfo member)
     {
         var classification = RoslynExtensions.MemberTypeToClassificationTypeName(member.MemberType);
-        var prefix = AutoCompleteService.GetCompletionItemSymbolPrefix(classification, config.UseUnicode);
+        var symbol = CompletionItemSymbols.Get(classification, config.UseUnicode);
         var style = syntaxHighlighter.GetStyle(classification);
-        return new StyledString([prefix, new StyledStringSegment(member.Name, style)]);
+
+        var segments = new List<StyledStringSegment>(3);
+        if (symbol.Prefix.Length > 0)
+        {
+            Style? iconStyle = CompletionItemSymbols.GetIconSpectreColor(symbol.Color) is { } iconColor ? new Style(foreground: iconColor) : (Style?)null;
+            segments.Add(new StyledStringSegment(symbol.Prefix[..symbol.GlyphLength], iconStyle));
+            segments.Add(new StyledStringSegment(symbol.Prefix[symbol.GlyphLength..]));
+        }
+        segments.Add(new StyledStringSegment(member.Name, style));
+        return new StyledString(segments);
     }
 
     private IEnumerable<(object MemberParentValue, MemberInfo MemberInfo)> EnumerateMembers(object obj, bool includeNonPublic)

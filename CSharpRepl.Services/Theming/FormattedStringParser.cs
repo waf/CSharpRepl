@@ -90,7 +90,7 @@ public static class FormattedStringParser
 
     // Inverse of ThemeColor.TryConvertAnsiColorToConsoleColor: ConsoleColor's dark variants are the
     // base palette colors, the bright variants are the "Bright*" palette colors.
-    private static AnsiColor FromConsoleColor(ConsoleColor color) => color switch
+    internal static AnsiColor FromConsoleColor(ConsoleColor color) => color switch
     {
         ConsoleColor.Black => AnsiColor.Black,
         ConsoleColor.DarkRed => AnsiColor.Red,
