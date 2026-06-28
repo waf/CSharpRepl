@@ -36,7 +36,7 @@ internal partial class Disassembler
     /// </returns>
     public (EvaluationResult Result, IReadOnlyList<TextSpan> CommentSpans) Render(CompilationResult compilation)
     {
-        var file = new PEFile(Guid.NewGuid().ToString(), compilation.AssemblyStream, PEStreamOptions.LeaveOpen);
+        using var file = new PEFile(Guid.NewGuid().ToString(), compilation.AssemblyStream, PEStreamOptions.LeaveOpen);
         using var debugInfo = new PortablePdbDebugInfoProvider(compilation.PdbStream!);
         var ilCodeOutput = DisassembleFile(file, debugInfo);
 
