@@ -16,35 +16,35 @@ namespace CSharpRepl.InjectedHook;
 
 /// <summary>
 /// Listens on the per-process transport, performs the handshake, and serves the request loop by forwarding
-/// to the IInspectorEngine.
+/// to the IConnectorEngine.
 ///
 /// - Runs on a background thread so it never blocks the target's own work.
 /// - A failed connection never tears down the host — it loops back to accept the next controller
 ///   (supporting reconnect after the controller detaches).
 /// </summary>
-internal static class InspectorServer
+internal static class ConnectorServer
 {
     // A non-secret, per-process instance id so a reconnecting controller can confirm it reached the same,
     // non-stale process instance. Not an authentication credential — the transport ACL is the real gate.
     private static readonly string InstanceId = Guid.NewGuid().ToString("N");
 
-    public static void StartInBackground(IInspectorEngine engine)
+    public static void StartInBackground(IConnectorEngine engine)
     {
         // Dedicated background thread, not a pool Task: the loop is long-lived, and IsBackground keeps it from holding the target alive.
         var thread = new Thread(() => RunLoop(engine))
         {
             IsBackground = true,
-            Name = "csharprepl-inspector",
+            Name = "csharprepl-connector",
         };
         thread.Start();
     }
 
-    private static void RunLoop(IInspectorEngine engine)
+    private static void RunLoop(IConnectorEngine engine)
     {
         var processId = Environment.ProcessId;
         try
         {
-            using var listener = new InspectorTransportListener(processId);
+            using var listener = new ConnectorTransportListener(processId);
             while (true)
             {
                 Stream stream;
@@ -72,11 +72,11 @@ internal static class InspectorServer
         }
         catch
         {
-            // Never crash the host on inspector failure.
+            // Never crash the host on connector failure.
         }
     }
 
-    private static async Task ServeConnectionAsync(Stream stream, IInspectorEngine engine, int processId)
+    private static async Task ServeConnectionAsync(Stream stream, IConnectorEngine engine, int processId)
     {
         var channel = new MessageChannel(stream);
         await channel.WriteAsync(BuildHandshake(processId), CancellationToken.None).ConfigureAwait(false);
@@ -136,7 +136,7 @@ internal static class InspectorServer
     /// - Returns the next message to process (the one read ahead), or null on EOF.
     /// - Keeps framing in lock-step: exactly one response is written per request.
     /// </summary>
-    private static async Task<WireMessage?> EvaluateWithCancellationAsync(MessageChannel channel, IInspectorEngine engine, EvalRequest request)
+    private static async Task<WireMessage?> EvaluateWithCancellationAsync(MessageChannel channel, IConnectorEngine engine, EvalRequest request)
     {
         using var cts = new CancellationTokenSource();
         // Run the evaluation on the thread pool so the concurrent read below starts immediately: Roslyn can run
@@ -177,7 +177,7 @@ internal static class InspectorServer
             : incoming;
     }
 
-    private static async Task<EvalResponse> EvaluateAsync(IInspectorEngine engine, string code, bool detailed, CancellationToken cancellationToken)
+    private static async Task<EvalResponse> EvaluateAsync(IConnectorEngine engine, string code, bool detailed, CancellationToken cancellationToken)
     {
         try
         {
@@ -205,7 +205,7 @@ internal static class InspectorServer
         }
     }
 
-    private static async Task<IReadOnlyList<string>> GetReferencePathsAsync(IInspectorEngine engine)
+    private static async Task<IReadOnlyList<string>> GetReferencePathsAsync(IConnectorEngine engine)
     {
         try
         {
@@ -218,7 +218,7 @@ internal static class InspectorServer
         }
     }
 
-    private static async Task<ReplaceResponse> ReplaceAsync(IInspectorEngine engine, ReplaceRequest request)
+    private static async Task<ReplaceResponse> ReplaceAsync(IConnectorEngine engine, ReplaceRequest request)
     {
         try
         {
@@ -231,7 +231,7 @@ internal static class InspectorServer
         }
     }
 
-    private static async Task<PatchListResponse> ListPatchesAsync(IInspectorEngine engine)
+    private static async Task<PatchListResponse> ListPatchesAsync(IConnectorEngine engine)
     {
         try
         {
@@ -243,7 +243,7 @@ internal static class InspectorServer
         }
     }
 
-    private static async Task<RevertResponse> RevertAsync(IInspectorEngine engine, RevertRequest request)
+    private static async Task<RevertResponse> RevertAsync(IConnectorEngine engine, RevertRequest request)
     {
         try
         {
@@ -260,9 +260,9 @@ internal static class InspectorServer
         ProcessId = processId,
         ProcessName = SafeProcessName(),
         RuntimeVersion = RuntimeInformation.FrameworkDescription,
-        InspectorVersion = typeof(InspectorServer).Assembly.GetName().Version?.ToString() ?? "0.0.0",
-        ProtocolVersion = InspectorTransport.ProtocolVersion,
-        DiProviderCaptured = InspectorRoots.Services is not null,
+        ConnectorVersion = typeof(ConnectorServer).Assembly.GetName().Version?.ToString() ?? "0.0.0",
+        ProtocolVersion = ConnectorTransport.ProtocolVersion,
+        DiProviderCaptured = ConnectorRoots.Services is not null,
         AssemblyAvailability = DetectAssemblyAvailability(),
         SessionId = $"{processId}-{InstanceId}",
     };

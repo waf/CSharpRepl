@@ -37,7 +37,7 @@ internal sealed class WorkspaceManager
 
     /// <summary>
     /// The script globals type whose members are in scope for every submission (e.g. <c>services</c> /
-    /// <c>Get&lt;T&gt;()</c> from the inspector's globals). Null for the local REPL, which doesn't surface its
+    /// <c>Get&lt;T&gt;()</c> from the connector's globals). Null for the local REPL, which doesn't surface its
     /// globals in completion. When set, it's applied as each submission project's host object type, so editor
     /// services resolve the globals members. The type's assembly must be among the project's references.
     /// </summary>

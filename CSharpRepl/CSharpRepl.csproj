@@ -42,25 +42,25 @@
   <ItemGroup>
     <ProjectReference Include="..\CSharpRepl.Services\CSharpRepl.Services.csproj" />
     <!--
-      The inspector bootstrap:
+      The connector bootstrap:
       - ReferenceOutputAssembly="false": the tool must not link the bootstrap or its Roslyn closure.
-      - Only here to order the build (bootstrap's StageEngine runs first) and feed IncludeInspectorPayload below.
+      - Only here to order the build (bootstrap's StageEngine runs first) and feed IncludeConnectorPayload below.
       - Contracts is still a real reference, via CSharpRepl.Services (controller-side RemoteSession/renderer).
     -->
     <ProjectReference Include="..\InjectedHook\CSharpRepl.InjectedHook\CSharpRepl.InjectedHook.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
   <!--
-    Stage the inspector payload (bootstrap + contracts + engine + Roslyn closure + deps.json):
-    - Goes to an inspector/ subdir so the engine's Roslyn never shadows the tool's own.
-    - `inspect init` points DOTNET_STARTUP_HOOKS at inspector/CSharpRepl.InjectedHook.dll.
+    Stage the connector payload (bootstrap + contracts + engine + Roslyn closure + deps.json):
+    - Goes to a connector/ subdir so the engine's Roslyn never shadows the tool's own.
+    - `connect init` points DOTNET_STARTUP_HOOKS at connector/CSharpRepl.InjectedHook.dll.
     - Declared as Content (like themes/) so it ships on both `dotnet run` and the packed global tool.
     - Sourced in a target, not a static glob: the files only exist after the bootstrap ProjectReference builds.
   -->
-  <Target Name="IncludeInspectorPayload" BeforeTargets="AssignTargetPaths">
+  <Target Name="IncludeConnectorPayload" BeforeTargets="AssignTargetPaths">
     <ItemGroup>
-      <_InspectorPayload Include="$(MSBuildThisFileDirectory)..\InjectedHook\CSharpRepl.InjectedHook\bin\$(Configuration)\$(TargetFramework)\**\*.*" />
-      <Content Include="@(_InspectorPayload)" Link="inspector\%(RecursiveDir)%(Filename)%(Extension)">
+      <_ConnectorPayload Include="$(MSBuildThisFileDirectory)..\InjectedHook\CSharpRepl.InjectedHook\bin\$(Configuration)\$(TargetFramework)\**\*.*" />
+      <Content Include="@(_ConnectorPayload)" Link="connector\%(RecursiveDir)%(Filename)%(Extension)">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         <!--
           Pack="false": these ship in the tool via the publish output (CopyToOutputDirectory), not as NuGet

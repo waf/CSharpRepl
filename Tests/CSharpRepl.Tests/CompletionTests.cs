@@ -46,9 +46,9 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     }
 
     [Fact]
-    public async Task Complete_ReplaceCommand_IsInspectModeOnly()
+    public async Task Complete_ReplaceCommand_IsConnectModeOnly()
     {
-        // #replace is an inspect-mode command. Its completion provider is registered only in the remote
+        // #replace is a connect-mode command. Its completion provider is registered only in the remote
         // workspace, so a #replace line in the local REPL yields no type/member completions.
         const string text = "#replace System.Console.";
         var completions = await this.services.CompleteAsync(text, text.Length, TestContext.Current.CancellationToken);
@@ -56,9 +56,9 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     }
 
     [Fact]
-    public async Task Complete_InspectCommandNames_AreInspectModeOnly()
+    public async Task Complete_ConnectCommandNames_AreConnectModeOnly()
     {
-        // The local REPL isn't inspect mode, so #replace/#wrap/etc. aren't offered as command-name completions.
+        // The local REPL isn't connect mode, so #replace/#wrap/etc. aren't offered as command-name completions.
         var completions = await promptCallbacks.GetCompletionItemsCoreAsync("#re", 3, TestContext.Current.CancellationToken);
         Assert.DoesNotContain(completions, c => c.DisplayText == "#replace");
     }
@@ -67,9 +67,9 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     [InlineData("#re", 3, 0, 3)]
     [InlineData("  #rep", 6, 2, 4)]
     [InlineData("#replace", 8, 0, 8)]
-    public void InspectorCommandSpan_CoversTheHashToken(string text, int caret, int expectedStart, int expectedLength)
+    public void ConnectorCommandSpan_CoversTheHashToken(string text, int caret, int expectedStart, int expectedLength)
     {
-        Assert.True(CSharpReplPromptCallbacks.TryGetInspectorCommandSpan(text, caret, out var span));
+        Assert.True(CSharpReplPromptCallbacks.TryGetConnectorCommandSpan(text, caret, out var span));
         Assert.Equal(expectedStart, span.Start);
         Assert.Equal(expectedLength, span.Length);
     }
@@ -78,9 +78,9 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     [InlineData("#replace Foo.", 13)] // a space → argument position, handled by the completion provider, not the command list
     [InlineData("hello", 5)]          // no leading '#'
     [InlineData("   ", 3)]            // whitespace only
-    public void InspectorCommandSpan_RejectsNonCommandLines(string text, int caret)
+    public void ConnectorCommandSpan_RejectsNonCommandLines(string text, int caret)
     {
-        Assert.False(CSharpReplPromptCallbacks.TryGetInspectorCommandSpan(text, caret, out _));
+        Assert.False(CSharpReplPromptCallbacks.TryGetConnectorCommandSpan(text, caret, out _));
     }
 
     [Fact]

@@ -15,20 +15,20 @@ using Xunit;
 namespace CSharpRepl.Tests;
 
 /// <summary>
-/// End-to-end test for the cooperative in-process Roslyn inspector. Launches the unmodified test target
-/// as a separate process with the inspector injected via DOTNET_STARTUP_HOOKS, connects over the transport,
+/// End-to-end test for the cooperative in-process Roslyn connector. Launches the unmodified test target
+/// as a separate process with the connector injected via DOTNET_STARTUP_HOOKS, connects over the transport,
 /// and exercises the full round-trip: handshake, value evaluation, live static read, REPL parity (a var and
 /// a declared method reused across submissions binding to the live object), exception survival, cross-process
 /// write-back, and a graceful disconnect leaving the target running.
 /// </summary>
-public class InspectorRoundTripTests
+public class ConnectorRoundTripTests
 {
     private const string TargetType = "CSharpRepl.InjectedHook.TestTarget.Program";
 
     [Fact(Timeout = 120_000)]
     public async Task RoundTrip_AgainstHookedProcess_EvaluatesReadsWritesAndDisconnects()
     {
-        using var process = InspectorTestSupport.StartHookedTarget();
+        using var process = ConnectorTestSupport.StartHookedTarget();
 
         // Drain the child's output so a full pipe buffer can't block it; results are only needed for diagnostics.
         var stdoutTask = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
@@ -40,7 +40,7 @@ public class InspectorRoundTripTests
 
             // --- Handshake ---
             Assert.Equal(process.Id, session.Handshake.ProcessId);
-            Assert.Equal(InspectorTransport.ProtocolVersion, session.Handshake.ProtocolVersion);
+            Assert.Equal(ConnectorTransport.ProtocolVersion, session.Handshake.ProtocolVersion);
             Assert.False(string.IsNullOrEmpty(session.Handshake.SessionId));
             // A normal `dotnet App` launch has its assemblies on disk (not a single-file bundle).
             Assert.Equal(TargetAssemblyAvailability.Normal, session.Handshake.AssemblyAvailability);
@@ -126,7 +126,7 @@ public class InspectorRoundTripTests
             // --- DI-root capture: the bootstrap captures the host's root provider from the HostBuilt
             //         DiagnosticListener event, and Get<T>() resolves the target's real live singleton.
             //         The capture races with connecting (the transport is up before Main builds the host),
-            //         so poll: the globals read InspectorRoots live, no reconnect needed. ---
+            //         so poll: the globals read ConnectorRoots live, no reconnect needed. ---
             await WaitForDiCaptureAsync(session);
             var resolved = await EvalAsync(session, "Get<CSharpRepl.InjectedHook.TestTarget.Service>().Value");
             Assert.Equal(ResultKind.Value, resolved.Kind);
@@ -172,7 +172,7 @@ public class InspectorRoundTripTests
         catch (Exception ex) when (process.HasExited)
         {
             throw new InvalidOperationException(
-                $"The target process exited (code {process.ExitCode}) before the inspector connection succeeded.", ex);
+                $"The target process exited (code {process.ExitCode}) before the connector connection succeeded.", ex);
         }
     }
 

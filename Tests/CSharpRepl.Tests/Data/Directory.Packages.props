@@ -8,7 +8,7 @@
 
     This file is copied alongside the fixtures into bin\...\Data\ via the test project's
     Content Include="Data\**", so it also covers the copies built in-place at test time
-    (e.g. InspectorTestSupport.BuildTestTarget against the TestTarget under bin\...\Data\).
+    (e.g. ConnectorTestSupport.BuildTestTarget against the TestTarget under bin\...\Data\).
   -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>

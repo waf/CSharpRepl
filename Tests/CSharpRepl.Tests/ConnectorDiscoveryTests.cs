@@ -15,12 +15,12 @@ using Xunit;
 namespace CSharpRepl.Tests;
 
 /// <summary>
-/// Tests for the `inspect list` discovery layer (<see cref="InspectorTransport.TryParseProcessId"/> and
-/// <see cref="InspectorTransport.EnumerateListeningProcessIds"/>).
+/// Tests for the `connect list` discovery layer (<see cref="ConnectorTransport.TryParseProcessId"/> and
+/// <see cref="ConnectorTransport.EnumerateListeningProcessIds"/>).
 /// A mix of unit tests (parsing) and integration tests (launch a real hooked target and proves the 
 /// target's pid is discovered while a non-hooked process (this test runner) is not.
 /// </summary>
-public class InspectorDiscoveryTests
+public class ConnectorDiscoveryTests
 {
     [Theory]
     [InlineData(1)]
@@ -29,11 +29,11 @@ public class InspectorDiscoveryTests
     public void TryParseProcessId_RoundTripsTheEndpointNamesItBuilds(int processId)
     {
         // Round-trip through the real builders so the parser and PipeName/SocketPath can't drift apart.
-        Assert.True(InspectorTransport.TryParseProcessId(InspectorTransport.PipeName(processId), out var fromPipe));
+        Assert.True(ConnectorTransport.TryParseProcessId(ConnectorTransport.PipeName(processId), out var fromPipe));
         Assert.Equal(processId, fromPipe);
 
-        var socketName = Path.GetFileName(InspectorTransport.SocketPath(processId));
-        Assert.True(InspectorTransport.TryParseProcessId(socketName, out var fromSocket));
+        var socketName = Path.GetFileName(ConnectorTransport.SocketPath(processId));
+        Assert.True(ConnectorTransport.TryParseProcessId(socketName, out var fromSocket));
         Assert.Equal(processId, fromSocket);
     }
 
@@ -46,26 +46,26 @@ public class InspectorDiscoveryTests
     [InlineData("CSharpRepl.InjectedHook.0")]     // pids are positive
     [InlineData("CSharpRepl.InjectedHook.12.3")]  // not an integer
     [InlineData("dotnet-diagnostic-1234")]        // a real .NET diagnostic-port pipe must NOT be claimed as ours
-    [InlineData("inspector-1234.txt")]            // wrong suffix
-    [InlineData("inspector-.sock")]               // socket form but no number
-    [InlineData("inspector-abc.sock")]            // socket form, not numeric
+    [InlineData("connector-1234.txt")]            // wrong suffix
+    [InlineData("connector-.sock")]               // socket form but no number
+    [InlineData("connector-abc.sock")]            // socket form, not numeric
     [InlineData("some-unrelated-pipe")]
     public void TryParseProcessId_RejectsAnythingThatIsNotOurEndpoint(string? endpointName)
     {
-        Assert.False(InspectorTransport.TryParseProcessId(endpointName!, out _));
+        Assert.False(ConnectorTransport.TryParseProcessId(endpointName!, out _));
     }
 
     [Fact]
     public void EnumerateListeningProcessIds_DoesNotListThisNonHookedProcess()
     {
-        // The test runner wasn't launched with the inspector hook, so it must never appear as attachable.
-        Assert.DoesNotContain(Environment.ProcessId, InspectorTransport.EnumerateListeningProcessIds());
+        // The test runner wasn't launched with the connector hook, so it must never appear as attachable.
+        Assert.DoesNotContain(Environment.ProcessId, ConnectorTransport.EnumerateListeningProcessIds());
     }
 
     [Fact(Timeout = 120_000)]
     public async Task EnumerateListeningProcessIds_FindsAHookedTarget()
     {
-        using var process = InspectorTestSupport.StartHookedTarget();
+        using var process = ConnectorTestSupport.StartHookedTarget();
 
         // Drain the child's output so a full pipe buffer can't block it; the content isn't needed.
         var stdoutTask = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
@@ -77,7 +77,7 @@ public class InspectorDiscoveryTests
             // so poll rather than assuming it's immediately present.
             var found = await WaitUntilListedAsync(process.Id, TimeSpan.FromSeconds(30));
             Assert.True(found,
-                $"The hooked target (pid {process.Id}) should be discoverable via its inspector endpoint.");
+                $"The hooked target (pid {process.Id}) should be discoverable via its connector endpoint.");
         }
         finally
         {
@@ -92,7 +92,7 @@ public class InspectorDiscoveryTests
         var stopwatch = Stopwatch.StartNew();
         while (stopwatch.Elapsed < timeout)
         {
-            if (InspectorTransport.EnumerateListeningProcessIds().Contains(processId))
+            if (ConnectorTransport.EnumerateListeningProcessIds().Contains(processId))
                 return true;
             await Task.Delay(200, TestContext.Current.CancellationToken);
         }

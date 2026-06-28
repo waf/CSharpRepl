@@ -92,12 +92,12 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
     }
 
     protected override Task<TextSpan> GetSpanToReplaceByCompletionAsync(string text, int caret, CancellationToken cancellationToken)
-        => roslyn.IsInspectMode && TryGetInspectorCommandSpan(text, caret, out var commandSpan)
+        => roslyn.IsConnectMode && TryGetConnectorCommandSpan(text, caret, out var commandSpan)
             ? Task.FromResult(commandSpan)
             : roslyn.GetSpanToReplaceByCompletionAsync(text, caret, cancellationToken);
 
     protected override Task<bool> ShouldOpenCompletionWindowAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
-        => roslyn.IsInspectMode && TryGetInspectorCommandSpan(text, caret, out _)
+        => roslyn.IsConnectMode && TryGetConnectorCommandSpan(text, caret, out _)
             ? Task.FromResult(true)
             : roslyn.ShouldOpenCompletionWindowAsync(text, caret, keyPress, cancellationToken);
 
@@ -109,12 +109,12 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
     // Made internal for testing
     internal async Task<IReadOnlyList<CompletionItem>> GetCompletionItemsCoreAsync(string text, int caret, CancellationToken cancellationToken = default)
     {
-        // In inspect mode, when the user is typing a #replace/#wrap/#patches/#revert command name, offer those
+        // In connect mode, when the user is typing a #replace/#wrap/#patches/#revert command name, offer those
         // commands (with help text) exclusively: the bad-directive line has no useful Roslyn completions, and #r
         // file-path completion isn't meaningful in a remote session.
-        if (roslyn.IsInspectMode && TryGetInspectorCommandSpan(text, caret, out _))
+        if (roslyn.IsConnectMode && TryGetConnectorCommandSpan(text, caret, out _))
         {
-            return InspectorCommandCompletionItems.AllItems;
+            return ConnectorCommandCompletionItems.AllItems;
         }
 
         var replKeywordCompletions = GetReplKeywordCompletions();
@@ -436,12 +436,12 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
 
     /// <summary>
     /// True when the caret is within a leading <c>#command-name</c> token (no space yet) — i.e. the user is typing
-    /// an inspect command such as <c>#replace</c>. <paramref name="span"/> covers the whole <c>#word</c> token so a
+    /// a connect command such as <c>#replace</c>. <paramref name="span"/> covers the whole <c>#word</c> token so a
     /// committed completion replaces it cleanly, including the leading <c>#</c> (which Roslyn's default word span
     /// excludes). Returns false once a space is typed (that's the argument position, handled by the completion
     /// provider) or for any non-command line.
     /// </summary>
-    internal static bool TryGetInspectorCommandSpan(string text, int caret, out TextSpan span)
+    internal static bool TryGetConnectorCommandSpan(string text, int caret, out TextSpan span)
     {
         span = default;
         if (caret < 0 || caret > text.Length)
@@ -486,12 +486,12 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
         return true;
     }
 
-    private static class InspectorCommandCompletionItems
+    private static class ConnectorCommandCompletionItems
     {
         // Built from the shared command registry; only the color/formatting is added here.
-        public static IReadOnlyList<CompletionItem> AllItems { get; } = [.. InspectorCommands.All.Select(ToCompletionItem)];
+        public static IReadOnlyList<CompletionItem> AllItems { get; } = [.. ConnectorCommands.All.Select(ToCompletionItem)];
 
-        private static CompletionItem ToCompletionItem(InspectorCommandInfo info) => new(
+        private static CompletionItem ToCompletionItem(ConnectorCommandInfo info) => new(
             info.Token,
             displayText: EntireWordFormatString(info.Token, AnsiColor.BrightMagenta),
             getExtendedDescription: _ => Task.FromResult(new FormattedString(info.Description)));

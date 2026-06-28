@@ -31,7 +31,7 @@ The test runner is **Microsoft.Testing.Platform** with the **xUnit v3** runner (
 
 - Heavy Roslyn/integration tests share `[Collection(nameof(RoslynServices))]` and run **serially** on purpose: the loader's `AssemblyLoadContext.Resolving` hooks (attached to the process-global Default ALC by `AssemblyLoadContextHook` and never detached) are process-global, not per-`RoslynServices`. The full suite is ~2 minutes. (`MSBuildLocator.RegisterDefaults()` is also process-global, but a `[ModuleInitializer]` in `TestAssemblyInitializer` runs it once at assembly load, so it's no longer the reason for the collection — and tests that only needed MSBuildLocator, like `NugetPackageInstallerTests`, can now run in isolation.)
 - Some tests spawn `dotnet build` / MSBuild subprocesses (solution/project references) and a few touch the network (NuGet install). These are the slow ones and can occasionally be flaky.
-- The inspect-feature integration tests (`InspectorRoundTripTests`, `InspectorCancellationTests`, `RemoteEditorServicesTests`, `InspectorServerProtocolTests`, `RemoteReadEvalPrintLoopTests`, `RemotePipedInputEvaluatorTests`) **launch a real hooked child process** — the interactive PrettyPrompt loop itself cannot be driven without a TTY, so `RemoteReadEvalPrintLoopTests` stubs `IPrompt` (like `ReadEvalPrintLoopTests`) and everything below it is real. The **non-interactive** inspect path (`inspect <pid> --eval`/`--eval-file`/piped stdin) needs no TTY, so `RemotePipedInputEvaluatorTests` drives the real `RemotePipedInputEvaluator` against a real hooked child directly. Two more inspect suites run in-process without a child: `InspectorEngineTests` hosts the real engine + Roslyn inside the test process, and `InspectorTransportTests` exercises the real OS pipe/socket transport (note: the Windows pipe uses zero-byte buffers, so a write rendezvouses with the peer's read — keep the read pending while writing).
+- The connect-feature integration tests (`ConnectorRoundTripTests`, `ConnectorCancellationTests`, `RemoteEditorServicesTests`, `ConnectorServerProtocolTests`, `RemoteReadEvalPrintLoopTests`, `RemotePipedInputEvaluatorTests`) **launch a real hooked child process** — the interactive PrettyPrompt loop itself cannot be driven without a TTY, so `RemoteReadEvalPrintLoopTests` stubs `IPrompt` (like `ReadEvalPrintLoopTests`) and everything below it is real. The **non-interactive** connect path (`connect <pid> --eval`/`--eval-file`/piped stdin) needs no TTY, so `RemotePipedInputEvaluatorTests` drives the real `RemotePipedInputEvaluator` against a real hooked child directly. Two more connect suites run in-process without a child: `ConnectorEngineTests` hosts the real engine + Roslyn inside the test process, and `ConnectorTransportTests` exercises the real OS pipe/socket transport (note: the Windows pipe uses zero-byte buffers, so a write rendezvouses with the peer's read — keep the read pending while writing).
 
 ### Benchmarks
 
@@ -44,10 +44,10 @@ dotnet run -c Release --project Tests/CSharpRepl.Benchmarks -- --filter *Allocat
 ## Solution layout
 
 - **`CSharpRepl/`** — the executable / global tool. `Program.cs` (CLI args, help, the read-eval-print loop), `CommandLine.cs` (argument parsing), `CSharpReplPromptCallbacks.cs` (wires PrettyPrompt callbacks to Roslyn services), `ReadEvalPrintLoop.cs`.
-- **`CSharpRepl.Services/`** — the bulk of the logic. `Roslyn/` (scripting + workspace, see below), `Completion/`, `SyntaxHighlighting/`, `Theming/`, `Nuget/`, `SymbolExploration/` (Source Link), `CodeTransformation/` (IL disassembly + ILSpy lowering), and `Remote/` (controller side of the inspect feature).
-- **`InjectedHook/`** — the three projects for the "inspect a running process" feature (see below).
+- **`CSharpRepl.Services/`** — the bulk of the logic. `Roslyn/` (scripting + workspace, see below), `Completion/`, `SyntaxHighlighting/`, `Theming/`, `Nuget/`, `SymbolExploration/` (Source Link), `CodeTransformation/` (IL disassembly + ILSpy lowering), and `Remote/` (controller side of the connect feature).
+- **`InjectedHook/`** — the three projects for the "connect a running process" feature (see below).
 - **`Tests/`** — `CSharpRepl.Tests` and `CSharpRepl.Benchmarks`.
-- **`ARCHITECTURE.md`** — the authoritative deep-dive on design, including sequence/class diagrams for the inspect feature. Read it before substantial changes.
+- **`ARCHITECTURE.md`** — the authoritative deep-dive on design, including sequence/class diagrams for the connect feature. Read it before substantial changes.
 - **`CSharpRepl.Services/Roslyn/References/AssemblyReferenceReadme.md`** — the authoritative deep-dive on the `#r`/NuGet/assembly-load-context machinery: compile-time-vs-run-time resolution, reference-vs-implementation assemblies, NuGet restore + version unification, and the dedicated load context. Read it before touching reference/NuGet/loading code.
 
 ## Core architecture
@@ -65,52 +65,52 @@ csharprepl is an intermediary between **Roslyn** and **PrettyPrompt**. The singl
 
 Per-keystroke latency is dominated by syntax highlighting, which historically scaled linearly with submission count. The fix lives in `WorkspaceManager.UpdateCurrentDocumentAsync`: after setting the current document it `await`s `GetCompilationAsync()` and **discards the result**, forcing Roslyn's compilation tracker to its strongly-held final state so per-keystroke forks reuse it. Removing that line reintroduces an O(depth) regression — don't.
 
-## Inspect-a-running-process feature (`InjectedHook/` + `CSharpRepl.Services/Remote/`)
+## Connect-a-running-process feature (`InjectedHook/` + `CSharpRepl.Services/Remote/`)
 
-csharprepl can attach to a *separate*, already-running .NET app and evaluate C# inside it, reading/writing its live state with full local-REPL parity. CLI: `csharprepl inspect init` (prints the env vars to launch the target with) then `csharprepl inspect <pid>`. It is **cooperative** (a real Roslyn engine is injected via a `DOTNET_STARTUP_HOOKS` startup hook — not a debugger) and **opt-in** only.
+csharprepl can attach to a *separate*, already-running .NET app and evaluate C# inside it, reading/writing its live state with full local-REPL parity. CLI: `csharprepl connect init` (prints the env vars to launch the target with) then `csharprepl connect <pid>`. It is **cooperative** (a real Roslyn engine is injected via a `DOTNET_STARTUP_HOOKS` startup hook — not a debugger) and **opt-in** only.
 
 ### Naming — read this before searching
 
 The feature was renamed during development; **names are inconsistent across layers**, so search by the right token:
 
 - **Folder / projects:** `InjectedHook/` containing `CSharpRepl.InjectedHook`, `CSharpRepl.InjectedHook.Contracts`, and `CSharpRepl.InjectedHook.ScriptEngine`.
-  - Note: earlier planning docs use `CSharpRepl.Inspector.*` or `CSharpRepl.InjectedHook.Engine`; those names no longer exist.
-- **Classes:** still prefixed **`Inspector*`** (`InspectorServer`, `InspectorEngine`, `IInspectorEngine`, `InspectorClient`, `InspectorTransport`, `InspectorRoots`, `InspectorGlobals`).
-- **User-facing verb:** **`inspect`**.
+  - Note: earlier planning docs use `CSharpRepl.Connector.*` or `CSharpRepl.InjectedHook.Engine`; those names no longer exist.
+- **Classes:** still prefixed **`Connector*`** (`ConnectorServer`, `ConnectorEngine`, `IConnectorEngine`, `ConnectorClient`, `ConnectorTransport`, `ConnectorRoots`, `ConnectorGlobals`).
+- **User-facing verb:** **`connect`**.
 
 ### The three injected projects and their assembly-load-context (ALC) roles
 
 This is the crux of the design — the target may already load its own Roslyn, so the injected Roslyn must be isolated:
 
-- **`CSharpRepl.InjectedHook`** (bootstrap) — injected into the target's **default ALC**. References **no Roslyn**. `StartupHook.Initialize()` (no namespace, `public static void`, must never throw and runs before the target's `Main`) installs an `AssemblyLoadContext.Default.Resolving` handler, creates the isolated engine ALC (`EngineHost.cs`), and starts the transport server (`InspectorServer.cs`).
-- **`CSharpRepl.InjectedHook.ScriptEngine`** — loaded into a dedicated **isolated ALC** with its own Roslyn closure (`Microsoft.CodeAnalysis.CSharp.Scripting`). `InspectorEngine.cs` hosts `CSharpScript`, builds compilation references **lazily on first eval** from the *target's* loaded assemblies (so submissions bind to the target's real live objects), and projects results into a serializable `RemoteValue` tree.
-- **`CSharpRepl.InjectedHook.Contracts`** — the shared boundary, loaded **once** in the default ALC and resolved to that same instance from the isolated ALC, so these types are **type-identical across the boundary**: `IInspectorEngine`, `InspectorGlobals`/`InspectorRoots`, `RemoteValue`, the `WireMessages` hierarchy, and `InspectorTransport`/`MessageChannel`. Also references no Roslyn.
+- **`CSharpRepl.InjectedHook`** (bootstrap) — injected into the target's **default ALC**. References **no Roslyn**. `StartupHook.Initialize()` (no namespace, `public static void`, must never throw and runs before the target's `Main`) installs an `AssemblyLoadContext.Default.Resolving` handler, creates the isolated engine ALC (`EngineHost.cs`), and starts the transport server (`ConnectorServer.cs`).
+- **`CSharpRepl.InjectedHook.ScriptEngine`** — loaded into a dedicated **isolated ALC** with its own Roslyn closure (`Microsoft.CodeAnalysis.CSharp.Scripting`). `ConnectorEngine.cs` hosts `CSharpScript`, builds compilation references **lazily on first eval** from the *target's* loaded assemblies (so submissions bind to the target's real live objects), and projects results into a serializable `RemoteValue` tree.
+- **`CSharpRepl.InjectedHook.Contracts`** — the shared boundary, loaded **once** in the default ALC and resolved to that same instance from the isolated ALC, so these types are **type-identical across the boundary**: `IConnectorEngine`, `ConnectorGlobals`/`ConnectorRoots`, `RemoteValue`, the `WireMessages` hierarchy, and `ConnectorTransport`/`MessageChannel`. Also references no Roslyn.
 
 ### Controller side (`CSharpRepl.Services/Remote/` + `CSharpRepl/RemoteReadEvalPrintLoop.cs`)
 
-When attached, csharprepl is a thin **controller**: it compiles nothing for evaluation, sends code strings, and renders the returned `RemoteValue` through the *same* theme/formatting pipeline as local output (`RemoteValueRenderer`). The **scripting world lives in the target** (the engine), but the **workspace world (completion/highlighting) stays in the controller** against a second, remote-configured `RoslynServices` seeded with the target's assembly paths + `InspectorGlobals` — so editor features need no per-keystroke round-trip. The controller advances that remote workspace only when an `EvalResponse` reports `Committed == true`.
+When attached, csharprepl is a thin **controller**: it compiles nothing for evaluation, sends code strings, and renders the returned `RemoteValue` through the *same* theme/formatting pipeline as local output (`RemoteValueRenderer`). The **scripting world lives in the target** (the engine), but the **workspace world (completion/highlighting) stays in the controller** against a second, remote-configured `RoslynServices` seeded with the target's assembly paths + `ConnectorGlobals` — so editor features need no per-keystroke round-trip. The controller advances that remote workspace only when an `EvalResponse` reports `Committed == true`.
 
-Inspect mode also runs **non-interactively** (so agents/scripts can use it without a TTY), mirroring the local REPL's `PipedInputEvaluator`: `inspect <pid> --eval`/`--eval-file` or piped stdin route to `RemotePipedInputEvaluator` instead of the interactive `RemoteReadEvalPrintLoop`. It evaluates against the same `RemoteSession`, auto-prints the final value as plain, uncolored, unwrapped text on stdout (errors to stderr, nonzero exit), and honors the same `#replace`/`#wrap`/`#patches`/`#revert` commands (the command-result wording is shared via `InspectorCommandResultPrinter`). It skips the editor-workspace seeding (completion/highlighting are interactive-only) and the connection chatter. Because the engine's state chain lives in the target, separate one-shot `--eval` invocations **accumulate state** across reconnects.
+Connect mode also runs **non-interactively** (so agents/scripts can use it without a TTY), mirroring the local REPL's `PipedInputEvaluator`: `connect <pid> --eval`/`--eval-file` or piped stdin route to `RemotePipedInputEvaluator` instead of the interactive `RemoteReadEvalPrintLoop`. It evaluates against the same `RemoteSession`, auto-prints the final value as plain, uncolored, unwrapped text on stdout (errors to stderr, nonzero exit), and honors the same `#replace`/`#wrap`/`#patches`/`#revert` commands (the command-result wording is shared via `ConnectorCommandResultPrinter`). It skips the editor-workspace seeding (completion/highlighting are interactive-only) and the connection chatter. Because the engine's state chain lives in the target, separate one-shot `--eval` invocations **accumulate state** across reconnects.
 
 ### Wire protocol
 
-A single duplex connection (named pipe on Windows, Unix domain socket elsewhere, **current-user only**). Every frame is a 4-byte little-endian length prefix + UTF-8 JSON body; messages are a `System.Text.Json` **polymorphic** `WireMessage` hierarchy keyed on a `$kind` discriminator (`MessageChannel`). Security model mirrors the .NET diagnostic port — OS access control, no secret. An inspector-enabled process is RCE-equivalent for same-user code and must never run in production.
+A single duplex connection (named pipe on Windows, Unix domain socket elsewhere, **current-user only**). Every frame is a 4-byte little-endian length prefix + UTF-8 JSON body; messages are a `System.Text.Json` **polymorphic** `WireMessage` hierarchy keyed on a `$kind` discriminator (`MessageChannel`). Security model mirrors the .NET diagnostic port — OS access control, no secret. A connector-enabled process is RCE-equivalent for same-user code and must never run in production.
 
 ### Live method replacement
 
 `#replace`/`#wrap`/`#patches`/`#revert` (controller commands in `RemoteReadEvalPrintLoop`) detour a live method in the target to a REPL-defined delegate.
 
-- Engine side: `InspectorPatcher` (in `CSharpRepl.InjectedHook.ScriptEngine`) over `MonoMod.RuntimeDetour`. Resolves the target by name, matches the overload from the delegate's signature, coerces a bare method group via a generated cast, applies a `Hook`, tracks it by id for revert.
-- Wire (protocol v2): `ReplaceRequest`/`ReplaceResponse`, `PatchListRequest`/`PatchListResponse`, `RevertRequest`/`RevertResponse`, plus three `IInspectorEngine` methods served in `InspectorServer`.
+- Engine side: `ConnectorPatcher` (in `CSharpRepl.InjectedHook.ScriptEngine`) over `MonoMod.RuntimeDetour`. Resolves the target by name, matches the overload from the delegate's signature, coerces a bare method group via a generated cast, applies a `Hook`, tracks it by id for revert.
+- Wire (protocol v2): `ReplaceRequest`/`ReplaceResponse`, `PatchListRequest`/`PatchListResponse`, `RevertRequest`/`RevertResponse`, plus three `IConnectorEngine` methods served in `ConnectorServer`.
 - Replacement shape: instance methods take the instance as the first parameter; `#wrap` prepends an `orig` delegate the body can call.
 - Detours repoint native code, so they cross the engine-ALC/target-ALC boundary: the replacement compiles in the engine ALC, the target method lives in the default ALC.
 - `ref`/`out`/`in` work in Replace mode: `BuildCastDelegate` emits a delegate type carrying the modifiers (Func can't), which the engine prepends to the probe submission before the method-group cast. Not supported: generic methods, pointer parameters, Wrap + by-ref (the `orig` delegate can't be a shared type).
 - Limits: JIT-inlined call sites keep old behavior. Patches persist after detach until reverted.
-- Tests: `InspectorEngineTests.ReplaceMethod_*` (in-process engine) and `RemoteReadEvalPrintLoopTests` (cross-process, real hooked child).
+- Tests: `ConnectorEngineTests.ReplaceMethod_*` (in-process engine) and `RemoteReadEvalPrintLoopTests` (cross-process, real hooked child).
 
 ### Packaging
 
-`CSharpRepl.csproj`'s `IncludeInspectorPayload` target stages the full inspector payload (bootstrap + contracts + engine + Roslyn closure + `MonoMod.RuntimeDetour` closure + `.deps.json`) into an **`inspector/` subdirectory** next to the tool (both on `dotnet run` and in the packed global tool), isolated so the engine's Roslyn never shadows the tool's. `inspect init` points `DOTNET_STARTUP_HOOKS` at `inspector/CSharpRepl.InjectedHook.dll`. The bootstrap is a `ProjectReference` with `ReferenceOutputAssembly="false"` (the tool must not link it).
+`CSharpRepl.csproj`'s `IncludeConnectorPayload` target stages the full connector payload (bootstrap + contracts + engine + Roslyn closure + `MonoMod.RuntimeDetour` closure + `.deps.json`) into an **`connector/` subdirectory** next to the tool (both on `dotnet run` and in the packed global tool), isolated so the engine's Roslyn never shadows the tool's. `connect init` points `DOTNET_STARTUP_HOOKS` at `connector/CSharpRepl.InjectedHook.dll`. The bootstrap is a `ProjectReference` with `ReferenceOutputAssembly="false"` (the tool must not link it).
 
 ## Gotchas
 

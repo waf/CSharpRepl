@@ -18,7 +18,7 @@ namespace CSharpRepl.Tests;
 
 /// <summary>
 /// Unit tests for the controller-side <see cref="RemoteValueRenderer"/> — it turns a theme-agnostic
-/// <see cref="RemoteValue"/> (produced by the inspector in the target process) into themed console output,
+/// <see cref="RemoteValue"/> (produced by the connector in the target process) into themed console output,
 /// mirroring the local REPL's simple-vs-detailed behavior. These need no running target: they feed
 /// hand-built projections straight through the renderer.
 /// </summary>

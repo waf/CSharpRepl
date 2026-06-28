@@ -64,17 +64,17 @@ public sealed class MessageChannel
         int length = BinaryPrimitives.ReadInt32LittleEndian(header);
         if (length < 0 || length > MaxFrameBytes)
         {
-            throw new InvalidDataException($"Inspector frame length {length} is out of range (0..{MaxFrameBytes}).");
+            throw new InvalidDataException($"Connector frame length {length} is out of range (0..{MaxFrameBytes}).");
         }
 
         var payload = new byte[length];
         if (!await TryReadExactlyAsync(payload, cancellationToken).ConfigureAwait(false))
         {
-            throw new EndOfStreamException("Inspector connection ended mid-frame.");
+            throw new EndOfStreamException("Connector connection ended mid-frame.");
         }
 
         return JsonSerializer.Deserialize(payload, WireJsonContext.Default.WireMessage)
-            ?? throw new InvalidDataException("Inspector frame deserialized to a null message.");
+            ?? throw new InvalidDataException("Connector frame deserialized to a null message.");
     }
 
     /// <summary>Fills the buffer completely. False on EOF before the first byte (clean close); throws on EOF mid-frame.</summary>
@@ -91,7 +91,7 @@ public sealed class MessageChannel
                     return false; // clean EOF at a frame boundary
                 }
 
-                throw new EndOfStreamException("Inspector connection ended mid-frame.");
+                throw new EndOfStreamException("Connector connection ended mid-frame.");
             }
             read += n;
         }

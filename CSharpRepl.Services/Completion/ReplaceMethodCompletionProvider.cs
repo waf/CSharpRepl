@@ -17,7 +17,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace CSharpRepl.Services.Completion;
 
 /// <summary>
-/// Completion for the inspect-mode REPL commands <c>#replace</c> / <c>#wrap</c>. Roslyn doesn't understand them
+/// Completion for the connect-mode REPL commands <c>#replace</c> / <c>#wrap</c>. Roslyn doesn't understand them
 /// (they're bad preprocessor directives in Script mode), so the built-in providers produce nothing useful on
 /// such a line. This provider detects the command, rewrites the argument under the caret into a snippet Roslyn
 /// CAN complete, delegates to the normal <see cref="CompletionService"/> on a throwaway document, and re-emits
@@ -28,15 +28,15 @@ namespace CSharpRepl.Services.Completion;
 /// - Replacement position (<c>#replace X.M with expr</c>): the expression is completed as ordinary script code,
 ///   against the submission chain (so the user's just-defined delegate/method is offered).
 ///
-/// Registered only in the inspect-mode workspace (see <c>WorkspaceManager</c>), so the local REPL is unaffected.
+/// Registered only in the connect-mode workspace (see <c>WorkspaceManager</c>), so the local REPL is unaffected.
 /// </summary>
 [ExportCompletionProvider(nameof(ReplaceMethodCompletionProvider), LanguageNames.CSharp), Shared]
 internal sealed class ReplaceMethodCompletionProvider : CompletionProvider
 {
     // The argument-taking commands, each with the trailing space that precedes its argument.
     private static readonly string[] Commands =
-        [InspectorCommands.Replace.Token + " ", InspectorCommands.Wrap.Token + " "];
-    private const string WithSeparator = InspectorCommands.WithSeparator;
+        [ConnectorCommands.Replace.Token + " ", ConnectorCommands.Wrap.Token + " "];
+    private const string WithSeparator = ConnectorCommands.WithSeparator;
 
     // Carried on each re-emitted item so GetDescriptionAsync can rebuild the synthetic document on demand.
     private const string SyntheticTextProperty = "CSharpRepl.SyntheticText";

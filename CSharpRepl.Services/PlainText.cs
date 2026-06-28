@@ -9,7 +9,7 @@ namespace CSharpRepl.Services;
 
 /// <summary>
 /// An <see cref="IRenderable"/> that emits its text verbatim — ignoring the console width, so no word-wrapping,
-/// cropping, or markup parsing. Use for machine-consumable output (e.g. the <c>inspect init</c> shell exports)
+/// cropping, or markup parsing. Use for machine-consumable output (e.g. the <c>connect init</c> shell exports)
 /// where wrapping a long path would corrupt a copy-paste or a pipe. Contrast with <see cref="Spectre.Console.Text"/>,
 /// whose only overflow modes (Fold/Crop/Ellipsis) are all width-driven.
 /// </summary>

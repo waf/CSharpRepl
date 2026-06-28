@@ -238,8 +238,8 @@ identity no matter which path loads it.
 > that isolated island. (The shared framework is the deliberate exception — `System.*` / `Microsoft.NETCore.App`
 > resolve from Default, which is why they're never put in the registry.)
 
-> **The opposite choice, on purpose — the inspect engine.** csharprepl's inspect-a-running-process feature
-> (`InjectedHook/.../InspectorEngine.cs`) faces the same isolate-vs-share decision and resolves it the other
+> **The opposite choice, on purpose — the connect engine.** csharprepl's connect-a-running-process feature
+> (`InjectedHook/.../ConnectorEngine.cs`) faces the same isolate-vs-share decision and resolves it the other
 > way. Injected into a target process, it builds its compilation references from the *target's* live,
 > already-loaded assemblies (the target's Default ALC) and pins them with `RegisterDependency`, so the
 > submissions bind to the target's **real live objects** — there the whole point is *not* to isolate. (Its
@@ -289,8 +289,8 @@ This is necessary in addition to the `Resolving` fallback, not redundant with it
 its own copy of a submission's **direct** reference, and `Resolving` only fires on a load *miss* — which
 never happens for a direct reference — so pinning is the only lever that makes IAL agree on our instance.
 Only the nuget closure is pinned; project/solution references are bound correctly by the existing
-machinery and are served, if needed, by the by-name resolve fallback, never pinned. (The inspector engine,
-`InjectedHook/.../InspectorEngine.cs`, uses the same `RegisterDependency` primitive to pin the target
+machinery and are served, if needed, by the by-name resolve fallback, never pinned. (The connector engine,
+`InjectedHook/.../ConnectorEngine.cs`, uses the same `RegisterDependency` primitive to pin the target
 process's live assemblies.)
 
 ### Shadow copying — load-bearing beyond file-unlock

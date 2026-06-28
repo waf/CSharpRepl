@@ -11,7 +11,7 @@ using CSharpRepl.InjectedHook.Contracts;
 namespace CSharpRepl.InjectedHook;
 
 /// <summary>
-/// Captures the target's root IServiceProvider into InspectorRoots.Services by observing the
+/// Captures the target's root IServiceProvider into ConnectorRoots.Services by observing the
 /// "Microsoft.Extensions.Hosting" DiagnosticListener.
 ///
 /// - HostBuilder.Build() and HostApplicationBuilder.Build() both write a "HostBuilt" event whose payload is
@@ -40,7 +40,7 @@ internal static class HostCapture
         }
     }
 
-    /// <summary>Called on capture: stop observing entirely — the inspector only needs the first root provider.</summary>
+    /// <summary>Called on capture: stop observing entirely — the connector only needs the first root provider.</summary>
     private static void Captured()
     {
         try { allListenersSubscription?.Dispose(); } catch { /* best effort */ }
@@ -53,7 +53,7 @@ internal static class HostCapture
         {
             try
             {
-                if (listener.Name == HostingListenerName && InspectorRoots.Services is null)
+                if (listener.Name == HostingListenerName && ConnectorRoots.Services is null)
                 {
                     // Subscribing (with no predicate) makes the listener's IsEnabled("HostBuilt") true, which
                     // is what gates the host's write of the event we're waiting for.
@@ -82,7 +82,7 @@ internal static class HostCapture
                 // drag a version-specific dependency into the target's default ALC.
                 var services = hostingEvent.Value?.GetType().GetProperty("Services")?.GetValue(hostingEvent.Value) as IServiceProvider;
                 if (services is not null &&
-                    Interlocked.CompareExchange(ref InspectorRoots.Services, services, null) is null)
+                    Interlocked.CompareExchange(ref ConnectorRoots.Services, services, null) is null)
                 {
                     Captured();
                 }

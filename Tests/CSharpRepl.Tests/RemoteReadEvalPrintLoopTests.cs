@@ -17,7 +17,7 @@ using Xunit;
 namespace CSharpRepl.Tests;
 
 /// <summary>
-/// End-to-end test for the inspect-mode REPL loop. Launches the unmodified test target with the inspector
+/// End-to-end test for the connect-mode REPL loop. Launches the unmodified test target with the connector
 /// injected, builds the same controller stack Program.cs wires up (a real <see cref="RemoteSession"/> plus a
 /// remote-configured <see cref="RoslynServices"/>), and drives <see cref="RemoteReadEvalPrintLoop.RunAsync"/>
 /// with a scripted prompt: banner, commands, value/exception rendering through the themed renderer, the
@@ -30,10 +30,10 @@ public class RemoteReadEvalPrintLoopTests
     private const string ServiceType = "CSharpRepl.InjectedHook.TestTarget.Service";
 
     [Fact(Timeout = 180_000)]
-    public async Task RunAsync_DrivesAFullInspectSession_AgainstAHookedProcess()
+    public async Task RunAsync_DrivesAFullConnectSession_AgainstAHookedProcess()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var process = InspectorTestSupport.StartHookedTarget();
+        using var process = ConnectorTestSupport.StartHookedTarget();
         var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
 
@@ -41,12 +41,12 @@ public class RemoteReadEvalPrintLoopTests
         {
             await using var session = await RemoteSession.ConnectAsync(process.Id, TimeSpan.FromSeconds(30), cancellationToken);
 
-            // The same controller stack Program.cs builds for inspect mode: editor services seeded with the
-            // target's references and the inspector globals, rendering through the user's theme.
+            // The same controller stack Program.cs builds for connect mode: editor services seeded with the
+            // target's references and the connector globals, rendering through the user's theme.
             var referencePaths = await session.GetReferencePathsAsync(cancellationToken);
             var (console, capturedStdout, _) = FakeConsole.CreateStubbedOutputAndError();
             var roslyn = new RoslynServices(console, new Configuration(), new TestTraceLogger(),
-                new RemoteEditorContext(referencePaths, typeof(InspectorGlobals)));
+                new RemoteEditorContext(referencePaths, typeof(ConnectorGlobals)));
             await roslyn.WarmUpAsync([]);
 
             var prompt = Substitute.For<IPrompt>();
@@ -86,9 +86,9 @@ public class RemoteReadEvalPrintLoopTests
 
             var output = console.AnsiConsole.Output;
 
-            // Banner built from the live handshake, plus the help command's inspect-mode text.
+            // Banner built from the live handshake, plus the help command's connect-mode text.
             Assert.Contains($"(pid {process.Id})", output);
-            Assert.Contains("Inspect mode", output);
+            Assert.Contains("Connect mode", output);
             console.Received().Clear();
 
             // The live target object rendered at both levels: its value, and its members in the detailed tree.

@@ -11,21 +11,21 @@ using CSharpRepl.InjectedHook.Contracts;
 namespace CSharpRepl.InjectedHook;
 
 /// <summary>
-/// Loads the engine into an isolated EngineLoadContext and returns it as an IInspectorEngine.
+/// Loads the engine into an isolated EngineLoadContext and returns it as an IConnectorEngine.
 /// Touches no Roslyn type: the engine assembly and its Roslyn closure load entirely inside the isolated ALC.
 /// </summary>
 internal static class EngineHost
 {
     private const string EngineAssemblyName = "CSharpRepl.InjectedHook.ScriptEngine";
-    private const string EngineTypeName = "CSharpRepl.InjectedHook.ScriptEngine.InspectorEngine";
+    private const string EngineTypeName = "CSharpRepl.InjectedHook.ScriptEngine.ConnectorEngine";
 
-    public static IInspectorEngine Load(string bootstrapDirectory)
+    public static IConnectorEngine Load(string bootstrapDirectory)
     {
         // We MUST NOT statically reference Roslyn — that would load Roslyn into the default ALC and risk clashing with any Roslyn the target itself uses.
         var engineDll = Path.Combine(bootstrapDirectory, EngineAssemblyName + ".dll");
         if (!File.Exists(engineDll))
         {
-            throw new FileNotFoundException($"Inspector engine assembly not found next to the bootstrap.", engineDll);
+            throw new FileNotFoundException($"Connector engine assembly not found next to the bootstrap.", engineDll);
         }
 
         var context = new EngineLoadContext(engineDll);
@@ -33,7 +33,7 @@ internal static class EngineHost
         var engineType = engineAssembly.GetType(EngineTypeName)
             ?? throw new InvalidOperationException($"{EngineTypeName} not found in {engineDll}.");
 
-        return (IInspectorEngine)Activator.CreateInstance(engineType)!;
+        return (IConnectorEngine)Activator.CreateInstance(engineType)!;
     }
 }
 
@@ -58,7 +58,7 @@ internal sealed class EngineLoadContext : AssemblyLoadContext
     protected override Assembly? Load(AssemblyName assemblyName)
     {
         // Share contracts with the default ALC (resolved there via the bootstrap's Resolving handler), so
-        // IInspectorEngine / InspectorGlobals / RemoteValue / wire DTOs are type-identical across the boundary.
+        // IConnectorEngine / ConnectorGlobals / RemoteValue / wire DTOs are type-identical across the boundary.
         if (assemblyName.Name == ContractsAssemblyName)
         {
             return null;

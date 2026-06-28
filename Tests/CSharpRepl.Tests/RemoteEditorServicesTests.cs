@@ -22,9 +22,9 @@ namespace CSharpRepl.Tests;
 
 /// <summary>
 /// End-to-end test for the controller-side remote editor services. Launches the unmodified test target with
-/// the inspector injected, fetches the target's loaded-assembly paths over the wire, and builds a
+/// the connector injected, fetches the target's loaded-assembly paths over the wire, and builds a
 /// remote-configured <see cref="RoslynServices"/> from them. Then asserts the editor services are target-aware:
-/// the inspector globals (<c>services</c>/<c>Get</c>) complete, the target's own types complete and highlight
+/// the connector globals (<c>services</c>/<c>Get</c>) complete, the target's own types complete and highlight
 /// as types, and a declared <c>var</c> from a committed submission is usable on the next line — the
 /// cross-process analogue of the local REPL's submission-chain parity.
 /// </summary>
@@ -39,7 +39,7 @@ public class RemoteEditorServicesTests
     [Fact(Timeout = 120_000)]
     public async Task RemoteEditor_AgainstHookedProcess_IsTargetAware()
     {
-        using var process = InspectorTestSupport.StartHookedTarget();
+        using var process = ConnectorTestSupport.StartHookedTarget();
         var stdoutTask = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
         var stderrTask = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
 
@@ -52,11 +52,11 @@ public class RemoteEditorServicesTests
             Assert.Contains(referencePaths, p => p.EndsWith($"{TargetNamespace}.dll", StringComparison.OrdinalIgnoreCase));
 
             var (console, _) = FakeConsole.CreateStubbedOutput();
-            var remoteEditor = new RemoteEditorContext(referencePaths, typeof(InspectorGlobals));
+            var remoteEditor = new RemoteEditorContext(referencePaths, typeof(ConnectorGlobals));
             var services = new RoslynServices(console, new Configuration(theme: "Data/theme.json"), new TestTraceLogger(), remoteEditor);
             await services.WarmUpAsync([]); // awaits background initialization and warms the editor path
 
-            // --- Inspector globals are in scope via the workspace's host object type ---
+            // --- Connector globals are in scope via the workspace's host object type ---
             Assert.Contains("services", await CompletionDisplayTextsAsync(services, "ser"));
             Assert.Contains("Get", await CompletionDisplayTextsAsync(services, "Ge"));
 
@@ -101,7 +101,7 @@ public class RemoteEditorServicesTests
             var afterLetter = $"#replace {TargetNamespace}.Servi";
             Assert.True(await services.ShouldOpenCompletionWindowAsync(afterLetter, afterLetter.Length, letterKey, TestContext.Current.CancellationToken));
 
-            // A non-command line: the inspect provider declines (TryRewrite false), leaving the decision to others.
+            // A non-command line: the connect provider declines (TryRewrite false), leaving the decision to others.
             var ordinaryLine = $"{TargetNamespace}.Servi";
             await services.ShouldOpenCompletionWindowAsync(ordinaryLine, ordinaryLine.Length, letterKey, TestContext.Current.CancellationToken);
 
@@ -113,7 +113,7 @@ public class RemoteEditorServicesTests
             var description = await computeItem.GetDescriptionAsync(TestContext.Current.CancellationToken);
             Assert.Contains("Compute", description.Text);
 
-            // --- The inspect commands themselves complete (with help text), via the prompt callbacks ---
+            // --- The connect commands themselves complete (with help text), via the prompt callbacks ---
             var promptCallbacks = new CSharpReplPromptCallbacks(console, services, new Configuration(theme: "Data/theme.json"));
             var commandItems = await promptCallbacks.GetCompletionItemsCoreAsync("#re", 3, TestContext.Current.CancellationToken);
             var commandTexts = commandItems.Select(c => c.ReplacementText).ToList();
@@ -155,7 +155,7 @@ public class RemoteEditorServicesTests
         catch (Exception ex) when (process.HasExited)
         {
             throw new InvalidOperationException(
-                $"The target process exited (code {process.ExitCode}) before the inspector connection succeeded.", ex);
+                $"The target process exited (code {process.ExitCode}) before the connector connection succeeded.", ex);
         }
     }
 }

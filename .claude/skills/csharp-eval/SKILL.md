@@ -1,6 +1,6 @@
 ---
 name: csharp-eval
-description: Run / execute C# snippets non-interactively with the csharprepl CLI to observe real runtime behavior — return values, exceptions, serialized output — and to probe how a NuGet package actually behaves when called. The complement to dotnet-inspect; that tool inspects static API surface without executing; this one runs code. Use whenever you need to know what C# *does*, not just what an API *looks like*. (To evaluate C# *inside* a running process and read its live state, see the csharprepl-inspect skill.)
+description: Run / execute C# snippets non-interactively with the csharprepl CLI to observe real runtime behavior — return values, exceptions, serialized output — and to probe how a NuGet package actually behaves when called. The complement to dotnet-inspect; that tool inspects static API surface without executing; this one runs code. Use whenever you need to know what C# *does*, not just what an API *looks like*. (To evaluate C# *inside* a running process and read its live state, see the csharprepl-connect skill.)
 ---
 
 # csharp-eval
@@ -75,15 +75,15 @@ csharprepl -e 'JsonConvert.SerializeObject(new[] { 1, 2, 3 })' -r 'nuget: Newton
 ## Evaluating inside a running process
 
 The same CLI can attach to a *separate, already-running* .NET process and evaluate C# **inside it**, against
-its live state (`csharprepl inspect <pid>`). That's a distinct workflow (the target must be launched with the
-inspector enabled, state persists across calls, and you can detour live methods) with its own safety caveats
-— see the **csharprepl-inspect** skill.
+its live state (`csharprepl connect <pid>`). That's a distinct workflow (the target must be launched with the
+connector enabled, state persists across calls, and you can detour live methods) with its own safety caveats
+— see the **csharprepl-connect** skill.
 
 ## Gotchas
 
 - **No state across calls.** Each invocation is a fresh process — variables, `using`s, and references do not
-  carry over between runs. Make every snippet self-contained (include its own `#r` / `using`). (Inspect mode
-  is the exception — see the csharprepl-inspect skill.)
+  carry over between runs. Make every snippet self-contained (include its own `#r` / `using`). (Connect mode
+  is the exception — see the csharprepl-connect skill.)
 - **First restore is slow.** The first time a package is referenced it's downloaded; later runs are
   fast (cached under `~/.csharprepl/packages`).
 - **Errors go to stderr with a nonzero exit code.** Compilation and runtime errors are written to

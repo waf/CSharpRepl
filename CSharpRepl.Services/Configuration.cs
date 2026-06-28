@@ -80,14 +80,14 @@ public sealed class Configuration
     public string? EvaluateInput { get; }
 
     /// <summary>
-    /// When set (via <c>csharprepl inspect &lt;pid&gt;</c>), the REPL connects to the inspector hosted in that
+    /// When set (via <c>csharprepl connect &lt;pid&gt;</c>), the REPL connects to the connector hosted in that
     /// target process and evaluates submissions there instead of constructing a local script engine.
     /// </summary>
-    public int? InspectProcessId { get; }
+    public int? ConnectProcessId { get; }
     public string? LoadScript { get; }
     public string[] LoadScriptArgs { get; }
     /// <summary>
-    /// Output to render before exiting (help, version, usage, <c>inspect init</c> exports, ...). Spectre
+    /// Output to render before exiting (help, version, usage, <c>connect init</c> exports, ...). Spectre
     /// word-wraps to the console width; for machine-consumable output that must not wrap, supply a
     /// <see cref="PlainText"/>.
     /// </summary>
@@ -110,7 +110,7 @@ public sealed class Configuration
         bool usePrereleaseNugets = false,
         bool streamPipedInput = false,
         string? evaluateInput = null,
-        int? inspectProcessId = null,
+        int? connectProcessId = null,
         int tabSize = 4,
         string? loadScript = null,
         string[]? loadScriptArgs = null,
@@ -159,11 +159,11 @@ public sealed class Configuration
             }
         }
 
-        InspectProcessId = inspectProcessId;
+        ConnectProcessId = connectProcessId;
 
-        // In inspect mode, default the prompt to the target's pid (e.g. "1234> ") so it's obvious submissions
+        // In connect mode, default the prompt to the target's pid (e.g. "1234> ") so it's obvious submissions
         // run remotely. A user-supplied --prompt still wins.
-        if (inspectProcessId is { } pid && promptMarkup == PromptDefault)
+        if (connectProcessId is { } pid && promptMarkup == PromptDefault)
         {
             promptMarkup = $"{pid}> ";
         }

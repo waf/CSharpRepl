@@ -64,11 +64,11 @@ internal static class Program
         // initialize roslyn
         var logger = InitializeLogging(config.Trace);
 
-        // inspect mode: connect to the inspector in the target process and run there instead of the local evaluation paths.
-        if (config.InspectProcessId is { } inspectProcessId)
+        // connect mode: connect to the connector in the target process and run there instead of the local evaluation paths.
+        if (config.ConnectProcessId is { } connectProcessId)
         {
             var nonInteractive = config.EvaluateInput is not null || (inputRedirectedOverride ?? Console.IsInputRedirected);
-            return await RunInspectModeAsync(systemConsole, console, appStorage, logger, config, inspectProcessId, nonInteractive)
+            return await RunConnectModeAsync(systemConsole, console, appStorage, logger, config, connectProcessId, nonInteractive)
                 .ConfigureAwait(false);
         }
 
@@ -118,10 +118,10 @@ internal static class Program
     }
 
     /// <summary>
-    /// Connects to the inspector hosted in the target process and runs the remote REPL loop. The same
+    /// Connects to the connector hosted in the target process and runs the remote REPL loop. The same
     /// interactive prompt as the local REPL is used; only evaluation and rendering are routed remotely.
     /// </summary>
-    private static async Task<int> RunInspectModeAsync(
+    private static async Task<int> RunConnectModeAsync(
         ConsoleService? systemConsole, IConsoleService console, string appStorage, ITraceLogger logger, Configuration config, int processId, bool nonInteractive)
     {
         RemoteSession session;
@@ -130,7 +130,7 @@ internal static class Program
             // Suppress connection chatter in non-interactive mode so stdout carries only the evaluated value(s).
             if (!nonInteractive)
             {
-                console.WriteLine($"Connecting to the inspector in process {processId}...");
+                console.WriteLine($"Connecting to the connector in process {processId}...");
             }
             session = await RemoteSession
                 .ConnectAsync(processId, TimeSpan.FromSeconds(10), CancellationToken.None)
@@ -138,9 +138,9 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            console.WriteErrorLine($"Could not connect to the inspector in process {processId}: {ex.Message}");
+            console.WriteErrorLine($"Could not connect to the connector in process {processId}: {ex.Message}");
             console.WriteErrorLine(
-                "Launch the target with the inspector enabled first (run 'csharprepl inspect init' for the env vars), " +
+                "Launch the target with the connector enabled first (run 'csharprepl connect init' for the env vars), " +
                 "and pass the managed runtime process id.");
             return ExitCodes.ErrorParseArguments;
         }
@@ -154,8 +154,8 @@ internal static class Program
             {
                 console.WriteErrorLine(
                     "The target is a self-contained single-file app: its assemblies are bundled in memory with no " +
-                    "on-disk path, so the inspector cannot compile against them and evaluation would always fail. " +
-                    "Inspect a framework-dependent build (or a normal `dotnet App.dll` launch) instead.");
+                    "on-disk path, so the connector cannot compile against them and evaluation would always fail. " +
+                    "Connect a framework-dependent build (or a normal `dotnet App.dll` launch) instead.");
                 return ExitCodes.ErrorParseArguments;
             }
 
@@ -173,7 +173,7 @@ internal static class Program
                     : await evaluator.EvaluateCollectedPipeInputAsync().ConfigureAwait(false);
             }
 
-            // Seed the controller-side editor services with the target's references + the inspector globals, so
+            // Seed the controller-side editor services with the target's references + the connector globals, so
             // completion and semantic highlighting see the target's own types and `services`/`Get<T>()`. Editor
             // services run here (not in the target), so there's no per-keystroke communication.
             var remoteEditor = await BuildRemoteEditorContextAsync(session, console).ConfigureAwait(false);
@@ -204,9 +204,9 @@ internal static class Program
     }
 
     /// <summary>
-    /// Builds the remote editor seed by asking the inspector for the target's loaded-assembly paths. Editor
+    /// Builds the remote editor seed by asking the connector for the target's loaded-assembly paths. Editor
     /// services are advisory, so a failure (or a single-file target with no on-disk assemblies) degrades to a
-    /// reference-less workspace — completion/highlighting then cover framework code and the inspector globals
+    /// reference-less workspace — completion/highlighting then cover framework code and the connector globals
     /// but not the target's own types — rather than failing the whole session.
     /// </summary>
     private static async Task<RemoteEditorContext> BuildRemoteEditorContextAsync(RemoteSession session, IConsoleService console)
@@ -214,12 +214,12 @@ internal static class Program
         try
         {
             var referencePaths = await session.GetReferencePathsAsync(CancellationToken.None).ConfigureAwait(false);
-            return new RemoteEditorContext(referencePaths, typeof(InspectorGlobals));
+            return new RemoteEditorContext(referencePaths, typeof(ConnectorGlobals));
         }
         catch (Exception ex)
         {
             console.WriteErrorLine($"Could not load the target's references for editor services; completion will be limited: {ex.Message}");
-            return new RemoteEditorContext([], typeof(InspectorGlobals));
+            return new RemoteEditorContext([], typeof(ConnectorGlobals));
         }
     }
 

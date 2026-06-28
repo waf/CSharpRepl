@@ -49,7 +49,7 @@ internal sealed class ScriptRunner
         this.parseOptions = parseOptions;
         this.referenceAssemblyService = referenceAssemblyService;
         // The globals type backs CompileTransient's semantic model (used for symbol exploration). It defaults
-        // to the local ScriptGlobals; the inspector's remote editor passes InspectorGlobals so symbol lookups
+        // to the local ScriptGlobals; the connector's remote editor passes ConnectorGlobals so symbol lookups
         // over `services` resolve. The live-evaluation path below always uses ScriptGlobals (it's local-only).
         this.globalsType = globalsType ?? typeof(ScriptGlobals);
         this.assemblyLoader = new InteractiveAssemblyLoader(new MetadataShadowCopyProvider());

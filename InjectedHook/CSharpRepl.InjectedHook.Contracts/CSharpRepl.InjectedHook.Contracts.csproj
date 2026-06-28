@@ -3,7 +3,7 @@
   <!--
     Shared protocol/contract assembly. Loaded once in the target's DEFAULT ALC and resolved to that
     same instance from the isolated EngineALC (the EngineLoadContext returns null for this assembly so
-    it falls back to Default). That makes IInspectorEngine, InspectorGlobals, InspectorRoots, RemoteValue
+    it falls back to Default). That makes IConnectorEngine, ConnectorGlobals, ConnectorRoots, RemoteValue
     and the wire messages type-identical across the ALC boundary.
 
     MUST NOT reference Roslyn (or anything heavy): it lives in the default ALC alongside the unmodified

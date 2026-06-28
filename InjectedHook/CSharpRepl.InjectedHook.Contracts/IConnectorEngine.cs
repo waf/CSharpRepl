@@ -17,7 +17,7 @@ namespace CSharpRepl.InjectedHook.Contracts;
 /// - The engine holds the persisted ScriptState chain, so the caller must serialize calls (one in-flight
 ///   evaluation at a time).
 /// </summary>
-public interface IInspectorEngine
+public interface IConnectorEngine
 {
     /// <summary>
     /// Evaluates one C# submission, chaining onto the prior submission's state (locals, methods, and types

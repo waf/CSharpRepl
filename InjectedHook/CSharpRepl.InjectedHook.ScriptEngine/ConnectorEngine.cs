@@ -30,7 +30,7 @@ namespace CSharpRepl.InjectedHook.ScriptEngine;
 ///   instances with Roslyn's loader, so submissions compile against the target's types and bind at runtime
 ///   to the already-loaded default-ALC instances.
 /// </summary>
-public sealed class InspectorEngine : IInspectorEngine
+public sealed class ConnectorEngine : IConnectorEngine
 {
     private static readonly string[] DefaultImports =
     [
@@ -54,7 +54,7 @@ public sealed class InspectorEngine : IInspectorEngine
     private const int MaxScalarTextLength = 10_000;
 
     private readonly SemaphoreSlim gate = new(1, 1);
-    private readonly InspectorPatcher patcher = new();
+    private readonly ConnectorPatcher patcher = new();
     private InteractiveAssemblyLoader assemblyLoader = null!;
     private ScriptOptions scriptOptions = null!;
     private string[] referencePaths = [];
@@ -75,8 +75,8 @@ public sealed class InspectorEngine : IInspectorEngine
                 if (state is null)
                 {
                     state = await CSharpScript
-                        .Create(code, scriptOptions, globalsType: typeof(InspectorGlobals), assemblyLoader: assemblyLoader)
-                        .RunAsync(globals: new InspectorGlobals(), cancellationToken)
+                        .Create(code, scriptOptions, globalsType: typeof(ConnectorGlobals), assemblyLoader: assemblyLoader)
+                        .RunAsync(globals: new ConnectorGlobals(), cancellationToken)
                         .ConfigureAwait(false);
                 }
                 else
@@ -261,8 +261,8 @@ public sealed class InspectorEngine : IInspectorEngine
         {
             var probe = state is null
                 ? await CSharpScript
-                    .Create(expression, scriptOptions, globalsType: typeof(InspectorGlobals), assemblyLoader: assemblyLoader)
-                    .RunAsync(globals: new InspectorGlobals(), cancellationToken).ConfigureAwait(false)
+                    .Create(expression, scriptOptions, globalsType: typeof(ConnectorGlobals), assemblyLoader: assemblyLoader)
+                    .RunAsync(globals: new ConnectorGlobals(), cancellationToken).ConfigureAwait(false)
                 : await state.ContinueWithAsync(expression, scriptOptions, cancellationToken).ConfigureAwait(false);
             return (probe.ReturnValue as Delegate, null);
         }

@@ -19,8 +19,8 @@ using Spectre.Console;
 namespace CSharpRepl.Repls;
 
 /// <summary>
-/// The inspect-mode REPL: collects input with the same <see cref="PrettyPrompt"/> prompt as the local loop,
-/// but routes each submission to the inspector hosted in the target process (<see cref="RemoteSession"/>)
+/// The connect-mode REPL: collects input with the same <see cref="PrettyPrompt"/> prompt as the local loop,
+/// but routes each submission to the connector hosted in the target process (<see cref="RemoteSession"/>)
 /// instead of the local <see cref="RoslynServices"/>, and renders the returned <see cref="RemoteValue"/> /
 /// <see cref="RemoteException"/> through the controller's themed <see cref="RemoteValueRenderer"/>.
 /// </summary>
@@ -30,7 +30,7 @@ internal sealed class RemoteReadEvalPrintLoop
     private readonly RemoteSession session;
     private readonly RoslynServices roslyn;
     private readonly IPrompt prompt;
-    private readonly InspectorCommandProcessor commands;
+    private readonly ConnectorCommandProcessor commands;
 
     public RemoteReadEvalPrintLoop(IConsoleService console, RemoteSession session, RoslynServices roslyn, IPrompt prompt)
     {
@@ -38,7 +38,7 @@ internal sealed class RemoteReadEvalPrintLoop
         this.session = session;
         this.roslyn = roslyn;
         this.prompt = prompt;
-        this.commands = new InspectorCommandProcessor(session);
+        this.commands = new ConnectorCommandProcessor(session);
     }
 
     public async Task RunAsync(Configuration config)
@@ -69,7 +69,7 @@ internal sealed class RemoteReadEvalPrintLoop
             // Live method replacement commands (#replace / #wrap / #patches / #revert), handled before eval. The
             // processor parses and runs them against the session; this loop renders the raw result. A lost
             // connection here is reported but, unlike eval, does not end the session.
-            InspectorCommandResult? commandResult;
+            ConnectorCommandResult? commandResult;
             try
             {
                 commandResult = await commands.TryExecuteAsync(commandText, response.CancellationToken).ConfigureAwait(false);
@@ -134,8 +134,8 @@ internal sealed class RemoteReadEvalPrintLoop
     }
 
     /// <summary>Renders a command result through the controller's themed, width-wrapped console.</summary>
-    private void PrintCommandResult(InspectorCommandResult result) =>
-        InspectorCommandResultPrinter.Print(result, console.WriteLine, console.WriteErrorLine);
+    private void PrintCommandResult(ConnectorCommandResult result) =>
+        ConnectorCommandResultPrinter.Print(result, console.WriteLine, console.WriteErrorLine);
 
     private void Print(EvalResponse result, Level level)
     {
@@ -163,7 +163,7 @@ internal sealed class RemoteReadEvalPrintLoop
     {
         console.WriteLine($"Connected to {handshake.ProcessName} (pid {handshake.ProcessId})");
         console.WriteLine($"  Runtime:   {handshake.RuntimeVersion}");
-        console.WriteLine($"  Inspector: v{handshake.InspectorVersion} (protocol v{handshake.ProtocolVersion})");
+        console.WriteLine($"  Connector: v{handshake.ConnectorVersion} (protocol v{handshake.ProtocolVersion})");
         console.Write(new Markup(handshake.DiProviderCaptured
             ? "  DI provider captured: yes, [green]services[/] and [green]Get<T>()[/] are available."
             : "  DI provider captured: [red]no[/], only statics and framework code are reachable."
@@ -180,16 +180,16 @@ internal sealed class RemoteReadEvalPrintLoop
             console.WriteLine();
         }
 
-        if (handshake.ProtocolVersion != InspectorTransport.ProtocolVersion)
+        if (handshake.ProtocolVersion != ConnectorTransport.ProtocolVersion)
         {
             console.Write(new Markup(
-                $"[yellow]Warning: the target's inspector protocol (v{handshake.ProtocolVersion}) differs from this tool's (v{InspectorTransport.ProtocolVersion}); behavior may be inconsistent.[/]"));
+                $"[yellow]Warning: the target's connector protocol (v{handshake.ProtocolVersion}) differs from this tool's (v{ConnectorTransport.ProtocolVersion}); behavior may be inconsistent.[/]"));
             console.WriteLine();
         }
 
         console.WriteLine(string.Empty);
         console.Write(new Markup(
-            "[yellow]Development/diagnostics tool: code you evaluate runs inside the target process with its full privileges. Never inspect a production process.[/]"));
+            "[yellow]Development/diagnostics tool: code you evaluate runs inside the target process with its full privileges. Never connect a production process.[/]"));
         console.WriteLine();
         console.WriteLine("Type C# to evaluate it in the target. Type exit (or press Ctrl+D) to detach; the target keeps running and you can reconnect later.");
         console.WriteLine(string.Empty);
@@ -199,7 +199,7 @@ internal sealed class RemoteReadEvalPrintLoop
     {
         console.Write(new Markup(
             """
-            [underline]Inspect mode[/]
+            [underline]Connect mode[/]
             Submissions are evaluated inside the target process and share a persistent state chain, so a
             [green]var[/] or a declared method on one line is reusable on the next, exactly like the local REPL.
 

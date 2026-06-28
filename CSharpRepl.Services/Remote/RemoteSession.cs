@@ -11,22 +11,22 @@ using CSharpRepl.InjectedHook.Contracts;
 namespace CSharpRepl.Services.Remote;
 
 /// <summary>
-/// A controller-side remote inspector session: send a code line, receive its <see cref="EvalResponse"/>,
+/// A controller-side remote connector session: send a code line, receive its <see cref="EvalResponse"/>,
 /// and end the session cleanly when the controller exits (leaving the target running). The REPL drives this
-/// in place of the local <c>RoslynServices</c> when running in inspect mode.
+/// in place of the local <c>RoslynServices</c> when running in connect mode.
 /// </summary>
 public sealed class RemoteSession : IAsyncDisposable
 {
-    private readonly InspectorClient client;
+    private readonly ConnectorClient client;
     private bool disconnected;
 
-    private RemoteSession(InspectorClient client) => this.client = client;
+    private RemoteSession(ConnectorClient client) => this.client = client;
 
-    /// <summary>Identity/version details the inspector sent on connect (pid, runtime, DI-captured, ...).</summary>
+    /// <summary>Identity/version details the connector sent on connect (pid, runtime, DI-captured, ...).</summary>
     public HandshakeMessage Handshake => client.Handshake;
 
     public static async Task<RemoteSession> ConnectAsync(int processId, TimeSpan timeout, CancellationToken cancellationToken)
-        => new RemoteSession(await InspectorClient.ConnectAsync(processId, timeout, cancellationToken).ConfigureAwait(false));
+        => new RemoteSession(await ConnectorClient.ConnectAsync(processId, timeout, cancellationToken).ConfigureAwait(false));
 
     /// <summary>
     /// Evaluates a single submission in the target and returns its result. <paramref name="detailed"/> selects
@@ -58,7 +58,7 @@ public sealed class RemoteSession : IAsyncDisposable
     public Task<RevertResponse> RevertAsync(int patchId, bool all, CancellationToken cancellationToken)
         => client.RevertAsync(patchId, all, cancellationToken);
 
-    /// <summary>Asks the inspector to end the session. The target process keeps running.</summary>
+    /// <summary>Asks the connector to end the session. The target process keeps running.</summary>
     public async Task DisconnectAsync(CancellationToken cancellationToken)
     {
         if (disconnected) return;
