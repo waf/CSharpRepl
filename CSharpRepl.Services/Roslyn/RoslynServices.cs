@@ -36,6 +36,7 @@ using PrettyPrompt.Consoles;
 using PrettyPrompt.Highlighting;
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using CompletionEdit = PrettyPrompt.Completion.CompletionEdit;
 using PrettyPromptTextSpan = PrettyPrompt.Documents.TextSpan;
 
 namespace CSharpRepl.Services.Roslyn;
@@ -367,6 +368,14 @@ public sealed partial class RoslynServices
 
         var span = completionService.GetDefaultCompletionListSpan(sourceText, caret);
         return new PrettyPromptTextSpan(span.Start, span.Length);
+    }
+
+    public async Task<CompletionEdit> GetCompletionChangeAsync(string text, int caret, CompletionItem item, CancellationToken cancellationToken)
+    {
+        await Initialization.ConfigureAwait(false);
+
+        var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
+        return await autocompleteService.GetChangeAsync(document, caret, item, cancellationToken).ConfigureAwait(false);
     }
 
     public Task<bool> ShouldOpenCompletionWindowAsync(string text, int caret, KeyPress keyPress, CancellationToken cancellationToken)
