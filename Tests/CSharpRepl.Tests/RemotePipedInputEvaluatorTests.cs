@@ -95,6 +95,20 @@ public class RemotePipedInputEvaluatorTests
                 Assert.Equal(ExitCodes.Success, exitCode);
                 Assert.Equal("42", stdout.ToString().Trim());
             }
+
+            // --- Streaming piped input: a command is handled before the completeness gate, then each complete
+            //     statement is evaluated in turn (covers the remote handleBeforeGate path of PipedInputReader) ---
+            {
+                var (console, stdout, _) = FakeConsole.CreateStubbedOutputAndError();
+                console.ReadLine().Returns("#patches", "var z = 100;", "z + 1", (string)null);
+                var evaluator = NewEvaluator(console, session);
+
+                var exitCode = await evaluator.EvaluateStreamingPipeInputAsync();
+
+                Assert.Equal(ExitCodes.Success, exitCode);
+                Assert.Contains("No active patches.", stdout.ToString()); // the #patches command
+                Assert.Contains("101", stdout.ToString());                // z + 1
+            }
         }
         finally
         {

@@ -336,8 +336,9 @@ public sealed partial class RoslynServices
 
     public async Task<bool> IsTextCompleteStatementAsync(string text)
     {
-        if (!Initialization.IsCompleted)
-            return true;
+        // Unlike the per-keystroke editor fast-paths (CompleteAsync/SyntaxHighlightAsync return [] before init),
+        // this is reached only when submitting (Enter), so we can await initialization without a fast-path.
+        await Initialization.ConfigureAwait(false);
 
         var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
         var root = await document.GetSyntaxRootAsync().ConfigureAwait(false);

@@ -6,7 +6,7 @@ using System;
 using CSharpRepl.InjectedHook.Contracts;
 using CSharpRepl.Services.Remote.Commands;
 
-namespace CSharpRepl.Repls;
+namespace CSharpRepl.Repls.Common;
 
 /// <summary>
 /// Renders the wording for an <see cref="InspectorCommandResult"/> (#replace / #wrap / #patches / #revert),

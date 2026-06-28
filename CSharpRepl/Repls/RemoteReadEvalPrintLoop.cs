@@ -7,6 +7,7 @@ using System.IO;
 using System.Threading.Tasks;
 using CSharpRepl.InjectedHook.Contracts;
 using CSharpRepl.PrettyPromptConfig;
+using CSharpRepl.Repls.Common;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Remote;
 using CSharpRepl.Services.Remote.Commands;

@@ -4,10 +4,10 @@
 
 using System;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.InjectedHook.Contracts;
+using CSharpRepl.Repls.Common;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Remote;
 using CSharpRepl.Services.Remote.Commands;
@@ -43,52 +43,20 @@ internal sealed class RemotePipedInputEvaluator
     public Task<int> EvaluateStringAsync(string input) => EvaluateSubmissionAsync(input, CancellationToken.None);
 
     /// <summary>Reads all of stdin and evaluates it as a single submission. Could block forever if input never ends.</summary>
-    public async Task<int> EvaluateCollectedPipeInputAsync()
-    {
-        var input = new StringBuilder();
-        string? line;
-        while ((line = console.ReadLine()) is not null)
-        {
-            input.AppendLine(line);
-        }
-
-        return await EvaluateSubmissionAsync(input.ToString(), CancellationToken.None).ConfigureAwait(false);
-    }
+    public Task<int> EvaluateCollectedPipeInputAsync() =>
+        EvaluateSubmissionAsync(PipedInputReader.ReadAll(console), CancellationToken.None);
 
     /// <summary>
     /// Evaluates piped stdin as it streams in, batching lines into complete statements (via the local Roslyn's
-    /// syntactic check, which needs no target references) and sending each batch to the target.
+    /// syntactic check, which needs no target references) and sending each batch to the target. Commands are
+    /// handled before the completeness gate, which would never accept e.g. "#patches" as complete.
     /// </summary>
-    public async Task<int> EvaluateStreamingPipeInputAsync()
-    {
-        var statement = new StringBuilder();
-        string? inputLine;
-        while ((inputLine = console.ReadLine()) is not null)
-        {
-            statement.AppendLine(inputLine);
-            var text = statement.ToString();
-
-            // Run commands before the completeness gate, which would never accept e.g. "#patches" as complete.
-            var commandResult = await TryRunCommandAsync(text.Trim(), CancellationToken.None).ConfigureAwait(false);
-            if (commandResult.Handled)
-            {
-                statement.Clear();
-                if (commandResult.ExitCode != ExitCodes.Success) return commandResult.ExitCode;
-                continue;
-            }
-
-            if (!await roslyn.IsTextCompleteStatementAsync(text).ConfigureAwait(false))
-            {
-                continue;
-            }
-            statement.Clear();
-
-            var exitCode = await EvaluateAsync(text, CancellationToken.None).ConfigureAwait(false);
-            if (exitCode != ExitCodes.Success) return exitCode;
-        }
-
-        return ExitCodes.Success;
-    }
+    public Task<int> EvaluateStreamingPipeInputAsync() =>
+        PipedInputReader.StreamAsync(
+            console,
+            isComplete: roslyn.IsTextCompleteStatementAsync,
+            evaluate: text => EvaluateAsync(text, CancellationToken.None),
+            intercept: text => TryRunCommandAsync(text, CancellationToken.None));
 
     /// <summary>Runs a submission as a command if it is one, otherwise evaluates it.</summary>
     private async Task<int> EvaluateSubmissionAsync(string input, CancellationToken cancellationToken)
