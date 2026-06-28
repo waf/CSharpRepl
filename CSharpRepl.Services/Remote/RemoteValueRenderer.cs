@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
+using System.IO;
 using CSharpRepl.InjectedHook.Contracts;
 using CSharpRepl.Services.Roslyn.Formatting;
 using CSharpRepl.Services.SyntaxHighlighting;
@@ -38,6 +39,29 @@ internal sealed class RemoteValueRenderer
         RemoteValueKind.Object => RenderObject(value, level),
         _ => Styled(value.DisplayText, value.Style),
     };
+
+    /// <summary>
+    /// Renders a <see cref="RemoteValue"/> to plain, uncolored, unwrapped text for non-interactive output
+    /// (<c>inspect &lt;pid&gt; --eval</c> / piped input): the same layout as <see cref="Render"/>, with styling
+    /// and width-wrapping stripped so the value is safe to capture or pipe.
+    /// </summary>
+    public string RenderToPlainText(RemoteValue value, Level level) => ToPlainText(Render(value, level));
+
+    /// <summary>Renders a Spectre <see cref="IRenderable"/> with colors off and wrapping effectively off (very
+    /// wide profile), so the output carries no ANSI sequences or word-wrap.</summary>
+    private static string ToPlainText(IRenderable renderable)
+    {
+        var writer = new StringWriter();
+        var plainConsole = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(writer),
+        });
+        plainConsole.Profile.Width = 100_000;
+        plainConsole.Write(renderable);
+        return writer.ToString().TrimEnd('\r', '\n');
+    }
 
     /// <summary>Renders a remote exception as a red-bordered panel, mirroring the local REPL's error rendering.</summary>
     public (IRenderable Renderable, string PlainText) RenderException(RemoteException exception, Level level)

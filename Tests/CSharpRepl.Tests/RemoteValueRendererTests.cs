@@ -82,6 +82,23 @@ public class RemoteValueRendererTests
     }
 
     [Fact]
+    public void RenderToPlainText_Scalar_IsTheDisplayTextWithNoAnsi()
+    {
+        var value = new RemoteValue { Kind = RemoteValueKind.Scalar, TypeName = "int", DisplayText = "42", Style = RemoteValueStyle.Number };
+        var output = renderer.RenderToPlainText(value, Level.FirstSimple);
+        Assert.Equal("42", output);
+        Assert.DoesNotContain('\x1b', output); // no ANSI escape sequences — safe to capture/pipe
+    }
+
+    [Fact]
+    public void RenderToPlainText_Collection_RendersInlineSummary()
+    {
+        var value = Collection("int[]", 3, "10", "20", "30");
+        var output = renderer.RenderToPlainText(value, Level.FirstSimple);
+        Assert.Equal("int[](3) { 10, 20, 30 }", output);
+    }
+
+    [Fact]
     public void Exception_PlainTextIsTheMessage()
     {
         var exception = new RemoteException { TypeName = "System.InvalidOperationException", Message = "boom", Detail = "System.InvalidOperationException: boom\n   at ..." };

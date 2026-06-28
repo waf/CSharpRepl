@@ -7,6 +7,7 @@ using System.IO;
 using System.Threading.Tasks;
 using CSharpRepl.InjectedHook.Contracts;
 using CSharpRepl.PrettyPromptConfig;
+using CSharpRepl.Repls.Common;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Remote;
 using CSharpRepl.Services.Remote.Commands;
@@ -132,48 +133,9 @@ internal sealed class RemoteReadEvalPrintLoop
         } // loop!
     }
 
-    /// <summary>Renders a command result. All wording lives here; the processor only returns the raw responses.</summary>
-    private void PrintCommandResult(InspectorCommandResult result)
-    {
-        switch (result)
-        {
-            case InspectorCommandResult.UsageError usage:
-                console.WriteErrorLine($"Usage: {usage.Command.Usage}");
-                break;
-
-            case InspectorCommandResult.Replaced { Response: var response } replaced when response.Ok:
-                var arrow = replaced.Mode == PatchMode.Wrap ? "wrapped" : "patched";
-                console.WriteLine($"{arrow} {response.ResolvedMethod ?? replaced.Target}  ←  {replaced.Replacement}  (patch #{response.PatchId})");
-                break;
-
-            case InspectorCommandResult.Replaced replaced:
-                console.WriteErrorLine($"{(replaced.Mode == PatchMode.Wrap ? InspectorCommands.Wrap.Token : InspectorCommands.Replace.Token)} failed: {replaced.Response.Error}");
-                break;
-
-            case InspectorCommandResult.Listed { Response.Patches: { Count: 0 } }:
-                console.WriteLine("No active patches.");
-                break;
-
-            case InspectorCommandResult.Listed listed:
-                foreach (var patch in listed.Response.Patches)
-                {
-                    console.WriteLine($"  #{patch.Id}  [{patch.Mode}]  {patch.Method}  ←  {patch.Replacement}");
-                }
-                break;
-
-            case InspectorCommandResult.Reverted { All: true } reverted:
-                console.WriteLine($"reverted {reverted.Response.RevertedCount} patch(es).");
-                break;
-
-            case InspectorCommandResult.Reverted { Response.Ok: true } reverted:
-                console.WriteLine($"reverted patch #{reverted.RequestedId}.");
-                break;
-
-            case InspectorCommandResult.Reverted reverted:
-                console.WriteErrorLine(reverted.Response.Error ?? "revert failed.");
-                break;
-        }
-    }
+    /// <summary>Renders a command result through the controller's themed, width-wrapped console.</summary>
+    private void PrintCommandResult(InspectorCommandResult result) =>
+        InspectorCommandResultPrinter.Print(result, console.WriteLine, console.WriteErrorLine);
 
     private void Print(EvalResponse result, Level level)
     {

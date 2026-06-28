@@ -4,8 +4,8 @@
 
 using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using CSharpRepl.Repls.Common;
 using CSharpRepl.Services;
 using CSharpRepl.Services.Roslyn;
 using CSharpRepl.Services.Roslyn.Formatting;
@@ -46,39 +46,19 @@ internal sealed class PipedInputEvaluator
     }
 
     /// <summary>
-    /// When we're receiving pipe input, evaluate the input as it streams in.
+    /// When we're receiving pipe input, evaluate the input as it streams in (line by line, batched into
+    /// complete statements) — input could be piped forever, so we don't read it all before evaluating.
     /// </summary>
     /// <returns>exit / error code</returns>
     public async Task<int> EvaluateStreamingPipeInputAsync()
     {
         if (await PreloadAsync().ConfigureAwait(false) is int preloadError) return preloadError;
 
-        // input could be piped forever, so don't read all the input and then evaluate it in one go.
-        // instead, read the input line by line until we have a completed statement, then evaluate that.
-
-        var statement = new StringBuilder();
-        string? inputLine;
-        while ((inputLine = console.ReadLine()) is not null)
-        {
-            // batch input into a complete statement
-            statement.AppendLine(inputLine);
-            string input = statement.ToString();
-            if (!await roslyn.IsTextCompleteStatementAsync(input))
-            {
-                continue;
-            }
-            statement.Clear();
-
-            // evaluate complete statement.
-            var result = await roslyn.EvaluateAsync(input);
-            var exitCode = await ProcessResultAsync(result).ConfigureAwait(false);
-            if (exitCode != ExitCodes.Success)
-            {
-                return exitCode;
-            }
-        }
-
-        return ExitCodes.Success;
+        return await PipedInputReader.StreamAsync(
+            console,
+            isComplete: roslyn.IsTextCompleteStatementAsync,
+            evaluate: async input => await ProcessResultAsync(await roslyn.EvaluateAsync(input)).ConfigureAwait(false))
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -90,14 +70,7 @@ internal sealed class PipedInputEvaluator
     {
         if (await PreloadAsync().ConfigureAwait(false) is int preloadError) return preloadError;
 
-        var input = new StringBuilder();
-        string? line;
-        while ((line = console.ReadLine()) is not null)
-        {
-            input.AppendLine(line);
-        }
-
-        var result = await roslyn.EvaluateAsync(input.ToString());
+        var result = await roslyn.EvaluateAsync(PipedInputReader.ReadAll(console));
         return await ProcessResultAsync(result).ConfigureAwait(false);
     }
 

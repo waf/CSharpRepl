@@ -197,6 +197,10 @@ public sealed partial class RoslynServices
     public IRenderable RenderRemoteValue(RemoteValue value, Level level) =>
         (remoteValueRenderer ??= new RemoteValueRenderer(highlighter)).Render(value, level);
 
+    /// <summary>Plain-text analogue of <see cref="RenderRemoteValue"/> for non-interactive inspect output.</summary>
+    public string RenderRemoteValueToPlainText(RemoteValue value, Level level) =>
+        (remoteValueRenderer ??= new RemoteValueRenderer(highlighter)).RenderToPlainText(value, level);
+
     /// <summary>Renders a remote exception as a red-bordered panel plus the plain text to use if error output is redirected.</summary>
     public (IRenderable Renderable, string PlainText) RenderRemoteException(RemoteException exception, Level level) =>
         (remoteValueRenderer ??= new RemoteValueRenderer(highlighter)).RenderException(exception, level);
@@ -332,8 +336,9 @@ public sealed partial class RoslynServices
 
     public async Task<bool> IsTextCompleteStatementAsync(string text)
     {
-        if (!Initialization.IsCompleted)
-            return true;
+        // Unlike the per-keystroke editor fast-paths (CompleteAsync/SyntaxHighlightAsync return [] before init),
+        // this is reached only when submitting (Enter), so we can await initialization without a fast-path.
+        await Initialization.ConfigureAwait(false);
 
         var document = workspaceManager.CurrentDocument.WithText(SourceText.From(text));
         var root = await document.GetSyntaxRootAsync().ConfigureAwait(false);

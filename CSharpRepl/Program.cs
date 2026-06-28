@@ -31,21 +31,14 @@ internal static class Program
     internal static Task<int> Main(string[] args) => RunAsync(args);
 
     /// <summary>
-    /// Core entry point. The <paramref name="console"/> and <paramref name="inputRedirectedOverride"/>
-    /// parameters are testing seams: production calls supply neither, so a real <see cref="ConsoleService"/>
-    /// is constructed and the ambient <see cref="Console.IsInputRedirected"/> is used. Tests inject a fake
-    /// console and an explicit redirected-input flag, which lets the piped-input path be exercised
-    /// deterministically without reading from (or blocking on) the real standard input handle.
+    /// Core entry point. The <paramref name="console"/> and <paramref name="inputRedirectedOverride"/> parameters are only provided in testing scenarios.
     /// </summary>
     internal static async Task<int> RunAsync(string[] args, IConsoleService? console = null, bool? inputRedirectedOverride = null)
     {
-        // Tracked as the concrete type for the interactive-prompt path, which hands the raw
-        // PrettyPromptConsole (protected on IConsoleEx) to the PrettyPrompt library.
         var systemConsole = console as ConsoleService;
         if (console is null)
         {
-            // Only mutate the process-wide console encoding for real runs. Setting Console.InputEncoding
-            // resets Console.In, which would discard any reader a test injected (e.g. via Console.SetIn).
+            // Actually running in a real console in non-test scenarios.
             Console.InputEncoding = Encoding.UTF8;
             Console.OutputEncoding = Encoding.UTF8;
             systemConsole = new ConsoleService();
@@ -63,8 +56,6 @@ internal static class Program
 
         if (config.OutputForEarlyExit is { } earlyExit)
         {
-            // Help/version/usage render word-wrapped; machine-consumable output (e.g. `inspect init` exports)
-            // arrives as PlainText and is written verbatim. Either way, one branch.
             console.Write(earlyExit);
             console.WriteLine();
             return ExitCodes.Success;
@@ -73,20 +64,17 @@ internal static class Program
         // initialize roslyn
         var logger = InitializeLogging(config.Trace);
 
-        // inspect mode: connect to the inspector in the target process and run the remote loop instead of
-        // the local evaluation paths below. It builds its own RoslynServices, seeded with the target's
-        // references + the inspector globals, so completion/highlighting are target-aware.
+        // inspect mode: connect to the inspector in the target process and run there instead of the local evaluation paths.
         if (config.InspectProcessId is { } inspectProcessId)
         {
-            return await RunInspectModeAsync(systemConsole, console, appStorage, logger, config, inspectProcessId)
+            var nonInteractive = config.EvaluateInput is not null || (inputRedirectedOverride ?? Console.IsInputRedirected);
+            return await RunInspectModeAsync(systemConsole, console, appStorage, logger, config, inspectProcessId, nonInteractive)
                 .ConfigureAwait(false);
         }
 
         var roslyn = new RoslynServices(console, config, logger);
 
-        // --eval / --eval-file: evaluate the supplied code non-interactively and exit. Checked before
-        // the stdin-redirected branch below so it works whether or not stdin is a TTY, and never blocks
-        // trying to read empty redirected stdin.
+        // --eval / --eval-file: evaluate the supplied code non-interactively and exit.
         if (config.EvaluateInput is not null)
         {
             return await new PipedInputEvaluator(console, roslyn, config)
@@ -108,8 +96,7 @@ internal static class Program
             return ExitCodes.ErrorParseArguments;
         }
 
-        // we're being run interactively, start the prompt. This path is production-only — it needs the
-        // real system console to drive the PrettyPrompt library.
+        // we're being run interactively, start the prompt.
         var (prompt, exitCode) = InitializePrompt(
             systemConsole ?? throw new InvalidOperationException("The interactive prompt requires the real system console."),
             appStorage, roslyn, config);
@@ -135,12 +122,16 @@ internal static class Program
     /// interactive prompt as the local REPL is used; only evaluation and rendering are routed remotely.
     /// </summary>
     private static async Task<int> RunInspectModeAsync(
-        ConsoleService? systemConsole, IConsoleService console, string appStorage, ITraceLogger logger, Configuration config, int processId)
+        ConsoleService? systemConsole, IConsoleService console, string appStorage, ITraceLogger logger, Configuration config, int processId, bool nonInteractive)
     {
         RemoteSession session;
         try
         {
-            console.WriteLine($"Connecting to the inspector in process {processId}...");
+            // Suppress connection chatter in non-interactive mode so stdout carries only the evaluated value(s).
+            if (!nonInteractive)
+            {
+                console.WriteLine($"Connecting to the inspector in process {processId}...");
+            }
             session = await RemoteSession
                 .ConnectAsync(processId, TimeSpan.FromSeconds(10), CancellationToken.None)
                 .ConfigureAwait(false);
@@ -168,9 +159,23 @@ internal static class Program
                 return ExitCodes.ErrorParseArguments;
             }
 
+            // Non-interactive (--eval/--eval-file or piped stdin): evaluate and exit, with no prompt and no editor.
+            if (nonInteractive)
+            {
+                var remoteRoslyn = new RoslynServices(console, config, logger);
+                var evaluator = new RemotePipedInputEvaluator(console, session, remoteRoslyn);
+                if (config.EvaluateInput is { } code)
+                {
+                    return await evaluator.EvaluateStringAsync(code).ConfigureAwait(false);
+                }
+                return config.StreamPipedInput
+                    ? await evaluator.EvaluateStreamingPipeInputAsync().ConfigureAwait(false)
+                    : await evaluator.EvaluateCollectedPipeInputAsync().ConfigureAwait(false);
+            }
+
             // Seed the controller-side editor services with the target's references + the inspector globals, so
             // completion and semantic highlighting see the target's own types and `services`/`Get<T>()`. Editor
-            // services run here (not in the target), so there's no per-keystroke pipe hop.
+            // services run here (not in the target), so there's no per-keystroke communication.
             var remoteEditor = await BuildRemoteEditorContextAsync(session, console).ConfigureAwait(false);
             var roslyn = new RoslynServices(console, config, logger, remoteEditor);
 
