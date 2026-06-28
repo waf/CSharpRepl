@@ -18,22 +18,22 @@ using System.Threading.Tasks;
 namespace CSharpRepl.InjectedHook.Contracts;
 
 /// <summary>
-/// The per-process, OS-access-controlled transport between controller and inspector: a named pipe on
+/// The per-process, OS-access-controlled transport between controller and connector: a named pipe on
 /// Windows, a Unix domain socket elsewhere.
 ///
 /// - Current-user only, mirroring the .NET diagnostic-port model: an explicit DACL granting just the current
 ///   user's SID on Windows, a 0700 user-owned directory plus a peer-credential check on Unix.
 /// </summary>
-public static class InspectorTransport
+public static class ConnectorTransport
 {
     // v2: added live method replacement (ReplaceRequest/PatchListRequest/RevertRequest).
     public const int ProtocolVersion = 2;
 
     // The endpoint name embeds the target's process id. These are the single source of truth for that
     // convention: PipeName/SocketPath build it, and TryParseProcessId/EnumerateListeningProcessIds reverse it
-    // for discovery (`inspect list`). Keep them in sync.
+    // for discovery (`connect list`). Keep them in sync.
     private const string PipeNamePrefix = "CSharpRepl.InjectedHook.";
-    private const string SocketNamePrefix = "inspector-";
+    private const string SocketNamePrefix = "connector-";
     private const string SocketNameSuffix = ".sock";
 
     /// <summary>The Windows named-pipe name for a given target process id.</summary>
@@ -44,7 +44,7 @@ public static class InspectorTransport
         Path.Combine(SocketDirectory(), SocketNamePrefix + processId + SocketNameSuffix);
 
     /// <summary>
-    /// Discovers the process ids of inspector-enabled processes for the current user by scanning the
+    /// Discovers the process ids of connector-enabled processes for the current user by scanning the
     /// transport namespace for our PID-embedded endpoints.
     ///
     /// - Windows: named pipes under <c>\\.\pipe\</c> matching <see cref="PipeName(int)"/>.
@@ -119,7 +119,7 @@ public static class InspectorTransport
     }
 
     /// <summary>
-    /// Connects to the inspector listening for processId, retrying until the listener exists or the timeout
+    /// Connects to the connector listening for processId, retrying until the listener exists or the timeout
     /// elapses. Returns a duplex stream ready for a MessageChannel.
     /// </summary>
     public static async Task<Stream> ConnectAsync(int processId, TimeSpan timeout, CancellationToken cancellationToken)
@@ -185,7 +185,7 @@ public static class InspectorTransport
         // Prefer $XDG_RUNTIME_DIR (already user-private); otherwise a 0700 dir under the temp path.
         var runtimeDir = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
         var baseDir = string.IsNullOrEmpty(runtimeDir) ? Path.GetTempPath() : runtimeDir;
-        var dir = Path.Combine(baseDir, "csharprepl-inspector");
+        var dir = Path.Combine(baseDir, "csharprepl-connector");
         if (!OperatingSystem.IsWindows())
         {
             Directory.CreateDirectory(dir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
@@ -203,13 +203,13 @@ public static class InspectorTransport
 /// Server side of the transport: accepts controller connections for the current process. Each AcceptAsync
 /// yields one connected duplex stream; the caller serves it then loops to accept the next (reconnect support).
 /// </summary>
-public sealed class InspectorTransportListener : IDisposable
+public sealed class ConnectorTransportListener : IDisposable
 {
     private readonly int processId;
     private readonly Socket? unixListener; // non-null on Unix only
     private readonly string? unixSocketPath;
 
-    public InspectorTransportListener(int processId)
+    public ConnectorTransportListener(int processId)
     {
         this.processId = processId;
         if (OperatingSystem.IsWindows())
@@ -217,7 +217,7 @@ public sealed class InspectorTransportListener : IDisposable
             return;
         }
 
-        unixSocketPath = InspectorTransport.SocketPath(processId);
+        unixSocketPath = ConnectorTransport.SocketPath(processId);
         if (File.Exists(unixSocketPath))
         {
             File.Delete(unixSocketPath); // remove a stale socket from a prior crashed run
@@ -258,7 +258,7 @@ public sealed class InspectorTransportListener : IDisposable
         // scopes access to the current user and serves as the Windows peer check (a cross-user client is denied
         // at connect). We therefore drop PipeOptions.CurrentUserOnly, which can't be combined with a custom ACL.
         var server = NamedPipeServerStreamAcl.Create(
-            pipeName: InspectorTransport.PipeName(processId),
+            pipeName: ConnectorTransport.PipeName(processId),
             direction: PipeDirection.InOut,
             maxNumberOfServerInstances: 1,
             transmissionMode: PipeTransmissionMode.Byte,
@@ -284,7 +284,7 @@ public sealed class InspectorTransportListener : IDisposable
         var security = new PipeSecurity();
         using var identity = WindowsIdentity.GetCurrent();
         var user = identity.User
-            ?? throw new InvalidOperationException("Could not determine the current user's SID for the inspector pipe DACL.");
+            ?? throw new InvalidOperationException("Could not determine the current user's SID for the connector pipe DACL.");
         security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance, AccessControlType.Allow));
         return security;
     }

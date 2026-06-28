@@ -1,3 +1,7 @@
+## Unreleased
+
+- **Breaking:** the "inspect a running process" command has been renamed from `inspect` to `connect`, to avoid confusion with the `dotnet-inspect` tool. `csharprepl inspect <pid>`, `inspect init`, and `inspect list` are now `csharprepl connect <pid>`, `connect init`, and `connect list`. Relaunch your target with the env vars from the new `connect init` (the startup-hook payload moved from the `inspector/` directory to `connector/`).
+
 ## Release 0.9.1
 
 - Simple variable declarations no longer require a trailing semicolon: typing `int i = 0` and pressing <kbd>Enter</kbd> now auto-inserts a semicolon ([#499](https://github.com/waf/CSharpRepl/pull/499)).

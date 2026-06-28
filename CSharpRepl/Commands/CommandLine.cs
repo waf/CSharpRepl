@@ -205,30 +205,30 @@ internal static class CommandLine
         return option;
     }
 
-    private static readonly Option<string?> InspectShell = BuildInspectShellOption();
+    private static readonly Option<string?> ConnectShell = BuildConnectShellOption();
 
-    private static Option<string?> BuildInspectShellOption()
+    private static Option<string?> BuildConnectShellOption()
     {
         var option = new Option<string?>("--shell")
         {
             Description = "Shell syntax for the printed env vars: pwsh, powershell, cmd, bash, or fish. Auto-detected from the parent shell when omitted.",
         };
         // Offer the recognized shells for tab-completion. These aren't enforced: any other value falls back to
-        // the pwsh-style default in BuildInspectInitExports, matching the lenient behavior elsewhere.
+        // the pwsh-style default in BuildConnectInitExports, matching the lenient behavior elsewhere.
         option.CompletionSources.Add("pwsh", "powershell", "cmd", "bash", "fish");
         return option;
     }
 
-    private static readonly Argument<int?> InspectPid = new("pid")
+    private static readonly Argument<int?> ConnectPid = new("pid")
     {
-        Description = "Process id of the running, inspector-enabled process to connect to.",
+        Description = "Process id of the running, connector-enabled process to connect to.",
         Arity = ArgumentArity.ZeroOrOne,
     };
 
-    private static readonly string InspectUsage =
-        "Usage: csharprepl inspect <pid>                          connect to a running, inspector-enabled process" + NewLine +
-        "       csharprepl inspect list                           list the inspector-enabled processes you can connect to" + NewLine +
-        "       csharprepl inspect init [--shell pwsh|bash|cmd]   print the env vars to launch your app with";
+    private static readonly string ConnectUsage =
+        "Usage: csharprepl connect <pid>                          connect to a running, connector-enabled process" + NewLine +
+        "       csharprepl connect list                           list the connector-enabled processes you ca connect to" + NewLine +
+        "       csharprepl connect init [--shell pwsh|bash|cmd]   print the env vars to launch your app with";
 
     public static Configuration Parse(string[] args, string configFilePath)
     {
@@ -251,40 +251,40 @@ internal static class CommandLine
             Configure, Culture,
         })
         {
-            // Recursive so they also bind under the `inspect <pid>` subcommand (e.g. `inspect 1234 --theme ...`),
-            // letting remote results render with the user's theme without redeclaring every option on `inspect`.
+            // Recursive so they also bind under the `connect <pid>` subcommand (e.g. `connect 1234 --theme ...`),
+            // letting remote results render with the user's theme without redeclaring every option on `connect`.
             option.Recursive = true;
             availableCommands.Options.Add(option);
         }
 
-        // Process inspection lives under the same parser as the REPL. `inspect init [--shell ...]` prints the
-        // env-var exports and exits; `inspect <pid>` connects to a running, inspector-enabled process and then
+        // The connect feature lives under the same parser as the REPL. `connect init [--shell ...]` prints the
+        // env-var exports and exits; `connect <pid>` connects to a running, connector-enabled process and then
         // flows through the normal REPL configuration below (carrying the pid). The pid argument is optional so a
-        // bare `inspect` still parses — it's validated after the early-exit checks so we can show usage.
-        var inspectInit = new Command("init", "Print the environment variables to launch your app with so it can be inspected.")
+        // bare `connect` still parses — it's validated after the early-exit checks so we can show usage.
+        var connectInit = new Command("init", "Print the environment variables to launch your app with so it can be connected.")
         {
-            Options = { InspectShell }
+            Options = { ConnectShell }
         };
-        var inspectList = new Command("list", "List the running, inspector-enabled processes you can connect to.");
-        var inspect = new Command("inspect", "Connect to and evaluate code in a running, inspector-enabled .NET process.")
+        var connectList = new Command("list", "List the running, connector-enabled processes you ca connect to.");
+        var connect = new Command("connect", "Connect to and evaluate code in a running, connector-enabled .NET process.")
         {
-            Arguments = { InspectPid },
-            Subcommands = { inspectInit, inspectList },
+            Arguments = { ConnectPid },
+            Subcommands = { connectInit, connectList },
         };
-        availableCommands.Subcommands.Add(inspect);
+        availableCommands.Subcommands.Add(connect);
 
         // We drive everything through Parse (not Invoke), but System.CommandLine requires any command that has
         // subcommands to define an action; without one it adds a "Required command was not provided" error when
-        // no subcommand is given (a plain REPL launch, or `inspect <pid>`). These no-ops satisfy that contract.
+        // no subcommand is given (a plain REPL launch, or `connect <pid>`). These no-ops satisfy that contract.
         availableCommands.SetAction(_ => 0);
-        inspect.SetAction(_ => 0);
+        connect.SetAction(_ => 0);
 
         var commandLine = availableCommands.Parse(parseArgs);
         var invokedCommand = commandLine.CommandResult.Command;
 
-        // `inspect init` is machine-consumable shell output: print the exports and exit before any REPL or
+        // `connect init` is machine-consumable shell output: print the exports and exit before any REPL or
         // config-file setup (and before the config.rsp render options, which don't apply to it).
-        if (invokedCommand == inspectInit)
+        if (invokedCommand == connectInit)
         {
             if (commandLine.Errors.Count > 0)
             {
@@ -292,18 +292,18 @@ internal static class CommandLine
             }
             // Wrapped in PlainText (not Text) so the exports are written verbatim — word-wrapping a long path
             // would corrupt a copy-paste or a pipe into the shell.
-            return new Configuration(outputForEarlyExit: new PlainText(BuildInspectInitExports(ResolveInitShell(commandLine.GetValue(InspectShell)))));
+            return new Configuration(outputForEarlyExit: new PlainText(BuildConnectInitExports(ResolveInitShell(commandLine.GetValue(ConnectShell)))));
         }
 
-        // `inspect list` is a human-facing report of the currently attachable processes — print it and exit,
-        // before any REPL or config-file setup (like `inspect init`).
-        if (invokedCommand == inspectList)
+        // `connect list` is a human-facing report of the currently attachable processes — print it and exit,
+        // before any REPL or config-file setup (like `connect init`).
+        if (invokedCommand == connectList)
         {
             if (commandLine.Errors.Count > 0)
             {
                 throw new InvalidOperationException(string.Join(NewLine, commandLine.Errors.Select(e => e.Message)));
             }
-            return new Configuration(outputForEarlyExit: BuildInspectListOutput());
+            return new Configuration(outputForEarlyExit: BuildConnectListOutput());
         }
 
         if (!File.Exists(configFilePath))
@@ -321,18 +321,18 @@ internal static class CommandLine
             return new Configuration(outputForEarlyExit: text);
         }
 
-        // `inspect <pid>`: validate the pid (the argument is optional, so a bare `inspect`, a non-numeric, or a
+        // `connect <pid>`: validate the pid (the argument is optional, so a bare `connect`, a non-numeric, or a
         // non-positive value reaches here) and surface one usage message for every bad form. We read the raw
-        // token rather than GetValue(InspectPid) because GetValue throws on an unparseable value (e.g. "abc").
-        int? inspectProcessId = null;
-        if (invokedCommand == inspect)
+        // token rather than GetValue(ConnectPid) because GetValue throws on an unparseable value (e.g. "abc").
+        int? connectProcessId = null;
+        if (invokedCommand == connect)
         {
-            var pidToken = commandLine.GetResult(InspectPid)?.Tokens is [var token] ? token.Value : null;
+            var pidToken = commandLine.GetResult(ConnectPid)?.Tokens is [var token] ? token.Value : null;
             if (!int.TryParse(pidToken, out var pid) || pid <= 0)
             {
-                throw new InvalidOperationException(InspectUsage);
+                throw new InvalidOperationException(ConnectUsage);
             }
-            inspectProcessId = pid;
+            connectProcessId = pid;
         }
 
         if (commandLine.Errors.Count > 0)
@@ -353,7 +353,7 @@ internal static class CommandLine
             usePrereleaseNugets: commandLine.GetValue(UsePrereleaseNugets),
             streamPipedInput: commandLine.GetValue(StreamPipedInput),
             evaluateInput: ResolveEvaluateInput(commandLine),
-            inspectProcessId: inspectProcessId,
+            connectProcessId: connectProcessId,
             tabSize: commandLine.GetValue(TabSize),
             trace: commandLine.GetValue(Trace),
             triggerCompletionListKeyPatterns: commandLine.GetValue(TriggerCompletionListKeyBindings),
@@ -375,7 +375,7 @@ internal static class CommandLine
     }
 
     /// <summary>
-    /// Resolves which shell syntax <c>inspect init</c> should emit: 1. an explicit <c>--shell</c> (parsed by
+    /// Resolves which shell syntax <c>connect init</c> should emit: 1. an explicit <c>--shell</c> (parsed by
     /// System.CommandLine into <paramref name="shell"/>) always wins; 2. otherwise detect the shell we were
     /// launched from; 3. else fall back to the OS default.
     /// </summary>
@@ -386,14 +386,14 @@ internal static class CommandLine
     }
 
     /// <summary>
-    /// Builds the shell-specific exports that activate the inspector at the target's launch. The bootstrap DLL
-    /// ships next to the tool under <c>inspector/</c> (staged by packaging); its absolute path is what
+    /// Builds the shell-specific exports that activate the connector at the target's launch. The bootstrap DLL
+    /// ships next to the tool under <c>connector/</c> (staged by packaging); its absolute path is what
     /// DOTNET_STARTUP_HOOKS needs so <c>StartupHook.Initialize()</c> runs before the target's Main.
     /// </summary>
-    private static string BuildInspectInitExports(string shell)
+    private static string BuildConnectInitExports(string shell)
     {
         const string HostingStartupAssembly = "CSharpRepl.InjectedHook";
-        var bootstrap = Path.Combine(AppContext.BaseDirectory, "inspector", "CSharpRepl.InjectedHook.dll");
+        var bootstrap = Path.Combine(AppContext.BaseDirectory, "connector", "CSharpRepl.InjectedHook.dll");
         return shell switch
         {
             "cmd" => string.Join(NewLine,
@@ -420,32 +420,32 @@ internal static class CommandLine
     }
 
     /// <summary>
-    /// Builds the `inspect list` report: the inspector-enabled processes the current user can connect to.
+    /// Builds the `connect list` report: the connector-enabled processes the current user ca connect to.
     /// The process name is read from the pid, which also drops a stale endpoint left behind by a crashed process.
     /// </summary>
-    private static IRenderable BuildInspectListOutput()
+    private static IRenderable BuildConnectListOutput()
     {
-        var processes = InspectorTransport.EnumerateListeningProcessIds()
+        var processes = ConnectorTransport.EnumerateListeningProcessIds()
             .Select(pid => (Pid: pid, Name: TryGetProcessName(pid)))
             .Where(p => p.Name is not null)
             .Select(p => (p.Pid, p.Name!))
             .ToList();
 
-        return RenderInspectList(processes);
+        return RenderConnectList(processes);
     }
 
     /// <summary>
-    /// Renders the `inspect list` report from an already-resolved (pid, name) set: a hint when nothing is
-    /// attachable, otherwise a table plus the connect hint. Split from <see cref="BuildInspectListOutput"/>
+    /// Renders the `connect list` report from an already-resolved (pid, name) set: a hint when nothing is
+    /// attachable, otherwise a table plus the connect hint. Split from <see cref="BuildConnectListOutput"/>
     /// (which does the live discovery) so the rendering can be tested without depending on running processes.
     /// </summary>
-    internal static IRenderable RenderInspectList(IReadOnlyList<(int ProcessId, string ProcessName)> processes)
+    internal static IRenderable RenderConnectList(IReadOnlyList<(int ProcessId, string ProcessName)> processes)
     {
         if (processes.Count == 0)
         {
             return new Markup(
-                "No inspector-enabled processes found." + NewLine +
-                "Launch your app with the environment variables from [green]csharprepl inspect init[/], then run [green]csharprepl inspect list[/] again.");
+                "No connector-enabled processes found." + NewLine +
+                "Launch your app with the environment variables from [green]csharprepl connect init[/], then run [green]csharprepl connect list[/] again.");
         }
 
         (bool containsDotNetExecutable, string? appExecutable, int pid) hint = (false, null, 0);
@@ -469,7 +469,7 @@ internal static class CommandLine
 
         List<Renderable> rows = [
             table,
-            new Markup("Connect with [green]csharprepl inspect [/][cyan]<PID>[/]."),
+            new Markup("Connect with [green]csharprepl connect [/][cyan]<PID>[/]."),
         ];
 
         if(processes.Count == 2 && hint.containsDotNetExecutable && hint.appExecutable is not null)
@@ -641,7 +641,7 @@ internal static class CommandLine
     {
         var text =
             "[underline]Usage[/]: [aqua]csharprepl[/] [green][[OPTIONS]][/] [cyan][[@response-file.rsp]][/] [cyan][[script-file.csx]][/] [green][[-- <additional-arguments>]][/]" + NewLine +
-            "       [aqua]csharprepl[/] [green]inspect[/] [cyan]<pid>[/]   or   [aqua]csharprepl[/] [green]inspect list[/]   or   [aqua]csharprepl[/] [green]inspect init[/] [green][[--shell <shell>]][/]" + NewLine + NewLine +
+            "       [aqua]csharprepl[/] [green]connect[/] [cyan]<pid>[/]   or   [aqua]csharprepl[/] [green]connect list[/]   or   [aqua]csharprepl[/] [green]connect init[/] [green][[--shell <shell>]][/]" + NewLine + NewLine +
             "Starts a REPL (read eval print loop) according to the provided [green][[OPTIONS]][/]." + NewLine +
             "These [green][[OPTIONS]][/] can be provided at the command line, or via a [cyan][[@response-file.rsp]][/]." + NewLine +
             "A [cyan][[script-file.csx]][/], if provided, will be executed before the prompt starts." + NewLine + NewLine +
@@ -685,13 +685,13 @@ internal static class CommandLine
             $"  [green]-v[/] or [green]--version[/]:                            {Version.Description}" + NewLine +
             $"  [green]-h[/] or [green]--help[/]:                               {Help.Description}" + NewLine + NewLine +
             "[underline]COMMANDS[/]:" + NewLine +
-            "  [green]inspect[/] [cyan]<pid>[/]:" + NewLine +
-            "      Connect to and evaluate code in a running, inspector-enabled .NET process." + NewLine +
+            "  [green]connect[/] [cyan]<pid>[/]:" + NewLine +
+            "      Connect to and evaluate code in a running, connector-enabled .NET process." + NewLine +
             "      The REPL [green][[OPTIONS]][/] above (e.g. [green]--theme[/]) also apply to the remote session." + NewLine +
-            "  [green]inspect list[/]:" + NewLine +
-            "      List the running, inspector-enabled processes you can connect to (with their process ids)." + NewLine +
-            "  [green]inspect init[/] [green][[--shell pwsh|powershell|cmd|bash|fish]][/]:" + NewLine +
-            "      Print the environment variables to launch your app with so it can be inspected." + NewLine +
+            "  [green]connect list[/]:" + NewLine +
+            "      List the running, connector-enabled processes you ca connect to (with their process ids)." + NewLine +
+            "  [green]connect init[/] [green][[--shell pwsh|powershell|cmd|bash|fish]][/]:" + NewLine +
+            "      Print the environment variables to launch your app with so it can be connected." + NewLine +
             "      The shell is auto-detected from the parent process when [green]--shell[/] is omitted." + NewLine + NewLine +
             "[cyan]@response-file.rsp[/]:" + NewLine +
             "  A file, with extension .rsp, containing the above command line [green][[OPTIONS]][/], one option per line." + NewLine +

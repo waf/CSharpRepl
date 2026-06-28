@@ -181,18 +181,18 @@ public class CommandLineTests
     }
 
     [Fact]
-    public void ParseArguments_DotNetSuggestInspectSubcommand_IsAutocompleted()
+    public void ParseArguments_DotNetSuggestConnectSubcommand_IsAutocompleted()
     {
-        var result = Parse(new[] { "[suggest:8]", "inspect " });
+        var result = Parse(new[] { "[suggest:8]", "connect " });
         var output = Render(result.OutputForEarlyExit);
         Assert.Contains("init", output);
         Assert.Contains("list", output);
     }
 
     [Fact]
-    public void ParseArguments_DotNetSuggestInspectShellValue_IsAutocompleted()
+    public void ParseArguments_DotNetSuggestConnectShellValue_IsAutocompleted()
     {
-        var result = Parse(new[] { "[suggest:21]", "inspect init --shell " });
+        var result = Parse(new[] { "[suggest:21]", "connect init --shell " });
         var output = Render(result.OutputForEarlyExit);
         Assert.Contains("pwsh", output);
         Assert.Contains("bash", output);
@@ -200,68 +200,68 @@ public class CommandLineTests
     }
 
     [Fact]
-    public void ParseArguments_InspectPid_SetsInspectProcessId()
+    public void ParseArguments_ConnectPid_SetsConnectProcessId()
     {
-        var result = Parse("inspect 1234");
+        var result = Parse("connect 1234");
         Assert.NotNull(result);
-        Assert.Equal(1234, result.InspectProcessId);
+        Assert.Equal(1234, result.ConnectProcessId);
     }
 
     [Fact]
-    public void ParseArguments_InspectPidWithReplOption_BindsRecursiveOption()
+    public void ParseArguments_ConnectPidWithReplOption_BindsRecursiveOption()
     {
-        // The REPL render options are recursive, so they still bind after `inspect <pid>` and remote
+        // The REPL render options are recursive, so they still bind after `connect <pid>` and remote
         // results render with the user's theme.
-        var result = Parse("inspect 1234 --theme Data/theme.json");
-        Assert.Equal(1234, result.InspectProcessId);
+        var result = Parse("connect 1234 --theme Data/theme.json");
+        Assert.Equal(1234, result.ConnectProcessId);
         Assert.True(result.Theme.TryGetSyntaxHighlightingAnsiColor("struct name", out var color));
         Assert.Equal("Yellow", color.ToString());
     }
 
     [Theory]
-    [InlineData("inspect")]        // missing pid
-    [InlineData("inspect 0")]      // non-positive
-    [InlineData("inspect -5")]     // non-positive
-    [InlineData("inspect abc")]    // non-numeric
-    public void ParseArguments_InspectWithInvalidPid_ThrowsUsage(string commandline)
+    [InlineData("connect")]        // missing pid
+    [InlineData("connect 0")]      // non-positive
+    [InlineData("connect -5")]     // non-positive
+    [InlineData("connect abc")]    // non-numeric
+    public void ParseArguments_ConnectWithInvalidPid_ThrowsUsage(string commandline)
     {
         var ex = Assert.Throws<InvalidOperationException>(() => Parse(commandline));
-        Assert.Contains("Usage: csharprepl inspect", ex.Message);
+        Assert.Contains("Usage: csharprepl connect", ex.Message);
     }
 
     [Fact]
-    public void ParseArguments_InspectInit_PrintsExportsAndExitsWithoutInspecting()
+    public void ParseArguments_ConnectInit_PrintsExportsAndExitsWithoutConnecting()
     {
-        var result = Parse("inspect init");
+        var result = Parse("connect init");
         Assert.NotNull(result.OutputForEarlyExit);
         var output = Render(result.OutputForEarlyExit);
         Assert.Contains("DOTNET_STARTUP_HOOKS", output);
         Assert.Contains("ASPNETCORE_HOSTINGSTARTUPASSEMBLIES", output);
-        Assert.Null(result.InspectProcessId);
+        Assert.Null(result.ConnectProcessId);
     }
 
     [Fact]
-    public void ParseArguments_InspectList_ProducesEarlyExitWithoutInspecting()
+    public void ParseArguments_ConnectList_ProducesEarlyExitWithoutConnecting()
     {
-        // `inspect list` reports the attachable processes and exits, like `inspect init` — it never enters
-        // inspect mode (no pid). The rendered content depends on what's running, so only assert the shape.
-        var result = Parse("inspect list");
+        // `connect list` reports the attachable processes and exits, like `connect init` — it never enters
+        // connect mode (no pid). The rendered content depends on what's running, so only assert the shape.
+        var result = Parse("connect list");
         Assert.NotNull(result.OutputForEarlyExit);
-        Assert.Null(result.InspectProcessId);
+        Assert.Null(result.ConnectProcessId);
     }
 
     [Fact]
-    public void RenderInspectList_WithNoProcesses_ShowsTheInitHint()
+    public void RenderConnectList_WithNoProcesses_ShowsTheInitHint()
     {
-        var output = Render(CommandLine.RenderInspectList([]));
-        Assert.Contains("No inspector-enabled processes found", output);
-        Assert.Contains("csharprepl inspect init", output);
+        var output = Render(CommandLine.RenderConnectList([]));
+        Assert.Contains("No connector-enabled processes found", output);
+        Assert.Contains("csharprepl connect init", output);
     }
 
     [Fact]
-    public void RenderInspectList_WithProcesses_ListsEachPidAndNameAndAConnectHint()
+    public void RenderConnectList_WithProcesses_ListsEachPidAndNameAndAConnectHint()
     {
-        var output = Render(CommandLine.RenderInspectList([(1234, "MyApp"), (5678, "dotnet")]));
+        var output = Render(CommandLine.RenderConnectList([(1234, "MyApp"), (5678, "dotnet")]));
 
         Assert.Contains("PID", output);
         Assert.Contains("Process", output);
@@ -270,26 +270,26 @@ public class CommandLineTests
         Assert.Contains("5678", output);
         Assert.Contains("dotnet", output);
         // the "connect with" hint
-        Assert.Contains("csharprepl inspect", output);
+        Assert.Contains("csharprepl connect", output);
         Assert.Contains("Hint: you most likely want to connect to the 'MyApp' process (PID 1234).", output);
     }
 
     [Fact]
-    public void RenderInspectList_WithMarkupCharsInName_RendersThemLiterally()
+    public void RenderConnectList_WithMarkupCharsInName_RendersThemLiterally()
     {
         // A process name with '[' must not be interpreted as Spectre markup (it would otherwise throw or be
         // swallowed). The cells use Text, not markup, so the brackets survive verbatim.
-        var output = Render(CommandLine.RenderInspectList([(42, "weird[name]")]));
+        var output = Render(CommandLine.RenderConnectList([(42, "weird[name]")]));
         Assert.Contains("weird[name]", output);
     }
 
     [Theory]
-    [InlineData("inspect init --shell bash", "export DOTNET_STARTUP_HOOKS=")]
-    [InlineData("inspect init --shell=bash", "export DOTNET_STARTUP_HOOKS=")]
-    [InlineData("inspect init --shell cmd", "set \"DOTNET_STARTUP_HOOKS=")]
-    [InlineData("inspect init --shell fish", "set -gx DOTNET_STARTUP_HOOKS ")]
-    [InlineData("inspect init --shell pwsh", "$env:DOTNET_STARTUP_HOOKS = ")]
-    public void ParseArguments_InspectInitWithShell_EmitsShellSpecificSyntax(string commandline, string expectedFragment)
+    [InlineData("connect init --shell bash", "export DOTNET_STARTUP_HOOKS=")]
+    [InlineData("connect init --shell=bash", "export DOTNET_STARTUP_HOOKS=")]
+    [InlineData("connect init --shell cmd", "set \"DOTNET_STARTUP_HOOKS=")]
+    [InlineData("connect init --shell fish", "set -gx DOTNET_STARTUP_HOOKS ")]
+    [InlineData("connect init --shell pwsh", "$env:DOTNET_STARTUP_HOOKS = ")]
+    public void ParseArguments_ConnectInitWithShell_EmitsShellSpecificSyntax(string commandline, string expectedFragment)
     {
         var result = Parse(commandline);
         Assert.NotNull(result.OutputForEarlyExit);

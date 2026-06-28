@@ -17,10 +17,10 @@ using CSharpRepl.Services.Roslyn.Formatting;
 namespace CSharpRepl.Repls;
 
 /// <summary>
-/// Non-interactive inspect evaluation: the remote twin of <see cref="PipedInputEvaluator"/> (and the headless
-/// counterpart to <see cref="RemoteReadEvalPrintLoop"/>), for <c>inspect &lt;pid&gt; --eval</c>/<c>--eval-file</c>
+/// Non-interactive connect evaluation: the remote twin of <see cref="PipedInputEvaluator"/> (and the headless
+/// counterpart to <see cref="RemoteReadEvalPrintLoop"/>), for <c>connect &lt;pid&gt; --eval</c>/<c>--eval-file</c>
 /// and piped stdin. Auto-prints the final value as plain text on stdout (errors to stderr, nonzero exit) and
-/// honors inspect commands via the same <see cref="InspectorCommandProcessor"/> as the interactive loop.
+/// honors connect commands via the same <see cref="ConnectorCommandProcessor"/> as the interactive loop.
 /// </summary>
 internal sealed class RemotePipedInputEvaluator
 {
@@ -29,14 +29,14 @@ internal sealed class RemotePipedInputEvaluator
     private readonly IConsoleService console;
     private readonly RemoteSession session;
     private readonly RoslynServices roslyn;
-    private readonly InspectorCommandProcessor commands;
+    private readonly ConnectorCommandProcessor commands;
 
     public RemotePipedInputEvaluator(IConsoleService console, RemoteSession session, RoslynServices roslyn)
     {
         this.console = console;
         this.session = session;
         this.roslyn = roslyn;
-        this.commands = new InspectorCommandProcessor(session);
+        this.commands = new ConnectorCommandProcessor(session);
     }
 
     /// <summary>Evaluates a single submission (e.g. from --eval or --eval-file) in the target and exits.</summary>
@@ -67,11 +67,11 @@ internal sealed class RemotePipedInputEvaluator
         return await EvaluateAsync(input, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Runs <paramref name="commandText"/> as an inspect command. Returns Handled=false (no I/O) when
+    /// <summary>Runs <paramref name="commandText"/> as a connect command. Returns Handled=false (no I/O) when
     /// it isn't a command, so the caller falls through to evaluation.</summary>
     private async Task<(bool Handled, int ExitCode)> TryRunCommandAsync(string commandText, CancellationToken cancellationToken)
     {
-        InspectorCommandResult? result;
+        ConnectorCommandResult? result;
         try
         {
             result = await commands.TryExecuteAsync(commandText, cancellationToken).ConfigureAwait(false);
@@ -85,7 +85,7 @@ internal sealed class RemotePipedInputEvaluator
         if (result is null) return (false, ExitCodes.Success);
 
         var failed = false;
-        InspectorCommandResultPrinter.Print(
+        ConnectorCommandResultPrinter.Print(
             result,
             console.WriteStandardOutputLine,
             message => { failed = true; console.WriteStandardErrorLine(message); });

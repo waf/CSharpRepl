@@ -12,40 +12,40 @@ using CSharpRepl.InjectedHook.Contracts;
 namespace CSharpRepl.Services.Remote;
 
 /// <summary>
-/// Controller-side transport for an inspector session: connects to the per-process pipe/socket, reads the
-/// handshake, and exchanges framed <see cref="WireMessage"/>s with the inspector. This is the thin wire
+/// Controller-side transport for a connector session: connects to the per-process pipe/socket, reads the
+/// handshake, and exchanges framed <see cref="WireMessage"/>s with the connector. This is the thin wire
 /// layer; <see cref="RemoteSession"/> adds the eval/disconnect semantics on top.
 /// </summary>
-public sealed class InspectorClient : IAsyncDisposable
+public sealed class ConnectorClient : IAsyncDisposable
 {
     private readonly Stream stream;
     private readonly MessageChannel channel;
 
-    private InspectorClient(Stream stream, MessageChannel channel, HandshakeMessage handshake)
+    private ConnectorClient(Stream stream, MessageChannel channel, HandshakeMessage handshake)
     {
         this.stream = stream;
         this.channel = channel;
         Handshake = handshake;
     }
 
-    /// <summary>Identity/version details the inspector sent on connect.</summary>
+    /// <summary>Identity/version details the connector sent on connect.</summary>
     public HandshakeMessage Handshake { get; }
 
     /// <summary>
-    /// Connects to the inspector listening for <paramref name="processId"/> and consumes its handshake.
-    /// Retries until the inspector's listener exists or <paramref name="timeout"/> elapses.
+    /// Connects to the connector listening for <paramref name="processId"/> and consumes its handshake.
+    /// Retries until the connector's listener exists or <paramref name="timeout"/> elapses.
     /// </summary>
-    public static async Task<InspectorClient> ConnectAsync(int processId, TimeSpan timeout, CancellationToken cancellationToken)
+    public static async Task<ConnectorClient> ConnectAsync(int processId, TimeSpan timeout, CancellationToken cancellationToken)
     {
-        var stream = await InspectorTransport.ConnectAsync(processId, timeout, cancellationToken).ConfigureAwait(false);
+        var stream = await ConnectorTransport.ConnectAsync(processId, timeout, cancellationToken).ConfigureAwait(false);
         try
         {
             var channel = new MessageChannel(stream);
             var first = await channel.ReadAsync(cancellationToken).ConfigureAwait(false)
-                ?? throw new IOException("The inspector closed the connection before sending a handshake.");
+                ?? throw new IOException("The connector closed the connection before sending a handshake.");
             return first is not HandshakeMessage handshake
-                ? throw new IOException($"Expected a handshake from the inspector but received {first.GetType().Name}.")
-                : new InspectorClient(stream, channel, handshake);
+                ? throw new IOException($"Expected a handshake from the connector but received {first.GetType().Name}.")
+                : new ConnectorClient(stream, channel, handshake);
         }
         catch
         {
@@ -106,9 +106,9 @@ public sealed class InspectorClient : IAsyncDisposable
         where TResponse : WireMessage
     {
         var response = await channel.ReadAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new IOException($"The inspector closed the connection without responding to the {requestNoun}.");
+            ?? throw new IOException($"The connector closed the connection without responding to the {requestNoun}.");
         return response as TResponse
-            ?? throw new IOException($"Expected {responseNoun} from the inspector but received {response.GetType().Name}.");
+            ?? throw new IOException($"Expected {responseNoun} from the connector but received {response.GetType().Name}.");
     }
 
     internal async Task SendDisconnectAsync(CancellationToken cancellationToken)

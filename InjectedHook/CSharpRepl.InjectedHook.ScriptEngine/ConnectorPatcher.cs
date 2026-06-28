@@ -20,7 +20,7 @@ namespace CSharpRepl.InjectedHook.ScriptEngine;
 /// replacement delegate (it owns the script state). Not thread-safe on its own; the engine serializes calls
 /// under its eval gate.
 /// </summary>
-internal sealed class InspectorPatcher
+internal sealed class ConnectorPatcher
 {
     private sealed class Entry
     {

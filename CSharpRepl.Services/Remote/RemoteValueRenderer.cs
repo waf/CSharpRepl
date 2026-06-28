@@ -14,7 +14,7 @@ using Spectre.Console.Rendering;
 namespace CSharpRepl.Services.Remote;
 
 /// <summary>
-/// Renders a <see cref="RemoteValue"/> / <see cref="RemoteException"/> produced by the inspector (in the
+/// Renders a <see cref="RemoteValue"/> / <see cref="RemoteException"/> produced by the connector (in the
 /// target process) into a themed Spectre <see cref="IRenderable"/> on the controller. The engine carries
 /// theme-agnostic data (formatted scalar text + a <see cref="RemoteValueStyle"/> hint, or a structured
 /// member/element breakdown); this applies the user's theme via the controller's <see cref="SyntaxHighlighter"/>,
@@ -42,7 +42,7 @@ internal sealed class RemoteValueRenderer
 
     /// <summary>
     /// Renders a <see cref="RemoteValue"/> to plain, uncolored, unwrapped text for non-interactive output
-    /// (<c>inspect &lt;pid&gt; --eval</c> / piped input): the same layout as <see cref="Render"/>, with styling
+    /// (<c>connect &lt;pid&gt; --eval</c> / piped input): the same layout as <see cref="Render"/>, with styling
     /// and width-wrapping stripped so the value is safe to capture or pipe.
     /// </summary>
     public string RenderToPlainText(RemoteValue value, Level level) => ToPlainText(Render(value, level));

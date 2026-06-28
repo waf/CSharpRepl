@@ -15,7 +15,7 @@ C# REPL provides the following features:
 - Nuget package installation
 - Reference local assemblies, solutions, and projects
 - Dump and explore objects with syntax highlighting and rich Spectre.Console formatting
-- Inspect a running .NET application and run the REPL inside that application, with access to application state and the ability to replace live methods
+- Connect a running .NET application and run the REPL inside that application, with access to application state and the ability to replace live methods
 - Navigate to source via Source Link
 - IL disassembly and "lowered" C# decompilation (both Debug and Release mode, using ILSpy)
 - AI code completion via OpenAI, Anthropic, Gemini, Grok, DeepSeek, Mistral/Codestral, or any other OpenAI-compatible provider (bring your own API key)
@@ -125,12 +125,12 @@ csharprepl --framework  Microsoft.AspNetCore.App
 
 Use the `#load` directive to run a C# script file (`.csx`), e.g. `#load "path/to/script.csx"`. This is handy for initializing a session, as any references, namespaces, and variables the script defines remain available afterwards.
 
-## Inspecting a running process
+## Connecting to a running process
 
 In addition to the normal REPL, which evaluates code in csharprepl's own process, csharprepl can attach to other .NET applications and evaluate expressions inside them, reading and writing live application state (e.g. statics and services resolved from DI).
 
 > [!WARNING]
-> Connecting to an inspector-enabled process is **equivalent to running arbitrary code inside it, with its privileges**. This is a development and diagnostics tool; never enable the inspector on a production process.
+> Connecting to a connector-enabled process is **equivalent to running arbitrary code inside it, with its privileges**. This is a development and diagnostics tool; never enable the connector on a production process.
 
 CSharpRepl injects a real Roslyn scripting engine into the target application, so you can run unconstrained C# in that application. This is not a debugger; breakpoints, stepping, and non-cooperative attach are not supported.
 
@@ -139,7 +139,7 @@ The target's source does not need to be modified, but the application must "opt 
 1. Print the environment variables to launch your app with:
 
 ```console
-csharprepl inspect init        # this autodetects your shell, or pass e.g. --shell pwsh
+csharprepl connect init        # this autodetects your shell, or pass e.g. --shell pwsh
 ```
 
 2. Set the environment variables from the previous step, and launch your app in that shell. You should NOT set these as permanent environment variables on your machine. Only set them in the shell where you plan to launch the target application.
@@ -147,20 +147,20 @@ csharprepl inspect init        # this autodetects your shell, or pass e.g. --she
 3. Attach to the application by its process ID:
 
 ```console
-csharprepl inspect list   # lists available processes to attach to, with their process ID.
-csharprepl inspect 1234   # attaches to a process with process ID e.g. 1234
+csharprepl connect list   # lists available processes to attach to, with their process ID.
+csharprepl connect 1234   # attaches to a process with process ID e.g. 1234
 ```
 
 This will start the REPL in the target application. Some things you can try:
 
 - Statics: reference them by their fully-qualified name, e.g. `MyApp.Program.SomeStatic` (read and write).
-- DI services (ASP.NET Core or Generic Host apps): `services.GetRequiredService<T>()` or the shorthand `Get<T>()`. The inspector captures the application's root service provider via .NET's hosting hooks.
+- DI services (ASP.NET Core or Generic Host apps): `services.GetRequiredService<T>()` or the shorthand `Get<T>()`. The connector captures the application's root service provider via .NET's hosting hooks.
 
 Type `exit` (or press <kbd>Ctrl+D</kbd>) to detach. The target application will keep running, and you can reconnect to it later.
 
 ### Modifying a running process
 
-While inspecting a process, you can also replace live methods in that process. Define a method matching the target's signature. Instance methods take the instance as the first parameter:
+While connected to a process, you can also replace live methods in that process. Define a method matching the target's signature. Instance methods take the instance as the first parameter:
 
 ```csharp
 > decimal half(MyApp.OrderService svc, int qty, decimal unit) => qty * unit * 0.5m;
@@ -191,10 +191,10 @@ Patches take effect immediately and persist in the target until reverted or the 
 
 **Requirements and limitations:**
 
-- `net10.0` targets only. The inspector and the target must both be on .NET 10.
+- `net10.0` targets only. The connector and the target must both be on .NET 10.
 - Apps published as single-files have very limited functionality:
 	- A framework-dependent single-file app's assemblies are bundled with no metadata, so strongly-typed access to the app's own types is unavailable. You need to use reflection to access the app's types.
-  - A self-contained single-file app is unsupported (even the runtime is bundled, so nothing can be compiled). The inspector will refuse to start.
+  - A self-contained single-file app is unsupported (even the runtime is bundled, so nothing can be compiled). The connector will refuse to start.
 - Method replacement is not supported for generic methods, pointer parameters, and methods the JIT already inlined at a call site.
 
 See the [Injected Hook documentation](https://github.com/waf/CSharpRepl/blob/main/InjectedHook/InjectedHookReadme.md) for information on how this works under the hood.

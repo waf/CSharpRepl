@@ -69,7 +69,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Shared inspector wire contracts + transport for controller-side remote sessions (CSharpRepl.Services/Remote). -->
+    <!-- Shared connector wire contracts + transport for controller-side remote sessions (CSharpRepl.Services/Remote). -->
     <ProjectReference Include="..\InjectedHook\CSharpRepl.InjectedHook.Contracts\CSharpRepl.InjectedHook.Contracts.csproj" />
   </ItemGroup>
 

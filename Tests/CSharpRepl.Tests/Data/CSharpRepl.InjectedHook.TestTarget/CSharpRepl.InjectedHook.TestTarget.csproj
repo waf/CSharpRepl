@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    A stand-in for an ordinary, unmodified .NET app that the M1 integration test inspects. It references
-    nothing inspector-related; the inspector is injected purely via DOTNET_STARTUP_HOOKS at launch. Built as
+    A stand-in for an ordinary, unmodified .NET app that the M1 integration test connects. It references
+    nothing connector-related; the connector is injected purely via DOTNET_STARTUP_HOOKS at launch. Built as
     a normal framework-dependent executable (apphost) so the launched process id equals the managed process
-    id the inspector advertises. Not part of the product; only the test consumes it (ReferenceOutputAssembly=false).
+    id the connector advertises. Not part of the product; only the test consumes it (ReferenceOutputAssembly=false).
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

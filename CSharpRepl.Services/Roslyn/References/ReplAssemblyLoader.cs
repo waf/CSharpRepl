@@ -37,7 +37,7 @@ namespace CSharpRepl.Services.Roslyn.References;
 /// Compile-time metadata resolution lives in <see cref="MetadataResolvers.AssemblyReferenceMetadataResolver"/>;
 /// this type is the runtime half.
 /// 
-/// Elsewhere, the injected inspector engine has its own analogous loader+pinning (InspectorEngine.cs), but it
+/// Elsewhere, the injected connector engine has its own analogous loader+pinning (ConnectorEngine.cs), but it
 /// runs in the target process, and is separate.
 /// </remarks>
 internal sealed class ReplAssemblyLoader

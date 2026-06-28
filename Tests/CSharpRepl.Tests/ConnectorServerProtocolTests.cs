@@ -16,19 +16,19 @@ using Xunit;
 namespace CSharpRepl.Tests;
 
 /// <summary>
-/// Drives the injected <c>InspectorServer</c> at the raw wire-protocol level (a hand-rolled MessageChannel
-/// instead of InspectorClient) against a real hooked child process, covering server behaviors a well-behaved
+/// Drives the injected <c>ConnectorServer</c> at the raw wire-protocol level (a hand-rolled MessageChannel
+/// instead of ConnectorClient) against a real hooked child process, covering server behaviors a well-behaved
 /// controller never triggers: a stray cancel with no evaluation in flight, a malformed frame tearing down
 /// only that one connection (the accept loop then serves a fresh controller on the same live instance), and
 /// the per-process-instance session id surviving across connections.
 /// </summary>
-public class InspectorServerProtocolTests
+public class ConnectorServerProtocolTests
 {
     [Fact(Timeout = 120_000)]
     public async Task Server_SurvivesProtocolErrors_AndKeepsServingNewConnections()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var process = InspectorTestSupport.StartHookedTarget();
+        using var process = ConnectorTestSupport.StartHookedTarget();
 
         // Drain the child's output so a full pipe buffer can't block it; results are only needed for diagnostics.
         var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
@@ -37,11 +37,11 @@ public class InspectorServerProtocolTests
         try
         {
             // --- First connection: handshake fields, a stray cancel, then a normal evaluation ---
-            await using var stream = await InspectorTransport.ConnectAsync(process.Id, TimeSpan.FromSeconds(30), cancellationToken);
+            await using var stream = await ConnectorTransport.ConnectAsync(process.Id, TimeSpan.FromSeconds(30), cancellationToken);
             var channel = new MessageChannel(stream);
             var handshake = Assert.IsType<HandshakeMessage>(await channel.ReadAsync(cancellationToken));
-            Assert.Equal(InspectorTransport.ProtocolVersion, handshake.ProtocolVersion);
-            Assert.NotEmpty(handshake.InspectorVersion);
+            Assert.Equal(ConnectorTransport.ProtocolVersion, handshake.ProtocolVersion);
+            Assert.NotEmpty(handshake.ConnectorVersion);
             Assert.NotEmpty(handshake.RuntimeVersion);
             Assert.NotEmpty(handshake.ProcessName);
 
@@ -77,7 +77,7 @@ public class InspectorServerProtocolTests
                 $"Expected a closed connection, got: {dropError?.GetType().Name}");
 
             // --- The accept loop recovers: a fresh controller is served by the same live process instance ---
-            await using var secondStream = await InspectorTransport.ConnectAsync(process.Id, TimeSpan.FromSeconds(30), cancellationToken);
+            await using var secondStream = await ConnectorTransport.ConnectAsync(process.Id, TimeSpan.FromSeconds(30), cancellationToken);
             var secondChannel = new MessageChannel(secondStream);
             var secondHandshake = Assert.IsType<HandshakeMessage>(await secondChannel.ReadAsync(cancellationToken));
             Assert.Equal(handshake.SessionId, secondHandshake.SessionId); // confirms a non-stale, same-instance reconnect

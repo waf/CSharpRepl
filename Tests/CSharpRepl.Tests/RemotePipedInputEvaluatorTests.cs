@@ -14,9 +14,9 @@ using Xunit;
 namespace CSharpRepl.Tests;
 
 /// <summary>
-/// End-to-end test for the non-interactive inspect path: drives <see cref="RemotePipedInputEvaluator"/> against a
+/// End-to-end test for the non-interactive connect path: drives <see cref="RemotePipedInputEvaluator"/> against a
 /// real hooked child via a real <see cref="RemoteSession"/>. Verifies clean plain-text stdout, errors to stderr
-/// with a nonzero exit, inspect commands, and that engine state persists across separate evaluations.
+/// with a nonzero exit, connect commands, and that engine state persists across separate evaluations.
 /// </summary>
 public class RemotePipedInputEvaluatorTests
 {
@@ -26,7 +26,7 @@ public class RemotePipedInputEvaluatorTests
     public async Task EvaluatesNonInteractively_AgainstAHookedProcess()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var process = InspectorTestSupport.StartHookedTarget();
+        using var process = ConnectorTestSupport.StartHookedTarget();
         var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
 
@@ -73,7 +73,7 @@ public class RemotePipedInputEvaluatorTests
                 Assert.Contains("boom", stderr.ToString());
             }
 
-            // --- An inspect command (#patches) is honored non-interactively and renders to stdout ---
+            // --- A connect command (#patches) is honored non-interactively and renders to stdout ---
             {
                 var (console, stdout, _) = FakeConsole.CreateStubbedOutputAndError();
                 var evaluator = NewEvaluator(console, session);

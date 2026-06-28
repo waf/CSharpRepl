@@ -40,7 +40,7 @@ public abstract class WireMessage
 internal sealed partial class WireJsonContext : JsonSerializerContext { }
 
 /// <summary>
-/// Sent by the inspector to the controller immediately on connect.
+/// Sent by the connector to the controller immediately on connect.
 /// - Carries identity/version details for the controller's banner and to confirm it reached the right
 ///   (non-stale) process.
 /// - SessionId is a non-secret correctness token, not an authentication credential.
@@ -50,13 +50,13 @@ public sealed class HandshakeMessage : WireMessage
     public int ProcessId { get; init; }
     public string ProcessName { get; init; } = "";
     public string RuntimeVersion { get; init; } = "";
-    public string InspectorVersion { get; init; } = "";
+    public string ConnectorVersion { get; init; } = "";
     public int ProtocolVersion { get; init; }
 
     /// <summary>True when a root IServiceProvider was captured; false means only statics/framework code are reachable.</summary>
     public bool DiProviderCaptured { get; init; }
 
-    /// <summary>How the target was launched, which bounds what the inspector can do (see TargetAssemblyAvailability).</summary>
+    /// <summary>How the target was launched, which bounds what the connector can do (see TargetAssemblyAvailability).</summary>
     public TargetAssemblyAvailability AssemblyAvailability { get; init; }
 
     /// <summary>Non-secret session identifier: process id plus a per-process instance GUID.</summary>
@@ -64,7 +64,7 @@ public sealed class HandshakeMessage : WireMessage
 }
 
 /// <summary>
-/// Whether the target's assemblies are reachable on disk, which determines what the inspector can do.
+/// Whether the target's assemblies are reachable on disk, which determines what the connector can do.
 /// Detected from whether the runtime/app assemblies have an on-disk Assembly.Location.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<TargetAssemblyAvailability>))]
@@ -126,7 +126,7 @@ public sealed class EvalResponse : WireMessage
 }
 
 /// <summary>
-/// Asks the inspector for the target's loaded-assembly file paths, sent right after connect. The controller
+/// Asks the connector for the target's loaded-assembly file paths, sent right after connect. The controller
 /// seeds its remote editor workspace (completion + highlighting) with them — the same references the engine
 /// compiles against.
 /// </summary>

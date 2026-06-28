@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 namespace CSharpRepl.Commands;
 
 /// <summary>
-/// Best-effort detection of the interactive shell that launched us, so `csharprepl inspect init`
+/// Best-effort detection of the interactive shell that launched us, so `csharprepl connect init`
 /// can emit env-var exports in the right syntax without the user passing `--shell`. We match the
 /// parent process, not env vars, because:
 /// - shell vars like `BASH_VERSION`/`ZSH_VERSION` aren't exported to children

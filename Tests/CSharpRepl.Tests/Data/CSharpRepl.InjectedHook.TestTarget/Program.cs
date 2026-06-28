@@ -13,18 +13,18 @@ using Microsoft.Extensions.Logging;
 namespace CSharpRepl.InjectedHook.TestTarget;
 
 /// <summary>
-/// An ordinary app with mutable static state. It knows nothing about the inspector — the integration
-/// test injects the inspector via DOTNET_STARTUP_HOOKS and reads/writes this live state across the process
-/// boundary. Stays alive for a bounded time so the test can connect and evaluate; the test kills it when done.
+/// An ordinary app with mutable static state. It knows nothing about the connector — the integration
+/// test injects the connector via DOTNET_STARTUP_HOOKS and reads/writes this live state across the process
+/// boundary. Stays alive for a bounded time so the test ca connect and evaluate; the test kills it when done.
 /// It builds (but doesn't run) a Generic Host with a singleton so the tests can also prove the bootstrap's
 /// DI-root capture: building the host emits the hosting DiagnosticListener's HostBuilt event.
 /// </summary>
 public static class Program
 {
-    /// <summary>Climbs over time so the inspector can observe live, changing state.</summary>
+    /// <summary>Climbs over time so the connector can observe live, changing state.</summary>
     public static int Counter;
 
-    /// <summary>Written by the inspector and re-read to prove cross-process writes land on the real static.</summary>
+    /// <summary>Written by the connector and re-read to prove cross-process writes land on the real static.</summary>
     public static int WriteProbe;
 
     /// <summary>A live object instance for REPL-parity tests (bind a var to it, reuse across submissions).</summary>
@@ -50,7 +50,7 @@ public static class Program
     }
 }
 
-/// <summary>A small domain type the inspector binds a local to, to prove cross-submission parity.</summary>
+/// <summary>A small domain type the connector binds a local to, to prove cross-submission parity.</summary>
 public sealed class Service
 {
     public int Value { get; set; } = 41;

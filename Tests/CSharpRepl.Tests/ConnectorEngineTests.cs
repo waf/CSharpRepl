@@ -19,7 +19,7 @@ namespace CSharpRepl.Tests;
 /// assemblies and bind to its live objects (see <see cref="EngineTestProbe"/>). The cross-process transport
 /// and server around the engine are covered by the hooked-child-process tests.
 /// </summary>
-public class InspectorEngineTests : IClassFixture<InspectorEngineTests.EngineFixture>
+public class ConnectorEngineTests : IClassFixture<ConnectorEngineTests.EngineFixture>
 {
     /// <summary>
     /// One engine for the whole class: its submissions share a persisted state chain (like a real session),
@@ -28,12 +28,12 @@ public class InspectorEngineTests : IClassFixture<InspectorEngineTests.EngineFix
     /// </summary>
     public sealed class EngineFixture
     {
-        public InspectorEngine Engine { get; } = new();
+        public ConnectorEngine Engine { get; } = new();
     }
 
-    private readonly InspectorEngine engine;
+    private readonly ConnectorEngine engine;
 
-    public InspectorEngineTests(EngineFixture fixture) => this.engine = fixture.Engine;
+    public ConnectorEngineTests(EngineFixture fixture) => this.engine = fixture.Engine;
 
     private Task<EvalResponse> EvalAsync(string code, bool detailed = false) =>
         engine.EvalAsync(code, detailed, TestContext.Current.CancellationToken);
@@ -347,7 +347,7 @@ public class InspectorEngineTests : IClassFixture<InspectorEngineTests.EngineFix
         // A *single* named method has a natural delegate type (C# 10+), so it evaluates as a value and takes the
         // delegate-value path. An *overloaded* method group has no natural type, so it can only be coerced by
         // casting it to the delegate each candidate expects — the engine's method-group path, which builds the
-        // cast (InspectorPatcher.BuildCastDelegate / BuildParameterList / ParameterText / DelegateTypeText).
+        // cast (ConnectorPatcher.BuildCastDelegate / BuildParameterList / ParameterText / DelegateTypeText).
         var ct = TestContext.Current.CancellationToken;
         try
         {
@@ -454,13 +454,13 @@ public class InspectorEngineTests : IClassFixture<InspectorEngineTests.EngineFix
 
         Assert.NotEmpty(paths);
         Assert.Contains(typeof(object).Assembly.Location, paths);
-        Assert.Contains(typeof(InspectorEngineTests).Assembly.Location, paths);
+        Assert.Contains(typeof(ConnectorEngineTests).Assembly.Location, paths);
         Assert.All(paths, p => Assert.True(File.Exists(p), $"Reported reference path does not exist: '{p}'"));
     }
 }
 
 /// <summary>
-/// Mutable static state in the test assembly for <see cref="InspectorEngineTests"/> submissions to bind to —
+/// Mutable static state in the test assembly for <see cref="ConnectorEngineTests"/> submissions to bind to —
 /// the in-process stand-in for the hooked target's <c>Program.WriteProbe</c>-style statics.
 /// </summary>
 public static class EngineTestProbe

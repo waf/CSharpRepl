@@ -20,7 +20,7 @@ using Xunit;
 namespace CSharpRepl.Tests;
 
 /// <summary>
-/// Integration tests for the inspector's wire layer over the real OS transport (a named pipe on Windows, a
+/// Integration tests for the connector's wire layer over the real OS transport (a named pipe on Windows, a
 /// Unix domain socket elsewhere): listener/client connection with the production security options,
 /// length-prefixed polymorphic JSON framing, write serialization, reconnect after a controller leaves, and
 /// the defensive handling of torn/oversized/malformed frames from a buggy or hostile peer.
@@ -28,7 +28,7 @@ namespace CSharpRepl.Tests;
 /// The Windows pipe is created with zero-byte buffers, so a write rendezvouses with the peer's read; like the
 /// production server/controller loops, these tests always have the read pending while the write is in flight.
 /// </summary>
-public class InspectorTransportTests
+public class ConnectorTransportTests
 {
     // Each test gets its own endpoint: pipe/socket names are keyed by "process id", so derive unique fake ids
     // from this process's real pid to avoid colliding with concurrent tests or a genuinely hooked process.
@@ -39,7 +39,7 @@ public class InspectorTransportTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var processId = FakeProcessId(1);
-        using var listener = new InspectorTransportListener(processId);
+        using var listener = new ConnectorTransportListener(processId);
 
         var (clientStream, serverStream) = await ConnectPairAsync(listener, processId, cancellationToken);
         await using (clientStream)
@@ -53,7 +53,7 @@ public class InspectorTransportTests
             {
                 ProcessId = processId,
                 ProcessName = "transport-test",
-                ProtocolVersion = InspectorTransport.ProtocolVersion,
+                ProtocolVersion = ConnectorTransport.ProtocolVersion,
                 AssemblyAvailability = TargetAssemblyAvailability.FrameworkDependentSingleFile,
                 SessionId = "session-1",
             }, cancellationToken));
@@ -140,7 +140,7 @@ public class InspectorTransportTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var processId = FakeProcessId(2);
-        using var listener = new InspectorTransportListener(processId);
+        using var listener = new ConnectorTransportListener(processId);
 
         // Torn frame: the header promises 16 bytes but the peer vanishes after 4 — never silently truncated.
         {
@@ -198,9 +198,9 @@ public class InspectorTransportTests
     }
 
     [Fact(Timeout = 60_000)]
-    public async Task Connect_TimesOut_WhenNoInspectorIsListening()
+    public async Task Connect_TimesOut_WhenNoConnectorIsListening()
     {
-        var exception = await Record.ExceptionAsync(() => InspectorTransport.ConnectAsync(
+        var exception = await Record.ExceptionAsync(() => ConnectorTransport.ConnectAsync(
             FakeProcessId(3), TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken));
 
         // TimeoutException from the Windows named pipe; SocketException once the Unix retry deadline elapses.
@@ -218,10 +218,10 @@ public class InspectorTransportTests
     }
 
     private static async Task<(Stream Client, Stream Server)> ConnectPairAsync(
-        InspectorTransportListener listener, int processId, CancellationToken cancellationToken)
+        ConnectorTransportListener listener, int processId, CancellationToken cancellationToken)
     {
         var acceptTask = listener.AcceptAsync(cancellationToken);
-        var client = await InspectorTransport.ConnectAsync(processId, TimeSpan.FromSeconds(30), cancellationToken);
+        var client = await ConnectorTransport.ConnectAsync(processId, TimeSpan.FromSeconds(30), cancellationToken);
         return (client, await acceptTask);
     }
 }

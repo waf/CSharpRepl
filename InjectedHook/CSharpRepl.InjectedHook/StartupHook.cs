@@ -33,7 +33,7 @@ internal static class StartupHook
 
             AssemblyLoadContext.Default.Resolving += (context, name) =>
             {
-                // Scoped to inspector assemblies so we can't accidentally shadow the target's own resolution.
+                // Scoped to connector assemblies so we can't accidentally shadow the target's own resolution.
                 if (name.Name is null || !name.Name.StartsWith("CSharpRepl.InjectedHook", StringComparison.Ordinal))
                 {
                     return null;
@@ -48,7 +48,7 @@ internal static class StartupHook
         }
         catch
         {
-            // The host must keep running even if the inspector fails to start. Swallow everything.
+            // The host must keep running even if the connector fails to start. Swallow everything.
         }
     }
 
@@ -60,6 +60,6 @@ internal static class StartupHook
         CSharpRepl.InjectedHook.HostCapture.Install();
 
         var engine = CSharpRepl.InjectedHook.EngineHost.Load(bootstrapDirectory);
-        CSharpRepl.InjectedHook.InspectorServer.StartInBackground(engine);
+        CSharpRepl.InjectedHook.ConnectorServer.StartInBackground(engine);
     }
 }

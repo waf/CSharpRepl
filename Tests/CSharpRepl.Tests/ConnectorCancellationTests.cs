@@ -19,12 +19,12 @@ namespace CSharpRepl.Tests;
 /// a sleeping/CPU-bound submission isn't actually interrupted; the point under test is that the channel does
 /// not desync and a subsequent evaluation still works.
 /// </summary>
-public class InspectorCancellationTests
+public class ConnectorCancellationTests
 {
     [Fact(Timeout = 120_000)]
     public async Task Cancelling_AnInFlightEval_KeepsTheChannelInSyncAndTheSessionAlive()
     {
-        using var process = InspectorTestSupport.StartHookedTarget();
+        using var process = ConnectorTestSupport.StartHookedTarget();
         var stdoutTask = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
         var stderrTask = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
 

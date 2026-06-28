@@ -81,15 +81,15 @@ public sealed partial class RoslynServices
     // classification) of the per-keystroke pipeline. Null until Initialization completes.
     internal Document? CurrentDocumentForProfiling => workspaceManager?.CurrentDocument;
 
-    // In inspect mode this seeds the editor services with the target's references + the inspector globals, so
+    // In connect mode this seeds the editor services with the target's references + the connector globals, so
     // completion/highlighting are target-aware. Null for a normal local REPL session.
     private readonly RemoteEditorContext? remoteEditor;
 
     /// <summary>
-    /// True when this is an inspect-mode session (editor services target a remote process). Used to offer the
-    /// inspect-only commands (#replace/#wrap/#patches/#revert) in completion only when they're applicable.
+    /// True when this is a connect-mode session (editor services target a remote process). Used to offer the
+    /// connect-only commands (#replace/#wrap/#patches/#revert) in completion only when they're applicable.
     /// </summary>
-    public bool IsInspectMode => remoteEditor is not null;
+    public bool IsConnectMode => remoteEditor is not null;
 
     public RoslynServices(IConsoleService console, Configuration config, ITraceLogger logger, RemoteEditorContext? remoteEditor = null)
     {
@@ -109,8 +109,8 @@ public sealed partial class RoslynServices
 
             this.referenceService = new AssemblyReferenceService(config, parseOptions, logger);
 
-            // Inspect mode: fold the target's loaded-assembly paths into the reference set so the editor
-            // workspace sees the target's own types (and the inspector globals' Contracts assembly), on top of
+            // Connect mode: fold the target's loaded-assembly paths into the reference set so the editor
+            // workspace sees the target's own types (and the connector globals' Contracts assembly), on top of
             // the local framework references. EnsureReferenceAssemblyWithDocumentation maps the target's
             // framework implementation assemblies to the local reference assemblies and passes the app's own
             // assemblies through, which is exactly the reference set we want for completion/highlighting.
@@ -134,8 +134,8 @@ public sealed partial class RoslynServices
 
             // the script runner is used to actually execute the scripts, and the workspace manager
             // is updated alongside. The workspace is a datamodel used in "editor services" like
-            // syntax highlighting, autocompletion, and roslyn symbol queries. In inspect mode the host object
-            // type is the inspector globals, so `services`/`Get<T>()` resolve in the editor (the engine in the
+            // syntax highlighting, autocompletion, and roslyn symbol queries. In connect mode the host object
+            // type is the connector globals, so `services`/`Get<T>()` resolve in the editor (the engine in the
             // target — not this ScriptRunner — performs the actual evaluation).
             this.workspaceManager = new WorkspaceManager(compilationOptions, referenceService, logger, hostObjectType: remoteGlobalsType, hostServices: remoteEditor?.EditorHostServices);
             this.scriptRunner = new ScriptRunner(workspaceManager, parseOptions, compilationOptions, referenceService, console, config, globalsType: remoteGlobalsType);
@@ -190,14 +190,14 @@ public sealed partial class RoslynServices
     private RemoteValueRenderer? remoteValueRenderer;
 
     /// <summary>
-    /// Renders a <see cref="RemoteValue"/> produced by an inspector session (in a target process) using the
+    /// Renders a <see cref="RemoteValue"/> produced by a connector session (in a target process) using the
     /// user's theme. Unlike <see cref="PrettyPrintAsync(object?, Level)"/> this needs no live object and no
     /// Roslyn initialization — only the theme/highlighter, which is ready as soon as the service is constructed.
     /// </summary>
     public IRenderable RenderRemoteValue(RemoteValue value, Level level) =>
         (remoteValueRenderer ??= new RemoteValueRenderer(highlighter)).Render(value, level);
 
-    /// <summary>Plain-text analogue of <see cref="RenderRemoteValue"/> for non-interactive inspect output.</summary>
+    /// <summary>Plain-text analogue of <see cref="RenderRemoteValue"/> for non-interactive connect output.</summary>
     public string RenderRemoteValueToPlainText(RemoteValue value, Level level) =>
         (remoteValueRenderer ??= new RemoteValueRenderer(highlighter)).RenderToPlainText(value, level);
 

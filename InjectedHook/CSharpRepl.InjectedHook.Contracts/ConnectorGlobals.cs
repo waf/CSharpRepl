@@ -11,15 +11,15 @@ namespace CSharpRepl.InjectedHook.Contracts;
 /// identifiers inside every submission (exactly like the local REPL's ScriptGlobals), so a user can write
 /// services.GetRequiredService&lt;T&gt;() or Get&lt;T&gt;() directly.
 /// </summary>
-public sealed class InspectorGlobals
+public sealed class ConnectorGlobals
 {
     /// <summary>The target's captured root service provider (null when no provider was captured).</summary>
-    public IServiceProvider? services => InspectorRoots.Services;
+    public IServiceProvider? services => ConnectorRoots.Services;
 
     /// <summary>Convenience: resolve a required service from the captured provider.</summary>
     public T Get<T>() where T : notnull
     {
-        var provider = InspectorRoots.Services
+        var provider = ConnectorRoots.Services
             ?? throw new InvalidOperationException("No service provider was captured from the target process.");
         var service = provider.GetService(typeof(T))
             ?? throw new InvalidOperationException($"No service of type {typeof(T)} is registered in the target.");
@@ -36,7 +36,7 @@ public sealed class InspectorGlobals
 ///   DiagnosticListener's HostBuilt event (Generic Host + WebApplication.CreateBuilder ASP.NET Core);
 ///   otherwise it stays null and only statics/framework code are reachable.
 /// </summary>
-public static class InspectorRoots
+public static class ConnectorRoots
 {
     /// <summary>The target's captured root service provider, or null if none was captured.</summary>
     public static IServiceProvider? Services;
