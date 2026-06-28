@@ -111,12 +111,27 @@ internal sealed class DotNetInstallationLocator
 
         var referenceAssemblyPath = io.Directory
             .GetDirectories(referenceAssemblyRoot, "net*" + version.Major + "." + version.Minor + "*", SearchOption.AllDirectories)
-            .OrderBy(path => path)
+            // Order by the parsed framework version, not lexicographically: a plain string sort puts "10.0.10"
+            // before "10.0.9", so LastOrDefault() would pick the lower patch. Mirrors GetGlobalImplementationAssemblyPath.
+            .OrderBy(path => ParseReferenceAssemblyVersion(path))
+            .ThenBy(path => path + ".") // trick to get e.g. 6.0 to come after 6.0-preview
             .LastOrDefault();
 
         if (referenceAssemblyPath is null) return null;
 
         return Path.GetFullPath(referenceAssemblyPath);
+    }
+
+    /// <summary>
+    /// Extracts the framework version from a reference-assembly path like
+    /// C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref\10.0.10\ref\net10.0
+    /// two levels above the target-framework leaf, which holds for both the global packs and the NuGet ".ref" package layouts.
+    /// </summary>
+    private static Version ParseReferenceAssemblyVersion(string targetFrameworkPath)
+    {
+        var versionDirectory = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(targetFrameworkPath)));
+        // discard any trailing preview suffix, e.g. 6.0.0-preview.4.21253.7, mirroring SharedFramework.ToDotNetVersion.
+        return Version.TryParse(versionDirectory?.Split('-', 2)[0], out var parsed) ? parsed : new Version(0, 0, 0, 0);
     }
 
     /// <summary>

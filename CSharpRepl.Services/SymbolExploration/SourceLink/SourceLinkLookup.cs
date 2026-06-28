@@ -67,7 +67,14 @@ internal sealed class SourceLinkLookup
         {
             var cdi = symbolReader.GetCustomDebugInformation(cdih);
             if (symbolReader.GetGuid(cdi.Kind) == SourceLinkId)
+            {
                 blobh = cdi.Value;
+            }
+        }
+
+        if (blobh.IsNil)
+        {
+            return null;
         }
 
         var utf8JsonBytes = symbolReader.GetBlobBytes(blobh);

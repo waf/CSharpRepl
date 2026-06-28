@@ -306,5 +306,5 @@ internal static class ExitCodes
     public const int ErrorParseArguments = 1;
     public const int ErrorAnsiEscapeSequencesNotSupported = 2;
     public const int ErrorInvalidConsoleHandle = 3;
-    public const int ErrorCancelled = 3;
+    public const int ErrorCancelled = 4;
 }
