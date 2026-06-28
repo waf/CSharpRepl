@@ -116,6 +116,65 @@ public class CompletionTests : IAsyncLifetime, IClassFixture<RoslynServicesFixtu
     }
 
     /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/97
+    /// A conversion ("cast") completion is a complex text edit: committing <c>(byte)</c> on <c>i.</c> must
+    /// rewrite the expression to <c>((byte)i)</c>, not append the display text after the dot (<c>i.byte</c>).
+    /// We assert the Roslyn-computed edit, applied to the source, produces the cast.
+    /// </summary>
+    [Fact]
+    public async Task Complete_CastCompletion_RewritesExpressionWithCast()
+    {
+        const string code = "int i;\ni.";
+        var caret = code.Length;
+        var completions = await this.services.CompleteAsync(code, caret, TestContext.Current.CancellationToken);
+
+        var castItem = completions.SingleOrDefault(c =>
+            c.Item.IsComplexTextEdit &&
+            c.Item.DisplayTextPrefix + c.Item.DisplayText + c.Item.DisplayTextSuffix == "(byte)");
+        Assert.NotNull(castItem);
+
+        // The PrettyPrompt completion item we hand to the prompt must carry the complex edit (this is what
+        // CompletionPane.InsertCompletion uses on commit), and that edit must produce the cast.
+        var promptItem = promptCallbacks.CreatePrettyPromptCompletionItem(castItem);
+        Assert.True(promptItem.HasComplexTextEdit);
+        var edit = await promptItem.GetComplexTextEditAsync(code, caret, TestContext.Current.CancellationToken);
+
+        var rewritten = code
+            .Remove(edit.SpanToReplace.Start, edit.SpanToReplace.Length)
+            .Insert(edit.SpanToReplace.Start, edit.NewText);
+
+        Assert.Equal("int i;\n((byte)i)", rewritten);
+        Assert.DoesNotContain("i.byte", rewritten);
+    }
+
+    /// <summary>
+    /// https://github.com/waf/CSharpRepl/issues/97
+    /// Faithful reproduction of the live flow: the completion menu opens at <c>i.</c> (so the Roslyn item, and
+    /// the span its change replaces, are computed there), but the user then types filter characters (<c>i.by</c>
+    /// to narrow to <c>(byte)</c>) before committing. PrettyPrompt filters client-side without re-querying, so
+    /// the edit must still consume the typed <c>by</c> and produce <c>((byte)i)</c>, not <c>((byte)i)by</c>.
+    /// </summary>
+    [Fact]
+    public async Task Complete_CastCompletion_CommittedAfterTypingFilter_ConsumesTypedText()
+    {
+        const string opened = "int i;\ni.";
+        var items = await this.services.CompleteAsync(opened, opened.Length, TestContext.Current.CancellationToken);
+        var castItem = items.Single(c =>
+            c.Item.IsComplexTextEdit &&
+            c.Item.DisplayTextPrefix + c.Item.DisplayText + c.Item.DisplayTextSuffix == "(byte)");
+
+        // The stale item is committed against the longer (filtered) commit-time document.
+        const string atCommit = "int i;\ni.by";
+        var edit = await this.services.GetCompletionChangeAsync(atCommit, atCommit.Length, castItem.Item, TestContext.Current.CancellationToken);
+
+        var rewritten = atCommit
+            .Remove(edit.SpanToReplace.Start, edit.SpanToReplace.Length)
+            .Insert(edit.SpanToReplace.Start, edit.NewText);
+
+        Assert.Equal("int i;\n((byte)i)", rewritten);
+    }
+
+    /// <summary>
     /// https://github.com/waf/CSharpRepl/issues/65
     /// </summary>
     [Fact]

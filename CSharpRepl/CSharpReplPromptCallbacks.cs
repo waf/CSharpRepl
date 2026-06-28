@@ -156,7 +156,10 @@ internal class CSharpReplPromptCallbacks(IConsoleService console, RoslynServices
                 displayText: r.DisplayText,
                 getExtendedDescription: r.GetDescriptionAsync,
                 filterText: r.Item.FilterText,
-                commitCharacterRules: MergeCommitRules(r.Item.Rules.CommitCharacterRules, commitKeybinding));
+                commitCharacterRules: MergeCommitRules(r.Item.Rules.CommitCharacterRules, commitKeybinding),
+                getComplexTextEdit: r.Item.IsComplexTextEdit
+                    ? (text, caret, cancellationToken) => roslyn.GetCompletionChangeAsync(text, caret, r.Item, cancellationToken)
+                    : null);
     }
 
     private static CharacterSetModificationRule CreateCommitRuleForUserKeybinding(in KeyPressPatterns commitCompletion)

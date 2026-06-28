@@ -37,7 +37,7 @@
     <PackageVersion Include="NuGet.ProjectModel" Version="7.6.0" />
     <PackageVersion Include="NuGet.Protocol" Version="7.6.0" />
     <PackageVersion Include="NuGet.Versioning" Version="7.6.0" />
-    <PackageVersion Include="PrettyPrompt" Version="6.0.3" />
+    <PackageVersion Include="PrettyPrompt" Version="6.0.4" />
     <PackageVersion Include="Spectre.Console.Ansi" Version="0.57.1" />
     <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.57.1" />

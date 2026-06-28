@@ -9,13 +9,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Extensions;
 using CSharpRepl.Services.SyntaxHighlighting;
-using CSharpRepl.Services.Theming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.Extensions.Caching.Memory;
 using PrettyPrompt.Highlighting;
-
+using CompletionEdit = PrettyPrompt.Completion.CompletionEdit;
 using PrettyPromptCompletionItem = PrettyPrompt.Completion.CompletionItem;
+using PrettyPromptTextSpan = PrettyPrompt.Documents.TextSpan;
 
 namespace CSharpRepl.Services.Completion;
 
@@ -83,6 +83,31 @@ internal sealed class AutoCompleteService
             }
             return text;
         }
+    }
+
+    /// <summary>
+    /// Resolves the actual document edit Roslyn wants to apply when <paramref name="item"/> is committed. Most items are simple insertions but
+    /// "complex" items, like a conversion/cast completion that rewrites `i.` into `((byte)i)`, replace a larger region than the typed word and
+    /// reposition the caret.
+    /// </summary>
+    public async Task<CompletionEdit> GetChangeAsync(Document document, int caret, CompletionItem item, CancellationToken cancellationToken)
+    {
+        var completionService = CompletionService.GetService(document);
+        if (completionService is null)
+        {
+            return new CompletionEdit(new PrettyPromptTextSpan(0, 0), item.DisplayText);
+        }
+
+        var change = await completionService.GetChangeAsync(document, item, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var changeSpan = change.TextChange.Span;
+
+        // The item can be stale: the completion menu opens at `i.`, but the user then types filter characters (`i.by` to narrow to `(byte)`) before committing.
+        var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var wordSpan = completionService.GetDefaultCompletionListSpan(sourceText, caret);
+        var start = Math.Min(changeSpan.Start, wordSpan.Start);
+        var end = Math.Max(changeSpan.End, wordSpan.End);
+
+        return new CompletionEdit(PrettyPromptTextSpan.FromBounds(start, end), change.TextChange.NewText ?? string.Empty, change.NewPosition);
     }
 
     private static async Task<FormattedString> GetExtendedDescriptionAsync(CompletionService completionService, Document document, CompletionItem item, SyntaxHighlighter highlighter)
