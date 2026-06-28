@@ -174,7 +174,7 @@ public sealed class Configuration
         }
         else
         {
-            Console.Error.WriteLine($"{AnsiColor.Red.GetEscapeSequence()}Unable to parse '{prompt}' markup. Defaut prompt '{PromptDefault}' will be used.{AnsiEscapeCodes.Reset}");
+            Console.Error.WriteLine($"{AnsiColor.Red.GetEscapeSequence()}Unable to parse '{promptMarkup}' markup. Default prompt '{PromptDefault}' will be used.{AnsiEscapeCodes.Reset}");
             Prompt = PromptDefault;
         }
 

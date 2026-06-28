@@ -54,7 +54,7 @@ public readonly struct StyledString
     }
 
     public char FirstChar => parts[0].Text[0];
-    public char LastChar => parts[^1].Text[0];
+    public char LastChar => parts[^1].Text[^1];
 
     /// <summary>
     /// <inheritdoc cref="string.Substring(int, int)"/>
