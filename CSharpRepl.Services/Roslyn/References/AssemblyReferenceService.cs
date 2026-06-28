@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -31,11 +32,12 @@ internal sealed class AssemblyReferenceService
     private readonly DotNetInstallationLocator dotnetInstallationLocator;
     private readonly ConcurrentDictionary<string, SharedFramework> sharedFrameworksByReferencePath;
     private readonly ConcurrentDictionary<string, MetadataReference> cachedMetadataReferences;
-    private readonly HashSet<MetadataReference> loadedReferenceAssemblies;
-    private readonly HashSet<MetadataReference> loadedImplementationAssemblies;
-    private readonly HashSet<string> referenceAssemblyPaths;
-    private readonly HashSet<string> implementationAssemblyPaths;
-    private readonly HashSet<string> sharedFrameworkImplementationAssemblyPaths;
+
+    private ImmutableHashSet<MetadataReference> loadedReferenceAssemblies = ImmutableHashSet.Create<MetadataReference>(new AssemblyReferenceComparer());
+    private ImmutableHashSet<MetadataReference> loadedImplementationAssemblies = ImmutableHashSet.Create<MetadataReference>(new AssemblyReferenceComparer());
+    private ImmutableHashSet<string> referenceAssemblyPaths = ImmutableHashSet<string>.Empty;
+    private ImmutableHashSet<string> implementationAssemblyPaths = ImmutableHashSet<string>.Empty;
+    private ImmutableHashSet<string> sharedFrameworkImplementationAssemblyPaths = ImmutableHashSet<string>.Empty;
     private readonly HashSet<UsingDirectiveSyntax> usings;
     private readonly CSharpParseOptions parseOptions;
     private readonly ITraceLogger logger;
@@ -55,13 +57,8 @@ internal sealed class AssemblyReferenceService
         this.parseOptions = parseOptions;
         this.logger = logger;
         this.dotnetInstallationLocator = new DotNetInstallationLocator(logger);
-        this.referenceAssemblyPaths = [];
-        this.implementationAssemblyPaths = [];
-        this.sharedFrameworkImplementationAssemblyPaths = [];
         this.sharedFrameworksByReferencePath = new();
         this.cachedMetadataReferences = new();
-        this.loadedReferenceAssemblies = new(new AssemblyReferenceComparer());
-        this.loadedImplementationAssemblies = new(new AssemblyReferenceComparer());
 
         this.usings = new[] {
                     "System", "System.IO", "System.Collections.Generic",
@@ -126,11 +123,12 @@ internal sealed class AssemblyReferenceService
 
     internal IReadOnlyCollection<MetadataReference> EnsureReferenceAssemblyWithDocumentation(IReadOnlyCollection<MetadataReference> references)
     {
-        loadedReferenceAssemblies.UnionWith(
-            references.Select(suppliedReference => EnsureReferenceAssembly(suppliedReference)).WhereNotNull()
-        );
+        // Materialize first: ImmutableInterlocked.Update re-invokes the transformer on contention, so the added items
+        // must be a stable collection (not a lazy query that would re-run EnsureReferenceAssembly's file I/O each retry).
+        var resolved = references.Select(suppliedReference => EnsureReferenceAssembly(suppliedReference)).WhereNotNull().ToArray();
+        ImmutableInterlocked.Update(ref loadedReferenceAssemblies, static (set, toAdd) => set.Union(toAdd), resolved);
         // loadedReferenceAssemblies accumulates across submissions and is deduplicated only by path, so it can hold
-        // several versions of the same assembly. Unify before handing the set to the workspace/compilation.
+        // several versions of the same assembly. Unify (against the immutable snapshot) before handing it to the workspace/compilation.
         return RemoveDuplicateReferences(loadedReferenceAssemblies);
     }
 
@@ -276,8 +274,13 @@ internal sealed class AssemblyReferenceService
             return cachedReference;
         }
 
+        // Read the immutable sets once into locals so all checks below see a consistent snapshot even if another
+        // thread (e.g. background initialization) swaps in an additional framework concurrently.
+        var referenceAssemblyPathsSnapshot = referenceAssemblyPaths;
+        var sharedFrameworkImplementationAssemblyPathsSnapshot = sharedFrameworkImplementationAssemblyPaths;
+
         // it's already a reference assembly, just cache it and use it.
-        if (referenceAssemblyPaths.Any(path => suppliedAssemblyPath.StartsWith(path)))
+        if (referenceAssemblyPathsSnapshot.Any(path => suppliedAssemblyPath.StartsWith(path)))
         {
             cachedMetadataReferences[suppliedAssemblyPath] = reference;
             return reference;
@@ -287,12 +290,12 @@ internal sealed class AssemblyReferenceService
 
         var suppliedAssemblyFileName = Path.GetFileName(suppliedAssemblyPath);
         var suppliedAssemblyName = AssemblyName.GetAssemblyName(suppliedAssemblyPath).ToString();
-        var assembly = referenceAssemblyPaths
+        var assembly = referenceAssemblyPathsSnapshot
             .Select(path => Path.Combine(path, suppliedAssemblyFileName))
             .FirstOrDefault(potentialReferencePath => File.Exists(potentialReferencePath) && AssemblyName.GetAssemblyName(potentialReferencePath).ToString() == suppliedAssemblyName)
             ?? suppliedAssemblyPath;
 
-        if (sharedFrameworkImplementationAssemblyPaths.Any(path => assembly.StartsWith(path)))
+        if (sharedFrameworkImplementationAssemblyPathsSnapshot.Any(path => assembly.StartsWith(path)))
         {
             return null;
         }
@@ -316,12 +319,14 @@ internal sealed class AssemblyReferenceService
 
     internal void AddImplementationAssemblyReferences(IEnumerable<MetadataReference> references)
     {
-        var paths = references
+        var referenceList = references as IReadOnlyCollection<MetadataReference> ?? references.ToArray();
+        var paths = referenceList
             .Select(r => Path.GetDirectoryName(r.Display) ?? r.Display) // GetDirectoryName returns null when at root directory
-            .WhereNotNull();
+            .WhereNotNull()
+            .ToArray(); // materialize: the Update transformer below may re-enumerate this on contention
 
-        this.implementationAssemblyPaths.UnionWith(paths);
-        this.loadedImplementationAssemblies.UnionWith(references);
+        ImmutableInterlocked.Update(ref implementationAssemblyPaths, static (set, toAdd) => set.Union(toAdd), paths);
+        ImmutableInterlocked.Update(ref loadedImplementationAssemblies, static (set, toAdd) => set.Union(toAdd), referenceList);
     }
 
     public void LoadSharedFrameworkConfiguration(string framework, Version version)
@@ -332,15 +337,21 @@ internal sealed class AssemblyReferenceService
 
     public void LoadSharedFrameworkConfiguration(SharedFramework[] sharedFrameworks)
     {
-        this.referenceAssemblyPaths.UnionWith(sharedFrameworks.Select(framework => framework.ReferencePath));
-        this.implementationAssemblyPaths.UnionWith(sharedFrameworks.Select(framework => framework.ImplementationPath));
-        this.sharedFrameworkImplementationAssemblyPaths.UnionWith(sharedFrameworks.Select(framework => framework.ImplementationPath));
-        this.loadedReferenceAssemblies.UnionWith(sharedFrameworks.SelectMany(framework => framework.ReferenceAssemblies));
-        this.loadedImplementationAssemblies.UnionWith(sharedFrameworks.SelectMany(framework => framework.ImplementationAssemblies));
+        // Materialize the projections up front: ImmutableInterlocked.Update may re-invoke its transformer on contention.
+        var referencePaths = sharedFrameworks.Select(framework => framework.ReferencePath).ToArray();
+        var implementationPaths = sharedFrameworks.Select(framework => framework.ImplementationPath).ToArray();
+        var referenceAssemblies = sharedFrameworks.SelectMany(framework => framework.ReferenceAssemblies).ToArray();
+        var implementationAssemblies = sharedFrameworks.SelectMany(framework => framework.ImplementationAssemblies).ToArray();
+
+        ImmutableInterlocked.Update(ref referenceAssemblyPaths, static (set, toAdd) => set.Union(toAdd), referencePaths);
+        ImmutableInterlocked.Update(ref implementationAssemblyPaths, static (set, toAdd) => set.Union(toAdd), implementationPaths);
+        ImmutableInterlocked.Update(ref sharedFrameworkImplementationAssemblyPaths, static (set, toAdd) => set.Union(toAdd), implementationPaths);
+        ImmutableInterlocked.Update(ref loadedReferenceAssemblies, static (set, toAdd) => set.Union(toAdd), referenceAssemblies);
+        ImmutableInterlocked.Update(ref loadedImplementationAssemblies, static (set, toAdd) => set.Union(toAdd), implementationAssemblies);
 
         // make the framework reference assemblies findable by path, so EnsureReferenceAssembly reuses
         // them instead of loading a second copy when it maps an implementation assembly to its reference assembly.
-        foreach (var reference in sharedFrameworks.SelectMany(framework => framework.ReferenceAssemblies))
+        foreach (var reference in referenceAssemblies)
         {
             if (reference.Display is not null)
             {
