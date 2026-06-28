@@ -82,6 +82,38 @@ public class DotNetInstallationLocatorTest
     }
 
     [Fact]
+    public void GetSharedFrameworkConfiguration_MultipleDoubleDigitPatches_PicksHighestVersion()
+    {
+        // "10.0.10" sorts *before* "10.0.9" lexicographically, so a plain string sort over the paths would wrongly
+        // pick the lower patch 10.0.9. Both the reference and implementation paths must select 10.0.10.
+        var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/Microsoft.CSharp.dll", string.Empty },
+                { @"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.10/ref/net10.0/Microsoft.CSharp.dll", string.Empty },
+
+                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/10.0.9/Microsoft.CSharp.dll", string.Empty },
+                { @"/Program Files/dotnet/shared/Microsoft.NETCore.App/10.0.10/Microsoft.CSharp.dll", string.Empty }
+            });
+
+        var locator = new DotNetInstallationLocator(
+            logger: new TestTraceLogger(), io: fileSystem,
+            dotnetRuntimePath: @"/Program Files/dotnet/",
+            userProfilePath: @"/Users/bob/"
+        );
+
+        var (refPath, implPath) = locator.FindInstallation("Microsoft.NETCore.App", new Version(10, 0, 9));
+
+        Assert.Equal(
+            CrossPlatform(@"/Program Files/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.10/ref/net10.0"),
+            CrossPlatform(refPath)
+        );
+        Assert.Equal(
+            CrossPlatform(@"/Program Files/dotnet/shared/Microsoft.NETCore.App/10.0.10"),
+            CrossPlatform(implPath)
+        );
+    }
+
+    [Fact]
     public void GetSharedFrameworkConfiguration_Net10UsesNuGetWhenNotInstalledGlobally()
     {
         string platform = OperatingSystem.IsWindows() ? "win"
