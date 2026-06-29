@@ -167,18 +167,18 @@
 			</div>
 		</section>
 
-		<!-- 7 · Inspect a running process (hand-built terminal) -->
+		<!-- 7 · Connect to a running process (hand-built terminal) -->
 		<section class="feature feature--wide">
 			<div class="container">
 				<div class="feature-copy">
-					<p class="eyebrow"><span class="k">csharprepl inspect</span> <span class="a">&lt;pid&gt;</span></p>
+					<p class="eyebrow"><span class="k">csharprepl connect</span> <span class="a">&lt;pid&gt;</span></p>
 					<h2>Attach and modify a running process</h2>
 					<p>Beyond its own process, csharprepl can attach to another .NET 10 app and evaluate C# <em>inside</em> it, reading and writing live statics and DI-resolved services, with the same interactivity as the normal REPL. Use <span class="inline">#replace</span> or <span class="inline">#wrap</span> to modify method implementations.</p>
-                    <p class="note">A real Roslyn engine is injected via the .NET runtime's startup-hook support; the target opts in by setting a few environment variables. Development and diagnostics only! Never enable the inspector on a production process.</p>
+                    <p class="note">A real Roslyn engine is injected via the .NET runtime's startup-hook support; the target opts in by setting a few environment variables. Development and diagnostics only! Never connect to a production process.</p>
 				</div>
 				<div class="feature-media">
 					<figure class="panel shot">
-						<img src="images/screenshots/inspect-process.png" alt="csharprepl attached to a running ASP.NET app, reading live configuration and DI-resolved services from inside the process, alongside the target app's console." loading="lazy">
+						<img src="images/screenshots/inspect-process.png" alt="csharprepl connected to a running ASP.NET Core app, reading live configuration and DI-resolved services from inside the process, alongside the target app's console." loading="lazy">
 					</figure>
 				</div>
 			</div>
