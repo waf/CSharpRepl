@@ -65,7 +65,7 @@ internal static class ConnectorTestSupport
 
         // DotnetBuilder doesn't pass a configuration, so it always produces the Debug apphost (matching the
         // other on-demand-built fixtures, e.g. DemoProject3).
-        var executable = Path.Combine(projectDirectory, "bin", "Debug", "net10.0",
+        var executable = Path.Combine(projectDirectory, "bin", "Debug", "net11.0",
             OperatingSystem.IsWindows() ? TestTargetName + ".exe" : TestTargetName);
         Assert.True(File.Exists(executable), $"Built connector test target not found at '{executable}'.");
         return executable;

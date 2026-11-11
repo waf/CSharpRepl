@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
@@ -66,6 +66,11 @@
     <PackageReference Include="NuGet.ProjectModel" PrivateAssets="all" />
     <PackageReference Include="NuGet.Protocol" PrivateAssets="all" />
     <PackageReference Include="NuGet.Versioning" PrivateAssets="all" />
+    <!--
+      NuGet.Packaging pulls in System.Security.Cryptography.Pkcs 8.0.1, which has known vulnerabilities (NU1902/NU1903)
+      and, unlike the NuGet.* dlls, does ship in our output (it isn't in the shared framework). Pin it to a patched version.
+    -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
 
   <ItemGroup>

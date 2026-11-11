@@ -8,7 +8,7 @@
     EngineALC, so the engine is a ReferenceOutputAssembly="false" dependency that we stage next to this DLL.
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
@@ -25,7 +25,7 @@
   -->
   <Target Name="StageEngine" AfterTargets="Build">
     <ItemGroup>
-      <EngineFiles Include="$(MSBuildProjectDirectory)\..\CSharpRepl.InjectedHook.ScriptEngine\bin\$(Configuration)\net10.0\**\*.*" />
+      <EngineFiles Include="$(MSBuildProjectDirectory)\..\CSharpRepl.InjectedHook.ScriptEngine\bin\$(Configuration)\net11.0\**\*.*" />
     </ItemGroup>
     <Copy SourceFiles="@(EngineFiles)" DestinationFiles="@(EngineFiles->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
