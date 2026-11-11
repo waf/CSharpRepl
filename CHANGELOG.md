@@ -1,6 +1,9 @@
-## Unreleased
+## Release 0.9.2
 
-- **Breaking:** the "inspect a running process" command has been renamed from `inspect` to `connect`, to avoid confusion with the `dotnet-inspect` tool. `csharprepl inspect <pid>`, `inspect init`, and `inspect list` are now `csharprepl connect <pid>`, `connect init`, and `connect list`. Relaunch your target with the env vars from the new `connect init` (the startup-hook payload moved from the `inspector/` directory to `connector/`).
+- **Breaking:** the "connect to a running process" command has been renamed from `inspect` to `connect`, to avoid confusion with the `dotnet-inspect` tool ([#505](https://github.com/waf/CSharpRepl/pull/505)).
+- Complex autocompletions, such as cast completions, are now supported. Completing `(byte)` on an integer `i.` rewrites the expression to `((byte)i)` ([#507](https://github.com/waf/CSharpRepl/pull/507)).
+- The `connect` command can now be used non-interactively (no TTY required), same as the local REPL's piped/`--eval` modes ([#504](https://github.com/waf/CSharpRepl/pull/504)).
+- Several minor cleanups/fixes from static analysis ([#506](https://github.com/waf/CSharpRepl/pull/506)):
 
 ## Release 0.9.1
 
