@@ -227,7 +227,7 @@ internal static class CommandLine
 
     private static readonly string ConnectUsage =
         "Usage: csharprepl connect <pid>                          connect to a running, connector-enabled process" + NewLine +
-        "       csharprepl connect list                           list the connector-enabled processes you ca connect to" + NewLine +
+        "       csharprepl connect list                           list the connector-enabled processes you can connect to" + NewLine +
         "       csharprepl connect init [--shell pwsh|bash|cmd]   print the env vars to launch your app with";
 
     public static Configuration Parse(string[] args, string configFilePath)
@@ -265,7 +265,7 @@ internal static class CommandLine
         {
             Options = { ConnectShell }
         };
-        var connectList = new Command("list", "List the running, connector-enabled processes you ca connect to.");
+        var connectList = new Command("list", "List the running, connector-enabled processes you can connect to.");
         var connect = new Command("connect", "Connect to and evaluate code in a running, connector-enabled .NET process.")
         {
             Arguments = { ConnectPid },
@@ -420,7 +420,7 @@ internal static class CommandLine
     }
 
     /// <summary>
-    /// Builds the `connect list` report: the connector-enabled processes the current user ca connect to.
+    /// Builds the `connect list` report: the connector-enabled processes the current user can connect to.
     /// The process name is read from the pid, which also drops a stale endpoint left behind by a crashed process.
     /// </summary>
     private static IRenderable BuildConnectListOutput()
@@ -689,7 +689,7 @@ internal static class CommandLine
             "      Connect to and evaluate code in a running, connector-enabled .NET process." + NewLine +
             "      The REPL [green][[OPTIONS]][/] above (e.g. [green]--theme[/]) also apply to the remote session." + NewLine +
             "  [green]connect list[/]:" + NewLine +
-            "      List the running, connector-enabled processes you ca connect to (with their process ids)." + NewLine +
+            "      List the running, connector-enabled processes you can connect to (with their process ids)." + NewLine +
             "  [green]connect init[/] [green][[--shell pwsh|powershell|cmd|bash|fish]][/]:" + NewLine +
             "      Print the environment variables to launch your app with so it can be connected." + NewLine +
             "      The shell is auto-detected from the parent process when [green]--shell[/] is omitted." + NewLine + NewLine +

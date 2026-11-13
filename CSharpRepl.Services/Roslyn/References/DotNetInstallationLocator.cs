@@ -124,7 +124,7 @@ internal sealed class DotNetInstallationLocator
 
     /// <summary>
     /// Extracts the framework version from a reference-assembly path like
-    /// C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref\10.0.10\ref\net10.0
+    /// C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref\11.0.10\ref\net11.0
     /// two levels above the target-framework leaf, which holds for both the global packs and the NuGet ".ref" package layouts.
     /// </summary>
     private static Version ParseReferenceAssemblyVersion(string targetFrameworkPath)

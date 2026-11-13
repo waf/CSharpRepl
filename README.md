@@ -23,7 +23,7 @@ C# REPL provides the following features:
 
 ## Installation
 
-C# REPL is a .NET 10 global tool, and runs on Windows, Mac OS, and Linux. It can be installed [from NuGet](https://www.nuget.org/packages/CSharpRepl) via:
+C# REPL is a .NET 11 global tool, and runs on Windows, Mac OS, and Linux. It can be installed [from NuGet](https://www.nuget.org/packages/CSharpRepl) via:
 
 ```console
 dotnet tool install -g csharprepl
@@ -191,7 +191,7 @@ Patches take effect immediately and persist in the target until reverted or the 
 
 **Requirements and limitations:**
 
-- `net10.0` targets only. The connector and the target must both be on .NET 10.
+- `net11.0` targets only. The connector and the target must both be on .NET 11.
 - Apps published as single-files have very limited functionality:
 	- A framework-dependent single-file app's assemblies are bundled with no metadata, so strongly-typed access to the app's own types is unavailable. You need to use reflection to access the app's types.
   - A self-contained single-file app is unsupported (even the runtime is bundled, so nothing can be compiled). The connector will refuse to start.

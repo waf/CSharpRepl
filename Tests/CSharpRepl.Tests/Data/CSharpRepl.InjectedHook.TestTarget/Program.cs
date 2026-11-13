@@ -15,7 +15,7 @@ namespace CSharpRepl.InjectedHook.TestTarget;
 /// <summary>
 /// An ordinary app with mutable static state. It knows nothing about the connector — the integration
 /// test injects the connector via DOTNET_STARTUP_HOOKS and reads/writes this live state across the process
-/// boundary. Stays alive for a bounded time so the test ca connect and evaluate; the test kills it when done.
+/// boundary. Stays alive for a bounded time so the test can connect and evaluate; the test kills it when done.
 /// It builds (but doesn't run) a Generic Host with a singleton so the tests can also prove the bootstrap's
 /// DI-root capture: building the host emits the hosting DiagnosticListener's HostBuilt event.
 /// </summary>

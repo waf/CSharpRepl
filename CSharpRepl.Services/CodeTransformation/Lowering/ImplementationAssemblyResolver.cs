@@ -33,6 +33,10 @@ internal sealed class ImplementationAssemblyResolver : IAssemblyResolver, IDispo
 
     public Task<MetadataFile?> ResolveModuleAsync(MetadataFile mainModule, string moduleName) => Task.FromResult(ResolveModule(mainModule, moduleName));
 
+    // ILSpy uses snapshots to scope resolution caching to a single decompilation; this resolver already caches for its
+    // whole lifetime (one lowering operation), so there's nothing extra to scope. Null means "no snapshot".
+    public IDisposable? BeginSnapshot() => null;
+
     private MetadataFile? Load(string fileName)
     {
         foreach (var directory in searchDirectories)

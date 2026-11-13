@@ -410,7 +410,7 @@ public class EvaluationTests : IAsyncLifetime
         var (buildExitCode, _) = builder.Build("./Data/DemoSolution/DemoSolution.DemoProject3");
         Assert.Equal(0, buildExitCode);
 
-        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoSolution/DemoSolution.DemoProject3/bin/Debug/net10.0/DemoSolution.DemoProject3.dll""", cancellationToken: TestContext.Current.CancellationToken);
+        var referenceResult = await services.EvaluateAsync(@"#r ""./Data/DemoSolution/DemoSolution.DemoProject3/bin/Debug/net11.0/DemoSolution.DemoProject3.dll""", cancellationToken: TestContext.Current.CancellationToken);
         var importResult = await services.EvaluateAsync(@"DemoSolution.DemoProject3.DemoClass3.GetSystemManagementPath()", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.IsType<EvaluationResult.Success>(referenceResult);

@@ -1,3 +1,7 @@
+## Release 0.9.3
+
+- .NET 11 upgrade. csharprepl now targets `net11.0`, so it requires the .NET 11 SDK; the `connect` feature requires the target app to run on .NET 11 too. NuGet dependencies are upgraded to match, including Roslyn 5.9, NuGet 8.0, and MSBuild 18.12.
+
 ## Release 0.9.2
 
 - **Breaking:** the "connect to a running process" command has been renamed from `inspect` to `connect`, to avoid confusion with the `dotnet-inspect` tool ([#505](https://github.com/waf/CSharpRepl/pull/505)).
