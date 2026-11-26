@@ -82,6 +82,13 @@
     <RuntimeIdentifiers>any;win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <PublishReadyToRun>true</PublishReadyToRun>
     <SelfContained>false</SelfContained>
+    <!--
+      Without an apphost the RID-specific packages declare Runner="dotnet" (EntryPoint=CSharpRepl.dll) instead of
+      Runner="executable". On Windows, the SDK installs executable tools behind a csharprepl.cmd batch shim, which
+      Windows Terminal profiles / wt.exe can't launch by bare name (and which prompts "Terminate batch job" on Ctrl+C).
+      Runner="dotnet" gets the classic csharprepl.exe shim. See https://github.com/waf/CSharpRepl/issues/528
+    -->
+    <UseAppHost>false</UseAppHost>
   </PropertyGroup>
 
   <!--

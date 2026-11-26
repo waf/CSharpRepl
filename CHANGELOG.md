@@ -1,6 +1,7 @@
 ## Release 0.9.3
 
 - .NET 11 upgrade. csharprepl now targets `net11.0`, so it requires the .NET 11 SDK; the `connect` feature requires the target app to run on .NET 11 too. NuGet dependencies are upgraded to match, including Roslyn 5.9, NuGet 8.0, and MSBuild 18.12.
+- On Windows, the global tool is once again installed as `csharprepl.exe` rather than a `csharprepl.cmd` batch file, so Windows Terminal profiles using `"commandline": "csharprepl"` work again ([#528](https://github.com/waf/CSharpRepl/issues/528)).
 
 ## Release 0.9.2
 
