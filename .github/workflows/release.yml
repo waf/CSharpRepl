@@ -9,11 +9,17 @@ on:
 
 permissions:
   contents: write # needed to create the GitHub release
+  id-token: write # needed for NuGet Trusted Publishing (GitHub OIDC token -> short-lived NuGet API key)
 
 jobs:
   build:
 
     runs-on: windows-latest
+
+    # Must match the "Environment" field of the nuget.org Trusted Publishing policy. Configure the
+    # environment's protection rules in GitHub (Settings > Environments > release) to only allow
+    # v* tags, so a modified copy of this workflow on some other branch can't publish.
+    environment: release
 
     steps:
     - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -34,6 +40,14 @@ jobs:
     - name: Pack
       run: dotnet pack CSharpRepl/CSharpRepl.csproj -c Release /p:ContinuousIntegrationBuild=true /p:PackRidSpecific=true
 
+    # Exchange this job's GitHub OIDC token for a nuget.org API key (Trusted Publishing).
+    # The key is valid for 1 hour, so request it after the (slow) pack step, right before pushing.
+    - name: NuGet login
+      id: nuget-login
+      uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+      with:
+        user: ${{ secrets.NUGET_USER }} # nuget.org profile name, not email
+
     # Publish the per-RID packages and the "any" fallback first. The root package is a "pointer"
     # that resolves to one of these at install time, so it must be published last (next step) to
     # avoid a window where it's available but the packages it points to are not.
@@ -46,7 +60,7 @@ jobs:
         $version = '${{ github.ref_name }}'.TrimStart('v')
         $rootPackage = "CSharpRepl.$version.nupkg"
         Get-ChildItem CSharpRepl.*.nupkg -Exclude $rootPackage | ForEach-Object {
-            dotnet nuget push $_.Name --api-key=${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+            dotnet nuget push $_.Name --api-key=${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         }
 
@@ -56,7 +70,7 @@ jobs:
       run: |
         cd CSharpRepl/nupkg
         $version = '${{ github.ref_name }}'.TrimStart('v')
-        dotnet nuget push "CSharpRepl.$version.nupkg" --api-key=${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        dotnet nuget push "CSharpRepl.$version.nupkg" --api-key=${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
     # Pull the notes for this version straight out of CHANGELOG.md so the GitHub release
     # mirrors what's already curated there (CHANGELOG.md is the single source of truth).
