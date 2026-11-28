@@ -1,3 +1,7 @@
+## Release 0.9.4
+
+- Upgrade nuget dependencies. Roslyn, MonoMod, and SymbolStore are the main highlights ([#532](https://github.com/waf/CSharpRepl/pull/532)).
+
 ## Release 0.9.3
 
 - .NET 11 upgrade. csharprepl now targets `net11.0`, so it requires the .NET 11 SDK; the `connect` feature requires the target app to run on .NET 11 too. NuGet dependencies are upgraded to match, including Roslyn 5.9, NuGet 8.0, and MSBuild 18.12.

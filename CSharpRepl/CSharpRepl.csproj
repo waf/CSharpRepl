@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.9.3</Version>
+    <Version>0.9.4</Version>
     <OutputType>Exe</OutputType>
     <TargetFramework>net11.0</TargetFramework>
     <RollForward>LatestMajor</RollForward>
