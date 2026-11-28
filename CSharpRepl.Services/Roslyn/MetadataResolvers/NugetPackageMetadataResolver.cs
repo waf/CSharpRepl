@@ -4,11 +4,11 @@
 
 using System;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Nuget;
 using CSharpRepl.Services.Roslyn.References;
+using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 
 namespace CSharpRepl.Services.Roslyn.MetadataResolvers;
@@ -20,8 +20,8 @@ internal sealed class NugetPackageMetadataResolver(IConsoleService console, Conf
 {
     private const string NugetPrefix = "nuget:";
     private const string NugetPrefixWithHashR = "#r \"" + NugetPrefix;
-    // Created lazily: NugetPackageInstaller loads NuGet assemblies from the .NET SDK, which aren't available if no
-    // compatible SDK is installed. Constructing it eagerly crashed the REPL at startup. https://github.com/waf/CSharpRepl/issues/526
+    // Lazy, because constructing it loads NuGet assemblies from the .NET SDK, which aren't available if MSBuildLocator
+    // found no compatible SDK. Creating it eagerly crashed the REPL at startup. https://github.com/waf/CSharpRepl/issues/526
     private readonly Lazy<NugetPackageInstaller> nugetInstaller = new(() => new(console, configuration, referenceAssemblyService, assemblyLoader));
 
     public override bool CanResolve(string reference) =>
@@ -37,20 +37,20 @@ internal sealed class NugetPackageMetadataResolver(IConsoleService console, Conf
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
         );
 
-        if (packageParts.Length is not (2 or 3))
+        // MSBuildLocator ignores SDKs newer than the runtime we're running on, so e.g. with only a preview SDK of the next
+        // .NET version installed, nothing is registered and the NuGet assemblies can't load. https://github.com/waf/CSharpRepl/issues/526
+        // Possible mitigation for users, UNTESTED: DOTNET_ROLL_FORWARD_TO_PRERELEASE=1 should let csharprepl roll forward
+        // onto that preview SDK's runtime, which would make the SDK usable.
+        if (!MSBuildLocator.IsRegistered)
         {
-            throw new InvalidOperationException(@"Malformed nuget reference. Expected #r ""nuget: PackageName"" or #r ""nuget: PackageName, version""");
+            throw new InvalidOperationException($"NuGet package references require a .NET SDK compatible with the .NET {Environment.Version} runtime, but none was found. Install the .NET {Environment.Version.Major} SDK from https://dotnet.microsoft.com/download");
         }
 
-        DotNetSdkRequirement.EnsureAvailable("NuGet package references");
-        return Install(packageParts, cancellationToken);
+        return packageParts.Length switch
+        {
+            2 => nugetInstaller.Value.InstallAsync(packageId: packageParts[1], cancellationToken: cancellationToken),
+            3 => nugetInstaller.Value.InstallAsync(packageId: packageParts[1], version: packageParts[2].TrimStart('v'), cancellationToken),
+            _ => throw new InvalidOperationException(@"Malformed nuget reference. Expected #r ""nuget: PackageName"" or #r ""nuget: PackageName, version""")
+        };
     }
-
-    // Kept separate from ResolveAsync so that JIT-compiling ResolveAsync doesn't need the NuGet assemblies;
-    // only calling this does, which happens after EnsureAvailable has checked for a compatible SDK.
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private Task<ImmutableArray<PortableExecutableReference>> Install(string[] packageParts, CancellationToken cancellationToken) =>
-        packageParts.Length == 3
-            ? nugetInstaller.Value.InstallAsync(packageId: packageParts[1], version: packageParts[2].TrimStart('v'), cancellationToken)
-            : nugetInstaller.Value.InstallAsync(packageId: packageParts[1], cancellationToken: cancellationToken);
 }

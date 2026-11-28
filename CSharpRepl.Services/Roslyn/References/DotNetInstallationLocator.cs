@@ -97,10 +97,6 @@ internal sealed class DotNetInstallationLocator
         }
         catch (InvalidOperationException ex)
         {
-            // Either MSBuild was already registered (harmless), or no compatible SDK exists, e.g. only a preview SDK
-            // of the next major .NET version is installed. In the latter case the REPL still works, but the features
-            // that need the SDK report it via DotNetSdkRequirement.EnsureAvailable when used.
-            // https://github.com/waf/CSharpRepl/issues/526
             logger.Log($"ERROR: {ex.Message}");
             return null;
         }

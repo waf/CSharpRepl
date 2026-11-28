@@ -9,7 +9,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CSharpRepl.Services.Dotnet;
-using CSharpRepl.Services.Roslyn.References;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 
@@ -36,9 +35,6 @@ internal sealed class SolutionFileMetadataResolver : AlternativeReferenceResolve
 
     public override async Task<ImmutableArray<PortableExecutableReference>> ResolveAsync(string reference, CancellationToken cancellationToken)
     {
-        // Check up front rather than after the (slow) build: MSBuildWorkspace below loads MSBuild from the .NET SDK.
-        DotNetSdkRequirement.EnsureAvailable("Project and solution references");
-
         var solutionPath = Path.GetFullPath(reference
             .Split('\"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Last());
