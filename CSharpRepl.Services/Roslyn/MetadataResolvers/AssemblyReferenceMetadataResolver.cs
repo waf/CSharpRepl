@@ -38,7 +38,10 @@ internal sealed class AssemblyReferenceMetadataResolver(AssemblyReferenceService
 
         foreach (var loadedReference in references)
         {
-            if (TryGetDepsJsonPath(loadedReference.FilePath, out var depsJsonPath))
+            // Expanding the deps.json needs NuGet's runtime graph, loaded from the .NET SDK. Without a compatible SDK,
+            // skip it rather than failing the whole #r: the DLL itself still loads, only RID-specific transitive
+            // dependencies may not resolve. https://github.com/waf/CSharpRepl/issues/526
+            if (DotNetSdkRequirement.IsAvailable && TryGetDepsJsonPath(loadedReference.FilePath, out var depsJsonPath))
             {
                 using var fs = File.OpenRead(depsJsonPath);
                 var dependencyContext = dependencyContextJsonReader.Read(fs);
